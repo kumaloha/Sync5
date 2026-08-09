@@ -69,7 +69,10 @@ godot --headless --path . --import                                         # 新
 - **数值与内容全部在 `data/*.json`**(2026-08-05 配置化,schema 见 `design/tech.md`):
   小丑牌/主角 = 效果 DSL(`core/fx.gd` 解释),Boss 脸 = 参数表,关卡/经济/机器人信念表 = 纯数字,
   打点开关 = `tape.json`。
-  改卡改平衡 = 改 JSON;`core/db.gd` 硬校验,未知键/坏引用直接红。加新 DSL 操作码要过 design/jokers.md 的门槛。
+  改卡改平衡 = 改 JSON;`core/db.gd` 校验,未知键/坏引用**在测试里直接红**
+  (`tests/t_db.gd` 断言 `DB.load_error() == ""`)。⚠ **是测试期门禁,运行时不拒绝启动** ——
+  理由与「要改成严格该先做什么」写在 `core/db.gd` 文件头。
+  加新 DSL 操作码要过 design/jokers.md 的门槛。
   机器人的 `_target_mult` 和卡面数额从 jokers.json **推导**,不许再手抄第二份。
 - **打点只在编排器打**(`view/phrase.gd` 调 `Tape.on()`),和「金币/装槽等经济动作只发生在编排器」
   同一条线——组件各打各的必然打重、打漏。组件要上报就发信号(shop 的 `denied` 就是为此加的)。

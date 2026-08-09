@@ -1,8 +1,26 @@
 class_name DB
 extends RefCounted
 
-## Data-config loader (design/tech.md). Loads data/*.json once, validates hard,
-## fails loudly: any schema violation lands in load_error() and tests go red.
+## Data-config loader (design/tech.md). Loads data/*.json once and validates.
+##
+## ⚑⚑ **校验是「测试期门禁」,不是运行时拒绝 —— 这是有意的,2026-08-09 拍板。**
+##
+## 违规时 `_fail()` 记进 `load_error()` 并 `push_error`,**然后照常返回解析结果**,
+## 游戏继续跑。`tests/t_db.gd` 第一条就断言 `DB.load_error() == ""`,
+## 所以任何 schema 违规**在测试里直接红**。
+##
+## 为什么运行时不 fail-closed(外部审查提过这一点):数据文件**随游戏一起发布**
+## 且发布前已经过测试门,而 `_load` 若在违规时返回 `{}`,调用方会在四处
+## 炸出一串莫名其妙的错 —— 那不是一次干净的失败,而玩家看到的是黑屏。
+## **代价不对称:漏网的坏数据只影响一次构建,开不了机影响每一个玩家。**
+##
+## ⚠ 曾经这里写的是「validates hard, fails loudly」,读起来像运行时会拒绝 ——
+## **那是一句承诺了不存在的保障的话**,和 `core/beat.gd` 那句「漏步 = 崩」同一个毛病
+## (`push_error` 根本不中断执行)。**注释不许描述一个没有实现的机制。**
+##
+## ⚠ 要改成运行时严格的话,改的不是这里,而是要先给出一个**单点的**失败出口
+## (例如启动时统一检查 `load_error()` 并显示一屏可读的错误),否则只是把静默
+## 换成了雪崩。
 ## `_comment` keys (any key starting with "_") are ignored everywhere —
 ## **except faces.json**, which is data-only (2026-08-09): its design prose
 ## lives in design/blinds.md, and `_`-prefixed keys are rejected there on
@@ -82,10 +100,17 @@ static func _load(fname: String, validator: Callable) -> Dictionary:
 	var v: String = validator.call(parsed)
 	if v != "":
 		_fail("%s.json: %s" % [fname, v])
+	# ⚠ **违规也照常缓存并返回** —— 见文件头:这是「测试期门禁」的有意选择,
+	# 不是漏写的 early-return。错误已经进了 `_err`, 而 `_err` 是**粘的**
+	# (`load_error()` 累加, 不会被后续成功的加载冲掉), 所以测试一定红。
+	# ⚠ 缓存之后不再重新校验 —— 文件在一次运行内不会变, 重验没有意义;
+	# 但这意味着**错误只 push_error 一次**, 别指望在日志里反复看到它。
 	_cache[fname] = parsed
 	return parsed
 
 
+## ⚠ `_err` 只增不减 —— 一旦有过违规, `load_error()` 在本次运行内**永远非空**。
+## 这是故意的:测试断言的是「全程零违规」, 不是「最后一次加载是干净的」。
 static func _fail(msg: String) -> void:
 	_err += msg + "; "
 	push_error("[DB] " + msg)
