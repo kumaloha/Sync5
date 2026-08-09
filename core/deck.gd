@@ -1,0 +1,120 @@
+class_name Deck
+extends RefCounted
+
+## Standard 52-card deck with draw pile + discard pile.
+## Hand and Cache live outside the deck, so they are naturally excluded
+## from reshuffle.
+
+var draw_pile: Array[Card] = []
+var discard_pile: Array[Card] = []
+var _rng := RandomNumberGenerator.new()
+
+func _init(seed_value: int = -1) -> void:
+	if seed_value >= 0:
+		_rng.seed = seed_value
+	else:
+		_rng.randomize()
+	_build_full()
+
+## 大王/小王 are OFF by default — only a joker modifier puts them in the deck.
+var wilds_enabled := false
+
+## Run-owned rule flags set by rule-change jokers (shortcut / fourfingers /
+## twotone). They live on the deck because the deck IS the run's card system —
+## a fresh run builds a fresh deck, so the rules reset for free.
+var rules: Dictionary = {}
+
+func _build_full() -> void:
+	draw_pile.clear()
+	discard_pile.clear()
+	for s in range(4):
+		for r in range(2, 15):
+			draw_pile.append(Card.new(r, s))
+	if wilds_enabled:
+		draw_pile.append(Card.new(Card.JOKER_RANK, Card.JOKER_BIG))
+		draw_pile.append(Card.new(Card.JOKER_RANK, Card.JOKER_LITTLE))
+	shuffle()
+
+## Turn the two wild cards on mid-run: they are shuffled into the draw pile.
+func enable_wilds() -> void:
+	if wilds_enabled:
+		return
+	wilds_enabled = true
+	draw_pile.append(Card.new(Card.JOKER_RANK, Card.JOKER_BIG))
+	draw_pile.append(Card.new(Card.JOKER_RANK, Card.JOKER_LITTLE))
+	shuffle()
+
+func shuffle() -> void:
+	for i in range(draw_pile.size() - 1, 0, -1):
+		var j := _rng.randi_range(0, i)
+		var tmp := draw_pile[i]
+		draw_pile[i] = draw_pile[j]
+		draw_pile[j] = tmp
+
+func draw() -> Card:
+	if draw_pile.is_empty():
+		_reshuffle_discard()
+	if draw_pile.is_empty():
+		return null
+	return draw_pile.pop_back()
+
+## A random index in [0, n) drawn from the DECK's own rng, so anything that
+## reseeds the deck stays reproducible. Used by the cache-eviction faces —
+## core/ must not reach for a clock or a global rng.
+func pick_index(n: int) -> int:
+	if n <= 1:
+		return 0
+	return _rng.randi_range(0, n - 1)
+
+
+func discard(card: Card) -> void:
+	if card != null:
+		discard_pile.append(card)
+
+func _reshuffle_discard() -> void:
+	draw_pile = discard_pile.duplicate()
+	discard_pile.clear()
+	shuffle()
+
+## 设想抽 n 张但**不消耗牌堆**(design/solver_roadmap.md:求解器是在"算", 不是在"玩" ——
+## 真去 draw() 会让求解本身改变游戏状态, 那就不是同一局了)。
+## **一次调用内不放回**:一副牌里没有两张一样的, 放回抽样会虚构出对子。
+## 待抽区不够就并上弃牌堆 —— 那正是 draw() 抽空后会洗回来的那批。
+func peek_many(rng: RandomNumberGenerator, n: int) -> Array:
+	if n <= 0:
+		return []
+	# ⚠ **不要"优化"成拒绝采样**(试过, 已撤回):那样 RNG 的消耗个数会变,
+	# 抽到的补牌就跟着变 —— 而它**一点速度都没换来**(实测 0 提升, 瓶颈在 _classify)。
+	# **不提速却改结果的优化是纯亏**:所有历史读数当场失去可比性。
+	var pool: Array = draw_pile.duplicate()
+	if pool.size() < n:
+		pool.append_array(discard_pile)
+	if pool.size() < n:
+		return []
+	var out: Array = []
+	for i in range(n):
+		var j := rng.randi_range(0, pool.size() - 1)
+		out.append(pool[j])
+		pool.remove_at(j)
+	return out
+
+
+func remaining() -> int:
+	return draw_pile.size()
+
+func total() -> int:
+	return draw_pile.size() + discard_pile.size()
+
+
+## 复制一份牌堆给**假想推演**用(design/solving.md 第三部分)。
+## ⚠⚠ 必须有**自己的 RNG** —— 推演若用真实牌堆的 rng, 就会消耗真实局的随机数序列,
+## 于是「算了一下买哪张牌」这个动作本身改变了这一局。那是最恶劣的一种污染:
+## 不报错, 只是这一局悄悄变成了另一局。
+## ⚠ 两条对照臂用**同一个 seed** fork —— 这就是公共随机数, 噪声成对抵消。
+func fork(seed_value: int) -> Deck:
+	var d := Deck.new(seed_value)
+	d.draw_pile = draw_pile.duplicate()
+	d.discard_pile = discard_pile.duplicate()
+	d.wilds_enabled = wilds_enabled
+	d.rules = rules.duplicate(true)
+	return d

@@ -1,0 +1,40 @@
+extends RefCounted
+
+# --- Hand input: tap vs drag are DIFFERENT gestures (2026-08-06 用户) ---
+# 「点到手牌区的卡和缓存区的卡就直接交换了, 但我有时候只是想同时对他们弃牌」。
+# Contract: tap = select only (across both zones, for a batch discard);
+# drag = swap. A tap must never swap, or cross-zone multi-select is unreachable.
+func run(t) -> void:
+	var h := Hand.new()
+	t.get_root().add_child(h)
+	h._decide = true
+	var swaps: Array = []
+	h.swap_requested.connect(func(a, b): swaps.append([a, b]))
+
+	h._on_hand_tap(2)
+	h._on_cache_card_tap(1)
+	t.check(h.sel_hand == [2], "tapping a hand card selects it")
+	t.check(h.sel_cache == [1], "tapping a cache card selects it too")
+	t.eq(h.selection_total(), 2, "selection spans both zones")
+	t.eq(swaps.size(), 0, "taps NEVER swap — that shortcut ate the second tap")
+
+	h._on_hand_tap(2)
+	t.check(h.sel_hand.is_empty(), "tapping again deselects")
+
+	# drag is the swap gesture (CLAUDE.md:「拖拽 = 两张对调」)
+	h.clear_selection()
+	h._on_cache_drop({"zone": "hand", "index": 3}, 0)
+	t.eq(swaps.size(), 1, "dropping a hand card on a cache slot swaps")
+	t.check(swaps[0] == [3, 0], "swap carries (hand_i, cache_i)")
+	h._on_hand_drop({"zone": "cache", "index": 2}, 4)
+	t.eq(swaps.size(), 2, "dropping a cache card on a hand card swaps")
+	t.check(swaps[1] == [4, 2], "reverse drop keeps the same argument order")
+	h._on_hand_drop({"zone": "bogus", "index": 0}, 1)
+	t.eq(swaps.size(), 2, "a drop from an unknown zone is ignored")
+
+	# selection must survive a swap-free tap sequence but clear on a real swap
+	h.clear_selection()
+	h._on_hand_tap(0)
+	h._on_cache_drop({"zone": "hand", "index": 0}, 2)
+	t.check(h.sel_hand.is_empty() and h.sel_cache.is_empty(), "a swap clears the selection")
+	h.queue_free()

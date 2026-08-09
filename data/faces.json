@@ -1,0 +1,169 @@
+{
+  "faces": [
+    {
+      "id": "unplugged",
+      "name": "Unplugged",
+      "cn": "拔电",
+      "fx": "Your Target works at half power",
+      "params": {
+        "target_power": 0.5
+      },
+      "proof": "score",
+      "tier": 3
+    },
+    {
+      "id": "static",
+      "name": "Static",
+      "cn": "杂讯",
+      "fx": "Score bonuses are disabled",
+      "params": {
+        "bonus_disabled": true
+      },
+      "proof": "score",
+      "tier": 2
+    },
+    {
+      "id": "norepeat",
+      "name": "No Repeats",
+      "cn": "禁回",
+      "fx": "Repeating last hand scores half",
+      "params": {
+        "repeat_factor": 0.5
+      },
+      "proof": "score",
+      "tier": 1
+    },
+    {
+      "id": "rerun",
+      "name": "Rerun",
+      "cn": "炒冷饭",
+      "fx": "Repeating last hand scores nothing",
+      "params": {
+        "repeat_factor": 0.0
+      },
+      "proof": "score",
+      "tier": 3
+    },
+    {
+      "id": "rotation",
+      "name": "Forced Rotation",
+      "cn": "强制换血",
+      "fx": "Zero discards: score halved",
+      "params": {
+        "zero_discard_factor": 0.5
+      }
+    },
+    {
+      "id": "rush",
+      "name": "Rush Hour",
+      "cn": "赶场",
+      "fx": "Phrases are 2 seconds shorter",
+      "params": {
+        "time_penalty": 2.0
+      },
+      "proof": "solver",
+      "tier": 4
+    },
+    {
+      "id": "cover",
+      "name": "Cover Charge",
+      "cn": "入场费",
+      "fx": "Pay 1 coin each phrase",
+      "params": {
+        "phrase_toll": 1
+      },
+      "proof": "score",
+      "tier": 1
+    },
+    {
+      "id": "lostpage",
+      "name": "Lost Pages",
+      "cn": "丢谱",
+      "fx": "Lose 1 random cache card each phrase",
+      "params": {
+        "cache_evict": 1
+      },
+      "proof": "solver",
+      "tier": 1
+    },
+    {
+      "id": "freshsheet",
+      "name": "Fresh Sheet",
+      "cn": "翻篇",
+      "fx": "The whole cache is replaced each phrase",
+      "params": {
+        "cache_evict": 3
+      },
+      "proof": "solver",
+      "tier": 1
+    },
+    {
+      "id": "smallstage",
+      "name": "Small Stage",
+      "cn": "窄台",
+      "fx": "The cache holds only 2 cards",
+      "params": {
+        "cache_cap_delta": -1
+      },
+      "proof": "solver",
+      "tier": 1
+    },
+    {
+      "id": "setlist",
+      "name": "Set List",
+      "cn": "定调",
+      "fx": "First hand type locks; others score half",
+      "params": {
+        "lock_first": 0.5
+      },
+      "proof": "score",
+      "tier": 2
+    },
+    {
+      "id": "blindspot",
+      "name": "Blind Spot",
+      "cn": "暗补",
+      "fx": "Discarded cards return face down",
+      "params": {
+        "hide_refill": 1
+      },
+      "proof": "belief",
+      "tier": 2
+    },
+    {
+      "id": "facedown",
+      "name": "Face Down",
+      "cn": "蒙面",
+      "fx": "Face cards are dealt face down",
+      "params": {
+        "hide_faces": 1
+      },
+      "proof": "belief",
+      "tier": 1
+    },
+    {
+      "id": "raisedbar",
+      "name": "Raised Bar",
+      "cn": "加码",
+      "fx": "This section's target is 50% higher",
+      "params": {
+        "target_mult": 1.5
+      },
+      "proof": "target",
+      "tier": 3
+    }
+  ],
+  "families": {
+    "repeat_factor": {
+      "soft": "norepeat",
+      "hard": "rerun"
+    }
+  },
+  "fixed_tiers": [
+    4
+  ],
+  "weak_upper_bound": [
+    "lostpage",
+    "static"
+  ]
+}

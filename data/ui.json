@@ -1,0 +1,118 @@
+{
+ "_comment": "UI 布局与文案(design/tech.md)。stage=全局几何;hud/shop/hand/banner 各组件自读一节。",
+ "stage": {
+  "margin": 26,
+  "card_w": 114,
+  "card_h": 170,
+  "gap": 16,
+  "resolve_hold": 1.0,
+  "pill_w": 200,
+  "hand_top": 672,
+  "hand_card_y": 724,
+  "cache_y": 1024,
+  "lift_base": 16,
+  "lift_scoring": 8,
+  "lift_selected": -2
+ },
+ "hud": {
+  "pos": [
+   26,
+   26
+  ],
+  "size": [
+   668,
+   96
+  ],
+  "pills": {
+   "x0": 244,
+   "pitch": 19,
+   "gap": 6,
+   "y": 16,
+   "w": 14,
+   "h": 7
+  },
+  "coin": [
+   486,
+   4
+  ],
+  "score": [
+   22,
+   12
+  ],
+  "target": [
+   140,
+   38
+  ],
+  "target_x_base": 30,
+  "phrase": [
+   446,
+   38
+  ],
+  "pbar_pos": [
+   22,
+   74
+  ],
+  "pbar_size": [
+   624,
+   10
+  ]
+ },
+ "shop": {
+  "title": "选择小丑牌",
+  "title_pos": [
+   0,
+   400
+  ],
+  "kind_pos": [
+   0,
+   452
+  ],
+  "blind_pos": [
+   80,
+   92
+  ],
+  "blind_size": [
+   560,
+   276
+  ],
+  "target_line": "TARGET · 定义什么是好答案 · 免费",
+  "support_line": "SUPPORT · 定义怎么到达答案 · ◆ %d",
+  "card_w": 200,
+  "card_gap": 24,
+  "cards_y": 520,
+  "price_dy": 8,
+  "btn_y": 806,
+  "reroll_text": "刷新 · %d ◆",
+  "skip_text": "继续 ▸",
+  "free_text": "免费",
+  "insufficient": "◆ 不足",
+  "replace_prompt": "拖或点要换掉的槽位 · ◆%d 买入 · 旧卡折半",
+  "replace_prompt_pos": [
+   155,
+   592
+  ],
+  "replace_preview_pos": [
+   282,
+   448
+  ],
+  "replace_preview_size": [
+   156,
+   132
+  ],
+  "replace_prompt_w": 410
+ },
+ "hand": {
+  "hand_tab": "手 牌 区",
+  "cache_tab": "缓 存 区",
+  "sort_label": "理牌",
+  "discard_label": "弃牌",
+  "hand_tab_pos": [
+   312,
+   682
+  ],
+  "cache_tab_pos": [
+   314,
+   985
+  ]
+ }
+}

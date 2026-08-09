@@ -1,0 +1,496 @@
+{
+ "jokers": [
+  {
+   "id": "twin",
+   "name": "Twin",
+   "cn": "双子",
+   "kind": "target",
+   "rarity": "rare",
+   "proof": "score",
+   "fx": "Pairs and two pairs: ×6",
+   "effects": [
+    {
+     "when": {
+      "kind": "PAIR"
+     },
+     "do": {
+      "mult": 6.0
+     }
+    },
+    {
+     "when": {
+      "kind": "TWO_PAIR"
+     },
+     "do": {
+      "mult": 6.0
+     }
+    }
+   ]
+  },
+  {
+   "id": "stair",
+   "name": "Stairway",
+   "cn": "阶梯",
+   "kind": "target",
+   "rarity": "rare",
+   "proof": "score",
+   "fx": "Straights and straight flushes: ×10",
+   "effects": [
+    {
+     "when": {
+      "kind": "STRAIGHT"
+     },
+     "do": {
+      "mult": 10.0
+     }
+    },
+    {
+     "when": {
+      "kind_in": [
+       "STRAIGHT_FLUSH",
+       "ROYAL_FLUSH"
+      ]
+     },
+     "do": {
+      "mult": 10.0
+     }
+    }
+   ]
+  },
+  {
+   "id": "mono",
+   "name": "Monochrome",
+   "cn": "单色",
+   "kind": "target",
+   "rarity": "rare",
+   "proof": "score",
+   "fx": "Flushes and straight flushes: ×7",
+   "effects": [
+    {
+     "when": {
+      "kind": "FLUSH"
+     },
+     "do": {
+      "mult": 7.0
+     }
+    },
+    {
+     "when": {
+      "kind_in": [
+       "STRAIGHT_FLUSH",
+       "ROYAL_FLUSH"
+      ]
+     },
+     "do": {
+      "mult": 7.0
+     }
+    }
+   ]
+  },
+  {
+   "id": "triplet",
+   "name": "Triplet",
+   "cn": "三连音",
+   "kind": "target",
+   "rarity": "rare",
+   "proof": "score",
+   "fx": "Trips, full house, quads: ×5",
+   "effects": [
+    {
+     "when": {
+      "kind": "THREE_KIND"
+     },
+     "do": {
+      "mult": 5.0
+     }
+    },
+    {
+     "when": {
+      "kind": "FULL_HOUSE"
+     },
+     "do": {
+      "mult": 5.0
+     }
+    },
+    {
+     "when": {
+      "kind": "FOUR_KIND"
+     },
+     "do": {
+      "mult": 5.0
+     }
+    }
+   ]
+  },
+  {
+   "id": "lonewolf",
+   "name": "Lone Wolf",
+   "cn": "独狼",
+   "kind": "target",
+   "rarity": "rare",
+   "proof": "coin",
+   "fx": "No discards: +3 coins; Targets always offered",
+   "effects": [
+    {
+     "when": {
+      "discards_eq": 0
+     },
+     "do": {
+      "coins": 3
+     }
+    }
+   ],
+   "shelf": {
+    "target_guaranteed": true
+   }
+  },
+  {
+   "id": "encore",
+   "name": "Encore",
+   "cn": "回响",
+   "kind": "support",
+   "rarity": "common",
+   "proof": "score",
+   "fx": "Same hand as last phrase: +80",
+   "effects": [
+    {
+     "when": {
+      "same_as_prev": true
+     },
+     "do": {
+      "bonus": 80
+     }
+    }
+   ]
+  },
+  {
+   "id": "finale",
+   "name": "Finale",
+   "cn": "尾声",
+   "kind": "support",
+   "rarity": "common",
+   "proof": "score",
+   "fx": "Act in final 2 seconds: +70",
+   "effects": [
+    {
+     "when": {
+      "acted_late": true
+     },
+     "do": {
+      "bonus": 70
+     }
+    }
+   ]
+  },
+  {
+   "id": "turnover",
+   "name": "Turnover",
+   "cn": "周转",
+   "kind": "support",
+   "rarity": "common",
+   "proof": "score",
+   "fx": "+20 per discard this phrase",
+   "effects": [
+    {
+     "when": {
+      "discards_gte": 1
+     },
+     "do": {
+      "bonus": 20,
+      "per": "discard"
+     }
+    }
+   ]
+  },
+  {
+   "id": "tipjar",
+   "name": "Tip Jar",
+   "cn": "小费罐",
+   "kind": "support",
+   "rarity": "common",
+   "proof": "coin",
+   "fx": "Zero discards this phrase: +2 coins",
+   "effects": [
+    {
+     "when": {
+      "discards_eq": 0
+     },
+     "do": {
+      "coins": 2
+     }
+    }
+   ]
+  },
+  {
+   "id": "chord",
+   "name": "Chord",
+   "cn": "和弦",
+   "kind": "support",
+   "rarity": "common",
+   "proof": "score",
+   "fx": "Cache all one suit: +120",
+   "effects": [
+    {
+     "when": {
+      "cache_mono_suit": true
+     },
+     "do": {
+      "bonus": 120
+     }
+    }
+   ]
+  },
+  {
+   "id": "neonsign",
+   "name": "Neon Sign",
+   "cn": "灯牌",
+   "kind": "support",
+   "rarity": "common",
+   "proof": "score",
+   "fx": "+80",
+   "effects": [
+    {
+     "do": {
+      "bonus": 80
+     }
+    }
+   ]
+  },
+  {
+   "id": "vinyl",
+   "name": "Vinyl",
+   "cn": "黑胶",
+   "kind": "support",
+   "rarity": "common",
+   "proof": "score",
+   "fx": "Every discard: +3 forever",
+   "counters": {
+    "n": {
+     "on_discard": "sum"
+    }
+   },
+   "effects": [
+    {
+     "when": {
+      "counter_gte": [
+       "n",
+       1
+      ]
+     },
+     "do": {
+      "additive": 3,
+      "per": "counter:n"
+     }
+    }
+   ]
+  },
+  {
+   "id": "chorus",
+   "name": "Chorus",
+   "cn": "副歌",
+   "kind": "support",
+   "rarity": "uncommon",
+   "proof": "score",
+   "fx": "Last phrase of section: +75%",
+   "effects": [
+    {
+     "when": {
+      "last_phrase": true
+     },
+     "do": {
+      "bonus_pct": 0.75
+     }
+    }
+   ]
+  },
+  {
+   "id": "interest",
+   "name": "Interest",
+   "cn": "利息",
+   "kind": "support",
+   "rarity": "uncommon",
+   "proof": "coin",
+   "fx": "+1 coin per 4 held",
+   "effects": [
+    {
+     "when": {
+      "coins_gte": 4
+     },
+     "do": {
+      "coins": 1,
+      "per": "coins:4",
+      "cap": 5
+     }
+    }
+   ]
+  },
+  {
+   "id": "momentum",
+   "name": "Momentum",
+   "cn": "惯性",
+   "kind": "support",
+   "rarity": "uncommon",
+   "proof": "score",
+   "fx": "Each early finish: +10% forever",
+   "counters": {
+    "stacks": {
+     "on_early_finish": 1
+    }
+   },
+   "effects": [
+    {
+     "when": {
+      "counter_gte": [
+       "stacks",
+       1
+      ]
+     },
+     "do": {
+      "bonus_pct": 0.1,
+      "per": "counter:stacks"
+     }
+    }
+   ]
+  },
+  {
+   "id": "vip",
+   "name": "VIP",
+   "cn": "贵宾",
+   "kind": "support",
+   "rarity": "uncommon",
+   "proof": "score",
+   "fx": "Face cards count as 15",
+   "effects": [
+    {
+     "do": {
+      "additive_face_value": 15
+     }
+    }
+   ]
+  },
+  {
+   "id": "glowstick",
+   "name": "Glow Stick",
+   "cn": "荧光棒",
+   "kind": "support",
+   "rarity": "uncommon",
+   "proof": "score",
+   "fx": "+60%, fades 6% each phrase",
+   "counters": {
+    "pct": {
+     "init": 0.6,
+     "decay_per_phrase": 0.06,
+     "floor": 0.0
+    }
+   },
+   "effects": [
+    {
+     "when": {
+      "counter_gte": [
+       "pct",
+       0.001
+      ]
+     },
+     "do": {
+      "bonus_pct": {
+       "counter": "pct"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "shortcut",
+   "name": "Shortcut",
+   "cn": "近道",
+   "kind": "support",
+   "rarity": "uncommon",
+   "proof": "solver",
+   "fx": "Straights may skip one rank",
+   "acquire": {
+    "deck_rule": "shortcut"
+   }
+  },
+  {
+   "id": "fourfingers",
+   "name": "Four Fingers",
+   "cn": "四指",
+   "kind": "support",
+   "rarity": "rare",
+   "proof": "solver",
+   "fx": "Four-card straights count",
+   "acquire": {
+    "deck_rule": "fourfingers"
+   }
+  },
+  {
+   "id": "twotone",
+   "name": "Two-Tone",
+   "cn": "双色调",
+   "kind": "support",
+   "rarity": "rare",
+   "proof": "solver",
+   "fx": "Flushes need only matching colors",
+   "acquire": {
+    "deck_rule": "twotone"
+   }
+  },
+  {
+   "id": "bassline",
+   "name": "Bassline",
+   "cn": "贝斯线",
+   "kind": "support",
+   "rarity": "rare",
+   "proof": "score",
+   "fx": "Every 12 discards: ×0.25 forever",
+   "counters": {
+    "n": {
+     "on_discard": "sum"
+    }
+   },
+   "effects": [
+    {
+     "when": {
+      "counter_gte": [
+       "n",
+       12
+      ]
+     },
+     "do": {
+      "mult_add": 0.25,
+      "per": "counter:n",
+      "step": 12
+     }
+    }
+   ]
+  },
+  {
+   "id": "mirror",
+   "name": "Mirror",
+   "cn": "镜面",
+   "kind": "support",
+   "rarity": "rare",
+   "proof": "score",
+   "fx": "Copies your Target at half power",
+   "effects": [
+    {
+     "do": {
+      "mult_from_target_factor": 0.5
+     }
+    }
+   ]
+  },
+  {
+   "id": "wildcard",
+   "name": "Wildcard",
+   "cn": "百搭",
+   "kind": "support",
+   "rarity": "rare",
+   "proof": "solver",
+   "fx": "Two wild cards join your deck",
+   "acquire": {
+    "wilds": 2
+   }
+  }
+ ]
+}

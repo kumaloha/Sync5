@@ -1,0 +1,10 @@
+{
+  "_": "游玩打点开关 (core/tape.gd)。改这里 = 改采集口径,不用动代码。",
+  "_mute": "要暂时关掉某类事件就把事件名填进 mute,例如 [\"swap\", \"sort\"] 只留决策不留手势。",
+  "_dir": "user:// 在 macOS 上是 ~/Library/Application Support/Godot/app_userdata/<项目名>/。别用 user://logs —— 那是 Godot 引擎自己写 godot.log 的地方,还会按 max_files 轮转删除。",
+  "enabled": true,
+  "to_file": true,
+  "dir": "user://tape",
+  "max_events": 2000,
+  "mute": []
+}

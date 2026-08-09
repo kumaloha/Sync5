@@ -1,0 +1,24 @@
+{
+ "starting_coins": 6,
+ "discard_cost": 0,
+ "section_clear_reward": 3,
+ "draft_rarity_weights": {
+  "common": 70,
+  "uncommon": 25,
+  "rare": 5
+ },
+ "joker_prices": {
+  "common": 4,
+  "uncommon": 6,
+  "rare": 9
+ },
+ "joker_price_overrides": {
+  "mirror": 11
+ },
+ "reroll": {
+  "base": 3,
+  "step": 1
+ },
+ "_comment_target": "Target 回池(2026-08-06 用户拍板:「不应该有任何卡有固定概率, 大家都是一样的。除了第一轮有 target 之外, 其他都是随机的」)。原 target_swap{price,chance,from_section} 已删 —— 那是同一件事(这张牌多久出现)的第二套平行机制, 且 from_section 是按段号写死的地雷。现在 Target 按 rarity=rare 进同一个货架池, 出现率是池子组成的推论; 首张免费三选一保留(开局引导, 唯一特例)。",
+ "_comment_discard": "弃牌免费(2026-08-06 用户拍板:「关于弃牌要金币这个事情我想取消, 每局可以免费无限制弃牌, 我们是有时间限制的, 取消加大赌性, 且取消后续买不起小丑牌的顾虑」)。**唯一的闸门变成 8 秒钟**, 金币只剩买牌一个出口。连带: ①「赶场」-2s 从对模型无效变成最狠的一张脸(时间是唯一约束了); ②「强制换血」(零弃牌减半)随手弃一张就免疫, 几乎失效; ③ 周转/黑胶/贝斯线三张吃弃牌的卡会明显变强; ④ 独狼的零弃牌起誓代价变大, 而它本来就垫底; ⑤ 手速预算(run.json beat_budget)从一个近似升级成**唯一的平衡杠杆**, 必须用 Tape 真人数据量准。"
+}

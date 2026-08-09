@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  body { margin:0; background:#04050d; }
+  a { color:#35e8e0; } a:hover { color:#ff4fa3; }
+</style>
+</helmet>
+<section style="padding:40px;background:linear-gradient(180deg,#070a1a,#05060f);font-family:'Rajdhani','Noto Sans SC',sans-serif;">
+  <div style="color:#8a9cc4;font-size:15px;letter-spacing:2px;margin-bottom:24px;">第 2 轮 — 传统扑克点阵布局 × 霓虹玻璃风(角标数字+花色,多点阵排布)</div>
+  <div style="display:flex;gap:36px;flex-wrap:wrap;align-items:flex-start;margin-bottom:48px;">
+
+    <div id="2a" style="display:flex;flex-direction:column;gap:14px;align-items:center;">
+      <div style="padding:2px 10px;border-radius:8px;background:#1a2142;color:#9fb4d8;font-size:13px;letter-spacing:1px;">2a 数字牌 8♦</div>
+      <div style="position:relative;width:150px;height:224px;">
+        <div style="position:absolute;inset:0;border-radius:14px;background:linear-gradient(165deg,rgba(30,12,32,.72),rgba(10,6,20,.82));border:2px solid rgba(255,79,163,.85);box-shadow:0 0 16px rgba(255,79,163,.45), inset 0 0 20px rgba(255,79,163,.14);"></div>
+        <div style="position:absolute;inset:0;border-radius:14px;background:linear-gradient(115deg,rgba(255,255,255,.18) 0%,rgba(255,255,255,.05) 28%,transparent 44%,transparent 66%,rgba(255,255,255,.06) 100%);"></div>
+        <div style="position:absolute;left:8px;right:8px;top:2px;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.5),transparent);"></div>
+        <div style="position:absolute;left:10px;top:10px;text-align:center;line-height:1;"><div style="font-size:24px;font-weight:700;color:#fdf4ff;text-shadow:0 0 10px #ff6aa9;">8</div><div style="font-size:16px;color:#ff6aa9;text-shadow:0 0 8px #ff6aa9;">♦</div></div>
+        <div style="position:absolute;right:10px;bottom:10px;text-align:center;line-height:1;transform:rotate(180deg);"><div style="font-size:24px;font-weight:700;color:#fdf4ff;text-shadow:0 0 10px #ff6aa9;">8</div><div style="font-size:16px;color:#ff6aa9;text-shadow:0 0 8px #ff6aa9;">♦</div></div>
+        <div style="position:absolute;left:29%;top:22%;transform:translate(-50%,-50%);font-size:26px;line-height:1;color:#ff6aa9;text-shadow:0 0 10px #ff6aa9, 0 0 24px rgba(255,106,169,.6);">♦</div>
+        <div style="position:absolute;left:71%;top:22%;transform:translate(-50%,-50%);font-size:26px;line-height:1;color:#ff6aa9;text-shadow:0 0 10px #ff6aa9, 0 0 24px rgba(255,106,169,.6);">♦</div>
+        <div style="position:absolute;left:29%;top:50%;transform:translate(-50%,-50%);font-size:26px;line-height:1;color:#ff6aa9;text-shadow:0 0 10px #ff6aa9, 0 0 24px rgba(255,106,169,.6);">♦</div>
+        <div style="position:absolute;left:71%;top:50%;transform:translate(-50%,-50%);font-size:26px;line-height:1;color:#ff6aa9;text-shadow:0 0 10px #ff6aa9, 0 0 24px rgba(255,106,169,.6);">♦</div>
+        <div style="position:absolute;left:50%;top:36%;transform:translate(-50%,-50%);font-size:26px;line-height:1;color:#ff6aa9;text-shadow:0 0 10px #ff6aa9, 0 0 24px rgba(255,106,169,.6);">♦</div>
+        <div style="position:absolute;left:29%;top:78%;transform:translate(-50%,-50%) rotate(180deg);font-size:26px;line-height:1;color:#ff6aa9;text-shadow:0 0 10px #ff6aa9, 0 0 24px rgba(255,106,169,.6);">♦</div>
+        <div style="position:absolute;left:71%;top:78%;transform:translate(-50%,-50%) rotate(180deg);font-size:26px;line-height:1;color:#ff6aa9;text-shadow:0 0 10px #ff6aa9, 0 0 24px rgba(255,106,169,.6);">♦</div>
+        <div style="position:absolute;left:50%;top:64%;transform:translate(-50%,-50%) rotate(180deg);font-size:26px;line-height:1;color:#ff6aa9;text-shadow:0 0 10px #ff6aa9, 0 0 24px rgba(255,106,169,.6);">♦</div>
+      </div>
+    </div>
+
+    <div id="2b" style="display:flex;flex-direction:column;gap:14px;align-items:center;">
+      <div style="padding:2px 10px;border-radius:8px;background:#1a2142;color:#9fb4d8;font-size:13px;letter-spacing:1px;">2b 数字牌 5♠</div>
+      <div style="position:relative;width:150px;height:224px;">
+        <div style="position:absolute;inset:0;border-radius:14px;background:linear-gradient(165deg,rgba(30,12,32,.72),rgba(10,6,20,.82));border:2px solid rgba(255,79,163,.85);box-shadow:0 0 16px rgba(255,79,163,.45), inset 0 0 20px rgba(255,79,163,.14);"></div>
+        <div style="position:absolute;inset:0;border-radius:14px;background:linear-gradient(115deg,rgba(255,255,255,.18) 0%,rgba(255,255,255,.05) 28%,transparent 44%,transparent 66%,rgba(255,255,255,.06) 100%);"></div>
+        <div style="position:absolute;left:8px;right:8px;top:2px;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.5),transparent);"></div>
+        <div style="position:absolute;left:10px;top:10px;text-align:center;line-height:1;"><div style="font-size:24px;font-weight:700;color:#fdf4ff;text-shadow:0 0 10px #9fe9ff;">5</div><div style="font-size:16px;color:#9fe9ff;text-shadow:0 0 8px #9fe9ff;">♠</div></div>
+        <div style="position:absolute;right:10px;bottom:10px;text-align:center;line-height:1;transform:rotate(180deg);"><div style="font-size:24px;font-weight:700;color:#fdf4ff;text-shadow:0 0 10px #9fe9ff;">5</div><div style="font-size:16px;color:#9fe9ff;text-shadow:0 0 8px #9fe9ff;">♠</div></div>
+        <div style="position:absolute;left:29%;top:26%;transform:translate(-50%,-50%);font-size:28px;line-height:1;color:#9fe9ff;text-shadow:0 0 10px #9fe9ff, 0 0 24px rgba(159,233,255,.6);">♠</div>
+        <div style="position:absolute;left:71%;top:26%;transform:translate(-50%,-50%);font-size:28px;line-height:1;color:#9fe9ff;text-shadow:0 0 10px #9fe9ff, 0 0 24px rgba(159,233,255,.6);">♠</div>
+        <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:28px;line-height:1;color:#9fe9ff;text-shadow:0 0 10px #9fe9ff, 0 0 24px rgba(159,233,255,.6);">♠</div>
+        <div style="position:absolute;left:29%;top:74%;transform:translate(-50%,-50%) rotate(180deg);font-size:28px;line-height:1;color:#9fe9ff;text-shadow:0 0 10px #9fe9ff, 0 0 24px rgba(159,233,255,.6);">♠</div>
+        <div style="position:absolute;left:71%;top:74%;transform:translate(-50%,-50%) rotate(180deg);font-size:28px;line-height:1;color:#9fe9ff;text-shadow:0 0 10px #9fe9ff, 0 0 24px rgba(159,233,255,.6);">♠</div>
+      </div>
+    </div>
+
+    <div id="2c" style="display:flex;flex-direction:column;gap:14px;align-items:center;">
+      <div style="padding:2px 10px;border-radius:8px;background:#1a2142;color:#9fb4d8;font-size:13px;letter-spacing:1px;">2c 人头牌 Q♥</div>
+      <div style="position:relative;width:150px;height:224px;">
+        <div style="position:absolute;inset:0;border-radius:14px;background:linear-gradient(165deg,rgba(30,12,32,.72),rgba(10,6,20,.82));border:2px solid rgba(255,79,163,.85);box-shadow:0 0 16px rgba(255,79,163,.45), inset 0 0 20px rgba(255,79,163,.14);"></div>
+        <div style="position:absolute;inset:0;border-radius:14px;background:linear-gradient(115deg,rgba(255,255,255,.18) 0%,rgba(255,255,255,.05) 28%,transparent 44%,transparent 66%,rgba(255,255,255,.06) 100%);"></div>
+        <div style="position:absolute;left:8px;right:8px;top:2px;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.5),transparent);"></div>
+        <div style="position:absolute;left:10px;top:10px;text-align:center;line-height:1;"><div style="font-size:24px;font-weight:700;color:#fdf4ff;text-shadow:0 0 10px #ff6aa9;">Q</div><div style="font-size:16px;color:#ff6aa9;text-shadow:0 0 8px #ff6aa9;">♥</div></div>
+        <div style="position:absolute;right:10px;bottom:10px;text-align:center;line-height:1;transform:rotate(180deg);"><div style="font-size:24px;font-weight:700;color:#fdf4ff;text-shadow:0 0 10px #ff6aa9;">Q</div><div style="font-size:16px;color:#ff6aa9;text-shadow:0 0 8px #ff6aa9;">♥</div></div>
+        <div style="position:absolute;left:36px;right:36px;top:44px;bottom:44px;border:1px solid rgba(255,106,169,.4);border-radius:8px;box-shadow:inset 0 0 14px rgba(255,106,169,.15);"></div>
+        <div style="position:absolute;left:0;right:0;top:78px;text-align:center;font-size:56px;font-weight:700;line-height:1;color:#fdf4ff;text-shadow:0 0 14px #ff6aa9, 0 0 36px #ff6aa9;">Q</div>
+        <div style="position:absolute;left:0;right:0;top:56px;text-align:center;font-size:18px;line-height:1;color:#ff6aa9;text-shadow:0 0 8px #ff6aa9;">♥</div>
+        <div style="position:absolute;left:0;right:0;bottom:56px;text-align:center;font-size:18px;line-height:1;color:#ff6aa9;text-shadow:0 0 8px #ff6aa9;transform:rotate(180deg);">♥</div>
+        <div style="position:absolute;left:44px;top:48px;width:10px;height:1px;background:rgba(255,106,169,.5);"></div>
+        <div style="position:absolute;right:44px;bottom:48px;width:10px;height:1px;background:rgba(255,106,169,.5);"></div>
+      </div>
+    </div>
+
+    <div id="2d" style="display:flex;flex-direction:column;gap:14px;align-items:center;">
+      <div style="padding:2px 10px;border-radius:8px;background:#1a2142;color:#9fb4d8;font-size:13px;letter-spacing:1px;">2d A♣ 单大点</div>
+      <div style="position:relative;width:150px;height:224px;">
+        <div style="position:absolute;inset:0;border-radius:14px;background:linear-gradient(165deg,rgba(30,12,32,.72),rgba(10,6,20,.82));border:2px solid rgba(255,79,163,.85);box-shadow:0 0 16px rgba(255,79,163,.45), inset 0 0 20px rgba(255,79,163,.14);"></div>
+        <div style="position:absolute;inset:0;border-radius:14px;background:linear-gradient(115deg,rgba(255,255,255,.18) 0%,rgba(255,255,255,.05) 28%,transparent 44%,transparent 66%,rgba(255,255,255,.06) 100%);"></div>
+        <div style="position:absolute;left:8px;right:8px;top:2px;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.5),transparent);"></div>
+        <div style="position:absolute;left:10px;top:10px;text-align:center;line-height:1;"><div style="font-size:24px;font-weight:700;color:#fdf4ff;text-shadow:0 0 10px #9fe9ff;">A</div><div style="font-size:16px;color:#9fe9ff;text-shadow:0 0 8px #9fe9ff;">♣</div></div>
+        <div style="position:absolute;right:10px;bottom:10px;text-align:center;line-height:1;transform:rotate(180deg);"><div style="font-size:24px;font-weight:700;color:#fdf4ff;text-shadow:0 0 10px #9fe9ff;">A</div><div style="font-size:16px;color:#9fe9ff;text-shadow:0 0 8px #9fe9ff;">♣</div></div>
+        <div style="position:absolute;left:0;right:0;top:76px;text-align:center;font-size:76px;line-height:1;color:#9fe9ff;text-shadow:0 0 14px #9fe9ff, 0 0 40px rgba(159,233,255,.7);">♣</div>
+      </div>
+    </div>
+
+  </div>
+  <div style="color:#8a9cc4;font-size:15px;letter-spacing:2px;margin-bottom:24px;">第 1 轮 — 手牌样式方案(单大花色版式)</div>
+  <div style="display:flex;gap:36px;flex-wrap:wrap;align-items:flex-start;">
+
+    <div id="1a" style="display:flex;flex-direction:column;gap:14px;align-items:center;">
+      <div style="padding:2px 10px;border-radius:8px;background:#1a2142;color:#9fb4d8;font-size:13px;letter-spacing:1px;">1a 当前样式</div>
+      <div style="position:relative;width:150px;height:224px;">
+        <div style="position:absolute;inset:0;border-radius:14px;background:linear-gradient(165deg,rgba(30,12,32,.72),rgba(10,6,20,.82));border:2px solid rgba(255,79,163,.85);box-shadow:0 0 16px rgba(255,79,163,.45), inset 0 0 20px rgba(255,79,163,.14);"></div>
+        <div style="position:absolute;inset:0;border-radius:14px;background:linear-gradient(115deg,rgba(255,255,255,.18) 0%,rgba(255,255,255,.05) 28%,transparent 44%,transparent 66%,rgba(255,255,255,.06) 100%);"></div>
+        <div style="position:absolute;left:8px;right:8px;top:2px;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.5),transparent);"></div>
+        <div style="position:absolute;inset:8px;border-radius:9px;border:1px solid rgba(255,79,163,.3);clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);"></div>
+        <div style="position:absolute;left:16px;top:16px;font-size:36px;font-weight:700;color:#fdf4ff;text-shadow:0 0 10px #ff6aa9, 0 0 24px #ff6aa9;line-height:1;">Q</div>
+        <div style="position:absolute;right:16px;bottom:16px;font-size:36px;font-weight:700;color:#fdf4ff;text-shadow:0 0 10px #ff6aa9, 0 0 24px #ff6aa9;line-height:1;transform:rotate(180deg);">Q</div>
+        <div style="position:absolute;left:0;right:0;top:72px;text-align:center;font-size:80px;line-height:1;color:#ff6aa9;text-shadow:0 0 14px #ff6aa9, 0 0 36px #ff6aa9;">♥</div>
+      </div>
+    </div>
+
+    <div id="1b" style="display:flex;flex-direction:column;gap:14px;align-items:center;">
+      <div style="padding:2px 10px;border-radius:8px;background:#1a2142;color:#9fb4d8;font-size:13px;letter-spacing:1px;">1b 全息渐变边</div>
+      <div style="position:relative;width:150px;height:224px;">
+        <div style="position:absolute;inset:0;border-radius:14px;background:linear-gradient(135deg,#ff4fa3,#a56bff 50%,#35e8e0);padding:2px;box-shadow:0 0 22px rgba(165,107,255,.5);">
+          <div style="width:100%;height:100%;box-sizing:border-box;border-radius:12px;background:linear-gradient(165deg,rgba(20,10,30,.9),rgba(8,5,18,.95));"></div>
+        </div>
+        <div style="position:absolute;inset:2px;border-radius:12px;background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.16) 42%,rgba(255,255,255,.03) 50%,transparent 60%);"></div>
+        <div style="position:absolute;left:16px;top:14px;font-size:36px;font-weight:700;line-height:1;background:linear-gradient(135deg,#ff9ecb,#c9a6ff);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 8px rgba(255,120,190,.8));">Q</div>
+        <div style="position:absolute;right:16px;bottom:14px;font-size:36px;font-weight:700;line-height:1;transform:rotate(180deg);background:linear-gradient(135deg,#ff9ecb,#c9a6ff);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 8px rgba(255,120,190,.8));">Q</div>
+        <div style="position:absolute;left:0;right:0;top:72px;text-align:center;font-size:80px;line-height:1;background:linear-gradient(180deg,#ff6aa9,#a56bff);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 16px rgba(255,106,169,.9));">♥</div>
+      </div>
+    </div>
+
+    <div id="1c" style="display:flex;flex-direction:column;gap:14px;align-items:center;">
+      <div style="padding:2px 10px;border-radius:8px;background:#1a2142;color:#9fb4d8;font-size:13px;letter-spacing:1px;">1c 描线霓虹管</div>
+      <div style="position:relative;width:150px;height:224px;">
+        <div style="position:absolute;inset:0;border-radius:16px;background:rgba(12,7,22,.82);border:2px solid rgba(255,79,163,.9);box-shadow:0 0 8px rgba(255,79,163,.8), 0 0 28px rgba(255,79,163,.4), inset 0 0 8px rgba(255,79,163,.5), inset 0 0 30px rgba(255,79,163,.12);"></div>
+        <div style="position:absolute;left:16px;top:16px;font-size:34px;font-weight:600;color:transparent;-webkit-text-stroke:1.5px #ff8bbd;line-height:1;filter:drop-shadow(0 0 6px #ff4fa3);">Q</div>
+        <div style="position:absolute;right:16px;bottom:16px;font-size:34px;font-weight:600;color:transparent;-webkit-text-stroke:1.5px #ff8bbd;line-height:1;transform:rotate(180deg);filter:drop-shadow(0 0 6px #ff4fa3);">Q</div>
+        <div style="position:absolute;left:0;right:0;top:70px;text-align:center;font-size:84px;line-height:1;color:transparent;-webkit-text-stroke:2px #ff8bbd;filter:drop-shadow(0 0 10px #ff4fa3) drop-shadow(0 0 30px rgba(255,79,163,.6));">♥</div>
+        <div style="position:absolute;left:20px;right:20px;bottom:58px;height:1px;background:linear-gradient(90deg,transparent,rgba(255,139,189,.6),transparent);"></div>
+      </div>
+    </div>
+
+    <div id="1d" style="display:flex;flex-direction:column;gap:14px;align-items:center;">
+      <div style="padding:2px 10px;border-radius:8px;background:#1a2142;color:#9fb4d8;font-size:13px;letter-spacing:1px;">1d 大水印棱镜</div>
+      <div style="position:relative;width:150px;height:224px;">
+        <div style="position:absolute;inset:0;border-radius:14px;overflow:hidden;background:linear-gradient(165deg,rgba(34,14,38,.78),rgba(10,6,20,.88));border:2px solid rgba(255,79,163,.75);box-shadow:0 0 18px rgba(255,79,163,.4), inset 0 0 24px rgba(255,79,163,.1);">
+          <div style="position:absolute;right:-46px;bottom:-56px;font-size:210px;line-height:1;color:rgba(255,106,169,.16);text-shadow:0 0 40px rgba(255,106,169,.25);">♥</div>
+          <div style="position:absolute;inset:0;background:linear-gradient(115deg,rgba(255,255,255,.2) 0%,rgba(255,255,255,.04) 26%,transparent 40%);"></div>
+          <div style="position:absolute;left:0;top:0;bottom:0;width:38%;background:linear-gradient(90deg,rgba(255,255,255,.06),transparent);"></div>
+        </div>
+        <div style="position:absolute;left:16px;top:14px;font-size:44px;font-weight:700;color:#fff;text-shadow:0 0 12px #ff6aa9, 0 0 30px #ff6aa9;line-height:1;">Q</div>
+        <div style="position:absolute;left:18px;top:62px;font-size:26px;color:#ff6aa9;text-shadow:0 0 10px #ff6aa9;">♥</div>
+        <div style="position:absolute;right:16px;bottom:14px;font-size:22px;font-weight:700;color:rgba(255,158,203,.8);transform:rotate(180deg);">Q♥</div>
+      </div>
+    </div>
+
+    <div id="1e" style="display:flex;flex-direction:column;gap:14px;align-items:center;">
+      <div style="padding:2px 10px;border-radius:8px;background:#1a2142;color:#9fb4d8;font-size:13px;letter-spacing:1px;">1e 角框电路</div>
+      <div style="position:relative;width:150px;height:224px;">
+        <div style="position:absolute;inset:0;border-radius:10px;background:linear-gradient(165deg,rgba(24,10,28,.85),rgba(8,5,16,.92));border:1px solid rgba(255,79,163,.4);box-shadow:0 0 20px rgba(255,79,163,.3), inset 0 0 26px rgba(255,79,163,.08);background-image:repeating-linear-gradient(0deg,rgba(255,79,163,.05) 0 1px,transparent 1px 14px);"></div>
+        <div style="position:absolute;left:-2px;top:-2px;width:26px;height:26px;border-left:3px solid #ff4fa3;border-top:3px solid #ff4fa3;border-radius:10px 0 0 0;filter:drop-shadow(0 0 6px #ff4fa3);"></div>
+        <div style="position:absolute;right:-2px;top:-2px;width:26px;height:26px;border-right:3px solid #ff4fa3;border-top:3px solid #ff4fa3;border-radius:0 10px 0 0;filter:drop-shadow(0 0 6px #ff4fa3);"></div>
+        <div style="position:absolute;left:-2px;bottom:-2px;width:26px;height:26px;border-left:3px solid #ff4fa3;border-bottom:3px solid #ff4fa3;border-radius:0 0 0 10px;filter:drop-shadow(0 0 6px #ff4fa3);"></div>
+        <div style="position:absolute;right:-2px;bottom:-2px;width:26px;height:26px;border-right:3px solid #ff4fa3;border-bottom:3px solid #ff4fa3;border-radius:0 0 10px 0;filter:drop-shadow(0 0 6px #ff4fa3);"></div>
+        <div style="position:absolute;left:16px;top:14px;font-size:36px;font-weight:700;color:#fdf4ff;text-shadow:0 0 10px #ff6aa9, 0 0 24px #ff6aa9;line-height:1;">Q</div>
+        <div style="position:absolute;right:16px;bottom:14px;font-size:36px;font-weight:700;color:#fdf4ff;text-shadow:0 0 10px #ff6aa9, 0 0 24px #ff6aa9;line-height:1;transform:rotate(180deg);">Q</div>
+        <div style="position:absolute;left:0;right:0;top:74px;text-align:center;font-size:78px;line-height:1;color:#ff6aa9;text-shadow:0 0 14px #ff6aa9, 0 0 36px #ff6aa9;">♥</div>
+        <div style="position:absolute;left:24px;right:24px;top:64px;display:flex;align-items:center;gap:4px;"><div style="flex:1;height:1px;background:rgba(255,79,163,.4);"></div><div style="width:4px;height:4px;background:#ff4fa3;transform:rotate(45deg);"></div><div style="flex:1;height:1px;background:rgba(255,79,163,.4);"></div></div>
+      </div>
+    </div>
+
+    <div id="1f" style="display:flex;flex-direction:column;gap:14px;align-items:center;">
+      <div style="padding:2px 10px;border-radius:8px;background:#1a2142;color:#9fb4d8;font-size:13px;letter-spacing:1px;">1f 双色分层玻璃</div>
+      <div style="position:relative;width:150px;height:224px;">
+        <div style="position:absolute;inset:0;border-radius:14px;background:linear-gradient(180deg,rgba(30,12,32,.55) 0%,rgba(14,7,24,.85) 55%);border:2px solid rgba(255,79,163,.7);box-shadow:0 0 18px rgba(255,79,163,.4), inset 0 -30px 50px rgba(165,107,255,.14);"></div>
+        <div style="position:absolute;left:0;right:0;top:0;height:88px;border-radius:14px 14px 0 0;background:linear-gradient(180deg,rgba(255,255,255,.14),transparent);"></div>
+        <div style="position:absolute;left:12px;right:12px;top:96px;height:1px;background:linear-gradient(90deg,transparent,rgba(255,158,203,.55),transparent);"></div>
+        <div style="position:absolute;left:0;right:0;top:22px;text-align:center;font-size:52px;font-weight:700;color:#fff;text-shadow:0 0 14px #ff6aa9, 0 0 34px #ff6aa9;line-height:1;">Q</div>
+        <div style="position:absolute;left:0;right:0;top:116px;text-align:center;font-size:70px;line-height:1;color:#ff6aa9;text-shadow:0 0 14px #ff6aa9, 0 0 36px rgba(165,107,255,.8);">♥</div>
+        <div style="position:absolute;left:0;right:0;bottom:10px;text-align:center;font-size:13px;letter-spacing:4px;color:rgba(255,158,203,.6);">HEART · 12</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+</x-dc>
+</body>
+</html>

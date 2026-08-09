@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  body { margin:0; background:#04050d; }
+  a { color:#35e8e0; } a:hover { color:#ff4fa3; }
+</style>
+</helmet>
+<section style="padding:40px;background:linear-gradient(180deg,#070a1a,#05060f);font-family:'Rajdhani','Noto Sans SC',sans-serif;">
+  <div style="color:#8a9cc4;font-size:16px;letter-spacing:2px;margin-bottom:28px;">整副 54 张 — 1a 玻璃底 × 2a 传统点阵(A–10 点阵 / JQK 人头框 / 大小王)</div>
+  <div style="display:flex;flex-direction:column;gap:28px;">
+    <sc-for list="{{ rows }}" as="row" hint-placeholder-count="5">
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="color:#66799f;font-size:13px;letter-spacing:3px;">{{ row.label }}</div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+          <sc-for list="{{ row.cards }}" as="card" hint-placeholder-count="13">
+            <div style="position:relative;width:114px;height:170px;">
+              <div style="position:absolute;inset:0;border-radius:12px;background:linear-gradient(165deg,rgba(30,12,32,.72),rgba(10,6,20,.82));border:2px solid {{ card.frame }};box-shadow:0 0 14px {{ card.glowOut }}, inset 0 0 18px {{ card.glowIn }};"></div>
+              <div style="position:absolute;inset:0;border-radius:12px;background:linear-gradient(115deg,rgba(255,255,255,.18) 0%,rgba(255,255,255,.05) 28%,transparent 44%,transparent 66%,rgba(255,255,255,.06) 100%);"></div>
+              <div style="position:absolute;left:6px;right:6px;top:2px;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.5),transparent);"></div>
+              <div style="position:absolute;left:8px;top:8px;text-align:center;line-height:1;"><div style="font-size:19px;font-weight:700;color:#fdf4ff;text-shadow:0 0 8px {{ card.color }};">{{ card.rank }}</div><div style="font-size:12px;color:{{ card.color }};text-shadow:0 0 6px {{ card.color }};">{{ card.cornerSuit }}</div></div>
+              <div style="position:absolute;right:8px;bottom:8px;text-align:center;line-height:1;transform:rotate(180deg);"><div style="font-size:19px;font-weight:700;color:#fdf4ff;text-shadow:0 0 8px {{ card.color }};">{{ card.rank }}</div><div style="font-size:12px;color:{{ card.color }};text-shadow:0 0 6px {{ card.color }};">{{ card.cornerSuit }}</div></div>
+              <sc-for list="{{ card.pips }}" as="pip" hint-placeholder-count="0">
+                <div style="position:absolute;left:{{ pip.x }};top:{{ pip.y }};transform:{{ pip.tr }};font-size:{{ pip.fs }};line-height:1;color:{{ card.color }};text-shadow:0 0 8px {{ card.color }}, 0 0 20px {{ card.glowOut }};">{{ card.suit }}</div>
+              </sc-for>
+              <sc-if value="{{ card.court }}" hint-placeholder-val="{{ false }}">
+                <div style="position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);text-align:center;font-size:52px;line-height:1;color:{{ card.color }};text-shadow:0 0 14px {{ card.color }}, 0 0 36px {{ card.glowOut }};">{{ card.suit }}</div>
+              </sc-if>
+              <sc-if value="{{ card.joker }}" hint-placeholder-val="{{ false }}">
+                <div style="position:absolute;left:8px;top:0;bottom:0;display:flex;align-items:center;"><div style="font-size:13px;font-weight:600;letter-spacing:4px;color:{{ card.color }};text-shadow:0 0 8px {{ card.color }};writing-mode:vertical-rl;transform:rotate(180deg);">JOKER</div></div>
+                <div style="position:absolute;right:8px;top:0;bottom:0;display:flex;align-items:center;"><div style="font-size:13px;font-weight:600;letter-spacing:4px;color:{{ card.color }};text-shadow:0 0 8px {{ card.color }};writing-mode:vertical-rl;">JOKER</div></div>
+                <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-54%);filter:drop-shadow(0 0 6px {{ card.color }}) drop-shadow(0 0 18px {{ card.glowOut }});">
+                  <svg width="60" height="74" viewBox="0 0 60 74" fill="none">
+                    <path d="M30,28 L13,8 L21,26 L30,4 L39,26 L47,8 Z" stroke="{{ card.color }}" stroke-width="2" stroke-linejoin="round"></path>
+                    <circle cx="13" cy="8" r="2.5" fill="{{ card.color }}"></circle>
+                    <circle cx="30" cy="4" r="2.5" fill="{{ card.color }}"></circle>
+                    <circle cx="47" cy="8" r="2.5" fill="{{ card.color }}"></circle>
+                    <circle cx="30" cy="43" r="13" stroke="{{ card.color }}" stroke-width="2"></circle>
+                    <circle cx="25" cy="40" r="1.6" fill="{{ card.color }}"></circle>
+                    <circle cx="35" cy="40" r="1.6" fill="{{ card.color }}"></circle>
+                    <path d="M24,47 Q30,52 36,47" stroke="{{ card.color }}" stroke-width="1.8" stroke-linecap="round"></path>
+                    <path d="M14,68 L22,60 L30,68 L38,60 L46,68" stroke="{{ card.color }}" stroke-width="2" stroke-linejoin="round"></path>
+                  </svg>
+                </div>
+                <div style="position:absolute;left:0;right:0;bottom:12px;text-align:center;font-size:11px;letter-spacing:3px;color:{{ card.color }};text-shadow:0 0 6px {{ card.color }};">{{ card.sub }}</div>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  pipLayout(n) {
+    const L = 29, R = 71, C = 50;
+    const map = {
+      1: [[C, 50, 0, 48]],
+      2: [[C, 26, 0], [C, 74, 1]],
+      3: [[C, 24, 0], [C, 50, 0], [C, 76, 1]],
+      4: [[L, 26, 0], [R, 26, 0], [L, 74, 1], [R, 74, 1]],
+      5: [[L, 26, 0], [R, 26, 0], [C, 50, 0], [L, 74, 1], [R, 74, 1]],
+      6: [[L, 26, 0], [R, 26, 0], [L, 50, 0], [R, 50, 0], [L, 74, 1], [R, 74, 1]],
+      7: [[L, 24, 0], [R, 24, 0], [C, 37, 0], [L, 50, 0], [R, 50, 0], [L, 76, 1], [R, 76, 1]],
+      8: [[L, 24, 0], [R, 24, 0], [C, 37, 0], [L, 50, 0], [R, 50, 0], [C, 63, 1], [L, 76, 1], [R, 76, 1]],
+      9: [[L, 22, 0], [R, 22, 0], [L, 41, 0], [R, 41, 0], [C, 50, 0], [L, 59, 1], [R, 59, 1], [L, 78, 1], [R, 78, 1]],
+      10: [[L, 22, 0], [R, 22, 0], [C, 31, 0], [L, 41, 0], [R, 41, 0], [L, 59, 1], [R, 59, 1], [C, 69, 1], [L, 78, 1], [R, 78, 1]]
+    };
+    return (map[n] || []).map(p => ({
+      x: p[0] + '%', y: p[1] + '%',
+      tr: p[2] ? 'translate(-50%,-50%) rotate(180deg)' : 'translate(-50%,-50%)',
+      fs: (p[3] || 17) + 'px'
+    }));
+  }
+  renderVals() {
+    const pink = '#ff6aa9', cyan = '#9fe9ff';
+    const chrome = (red) => ({
+      color: red ? pink : cyan,
+      color2: red ? cyan : pink,
+      frame: red ? 'rgba(255,79,163,.85)' : 'rgba(53,232,224,.75)',
+      glowOut: red ? 'rgba(255,79,163,.4)' : 'rgba(53,232,224,.35)',
+      glowIn: red ? 'rgba(255,79,163,.14)' : 'rgba(53,232,224,.12)',
+      innerLine: red ? 'rgba(255,106,169,.4)' : 'rgba(159,233,255,.4)'
+    });
+    const ranks = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+    const suits = [
+      { s: '♠', label: '黑桃 SPADES', red: false },
+      { s: '♥', label: '红心 HEARTS', red: true },
+      { s: '♣', label: '梅花 CLUBS', red: false },
+      { s: '♦', label: '方块 DIAMONDS', red: true }
+    ];
+    const rows = suits.map(su => ({
+      label: su.label,
+      cards: ranks.map((r, i) => {
+        const court = i >= 10;
+        const courtArt = {
+          K: {
+            hatPath: 'M37,16 L36,5 L42,11 L49,3 L56,11 L62,5 L61,16 Z',
+            itemPath: 'M87,6 L87,44 M82,13 L92,13'
+          },
+          Q: {
+            hatPath: 'M37,16 Q49,5 61,16 M38,14 L36,7 M49,9 L49,3 M60,14 L62,7',
+            itemPath: 'M83,46 L76,30 M75,26 Q71,22 75,17 Q79,22 75,26'
+          },
+          J: {
+            hatPath: 'M34,16 Q45,5 63,10 L62,17 L36,18 Z M60,8 L71,2',
+            itemPath: 'M11,6 L11,44 M11,6 L18,13'
+          }
+        };
+        return Object.assign({
+          rank: r, suit: su.s, cornerSuit: su.s,
+          court, joker: false,
+          halves: court ? [{ top: '0', tr: 'none' }, { top: '50%', tr: 'rotate(180deg)' }] : [],
+          hatPath: court ? courtArt[r].hatPath : '',
+          hairPath: court ? courtArt[r].hairPath : '',
+          itemPath: court ? courtArt[r].itemPath : '',
+          pips: court ? [] : this.pipLayout(i + 1)
+        }, chrome(su.red));
+      })
+    }));
+    rows.push({
+      label: '大小王 JOKERS',
+      cards: [
+        Object.assign({ rank: '★', suit: '', cornerSuit: '', court: false, joker: true, sub: '大王', pips: [] }, chrome(true)),
+        Object.assign({ rank: '☆', suit: '', cornerSuit: '', court: false, joker: true, sub: '小王', pips: [] }, chrome(false))
+      ]
+    });
+    return { rows };
+  }
+}
+</script>
+</body>
+</html>

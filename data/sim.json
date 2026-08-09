@@ -1,0 +1,196 @@
+{
+ "_comment": "机器人信念表(design/tech.md)。牌面数额不在这里——_card_ev/_target_mult 直接读 jokers.json,消灭双写。",
+ "_comment_targets": "机器人尺度**影子表**, 只给 sim 判生死用 —— **不是**真人面对的表(那张在 run.json)。由 `tools/curve.gd` 生成(`BOT := \"adaptive\"`): 规则机器人打满 24 拍不判生死, 按设计谱 [10%,30%,45%,60%] 逐段在幸存者里取分位数。2026-08-07 重算: 旧值 [215,540,895,1345] 是 2026-08-06 定的, 之后经历公式改 chips×mult、节奏改 4×6、**弃牌免费**、牌型倍率两轮重定、Target 全面重定价, **一次都没重算** —— 失效到 `random` 队列通关 **95.3%**(乱打都能过), 尺子彻底没有区分度。⚠ **表长必须 == 段数**(短了会被静默截断成放水盘, 测试锁着)。⚠ 改任何规则或数值后都要重算它, 否则 sim 的绝对通关率不可读, 只能看相对排名。",
+ "bot_targets": [
+  505,
+  1673,
+  3396,
+  4331
+ ],
+ "runs": 1000,
+ "cohorts": [
+  {
+   "name": "baseline(no jokers, adaptive)",
+   "bot": "adaptive",
+   "target": "",
+   "no_jokers": true
+  },
+  {
+   "name": "adaptive:twin",
+   "bot": "adaptive",
+   "target": "twin"
+  },
+  {
+   "name": "adaptive:stair",
+   "bot": "adaptive",
+   "target": "stair"
+  },
+  {
+   "name": "adaptive:mono",
+   "bot": "adaptive",
+   "target": "mono"
+  },
+  {
+   "name": "adaptive:triplet",
+   "bot": "adaptive",
+   "target": "triplet"
+  },
+  {
+   "name": "adaptive:lonewolf",
+   "bot": "adaptive",
+   "target": "lonewolf"
+  },
+  {
+   "name": "adaptive:wolfpivot",
+   "bot": "adaptive",
+   "target": "lonewolf",
+   "pivot": true
+  },
+  {
+   "name": "adaptive:anytarget",
+   "bot": "adaptive",
+   "target": "",
+   "pivot": true
+  },
+  {
+   "name": "random",
+   "bot": "random",
+   "target": ""
+  }
+ ],
+ "kind_prior": {
+  "0": 0.35,
+  "1": 0.2,
+  "2": 0.14,
+  "3": 0.04,
+  "4": 0.05,
+  "5": 0.15,
+  "6": 0.06,
+  "7": 0.01
+ },
+ "target_tf": {
+  "twin": 3.5,
+  "stair": 8.0,
+  "mono": 6.0,
+  "triplet": 5.0,
+  "lonewolf": 4.0
+ },
+ "counterfactual_tv": {
+  "twin": 2.6,
+  "stair": 1.5,
+  "mono": 1.55,
+  "triplet": 2.2,
+  "lonewolf": 1.7
+ },
+ "lonewolf_value": {
+  "high_prior": 0.35,
+  "mult": 3.0,
+  "vow_discount": 0.5
+ },
+ "ev": {
+  "blend_w": 6.0,
+  "mult_prior": 1.6,
+  "score_prior": 180.0,
+  "coin_score_ratio": 0.1,
+  "_comment_coin_decay": "金币影子价的衰减指数(2026-08-09)。lam = coin_score_ratio × 本局均分 × (horizon/20)^coin_decay,horizon = min(剩余拍数, 20)。金币在本作**零终局价值**,它唯一的价值是「还能买到多少分」——而一次购买付 ev × horizon,所以 horizon 收缩时影子价必须同比往下走。0 = pow(x,0)=1 = **精确复现 2026-08-09 之前的行为**;1 = 严格正比于 horizon(此时 horizon 从买/不买的判据里整个约掉);更大 = 一离开满 horizon 就几乎归零。⚠ **由 tools/decay.gd 扫出来,不许拍脑袋**(和 solver.lam 同一条纪律)。⚠ 改这个数会让所有以 bot 为尺子的既有读数失效(bot_targets / curve.gd / gate.sh / price.gd / addit.gd / kit.gd),要重算。",
+  "coin_decay": 1.0,
+  "growth_horizon": 0.5,
+  "glowstick_horizon": 10.0,
+  "cards": {
+   "encore": {
+    "rate": "rep",
+    "prior": 0.3
+   },
+   "finale": {
+    "rate": "late",
+    "prior": 0.25
+   },
+   "turnover": {
+    "rate": "disc",
+    "prior": 1.0
+   },
+   "tipjar": {
+    "rate": "zerod",
+    "prior": 0.3
+   },
+   "chord": {
+    "rate": "chord",
+    "prior": 0.08
+   },
+   "neonsign": {},
+   "vinyl": {
+    "rate": "disc",
+    "prior": 0.2
+   },
+   "chorus": {
+    "fixed_rate": 0.2
+   },
+   "interest": {
+    "coin_mult": 1.2
+   },
+   "momentum": {
+    "rate": "early",
+    "prior": 0.25
+   },
+   "vip": {
+    "rate": "faces",
+    "prior": 0.7,
+    "boost": 3.0
+   },
+   "glowstick": {},
+   "bassline": {
+    "rate": "disc",
+    "prior": 0.2
+   },
+   "mirror": {
+    "rate": "tgt",
+    "prior": 0.3
+   },
+   "shortcut": {
+    "on_target": [
+     "stair",
+     0.12,
+     7.0
+    ],
+    "off_target": 0.02
+   },
+   "fourfingers": {
+    "on_target": [
+     "stair",
+     0.3,
+     7.0
+    ],
+    "off_target": 0.03
+   },
+   "twotone": {
+    "on_target": [
+     "mono",
+     0.35,
+     5.0
+    ],
+    "off_target": 0.03
+   },
+   "wildcard": {
+    "base": 0.1,
+    "target_bonus": [
+     [
+      "stair",
+      "triplet"
+     ],
+     0.1
+    ]
+   }
+  }
+ },
+ "chase": {
+  "gain": 2.2,
+  "cap": 0.92,
+  "floor": 0.02
+ },
+ "_comment_solver": "数学 D 的平衡贪心参数(design/solver_roadmap.md)。lam = 跨拍权重: value(切法) = 本拍得分 + lam · E[下一拍得分|留下的3张]。**lam 是扫出来的不是拍的** —— tools/lam.gd 250 局配对实测: lam=0 → 181.41, lam=0.2 → 186.17(配对差 +4.76 ±1.42, z=+3.36 显著), lam=0.5 → 185.84(+4.43, z=+3.14)。天花板(缓存全新)188.6, 所以 0.2 把 −3.8% 的缺口追回约三分之二到 −1.3%。0.2~0.5 之间是平的, 参数不敏感。lam_samples = 估未来时采样几组补牌(公共随机数, 全部切法共用 —— 独立采样会让噪声吃掉真实差异, 踩过)。",
+ "solver": {
+  "lam": 0.2,
+  "lam_samples": 2,
+  "blind_samples": 4
+ }
+}

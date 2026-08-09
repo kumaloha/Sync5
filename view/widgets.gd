@@ -1,0 +1,963 @@
+class_name Widgets
+extends RefCounted
+
+## Small self-contained neon widgets (design/tech.md view split). Moved verbatim
+## from view/phrase.gd's tail — behavior identical, referenced as
+## Widgets.GradBar / Widgets.SegPill / Widgets.DJKey.
+
+
+class GradBar:
+	extends Control
+	var fraction := 0.0:
+		set(v):
+			fraction = v
+			queue_redraw()
+	func _draw() -> void:
+		var track := StageTheme.box(Color(0.03, 0.04, 0.10, 0.85),
+			Color(0.63, 0.71, 1.0, 0.16), 1, 6)
+		draw_style_box(track, Rect2(Vector2.ZERO, size))
+		if fraction <= 0.0:
+			return
+		var w: float = maxf(size.x * fraction, 10.0)
+		# the fill heats cyan → pink as the target closes, same language the
+		# wave uses for score
+		# squared ramp: it stays cyan through the middle and only goes hot near
+		# the target, instead of sitting in a washed-out teal the whole time
+		var c: Color = StageTheme.CYAN.lerp(StageTheme.PINK, pow(clampf(fraction, 0.0, 1.0), 2.2))
+		draw_style_box(StageTheme.box(Color(c.r, c.g, c.b, 0.30), Color(0, 0, 0, 0), 0, 9),
+			Rect2(-4, -5, w + 8, size.y + 10))
+		draw_style_box(StageTheme.box(c, Color(0, 0, 0, 0), 0, 6), Rect2(0, 0, w, size.y))
+		draw_rect(Rect2(3, 2, maxf(w - 6, 1.0), 2), Color(1, 1, 1, 0.55), true)
+
+
+## One phrase marker in the info bar. Lights up rather than just changing
+## colour, so the row reads as part of the neon rig.
+class SegPill:
+	extends Control
+	var lit := false:
+		set(v):
+			lit = v
+			queue_redraw()
+	func _draw() -> void:
+		var r := Rect2(Vector2.ZERO, size)
+		if not lit:
+			draw_style_box(StageTheme.box(Color(0.63, 0.71, 1.0, 0.13),
+				Color(0, 0, 0, 0), 0, 3), r)
+			return
+		var c := StageTheme.CYAN
+		draw_style_box(StageTheme.box(Color(c.r, c.g, c.b, 0.22), Color(0, 0, 0, 0), 0, 6),
+			r.grow(5.0))
+		draw_style_box(StageTheme.box(c, Color(0, 0, 0, 0), 0, 3), r)
+
+
+## ── shared "stage card" chrome ─────────────────────────────────────────────
+## The home screen's big glass card (resources/home.html) and the in-game
+## blind board are THE SAME OBJECT — a level IS a blind (用户 2026-08-05).
+## These statics are the one place the look is defined, so the two can never
+## drift apart.
+##
+## The mock hangs `assets/frame-glass4.png` — a glass BEZEL ~34px thick around
+## an inset, translucent well — over the card, at 113.2% height so its lower
+## section reaches past the card and frames the tab menu as a reflection.
+## That art is not in the repo, so the bezel is drawn: outer bloom, pale glass
+## plate, bright inner/outer rims, cut corners with brackets, side vents, a
+## top notch with an LED, and `menu_reflection()` for the mirrored tail.
+## Second pass 2026-08-05 (用户: 质感差距大 — 要透明感/边缘发光/倒影兜菜单).
+class StageCard:
+	extends RefCounted
+
+	## ── 玻璃卡的程序化临摹 ────────────────────────────────────────────────
+	## 参照 resources/godot-handoff/card_glass_full.png 的构成:
+	##   半透玻璃体 + 内缩一圈细亮边 + 26px 点阵 + 斜向高光楔 + 底部镜面倒影。
+	## **为什么不直接贴那张图**(用户 2026-08-05 拍板): 素材是 842×1355 固定竖版,
+	## 局内盲注板是 560×276 的扁板, 拉伸会把圆角和边框粗细拽变形; 而且那张 PNG
+	## 的 alpha 抠得脏(内部有大片斑块残留)。程序化画法尺寸无关, 两处才能真正同源。
+	## 尺寸参数一律用**显示像素绝对值**(交接件 842 宽 → 显示 640, 比例 0.76:
+	## 内缩 40→30, 圆角 30→23), 所以扁板和大卡看起来是同一块玻璃。
+	const RADIUS := 26.0          # 圆角(显示像素)
+	const RIM_INSET := 13.0       # 内框: 玻璃体内侧那圈细线
+	## 玻璃体比外框小一圈 —— home.html 的 640×972 是外框 div, 真正的玻璃是
+	## `inset:34px` 之后的 572×904, 外面那圈是留给辉光溢出的。照着外框画会偏大。
+	const BLEED := 34.0
+	const GRID := 26.0            # 交接件: 26px 点阵(用户钦点保留)
+
+	## ── 素材路径 ────────────────────────────────────────────────────────────
+	## `resources/godot-handoff/` 的灰白玻璃图(alpha 已抠), 运行时副本在
+	## assets/frames/。灰白 = 原图 saturate(0) 预烘焙, 所以能直接用 modulate
+	## 按盲注档位上色 —— 交接件「卡体不带色, 颜色来自灯」在这里落成"给灯上色"。
+	##
+	## **九宫格是尺寸问题的答案**(交接件: 9-slice 四边各 60px): 只拉中间,
+	## 四角和边框保持原始像素, 所以 560×276 的扁板不会把圆角/边框拽变形。
+	## 带倒影的整图不能九宫格(倒影会落进下边条), 首页大卡按设计稿整图拉伸,
+	## 比例本来就对得上。
+	const NINE := 118.0
+	const FRAME_TAIL := 1355.0 / 1197.0   # 交接件倒影比例 = html 的 113.2%
+	static var _tex: Dictionary = {}
+
+	static func glass_tex(with_tail: bool) -> Texture2D:
+		var key := "glass" if with_tail else "glassface"
+		if _tex.has(key):
+			return _tex[key]
+		var path := "res://assets/frames/%s.png" % key
+		var t: Texture2D = load(path) if ResourceLoader.exists(path) else null
+		_tex[key] = t
+		return t
+
+
+	## 九宫格贴图: 四角原样, 四边单向拉, 中间双向拉。
+	static func draw_nine(ci: CanvasItem, tex: Texture2D, r: Rect2, m: float,
+			tint: Color) -> void:
+		var tw := float(tex.get_width())
+		var th := float(tex.get_height())
+		var mx: float = minf(m, minf(tw, r.size.x) * 0.5 - 1.0)
+		var my: float = minf(m, minf(th, r.size.y) * 0.5 - 1.0)
+		var sx := [0.0, mx, tw - mx, tw]           # 源切边
+		var sy := [0.0, my, th - my, th]
+		var dx := [r.position.x, r.position.x + mx, r.end.x - mx, r.end.x]
+		var dy := [r.position.y, r.position.y + my, r.end.y - my, r.end.y]
+		for i in range(3):
+			for j in range(3):
+				var src := Rect2(sx[i], sy[j], sx[i + 1] - sx[i], sy[j + 1] - sy[j])
+				var dst := Rect2(dx[i], dy[j], dx[i + 1] - dx[i], dy[j + 1] - dy[j])
+				if dst.size.x <= 0.0 or dst.size.y <= 0.0:
+					continue
+				ci.draw_texture_rect_region(tex, dst, src, tint)
+
+
+	static var _body_grad: GradientTexture2D = null
+
+	## 玻璃体的竖向渐变(**暗**的, 不是白纱): 交接件给的
+	## rgba(24,28,56,.34) → rgba(7,9,22,.42)。
+	static func body_grad() -> GradientTexture2D:
+		if _body_grad != null:
+			return _body_grad
+		var g := Gradient.new()
+		g.offsets = PackedFloat32Array([0.0, 1.0])
+		g.colors = PackedColorArray([Color(0.094, 0.110, 0.220, 0.34),
+			Color(0.027, 0.031, 0.086, 0.42)])
+		_body_grad = GradientTexture2D.new()
+		_body_grad.gradient = g
+		_body_grad.width = 8
+		_body_grad.height = 256
+		_body_grad.fill_from = Vector2(0, 0)
+		_body_grad.fill_to = Vector2(0, 1)
+		return _body_grad
+
+
+	## `r` 传**外框**(设计稿的 640×972 div), 玻璃体自己内缩 BLEED。
+	## `tail` = 用带倒影的整图(首页大卡, 倒影兜住菜单); false = 无倒影版走九宫格。
+	## `body` 给全局 chrome(顶栏)用: 传一个半透黑就能压过按档位色算出来的玻璃体。
+	static func draw_card(ci: CanvasItem, r: Rect2, acc: Color, radius := -1.0,
+			inset := -1.0, tail := false, body := Color(0, 0, 0, 0)) -> void:
+		var rad: float = RADIUS if radius < 0.0 else radius
+		var ins: float = RIM_INSET if inset < 0.0 else inset
+		var tex := glass_tex(tail)
+		if tex != null:
+			# 交接件分层: 内衬深底(内缩 34, 圆角 18) → 玻璃贴图 → 内容(调用方画)
+			ci.draw_style_box(StageTheme.box(Color(0.051, 0.059, 0.133, 0.70),
+				Color(0, 0, 0, 0), 0, 18), r.grow(-BLEED))
+			var tint := Color(acc.r, acc.g, acc.b, 1.0)
+			if tail:
+				ci.draw_texture_rect(tex, Rect2(r.position,
+					Vector2(r.size.x, r.size.y * FRAME_TAIL)), false, tint)
+			else:
+				draw_nine(ci, tex, r, NINE, tint)
+			return
+		# r 传外框, 内缩由 _slab 自己按设计稿处理。`tail` 的倒影是独立的镜像层
+		# (见 draw_mirror), 不在这里画。
+		_slab(ci, r, acc, rad, ins, 1.0, false, body)
+
+
+	## 一块玻璃。a = 整体透明度(倒影复用同一套画法, 只是压扁调暗)。
+	##
+	## **照着交接件 PNG 的像素剖面画**(tools 里量过, 2026-08-05):
+	##   · 整张图**只有一条线**: 在图宽 4.9% 处, 近白(灰度 0.93)、alpha 0.99、约 3px;
+	##   · 这条线**外面 alpha 全是 0** —— 设计稿没有外光晕, 也没有主色描边;
+	##   · 线内侧 alpha 0.18→0.07 缓降, 是一层很淡的浅灰玻璃膜, 不是深色板。
+	## 2026-08-06 用户拍板:「我最初的设计仅仅是一块玻璃板被打了光」——
+	## 分层砍成: **单块玻璃体**(圆角多边形逐顶点竖向渐变, 无任何内部边界)
+	## → 点阵(用户钦点保留)→ 右上受光楔 → 那一条白线。
+	## 「玻璃板里面卡别的图层是很难动」针对的是**有边界的板/贴图矩形**。曾照 html 的 `inset:34px` 搬过一层
+	## 内衬深底 + 渐变贴图矩形, 两组可见的矩形边被用户点名(「内置矩形」), 已删。
+	## **别再加外发光/主色描边/第二块内板** —— 都是凭空多出来的。
+	const LINE_INSET := 30.0      # 白线距外框(显示像素, 设计稿 4.9%×640≈31)
+	const PANEL_INSET := 34.0     # 内衬深底, 设计稿 inset:34px
+	const PANEL_RADIUS := 18.0    # 设计稿 border-radius:18px
+
+	## `ins` = 白线距外框(大卡 30 / 玩家条这种小件要按比例缩), 内衬深底再往里 4。
+	## `lit_only` = 只画会发光的部分(线 + 一层极淡玻璃膜), 给倒影用 ——
+	## 实物倒影里深色内衬几乎不反射, 连它一起镜像会把底部页签压暗。
+	static func _slab(ci: CanvasItem, r: Rect2, acc: Color, rad: float, ins: float,
+			a: float, lit_only := false, body_override := Color(0, 0, 0, 0)) -> void:
+		# 剖面显示玻璃体在**线的外侧也还有**(x=30..38 alpha 0.02→0.13), 所以玻璃
+		# 要比线更往外一点 —— 线是嵌在玻璃里的, 不是浮在玻璃外面(用户:「和玻璃板
+		# 不太贴合」)。
+		# 注意: 这里曾经铺过一层淡蓝白的"玻璃膜"(0.10 白), 已删 —— 它和下面的
+		# sheen 一起, 就是"玻璃板上有一层白白的东西"的来源(用户 2026-08-05)。
+		# 玻璃的通透靠**暗**渐变 + 局部高光, 不靠往上糊白。
+		var panel := r.grow(-(ins + 4.0))
+		var w := panel.size.x
+		var h := panel.size.y
+
+		if lit_only:
+			_line(ci, r, acc, rad, ins, a)
+			return
+
+		# 1. 玻璃体 = **一块**(2026-08-06 用户:「我最初的设计仅仅是一块玻璃板
+		# 被打了光」, 并点名看到了「内置矩形」)。旧做法是 内衬深底(有边的圆角板)
+		# + 内缩矩形上的渐变贴图 —— 后者为了不从圆角溢出往里缩了 ~9px, 贴图四条
+		# alpha 硬边就是那个「内置矩形」。现在整块玻璃是**一个圆角多边形逐顶点
+		# 竖向渐变**:颜色是 y 的线性函数, 重心插值精确重现, 天生没有任何内部
+		# 边界。剖面显示线内外都有玻璃, 玻璃体延伸到白线**外** 8px(线嵌在玻璃里)。
+		# 颜色在**玻璃体**里(掺 22% 档位色), 光在**边**上(白线是纯白)。
+		# 体色按参考图**实测**(2026-08-06 像素剖面): 近黑 + ~5% 档位色,
+		# 中心 v3-7 —— 玻璃的"颜色感"主要来自线和光, 不是体。
+		# 体色按参考实测: 是**高饱和、低明度的档位色**(red 体 #120000 s=1.00,
+		# green #000705, gold #080501), 不是中性黑掺一点色 —— 后者会把红卡画成灰卡。
+		# 体色 = **边缘有色、中心近黑**(用户 2026-08-06:「这块板靠中间是偏黑的,
+		# 靠四周(线条)是比较有颜色的……你现在整块板都带着那个颜色」)。
+		# 物理上就是这样: 发光的是**边上那根霓虹管**, 光往玻璃里渗, 越靠中心越弱。
+		# 做法 = **三角扇**: 中心一个顶点给近黑, 边缘顶点给档位色, 重心插值天然
+		# 得到径向衰减, 而且**没有任何内部边界**(同心多边形分层会露出圈)。
+		# ⚠ **不要用三角扇**做这个径向衰减: 重心插值的等值线**平行于每条边**,
+		# 长宽比大的矩形会显出一圈圈方形光晕(实测中心有明显菱形接缝)。
+		# 光是**沿法线从边渗进来**的 —— 等值线应该是均匀内缩的圆角矩形。
+		# 所以: 纯黑玻璃体 + 一叠向内内缩的宽描边(渗光), 指数衰减。
+		var glass := r.grow(-(ins - maxf(2.0 * clampf(ins / 30.0, 0.42, 1.0), 1.0) - 1.0))
+		var gpath := _rounded_path(glass, rad + 4.0)
+		# 参考放大图的板面是**有颜色的暗档位色**(不是纯黑) —— 点阵浮在它上面。
+		var core_c := Color.from_hsv(acc.h, minf(acc.s * 1.15, 1.0), 0.052)
+		var gcols := PackedColorArray()
+		for gp in gpath:
+			var t: float = clampf((gp.y - glass.position.y) / maxf(glass.size.y, 1.0), 0.0, 1.0)
+			gcols.append(Color(core_c.r, core_c.g, core_c.b, (0.96 - 0.10 * t) * a))
+		ci.draw_polygon(gpath, gcols)
+		# 边缘渗光: 靠线的一圈更亮, 陡衰减(只占卡宽 ~12%), 中间保持暗。
+		# 参考放大图里板面靠边明显更亮 —— 光是从那根霓虹管渗进来的。
+		var bleed_c := Color.from_hsv(acc.h, minf(acc.s * 1.2, 1.0), 1.0)
+		var bstep: float = maxf(glass.size.x * 0.012, 4.0)
+		for bi in range(10):
+			var bd: float = float(bi) * bstep
+			if bd > glass.size.x * 0.14 or bd > glass.size.y * 0.14:
+				break
+			var bwid: float = bstep * 2.6
+			_lit_rim(ci, glass.grow(-(bd + bwid * 0.5)),
+				maxf(rad + 4.0 - bd * 0.25, 10.0), bleed_c,
+				0.055 * exp(-float(bi) * 0.34) * a, 1.0, bwid, 0.0)
+
+		# ⚠⚠ **玻璃体里不做任何均匀染色**(2026-08-06 用户:「把板子中间, 带有颜色
+		# 的那么大的面积, 去掉, 变黑。只剩斑点带颜色点缀」)。我先后做过整块均匀染色、
+		# 三角扇径向渐变、向内内缩的渗光环 —— **全都是多余的**: 板体就是黑的,
+		# 颜色只由 ①那条白边(带档位色+白光) ②点阵 承担。
+
+		# 2. 26px 点阵(2026-08-06 曾按「玻璃里不卡图层」误删, 用户:「点阵别删」)
+		# 点阵**是有颜色的**(用户 2026-08-06)。同样跟着"边亮中暗": 越靠边越显色。
+		var dot_c := Color.from_hsv(acc.h, minf(acc.s * 1.1, 1.0), 1.0)
+		var dot_ctr := panel.get_center()
+		var dot_rmax: float = maxf(dot_ctr.distance_to(panel.position), 1.0)
+		var gy := panel.position.y + GRID
+		while gy < panel.end.y - 6.0:
+			var gx := panel.position.x + GRID
+			while gx < panel.end.x - 6.0:
+				var dr: float = clampf(Vector2(gx, gy).distance_to(dot_ctr) / dot_rmax, 0.0, 1.0)
+				# 板体全黑之后, **点阵是唯一的颜色点缀** —— 要看得见。
+				ci.draw_rect(Rect2(gx, gy, 1.6, 1.6),
+					Color(dot_c.r, dot_c.g, dot_c.b, (0.16 + 0.34 * dr * dr) * a), true)
+				gx += GRID
+			gy += GRID
+
+		# 3. 受光: **只有右上角一块**。参照设计稿近景 —— 卡面是干净的暗色,
+		#    只有右上角被灯切出一个三角亮面, 边界是一条清楚的斜线。
+		#    这里**不要**再叠 `PaperCard.sheen()`(那是整块面板的白色反光带),
+		#    也不要满幅的白色柔光 —— 两者都会让玻璃"蒙一层白"(用户两次指出)。
+		# 3. **光线造成的明暗**(用户 2026-08-06 给了右上角放大图:「我说的是这个东西」)。
+		# ⚠ 形态与我先前的理解**正好相反**: 不是"右上角亮、其余黑", 而是
+		# **板面主体受光, 右上角被一条清楚的斜线切出一块暗区**(玻璃的另一个反射面),
+		# 而白色热点在**边线的右上角**。光从右上来说的是那个热点, 不是板面的亮块。
+		var lit := acc.lerp(Color(1, 1, 1), 0.80)
+		# 3a. 板面主体的受光(左上→中部, 很淡, 只是把板面提起来一点)
+		# **光从右上往左下射**(用户 2026-08-06 原话) —— 板面**右上亮、左下暗**,
+		# 所以直角顶点在 panel 右上, 沿光线方向衰减。
+		ci.draw_polygon(PackedVector2Array([
+			panel.position + Vector2(w, 0.0),
+			panel.position + Vector2(w * 0.10, 0.0),
+			panel.position + Vector2(w, h * 0.92)]),
+			PackedColorArray([Color(lit.r, lit.g, lit.b, 0.095 * a),
+				Color(lit.r, lit.g, lit.b, 0.010 * a), Color(lit.r, lit.g, lit.b, 0.010 * a)]))
+		# 3b. **右上角的暗区**: 一条斜线切下来, 线右下侧压黑 —— 这是画面里
+		# 最明显的那道分界, 用纯黑叠加而不是"少给光", 边界才利落。
+		# 尺寸按放大图换算: 那张图是整卡右上角约 1/4 的局部, 斜线在其中约 45°,
+		# 折回整卡 = **只切掉右上角一小块**(从上边 76% 处到右边 26% 高度), 不是一大片。
+		ci.draw_polygon(PackedVector2Array([
+			panel.position + Vector2(w * 0.76, 0.0),
+			panel.position + Vector2(w, 0.0),
+			panel.position + Vector2(w, h * 0.26)]),
+			PackedColorArray([Color(0, 0, 0, 0.55 * a), Color(0, 0, 0, 0.66 * a),
+				Color(0, 0, 0, 0.48 * a)]))
+
+		# (四角的径向辉光已删: 角的增强由 `_lit_rim` 的 corner boost 在**线上**做,
+		# 额外贴一团光只会变成卡外的雾, 且容易读成灯泡。)
+
+		_line(ci, r, acc, rad, ins, a)
+
+
+	## 那条线 = 一根霓虹灯管: 剖面在峰值两侧是 0.13/0.10/0.04/0.01 的衰减,
+	## 所以要**先铺两侧辉光再画锐利白芯**, 硬边 2px 画出来是"不发光"的
+	## (用户:「白边不够发光」)。辉光取档位色, 芯保持近白。
+	## 外圈的光是**白的**(用户 2026-08-05:「外圈的光应该就是白色的」)——
+	## 档位色留给玻璃体, 边上这道是灯打在玻璃棱上的反光, 掺主色会立刻变脏。
+	## `blur` 给倒影用: 只留宽而软的几道、不画锐利白芯, 读起来就是糊开的。
+	static func _line(ci: CanvasItem, r: Rect2, acc: Color, rad: float, ins: float,
+			a: float, blur := false) -> void:
+		var line := r.grow(-ins)
+		# 2026-08-06 用户给了五张玻璃卡终极参考(粉/紫/青/金/红):**线是档位色的
+		# 霓虹管**, 只在热点处烧到近白 —— 取代旧拍板「外圈纯白」(那是灰白交接件
+		# 的剖面结论, 参考图升级后作废)。辉光 = 档位色, 芯 = 档位色提亮。
+		# ⚠ 芯必须**近白**(参考边色@50%: #ffe9f9/#f9f7fd/#eefdfc/#fbd983)。
+		# 2026-08-06 曾把它降到 0.32 白 + 最内圈辉光提到 0.42 纯档位色, 结果白芯
+		# 被辉光染回彩色 —— 用户:「光圈不白了」。芯在最上层, 但压不过太强的内圈辉光。
+		var w := acc.lerp(Color(1, 1, 1), 0.42)
+		# 辉光的宽度要跟着件的大小缩: 大卡的内缩是 30, 局内盲注板只有 14,
+		# 照搬绝对值那圈白光在小板上就显得很厚(用户 2026-08-05:「局内盲注外面的
+		# 白色光圈不用那么厚, 但可以有点光泽」)。薄一圈, 但层数不减 —— 光泽靠
+		# 层次, 不靠厚度。
+		var k: float = clampf(ins / 30.0, 0.42, 1.0)
+		if blur:
+			# **糊的是边缘, 形还在**(用户 2026-08-05 指出): 只铺宽而淡的几道会把
+			# 倒影整个稀释成看不见。正确做法是保留一道**柔和的芯**(比正面宽、比
+			# 正面暗, 不锐利), 外面再散开 —— 像失焦的镜像, 不是一团雾。
+			for spec in [[15.0, 20, 0.05], [10.0, 15, 0.09], [5.5, 10, 0.15],
+					[2.0, 6, 0.24], [0.0, 5, 0.42]]:
+				var bg: float = float(spec[0])
+				var bbw: int = int(spec[1])
+				var ba: float = float(spec[2])
+				ci.draw_style_box(StageTheme.box(Color(0, 0, 0, 0),
+					Color(acc.r, acc.g, acc.b, ba * a), bbw, int(rad + bg)), line.grow(bg))
+			return
+		# 辉光与芯**共用同一个亮度场**(对账实测: 均匀 StyleBox 环把底边抬到 v81,
+		# 参考是 v2-10 —— 底边的暗必须一路暗到辉光)。环外扩到 +20px:
+		# 参考纵剖外侧 8px 处 v8-16, 均匀环时代我们是 0。
+		var floor_k := clampf(lerpf(0.75, -0.15, k * k), 0.0, 1.0)
+		# 对账实测(2026-08-06): 参考的辉光**主要往内渗**, 外侧很克制 ——
+		# 顶边中点纵剖 外侧 −8/−4px 只有 v5/v8, 内侧 +4..+24px 却有 v23/20/16。
+		# 所以外环薄, 内环厚(内环还兼顾"上部光线"的近边那一截)。
+		# 强度按参考辉光带对齐: 实测参考 v=0.35-0.51, 旧值只有 ~0.12(饱和采样都
+		# 采不到) —— 这就是「带光线的部分比目标少」的另一半。
+		# ⚠⚠ **卡外不做光晕**(2026-08-06 用户:「我让你加强边缘光, 中间不要光,
+		# 你给我加光晕」)。用户要的一直是**玻璃内侧靠边的渗光**, 不是卡片外面
+		# 糊一圈雾。这里只留紧贴线的一道 2px 过渡, 让线不显得像贴纸 —— 到此为止。
+		for spec in [[2.0, 3.0, 0.10]]:
+			var g: float = float(spec[0]) * k
+			var bw: float = maxf(float(spec[1]) * k, 1.5)
+			_lit_rim(ci, line.grow(g), rad + g, acc, float(spec[2]) * a,
+				floor_k, bw, 0.25)
+		for spec in [[2.5, 5.0, 0.16], [6.0, 6.0, 0.055]]:
+			var gi: float = float(spec[0]) * k
+			var bwi: float = maxf(float(spec[1]) * k, 1.5)
+			_lit_rim(ci, line.grow(-gi), maxf(rad - gi, 4.0), acc,
+				float(spec[2]) * a, floor_k, bwi, 0.25)
+		# 芯不是均匀一圈: 光从左上来, 迎光的边亮、背光的边暗(用户 2026-08-05:
+		# 「白色光边部分地方的光泽会比较大, 不是全均匀的」)。
+		# 受光不均的幅度也要跟着尺寸缩: 大卡上"迎光亮/背光暗"是质感, 到局内小板上
+		# 就成了"一头毛毛一头很细"(用户 2026-08-05), 所以小件几乎均匀。
+		_lit_rim(ci, line, rad, w, 1.0 * a, floor_k, maxf(4.0 * k, 2.0), 1.0)
+		# **边缘的立体感**(用户 2026-08-06:「他的边缘还有点立体感你没做」):
+		# 参考里边不是一条线, 是**有厚度的玻璃棱** —— 亮芯内侧紧跟一道暗内壁
+		# (棱的背光面), 再往内一道极细的二次反光。三层叠起来才有"板有厚度"的读感。
+		var wall := Color(0, 0, 0)
+		_lit_rim(ci, line.grow(-2.6 * k), maxf(rad - 2.6 * k, 4.0), wall,
+			0.72 * a, floor_k, maxf(2.4 * k, 1.4), 0.0)
+		var inner := acc.lerp(Color(1, 1, 1), 0.85)
+		_lit_rim(ci, line.grow(-4.6 * k), maxf(rad - 4.6 * k, 4.0), inner,
+			0.50 * a, floor_k, maxf(1.6 * k, 1.0), 0.5, true)
+
+
+	## 把路径上距离超过 step 的相邻点段插值细分 —— 逐点着色需要边上有点。
+	static func _dense(pts: PackedVector2Array, step: float) -> PackedVector2Array:
+		var out := PackedVector2Array()
+		for i in range(pts.size()):
+			var a2 := pts[i]
+			var b2 := pts[(i + 1) % pts.size()]
+			out.append(a2)
+			var d := a2.distance_to(b2)
+			var n := int(d / step)
+			for j in range(1, n + 1):
+				out.append(a2.lerp(b2, float(j) / float(n + 1)))
+		return out
+
+
+	## 圆角矩形路径(四角用短弧近似), 给"受光不均"的描边用。
+	static func _rounded_path(r: Rect2, rad: float) -> PackedVector2Array:
+		var pts := PackedVector2Array()
+		var seg := 5
+		var corners := [
+			[Vector2(r.end.x - rad, r.position.y + rad), -PI * 0.5, 0.0],
+			[Vector2(r.end.x - rad, r.end.y - rad), 0.0, PI * 0.5],
+			[Vector2(r.position.x + rad, r.end.y - rad), PI * 0.5, PI],
+			[Vector2(r.position.x + rad, r.position.y + rad), PI, PI * 1.5]]
+		for c in corners:
+			var o: Vector2 = c[0]
+			var a0: float = c[1]
+			var a1: float = c[2]
+			for i in range(seg + 1):
+				var t: float = float(i) / float(seg)
+				var ang: float = lerpf(a0, a1, t)
+				pts.append(o + Vector2(cos(ang), sin(ang)) * rad)
+		pts.append(pts[0])
+		return pts
+
+
+	## 受光不均的描边: 法线朝左上的地方最亮, 背面掉到三成。
+	## `floor_k` = 背光处保留多少亮度(1.0 = 完全均匀)。
+	## 亮度分布按 2026-08-06 参考图**像素实测**(目测版是反的, 别退回去):
+	## **侧边最亮**(全程 v98-100, 中段烧近白, 近底有凹陷)→ 顶边其次(保饱和)
+	## → **底边中段是暗的**, 只有底角亮。floor_k 越高越均匀(小件规矩不变)。
+	static func _lit_rim(ci: CanvasItem, r: Rect2, rad: float, col: Color,
+			a: float, floor_k := 0.30, width := 2.2, whiten_scale := 1.0,
+			invert := false) -> void:
+		# ⚠ _rounded_path 只在圆角出点, 直边是单段长线 —— 逐点亮度会被两端角的值
+		# 线性插满整条边(对账实测: 底边被底角的 0.69 填成 v70, 剖面完全没生效)。
+		# 必须先把直边细分。
+		var pts := _dense(_rounded_path(r, rad), 22.0)
+		var uneven: float = clampf(1.0 - floor_k, 0.0, 1.0)
+		var cols := PackedColorArray()
+		for p in pts:
+			var u: float = clampf((p.x - r.position.x) / maxf(r.size.x, 1.0), 0.0, 1.0)
+			var v: float = clampf((p.y - r.position.y) / maxf(r.size.y, 1.0), 0.0, 1.0)
+			var topness: float = exp(-pow(v / 0.05, 2.0))
+			var botness: float = exp(-pow((1.0 - v) / 0.05, 2.0))
+			var sideness: float = clampf(1.0 - topness - botness, 0.0, 1.0)
+			# 实测剖面: 侧边 v98-100 全程亮(近底 v≈0.9 凹陷), 顶边 v93-99,
+			# **底边中段 v2-9 暗**, 底角亮(v30-60)。
+			var corner_b: float = exp(-pow(u / 0.10, 2.0)) + exp(-pow((1.0 - u) / 0.10, 2.0))
+			var lit_side: float = 1.0 - 0.45 * exp(-pow((v - 0.9) / 0.06, 2.0))
+			var lit_bot: float = 0.06 + 0.57 * corner_b
+			# 角上的光更强 —— 但要沿着**线**增强, 不能贴一团圆点(那读成灯泡)。
+			var cu: float = minf(u, 1.0 - u)
+			var cv: float = minf(v, 1.0 - v)
+			var corner_k: float = exp(-(pow(cu / 0.16, 2.0) + pow(cv / 0.10, 2.0)))
+			var profile: float = topness * 0.96 + botness * lit_bot + sideness * lit_side
+			profile = minf(profile + 0.45 * corner_k, 1.35)
+			# 烧白在**侧边中段**(实测 #ffe9f9 近白), 顶边保饱和
+			# 顶边**保饱和**(参考 #f392c7/#fb4a47), 只有侧边中段烧到近白(#ffe9f9)
+			# 白热点在**右上角**(用户放大图: 那一段边是纯白的, 往两边褪回档位色)。
+			var hot_tr: float = exp(-(pow((1.0 - u) / 0.30, 2.0) + pow(v / 0.22, 2.0)))
+			var whiten: float = (0.95 * hot_tr
+				+ sideness * 0.35 * exp(-pow((v - 0.5) / 0.30, 2.0)) * u) * whiten_scale
+			var lit: float = lerpf(1.0, profile, uneven)
+			if invert:
+				# 内壁模式: 光从左上进玻璃, 穿过板体照亮**右下**的内壁 ——
+				# 左上内壁反而在阴影里。这个方向差才是"板有厚度"的来源,
+				# 同心等亮的三条线只会读成三条贴纸。
+				# 光从右上进玻璃 → 照亮**左下**内壁; 右上内壁在阴影里
+				lit = clampf(0.12 + 0.88 * ((1.0 - u) * 0.5 + v * 0.5), 0.0, 1.0)
+			var cw: Color = col.lerp(Color(1, 1, 1), clampf(whiten * uneven, 0.0, 0.92))
+			cols.append(Color(cw.r, cw.g, cw.b, clampf(a * lit, 0.0, 1.0)))
+		ci.draw_polyline_colors(pts, cols, width, true)
+
+
+	## ── 底部倒影 = 真镜像 ─────────────────────────────────────────────────
+	## 把素材那截倒影整段裁出来看过(不是点采样): 接缝处一条很亮的横线(卡片底边
+	## 的镜像)+ 往下延续的圆角与两侧竖轨 + 淡淡的镜像玻璃体, **1:1 不压扁**,
+	## 随距离渐隐。带高 = 卡高的 13.2%(= home.html 的 height:113.2%)。
+	##
+	## 遮罩必须走 **shader**(design/ui_meta.md 渲染手法):渐隐要统一作用在 StyleBox /
+	## 贴图 / 线条上, 用一张渐变矩形盖上去只能糊住颜色、盖不住 alpha。
+	## 画法与 `PaperCard._mask_material` 同源, 只是这里按屏幕 y 做带状渐隐。
+	## 走过的弯路: 压扁整块玻璃(读成"第二张小卡片")、只画左右两条竖光带
+	## (丢了接缝亮线和圆角)——都是没把倒影整段看一眼就下的结论。
+	## 镜像轴 = **霓虹轨底边**(裁图实测: 那条很亮的接缝线就在轨底, 不是外框底,
+	## 按外框底起算会整体下掉一个内缩的高度、和卡之间空出一条缝)。
+	## 带高 = 卡高的 13.5% —— 正是交接件倒影带的比例(1355/1197-1), 光刚好铺满
+	## 底部整排页签的高度:**页签是坐在倒影里的**(用户 2026-08-05:「底部 menu 现在
+	## 是在卡牌倒影中……光线没有覆盖到整个 menu 的高度」)。
+	## 早先砍到 6% 是因为那时倒影画得太实(整块玻璃压扁/满不透明度), 拉长就会把
+	## 页签圈成"第二块板"; 现在倒影只剩柔光 + shader 渐隐, 铺满才是对的。
+	const TAIL_RATIO := 0.135
+	## 卡片与倒影之间留一道缝: 卡是**浮在**反光地面上的, 浮空物体的镜像本就从
+	## 地面再往下退一个离地高度, 贴死会像插在地上; 而且上方(信息栏↔卡片)有呼吸、
+	## 下方贴死会不对称(用户 2026-08-05 提的)。
+	const TAIL_GAP := 12.0
+
+	static func mirror_material(y0: float, band: float, peak: float) -> ShaderMaterial:
+		var sh := Shader.new()
+		sh.code = """
+shader_type canvas_item;
+uniform float y0 = 0.0;
+uniform float band = 128.0;
+uniform float peak = 0.55;
+varying float ly;
+void vertex() { ly = VERTEX.y; }
+void fragment() {
+	float t = clamp((ly - y0) / max(band, 0.001), 0.0, 1.0);
+	COLOR.a *= peak * pow(1.0 - t, 1.35);
+}
+"""
+		var m := ShaderMaterial.new()
+		m.shader = sh
+		m.set_shader_parameter("y0", y0)
+		m.set_shader_parameter("band", band)
+		m.set_shader_parameter("peak", peak)
+		return m
+
+
+	## 在 `ci` 上把 `card` 这块玻璃 1:1 翻转画到下方(调用方负责挂遮罩材质)。
+	## 镜像轴 = **霓虹轨的底边**(card.end.y - ins), 不是外框底边。
+	##
+	## **不能用 `draw_set_transform` 做翻转**: shader 里的 `VERTEX.y` 拿到的是
+	## 变换**之前**的局部坐标, 带状渐隐会整个失效(镜像会以满不透明度铺下去,
+	## 把底部页签圈成"第二块板")。改成直接算出镜像后的矩形再画 —— 霓虹轨是
+	## 上下对称的圆角矩形, 画出来和真镜像等价, 而 shader 能拿到正确的 y。
+	static func draw_mirror(ci: CanvasItem, card: Rect2, acc: Color, rad: float,
+			ins: float) -> void:
+		var seam := card.end.y - ins + TAIL_GAP
+		var m := Rect2(card.position.x, seam * 2.0 - card.end.y,
+			card.size.x, card.size.y)
+		# 参考图里倒影是**糊开的**, 不是一条清晰的线(用户指出)
+		_line(ci, m, acc, rad, ins, 1.0, true)
+
+
+	## 分隔线: 2px 渐变横条 (设计稿的 section rule)。
+	static func rule_line(ci: CanvasItem, x: float, y: float, w: float, acc: Color,
+			both := false) -> void:
+		var a := Color(acc.r, acc.g, acc.b, 0.7)
+		var b := Color(acc.r, acc.g, acc.b, 0.18)
+		ci.draw_polyline_colors(
+			PackedVector2Array([Vector2(x, y), Vector2(x + w * 0.5, y), Vector2(x + w, y)]),
+			PackedColorArray([b if both else a, a, b]), 2.0)
+
+
+	## 均衡器带: 中轴发亮, 两侧镜像条, 包络中间高。`t` 驱动脉动,
+	## `seed_n` 让同一个盲注的波形保持稳定。
+	static func eq_band(ci: CanvasItem, r: Rect2, acc: Color, t: float, seed_n: int,
+			bars := 34) -> void:
+		var mid := r.position.y + r.size.y * 0.5
+		var bw: float = r.size.x / float(bars)
+		for i in range(bars):
+			var env: float = pow(sin(PI * (float(i) + 0.5) / float(bars)), 1.7)
+			var h1: float = _hash(seed_n * 100 + i)
+			var h2: float = _hash(seed_n * 100 + i + 60)
+			var h3: float = _hash(seed_n * 100 + i + 120)
+			var h: float = (0.08 + env * (0.55 + h1 * 0.42)) * r.size.y
+			if h2 > 0.82:
+				h *= 1.25
+			var dur: float = 0.8 + h3 * 0.9
+			var ph: float = fmod(t / dur + h2 * 1.2, 1.0)
+			h *= 0.45 + 0.55 * (0.5 - 0.5 * cos(ph * TAU))
+			h = minf(h, r.size.y * 0.92)
+			var x := r.position.x + float(i) * bw
+			var bar := Rect2(x + bw * 0.22, mid - h * 0.5, maxf(bw * 0.56, 2.0), h)
+			ci.draw_texture_rect(bar_tex(), bar, false, Color(acc.r, acc.g, acc.b, 0.95))
+			ci.draw_texture_rect(bar_tex(), Rect2(bar.position.x, mid - h * 0.22,
+				bar.size.x, h * 0.44), false, Color(1, 1, 1, 0.9))
+		ci.draw_polyline_colors(
+			PackedVector2Array([Vector2(r.position.x, mid),
+				Vector2(r.position.x + r.size.x * 0.5, mid), Vector2(r.end.x, mid)]),
+			PackedColorArray([Color(acc.r, acc.g, acc.b, 0.0), Color(1, 1, 1, 0.95),
+				Color(acc.r, acc.g, acc.b, 0.0)]), 2.0)
+
+	static func _hash(k: int) -> float:
+		var x: float = sin(float(k + 1) * 12.9898) * 43758.5453
+		return x - floor(x)
+
+	static var _bar: GradientTexture2D = null
+
+	## 竖向渐变条: 透明 → 主色 → 白芯 → 主色 → 透明。必须建一次并缓存
+	## (每帧 new 的 GradientTexture2D 首帧渲染成白, design/ui_meta.md 渲染手法)。
+	static func bar_tex() -> GradientTexture2D:
+		if _bar != null:
+			return _bar
+		var g := Gradient.new()
+		g.offsets = PackedFloat32Array([0.0, 0.32, 0.5, 0.68, 1.0])
+		g.colors = PackedColorArray([Color(1, 1, 1, 0.0), Color(1, 1, 1, 0.75),
+			Color(1, 1, 1, 1.0), Color(1, 1, 1, 0.75), Color(1, 1, 1, 0.0)])
+		_bar = GradientTexture2D.new()
+		_bar.gradient = g
+		_bar.width = 4
+		_bar.height = 96
+		_bar.fill_from = Vector2(0, 0)
+		_bar.fill_to = Vector2(0, 1)
+		return _bar
+
+
+	## 档位色 = **四档递进**(2026-08-06 用户拍板: 4 个盲注全是 BOSS 墙,
+	## 小盲/大盲的概念作废, 递进感全部由档位色 + 序号承担):
+	## 蓝 → 橙 → 红 → 粉, 逐档升温。前三档沿用用户拍板的红蓝橙
+	## (「不喜欢这个绿色, 红蓝橙可能更好」), 第四档取调色板里的粉——
+	## 霓虹灯管最刺眼的就是品红, 语义上是「红再往上」的终局色。
+	## 首页舞台卡与局内盲注卡共用这一处, 两边永远同色。
+	static func accent_for(section_idx: int) -> Color:
+		match clampi(section_idx, 0, 3):
+			0: return StageTheme.BLUE
+			1: return StageTheme.AMBER
+			2: return StageTheme.RED
+			_: return StageTheme.PINK
+		return StageTheme.BLUE
+
+	## ★★☆ difficulty read of the blind tier (NOT a save record — meta
+	## progression is design/ui_meta.md and unimplemented). 四档结构下直接是 1..4。
+	static func tier_stars(section_idx: int) -> int:
+		return clampi(section_idx + 1, 1, GameConfig.SECTIONS_PER_RUN)
+
+
+## 局内盲注卡 —— **竖版卡牌, 摆在音浪层左侧**(用户 2026-08-05 拍板:
+## 「不如把它放小丑牌下面, 音浪那一层的左边, 放一张卡牌而不是现在这样拉横的」)。
+## 之前做成通栏横条, 把上半屏拦腰切断; 竖卡放左边正好和右边的唱片对称,
+## 音浪从两者之间穿过。
+##
+## 分工不变: **HUD 管「当前数值」**(分数/目标、金币、第几拍、进度),
+## **这张卡管「你在打什么」**(档位、第几场、BOSS 规则)。
+class BlindCard:
+	extends Control
+	var section_idx := 0
+	var mod = null            # 本段的脸(只有墙才有)
+	var next_mod = null       # 下一面墙的预告
+
+	func setup(p_section: int, p_mod, p_next) -> void:
+		section_idx = p_section
+		mod = p_mod
+		next_mod = p_next
+		queue_redraw()
+
+	## 卡面照抄手牌的排版(用户 2026-08-05:「放一张卡牌」「不是我说的风格」——
+	## 之前用的是首页大玻璃卡那套, 摆在手牌旁边就是两种语言打架):
+	## 玻璃体 + 档位色霓虹边 + 115° sheen + 切角内框, 左上角标 / 中央大字 /
+	## 右下倒置角标。角标是盲注序号(牌的"点数"), 中央是档位(牌的"花色")。
+	## BOSS 脸出现时, 底部让给 ⚠ 条 —— 倒置角标收起, 墙的牌本来就该长得不一样。
+	func _draw() -> void:
+		var w := size.x
+		var h := size.y
+		var s := w / 114.0                       # 以手牌宽度为单位, 尺寸整体跟着缩放
+		var acc := StageCard.accent_for(section_idx)
+		var is_wall := GameConfig.is_wall(section_idx)
+		var face = mod if mod != null else next_mod
+		var preview := mod == null and next_mod != null
+
+		# ---- 卡体: 和 PaperCard 逐层同构 ----
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = StageTheme.GLASS_BODY
+		sb.set_corner_radius_all(12)
+		sb.set_border_width_all(2)
+		sb.border_color = Color(acc.r, acc.g, acc.b, 0.9)
+		sb.shadow_color = Color(acc.r, acc.g, acc.b, 0.42)
+		sb.shadow_size = 16
+		draw_style_box(sb, Rect2(0, 0, w, h))
+		draw_rect(Rect2(2, h * 0.42, w - 4, h * 0.56), Color(0.02, 0.01, 0.05, 0.30), true)
+		draw_texture_rect(PaperCard.sheen(), Rect2(2, 2, w - 4, h - 4), false)
+		draw_line(Vector2(6, 2.5), Vector2(w - 6, 2.5), Color(1, 1, 1, 0.42), 1.0)
+		var i := 6.0
+		var cut := 10.0
+		draw_polyline(PackedVector2Array([
+			Vector2(i + cut, i), Vector2(w - i, i), Vector2(w - i, h - i - cut),
+			Vector2(w - i - cut, h - i), Vector2(i, h - i), Vector2(i, i + cut),
+			Vector2(i + cut, i)]), Color(acc.r, acc.g, acc.b, 0.30), 1.0, true)
+
+		var zh := StageTheme.zh()
+		var num := StageTheme.num("Bold")
+		var med := StageTheme.num("Medium")
+
+		# ---- 角标: 盲注序号, 牌的点数位 ----
+		var fs := int(24.0 * s)
+		var idx_txt := "%02d" % (section_idx + 1)
+		var corners := [[Vector2(13.0 * s, 11.0 * s), false]]
+		if face == null:
+			corners.append([Vector2(w - 13.0 * s, h - 11.0 * s), true])
+		for c in corners:
+			var at: Vector2 = c[0]
+			draw_set_transform(at, PI if c[1] else 0.0, Vector2.ONE)
+			PaperCard.neon_text(self, num, idx_txt, Vector2(0, fs * 0.84), fs,
+				acc, StageTheme.CARD_INK, 0.7, s)
+			draw_string(med, Vector2(1, fs * 0.84 + 12.0 * s),
+				"/%d" % GameConfig.SECTIONS_PER_RUN, HORIZONTAL_ALIGNMENT_LEFT, -1,
+				int(11.0 * s), Color(acc.r, acc.g, acc.b, 0.7))
+			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+		# ---- 中央: 档位, 牌的花色位 ----
+		var tier := GameConfig.blind_name(section_idx)
+		var tfs := int(30.0 * s)
+		var tw := zh.get_string_size(tier, HORIZONTAL_ALIGNMENT_LEFT, -1, tfs).x
+		var cy := h * 0.47
+		PaperCard.neon_text(self, zh, tier, Vector2((w - tw) * 0.5, cy), tfs,
+			acc, Color("f8fcff"), 0.85, s)
+		if is_wall:
+			draw_string(zh, Vector2(0, cy + 19.0 * s), "墙", HORIZONTAL_ALIGNMENT_CENTER,
+				w, int(14.0 * s), Color(acc.r, acc.g, acc.b, 0.9))
+
+		draw_string(med, Vector2(0, h * 0.66), "GIG %d" % [GameConfig.gig_of(section_idx) + 1],
+			HORIZONTAL_ALIGNMENT_CENTER, w, int(12.0 * s),
+			Color(acc.r, acc.g, acc.b, 0.65))
+
+		# ---- 底部: BOSS 脸(本段的亮, 下一面墙的预告收敛) ----
+		if face == null:
+			return
+		var fc: Color = Color("ffb3c2") if not preview else \
+			Color(StageTheme.RED.r, StageTheme.RED.g, StageTheme.RED.b, 0.72)
+		var band := Rect2(8.0 * s, h - 46.0 * s, w - 16.0 * s, 34.0 * s)
+		draw_style_box(StageTheme.box(Color(fc.r, fc.g, fc.b, 0.12),
+			Color(fc.r, fc.g, fc.b, 0.45), 1, int(8.0 * s)), band)
+		draw_string(med, Vector2(band.position.x, band.position.y + 13.0 * s),
+			"NEXT ⚠" if preview else "⚠ BOSS", HORIZONTAL_ALIGNMENT_CENTER, band.size.x,
+			int(10.0 * s), Color(fc.r, fc.g, fc.b, 0.75))
+		draw_string(zh, Vector2(band.position.x, band.position.y + 29.0 * s), face.cn_name,
+			HORIZONTAL_ALIGNMENT_CENTER, band.size.x, int(14.0 * s), fc)
+
+
+## The blind board (盲注公示) — the home screen's stage card, sized for use
+## inside the game: same glass frame, same header/name/eq/target/rule flow.
+## Shared by the shop header (compact) and the standalone intro card.
+class BlindBoard:
+	extends Control
+	var section_idx := 0
+	var target := 0
+	var mod = null          # SectionMod or null
+	var prefix := ""        # "下一场" on the shop, "" on the intro card
+	# 段中商店态(2026-08-06 商店与盲注解耦): >= 0 时这块板讲的不是「下一场是什么」
+	# 而是「这一场还差多少」—— 玩家已经打了半个盲注, 买牌是解题不是下注。
+	var score := -1
+	var phrases_left := -1
+	var _t := 0.0
+
+	func _ready() -> void:
+		set_process(true)
+
+	func _process(delta: float) -> void:
+		_t += delta
+		queue_redraw()
+
+	func setup(p_section: int, p_target: int, p_mod, p_prefix: String,
+			p_score: int = -1, p_left: int = -1) -> void:
+		section_idx = p_section
+		target = p_target
+		mod = p_mod
+		prefix = p_prefix
+		score = p_score
+		phrases_left = p_left
+		queue_redraw()
+
+	## 段中商店 = 盲注正在进行, 板子改讲进度
+	func in_progress() -> bool:
+		return phrases_left >= 0
+
+	func _draw() -> void:
+		var w := size.x
+		var h := size.y
+		var acc := StageCard.accent_for(section_idx)
+		var is_wall := GameConfig.is_wall(section_idx)
+		# 交接件: 玻璃不带色, 颜色来自灯。局内没有首页那组激光, 所以给板子打一盏
+		# 背光 —— 档位色照在玻璃后面, 而不是把玻璃染色。
+		draw_texture_rect(PaperCard.glow_tex(),
+			Rect2(-w * 0.35, -h * 0.55, w * 1.7, h * 2.1), false,
+			Color(acc.r, acc.g, acc.b, 0.30))
+		StageCard.draw_card(self, Rect2(0, 0, w, h), acc, 22.0, 14.0, false)
+
+		var pad := 34.0
+		var cw := w - pad * 2.0
+		var zh := StageTheme.zh()
+		var num := StageTheme.num("Bold")
+		var med := StageTheme.num("Medium")
+
+		# header: MODE line + the blind's index in the tour
+		var head := "MODE: %s" % ("BOSS WALL" if is_wall else "BLIND")
+		if in_progress():
+			head = "本场进行中 · %s" % head
+		elif prefix != "":
+			head = "%s · %s" % [prefix, head]
+		draw_string(med, Vector2(pad, 48), head, HORIZONTAL_ALIGNMENT_LEFT, cw, 14,
+			Color(acc.r, acc.g, acc.b, 0.72))
+		draw_string(med, Vector2(pad, 48), "BLIND %02d/%02d" % [section_idx + 1,
+			GameConfig.SECTIONS_PER_RUN], HORIZONTAL_ALIGNMENT_RIGHT, cw, 14,
+			Color(acc.r, acc.g, acc.b, 0.72))
+
+		# name row: venue + blind tier, the mock's 48px hero line
+		var venue := GameConfig.gig_name(section_idx)
+		draw_string(zh, Vector2(pad, 94), venue, HORIZONTAL_ALIGNMENT_LEFT, cw, 34,
+			Color("ffffff"))
+		var tier := "BOSS 墙" if is_wall else GameConfig.blind_name(section_idx)
+		var tw := zh.get_string_size(tier, HORIZONTAL_ALIGNMENT_LEFT, -1, 17).x
+		var chip := Rect2(w - pad - tw - 22.0, 66, tw + 22.0, 30)
+		draw_style_box(StageTheme.box(Color(acc.r, acc.g, acc.b, 0.16),
+			Color(acc.r, acc.g, acc.b, 0.65), 1, 8), chip)
+		draw_string(zh, Vector2(chip.position.x, chip.position.y + 21.0), tier,
+			HORIZONTAL_ALIGNMENT_CENTER, chip.size.x, 17, Color("f2fbff"))
+		StageCard.rule_line(self, pad, 110, cw, acc)
+
+		# the equaliser band — the card's heartbeat
+		StageCard.eq_band(self, Rect2(pad, 118, cw, 44), acc, _t, section_idx, 26)
+
+		# hero number. 段末商店讲目标分; 段中商店讲**还差多少** —— 那才是这一刻
+		# 要做的决策所依赖的数(用户 2026-08-06:「买牌时看着目标买」)。
+		var deficit: int = maxi(0, target - score)
+		var met := in_progress() and deficit <= 0
+		var ttxt := StageTheme.fmt_thousands(deficit if in_progress() else target)
+		var tcol := StageTheme.GOLD if met else Color("ffffff")
+		if met:
+			ttxt = "已达标"
+		draw_string(num if not met else zh, Vector2(pad, 202), ttxt,
+			HORIZONTAL_ALIGNMENT_LEFT, cw, 42 if not met else 32, tcol)
+		var tnw := (num if not met else zh).get_string_size(
+			ttxt, HORIZONTAL_ALIGNMENT_LEFT, -1, 42 if not met else 32).x
+		if not met:
+			draw_string(zh, Vector2(pad + tnw + 10.0, 202),
+				"还差" if in_progress() else "目标分",
+				HORIZONTAL_ALIGNMENT_LEFT, cw, 15, StageTheme.DIM)
+		if in_progress():
+			# the running score sits where the wage chip does on the next-blind board
+			draw_string(med, Vector2(pad, 202), "已得 %s / %s"
+				% [StageTheme.fmt_thousands(score), StageTheme.fmt_thousands(target)],
+				HORIZONTAL_ALIGNMENT_RIGHT, cw, 17, StageTheme.DIM)
+		else:
+			draw_string(med, Vector2(pad, 202), "奖励 ◆%d" % GameConfig.SECTION_CLEAR_REWARD,
+				HORIZONTAL_ALIGNMENT_RIGHT, cw, 17,
+				Color(StageTheme.GOLD.r, StageTheme.GOLD.g, StageTheme.GOLD.b, 0.95))
+
+		# footer: play limits on the left, boss rule (or its absence) right
+		var limits := "%d 乐句 · %.0f 秒/句" % [GameConfig.PHRASES_PER_SECTION,
+			GameConfig.phrase_duration(section_idx)]
+		if in_progress():
+			limits = "还剩 %d 拍 · %.0f 秒/句" % [phrases_left,
+				GameConfig.phrase_duration(section_idx)]
+		draw_string(zh, Vector2(pad, 232), limits,
+			HORIZONTAL_ALIGNMENT_LEFT, cw, 15,
+			StageTheme.DIM if not in_progress() else Color(acc.r, acc.g, acc.b, 0.92))
+		if mod != null:
+			var ftxt := "⚠ %s · %s" % [mod.cn_name, mod.fx_text]
+			var ffs := 14
+			while ffs > 10 and med.get_string_size(ftxt, HORIZONTAL_ALIGNMENT_LEFT, -1, ffs).x > cw - 20.0:
+				ffs -= 1
+			var fw: float = minf(cw, med.get_string_size(ftxt, HORIZONTAL_ALIGNMENT_LEFT, -1, ffs).x + 22.0)
+			var fr := Rect2(w - pad - fw, 216, fw, 30)
+			draw_style_box(StageTheme.box(
+				Color(StageTheme.PINK.r, StageTheme.PINK.g, StageTheme.PINK.b, 0.14),
+				Color(StageTheme.PINK.r, StageTheme.PINK.g, StageTheme.PINK.b, 0.60), 1, 9), fr)
+			draw_string(med, Vector2(fr.position.x, fr.position.y + 20.0), ftxt,
+				HORIZONTAL_ALIGNMENT_CENTER, fr.size.x, ffs, Color("ffa8c6"))
+
+
+class DJKey:
+	extends Button
+	signal dropped(data: Dictionary)
+	var accent := Color.WHITE
+	var zh_label := ""
+	var kind := "sort"      # "sort" | "discard"
+	var fee := 0
+	var active := true
+	var accept_drop := false
+	var _shake_t := 0.0
+	func _init() -> void:
+		set_process(false)
+		flat = true
+		focus_mode = Control.FOCUS_NONE
+		for st in ["normal", "hover", "pressed", "disabled", "focus"]:
+			add_theme_stylebox_override(st, StyleBoxEmpty.new())
+	func _can_drop_data(_pos: Vector2, data: Variant) -> bool:
+		return accept_drop and data is Dictionary and ["hand", "cache"].has(data.get("zone", ""))
+	func _drop_data(_pos: Vector2, data: Variant) -> void:
+		dropped.emit(data)
+	## dcshake — the key jolts when the press could not be honoured, so a
+	## rejected tap is never silent.
+	func shake() -> void:
+		_shake_t = 0.4
+		set_process(true)
+		queue_redraw()
+
+	func _process(delta: float) -> void:
+		_shake_t = maxf(0.0, _shake_t - delta)
+		if _shake_t <= 0.0:
+			set_process(false)
+		queue_redraw()
+
+	## keyframes 0% 0 → 25% -6 → 50% +5 → 75% -3 → 100% 0
+	func _shake_x() -> float:
+		if _shake_t <= 0.0:
+			return 0.0
+		var u: float = 1.0 - _shake_t / 0.4
+		var keys := [0.0, -6.0, 5.0, -3.0, 0.0]
+		var seg: float = clampf(u * 4.0, 0.0, 3.999)
+		var i := int(seg)
+		var f: float = seg - float(i)
+		return lerpf(float(keys[i]), float(keys[i + 1]), f)
+
+	func _draw() -> void:
+		draw_set_transform(Vector2(_shake_x(), 0.0), 0.0, Vector2.ONE)
+		# outlined neon ring, not a filled disc: a dark well, a glow halo, a
+		# 2px accent ring and a dashed inner ring — matching the mock.
+		var cx := size.x * 0.5
+		var cy := size.y * 0.5
+		var c := Vector2(cx, cy)
+		var r := 46.0
+		var a := 1.0 if active else 0.5
+		draw_circle(c, r, Color(0.035, 0.045, 0.11, 0.62 * a))
+		if kind == "sort":
+			# a dial: empty dark well ringed by a dashed track
+			draw_arc(c, r + 3.0, 0, TAU, 64, Color(accent.r, accent.g, accent.b, 0.20 * a), 8.0, true)
+			draw_arc(c, r, 0, TAU, 64, Color(accent.r, accent.g, accent.b, 0.95 * a), 2.2, true)
+			for i in range(24):
+				if i % 2 == 1:
+					continue
+				var a0 := TAU * float(i) / 24.0
+				draw_arc(c, r - 9.0, a0, a0 + TAU / 24.0 * 0.75, 4,
+					Color(accent.r, accent.g, accent.b, 0.38 * a), 1.3, true)
+		else:
+			# a hot button: the well is lit from the rim inward, the ring is
+			# solid and doubled, and hazard ticks run around the outside
+			var gd := r * 1.85
+			draw_texture_rect(PaperCard.glow_tex(), Rect2(c - Vector2(gd, gd) * 0.5,
+				Vector2(gd, gd)), false, Color(accent.r, accent.g, accent.b, 0.26 * a))
+			draw_arc(c, r + 4.0, 0, TAU, 64, Color(accent.r, accent.g, accent.b, 0.24 * a), 10.0, true)
+			draw_arc(c, r, 0, TAU, 64, Color(accent.r, accent.g, accent.b, 1.0 * a), 2.8, true)
+			draw_arc(c, r - 8.0, 0, TAU, 64, Color(accent.r, accent.g, accent.b, 0.5 * a), 1.4, true)
+			for i in range(12):
+				var ta := TAU * float(i) / 12.0
+				var d := Vector2(cos(ta), sin(ta))
+				draw_line(c + d * (r + 6.0), c + d * (r + 12.0),
+					Color(accent.r, accent.g, accent.b, 0.45 * a), 1.6, true)
+
+		var ic := Color(accent.r, accent.g, accent.b, a)
+		if kind == "sort":
+			# ⇅ : up arrow on the left, down arrow on the right
+			_arrow(Vector2(cx - 8, cy + 13), Vector2(cx - 8, cy - 13), ic)
+			_arrow(Vector2(cx + 8, cy - 13), Vector2(cx + 8, cy + 13), ic)
+		else:
+			# shuffle: two paths that enter flat from the left, cross in the
+			# middle and exit right — both heads point the same way. (Two
+			# opposed arrows just read as a cross.)
+			_shuffle(c, ic)
+
+		# fee badge: dark pill with a gold ring, top-right of the ring
+		if kind == "discard" and fee > 0 and active:
+			var badge := Rect2(cx + r - 30.0, cy - r - 12.0, 50, 26)
+			draw_style_box(StageTheme.box(Color(0.06, 0.05, 0.02, 0.9), StageTheme.GOLD, 1, 13), badge)
+			draw_string(StageTheme.num("Bold"), Vector2(badge.position.x, badge.position.y + 19),
+				"◆%d" % fee, HORIZONTAL_ALIGNMENT_CENTER, badge.size.x, 15, StageTheme.GOLD)
+
+		# label, glowing in the accent colour
+		var lc: Color = Color(accent.r, accent.g, accent.b, a)
+		draw_string(StageTheme.zh(), Vector2(0, cy + r + 32), zh_label,
+			HORIZONTAL_ALIGNMENT_CENTER, size.x, 20, Color(lc.r, lc.g, lc.b, lc.a * 0.45))
+		draw_string(StageTheme.zh(), Vector2(0, cy + r + 32), zh_label,
+			HORIZONTAL_ALIGNMENT_CENTER, size.x, 20, lc)
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+	## the shuffle glyph: ⇄ with both heads to the right
+	func _shuffle(c: Vector2, col: Color) -> void:
+		for dir_v in [-1.0, 1.0]:
+			var d: float = dir_v
+			var pts := PackedVector2Array([
+				c + Vector2(-19, 11 * d), c + Vector2(-11, 11 * d),
+				c + Vector2(8, -11 * d), c + Vector2(15, -11 * d)])
+			draw_polyline(pts, col, 2.4, true)
+			_head(c + Vector2(15, -11 * d), Vector2.RIGHT, col)
+
+	## chevron head at `at`, opening against `dir`
+	func _head(at: Vector2, dir: Vector2, col: Color) -> void:
+		var n := Vector2(-dir.y, dir.x)
+		draw_line(at, at - dir * 7.0 + n * 5.0, col, 2.2, true)
+		draw_line(at, at - dir * 7.0 - n * 5.0, col, 2.2, true)
+
+	## thin line with a chevron head at `to`
+	func _arrow(from: Vector2, to: Vector2, col: Color) -> void:
+		draw_line(from, to, col, 2.2, true)
+		var d := (to - from).normalized()
+		var n := Vector2(-d.y, d.x)
+		draw_line(to, to - d * 7.0 + n * 5.0, col, 2.2, true)
+		draw_line(to, to - d * 7.0 - n * 5.0, col, 2.2, true)
