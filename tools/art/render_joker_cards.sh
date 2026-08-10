@@ -22,6 +22,7 @@ PORT="61356"
 SERVER_PORT="61355"
 SELECTOR="$1"
 TMPDIR=""
+WEBROOT=""
 SERVER_PID=""
 CHROME_PID=""
 
@@ -113,11 +114,57 @@ print_log_tail() {
   fi
 }
 
-preflight_port "$SERVER_PORT" "HTTP server"
-preflight_port "$PORT" "Chrome DevTools"
+stage_file() {
+  local src="$1"
+  local rel="$2"
+  local dest="$WEBROOT/$rel"
+  if [ ! -f "$src" ]; then
+    printf 'missing required web asset: %s\n' "$src" >&2
+    exit 1
+  fi
+  if [ -L "$src" ]; then
+    printf 'refusing symlinked web asset: %s\n' "$src" >&2
+    exit 1
+  fi
+  mkdir -p "$(dirname "$dest")"
+  cp -p "$src" "$dest"
+  if [ -L "$dest" ]; then
+    printf 'staged web asset must not be a symlink: %s\n' "$dest" >&2
+    exit 1
+  fi
+}
 
-mkdir -p "$REPO_ROOT/assets/jokers/cards" "$REPO_ROOT/assets/jokers/previews"
-TMPDIR="$(mktemp -d "${TMPDIR:-/tmp}/sync5-joker-render.XXXXXX")"
+stage_webroot() {
+  WEBROOT="$TMPDIR/webroot"
+  mkdir -p "$WEBROOT"
+  stage_file "$REPO_ROOT/tools/art/joker_card_renderer.html" "tools/art/joker_card_renderer.html"
+  stage_file "$MANIFEST" "assets/jokers/manifest.json"
+  stage_file "$REPO_ROOT/assets/fonts/Rajdhani-Medium.ttf" "assets/fonts/Rajdhani-Medium.ttf"
+  stage_file "$REPO_ROOT/assets/fonts/Rajdhani-SemiBold.ttf" "assets/fonts/Rajdhani-SemiBold.ttf"
+  stage_file "$REPO_ROOT/assets/fonts/Rajdhani-Bold.ttf" "assets/fonts/Rajdhani-Bold.ttf"
+  while IFS= read -r id; do
+    [ -n "$id" ] || continue
+    stage_file "$REPO_ROOT/assets/jokers/source/joker_$id.png" "assets/jokers/source/joker_$id.png"
+  done <<EOF
+$IDS
+EOF
+}
+
+http_status() {
+  local path="$1"
+  curl -sS -o /dev/null -w '%{http_code}' "http://127.0.0.1:$SERVER_PORT$path" || true
+}
+
+require_http_status() {
+  local path="$1"
+  local expected="$2"
+  local actual
+  actual="$(http_status "$path")"
+  if [ "$actual" != "$expected" ]; then
+    printf 'unexpected HTTP status for %s: expected %s, found %s\n' "$path" "$expected" "$actual" >&2
+    exit 1
+  fi
+}
 
 cleanup() {
   local status="$?"
@@ -133,12 +180,21 @@ cleanup() {
     kill "$SERVER_PID" >/dev/null 2>&1 || true
     wait "$SERVER_PID" >/dev/null 2>&1 || true
   fi
-  rm -rf "$TMPDIR" || true
+  if [ -n "$TMPDIR" ]; then
+    rm -rf "$TMPDIR" || true
+  fi
 }
 trap cleanup EXIT INT TERM
 
+preflight_port "$SERVER_PORT" "HTTP server"
+preflight_port "$PORT" "Chrome DevTools"
+
+mkdir -p "$REPO_ROOT/assets/jokers/cards" "$REPO_ROOT/assets/jokers/previews"
+TMPDIR="$(mktemp -d "${TMPDIR:-/tmp}/sync5-joker-render.XXXXXX")"
+stage_webroot
+
 cd "$REPO_ROOT"
-python3 -m http.server "$SERVER_PORT" --bind 127.0.0.1 >"$TMPDIR/http.log" 2>&1 &
+python3 -m http.server "$SERVER_PORT" --bind 127.0.0.1 --directory "$WEBROOT" >"$TMPDIR/http.log" 2>&1 &
 SERVER_PID="$!"
 
 for _ in $(seq 1 100); do
@@ -149,7 +205,14 @@ for _ in $(seq 1 100); do
   sleep 0.05
 done
 ensure_pid_alive "$SERVER_PID" "HTTP server"
-curl -fsS "http://127.0.0.1:$SERVER_PORT/assets/jokers/manifest.json" >/dev/null
+require_http_status "/assets/jokers/manifest.json" "200"
+require_http_status "/project.godot" "404"
+while IFS= read -r id; do
+  [ -n "$id" ] || continue
+  require_http_status "/assets/jokers/source/joker_$id.png" "200"
+done <<EOF
+$IDS
+EOF
 
 "$CHROME" \
   --headless=new \
