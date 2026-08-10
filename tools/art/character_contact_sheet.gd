@@ -23,12 +23,8 @@ const FRAME_PREVIEW_SIZE := Vector2i(52, 52)
 const FRAME_COUNT := 8
 const FRAME_GAP := 6
 const FONT_SIZE := Vector2i(30, 0)
-const FONT_PATH_CANDIDATES: Array[String] = [
-	"/System/Library/Fonts/PingFang.ttc",
-	"/System/Library/Fonts/STHeiti Medium.ttc",
-	"/System/Library/Fonts/Supplemental/Hiragino Sans GB.ttc",
-	"/System/Library/Fonts/Supplemental/Arial Unicode.ttf",
-]
+const FONT_PATH := "res://assets/fonts/NotoSansCJKsc-Sync5Roster.otf"
+const HEADER_TEXT := "Sync5 profession roster"
 
 var _errors: Array[String] = []
 var _records_by_id: Dictionary = {}
@@ -46,7 +42,7 @@ func _initialize() -> void:
 
 	var sheet := Image.create(SHEET_SIZE.x, SHEET_SIZE.y, false, Image.FORMAT_RGBA8)
 	sheet.fill(Color("05070d"))
-	_draw_text(sheet, "Sync5 profession roster", Vector2i(28, 38), Color("d6fbff"))
+	_draw_text(sheet, HEADER_TEXT, Vector2i(28, 38), Color("d6fbff"))
 
 	for i in range(IDS.size()):
 		var id := IDS[i]
@@ -80,13 +76,13 @@ func _draw_cell(sheet: Image, id: String, cell_origin: Vector2i) -> void:
 
 	_blit_scaled(
 		sheet,
-		_load_image("res://assets/characters/%s/portrait.png" % id),
+		_load_image("res://assets/characters/%s/portrait.png" % id, Vector2i(1536, 2048)),
 		cell_origin + Vector2i(28, 122),
 		PORTRAIT_PREVIEW_SIZE
 	)
 	_blit_scaled(
 		sheet,
-		_load_image("res://assets/characters/%s/avatar.png" % id),
+		_load_image("res://assets/characters/%s/avatar.png" % id, Vector2i(512, 512)),
 		cell_origin + Vector2i(206, 130),
 		AVATAR_PREVIEW_SIZE
 	)
@@ -103,7 +99,7 @@ func _draw_animation_strip(sheet: Image, id: String, kind: String, origin: Vecto
 	var strip_width := FRAME_COUNT * FRAME_PREVIEW_SIZE.x + (FRAME_COUNT - 1) * FRAME_GAP
 	_fill_rect(sheet, Rect2i(origin - Vector2i(8, 8), Vector2i(strip_width + 16, FRAME_PREVIEW_SIZE.y + 16)), layer_color)
 
-	var animation_sheet := _load_image("res://assets/characters/%s/%s.png" % [id, kind])
+	var animation_sheet := _load_image("res://assets/characters/%s/%s.png" % [id, kind], Vector2i(1024, 128))
 	if animation_sheet.is_empty():
 		return
 	for i in range(FRAME_COUNT):
@@ -175,33 +171,46 @@ func _tint_alpha_image(image: Image, color: Color) -> void:
 
 
 func _load_font_rid() -> RID:
-	for path in FONT_PATH_CANDIDATES:
-		if not FileAccess.file_exists(path):
-			continue
-		var bytes := FileAccess.get_file_as_bytes(path)
-		if bytes.is_empty():
-			continue
-		var rid := _text_server.create_font()
-		_text_server.font_set_data(rid, bytes)
-		_text_server.font_set_antialiasing(rid, TextServer.FONT_ANTIALIASING_GRAY)
-		_text_server.font_set_generate_mipmaps(rid, false)
-		_text_server.font_set_allow_system_fallback(rid, true)
-		if _font_supports_labels(rid):
-			return rid
-	_error("cannot find a system font that renders all manifest cn/title labels")
+	if not FileAccess.file_exists(FONT_PATH):
+		_error("missing contact sheet font %s" % _display_path(FONT_PATH))
+		return RID()
+
+	var bytes := FileAccess.get_file_as_bytes(FONT_PATH)
+	if bytes.is_empty():
+		_error("contact sheet font %s is empty" % _display_path(FONT_PATH))
+		return RID()
+
+	var rid := _text_server.create_font()
+	_text_server.font_set_data(rid, bytes)
+	_text_server.font_set_antialiasing(rid, TextServer.FONT_ANTIALIASING_GRAY)
+	_text_server.font_set_generate_mipmaps(rid, false)
+	_text_server.font_set_allow_system_fallback(rid, false)
+	if _font_supports_labels(rid):
+		return rid
+
+	_text_server.free_rid(rid)
+	_error("contact sheet font %s cannot render all required manifest/header text" % _display_path(FONT_PATH))
 	return RID()
 
 
 func _font_supports_labels(rid: RID) -> bool:
+	if not _font_supports_text(rid, HEADER_TEXT):
+		return false
 	for id in IDS:
 		var rec: Dictionary = _records_by_id.get(id, {})
 		var label := "%s / %s" % [String(rec.get("cn", "")), String(rec.get("title", ""))]
-		for i in range(label.length()):
-			var codepoint := label.unicode_at(i)
-			if codepoint == 32:
-				continue
-			if _text_server.font_get_glyph_index(rid, FONT_SIZE.x, codepoint, 0) == 0:
-				return false
+		if not _font_supports_text(rid, label):
+			return false
+	return true
+
+
+func _font_supports_text(rid: RID, text: String) -> bool:
+	for i in range(text.length()):
+		var codepoint := text.unicode_at(i)
+		if codepoint == 32:
+			continue
+		if _text_server.font_get_glyph_index(rid, FONT_SIZE.x, codepoint, 0) == 0:
+			return false
 	return true
 
 
@@ -259,7 +268,7 @@ func _read_json_object(path: String) -> Variant:
 	return parser.data
 
 
-func _load_image(path: String) -> Image:
+func _load_image(path: String, expected_size: Vector2i) -> Image:
 	if not FileAccess.file_exists(path):
 		_error("missing %s" % _display_path(path))
 		return Image.new()
@@ -268,6 +277,12 @@ func _load_image(path: String) -> Image:
 	var load_error := image.load(path)
 	if load_error != OK:
 		_error("cannot load %s: %s" % [_display_path(path), error_string(load_error)])
+		return Image.new()
+	var actual_size := image.get_size()
+	if actual_size != expected_size:
+		_error("%s must be %dx%d, found %dx%d" % [
+			_display_path(path), expected_size.x, expected_size.y, actual_size.x, actual_size.y,
+		])
 		return Image.new()
 	image.convert(Image.FORMAT_RGBA8)
 	return image

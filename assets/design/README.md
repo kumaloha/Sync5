@@ -42,6 +42,12 @@ not a change of art direction.
   `portrait.png`, `avatar.png`, `walk.png`, `dance.png`, and `prompt.json`.
 - `assets/characters/contact-sheet.png` is the roster review sheet generated
   from the manifest and final processed assets.
+- `assets/fonts/NotoSansCJKsc-Sync5Roster.otf` is a contact-sheet-only subset
+  of Noto Sans CJK SC Regular. It covers the roster header plus manifest
+  `cn` / `title` label text and is not a general UI font.
+- `assets/fonts/OFL-NotoSansCJK.txt` records the upstream SIL Open Font License
+  1.1 for that subset. The subset source is Noto Sans CJK SC from
+  `notofonts/noto-cjk` commit `f8d157532fbfaeda587e826d4cd5b21a49186f7c`.
 
 Regeneration and validation commands:
 
@@ -63,6 +69,8 @@ Ownership:
 
 - Character art source, manifest identity fields, final processed character
   PNGs, prompts, and contact-sheet tooling belong to the art production lane.
+- The roster font subset and its OFL license belong to the same art production
+  lane because they exist only to make the generated contact sheet reproducible.
 - Character mechanics, gameplay data, runtime `Walker` rendering, and character
   selection integration remain owned by gameplay/runtime code.
 - Runtime integration is a separate future task.
