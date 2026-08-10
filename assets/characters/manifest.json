@@ -18,7 +18,7 @@
       "profession_prop": "neck headphones; portable turntable",
       "pose": "one hand on deck, relaxed forward lean",
       "forbid": ["photorealism", "3d render", "chibi", "low-poly mannequin", "generic bodysuit", "same face as another character", "tiny unreadable profession prop", "copied anime character", "text", "logo", "watermark"],
-      "avatar_crop": [0.20, 0.02, 0.60, 0.42]
+      "avatar_crop": [0.10, 0.00, 0.80, 0.60]
     },
     {
       "id": "magician",
@@ -78,7 +78,7 @@
       "profession_prop": "crystalline prediction interface",
       "pose": "one hand tracing probability arcs",
       "forbid": ["photorealism", "3d render", "chibi", "low-poly mannequin", "generic bodysuit", "same face as another character", "tiny unreadable profession prop", "copied anime character", "text", "logo", "watermark"],
-      "avatar_crop": [0.20, 0.01, 0.60, 0.42]
+      "avatar_crop": [0.05, 0.00, 0.90, 0.70]
     },
     {
       "id": "drummer",
@@ -108,7 +108,7 @@
       "profession_prop": "wired microphone",
       "pose": "low center of gravity; free hand marks rhythm",
       "forbid": ["photorealism", "3d render", "chibi", "low-poly mannequin", "generic bodysuit", "same face as another character", "tiny unreadable profession prop", "copied anime character", "text", "logo", "watermark"],
-      "avatar_crop": [0.20, 0.02, 0.60, 0.42]
+      "avatar_crop": [0.10, 0.00, 0.80, 0.60]
     },
     {
       "id": "tattooist",
@@ -123,7 +123,7 @@
       "profession_prop": "tattoo machine and ink cartridges",
       "pose": "visible bold geometric body art",
       "forbid": ["photorealism", "3d render", "chibi", "low-poly mannequin", "generic bodysuit", "same face as another character", "tiny unreadable profession prop", "copied anime character", "text", "logo", "watermark"],
-      "avatar_crop": [0.20, 0.02, 0.60, 0.42]
+      "avatar_crop": [0.10, 0.00, 0.80, 0.60]
     }
   ]
 }
