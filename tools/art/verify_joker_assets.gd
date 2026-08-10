@@ -55,20 +55,30 @@ func _check_manifest() -> void:
 		])
 		return
 
-	var records: Variant = parser.data
+	var manifest: Variant = parser.data
+	if typeof(manifest) != TYPE_DICTIONARY:
+		_error("%s must be a JSON object" % _display_path(MANIFEST_PATH))
+		return
+
+	var manifest_dict := manifest as Dictionary
+	if not manifest_dict.has("cards"):
+		_error("%s missing required field 'cards'" % _display_path(MANIFEST_PATH))
+		return
+
+	var records: Variant = manifest_dict["cards"]
 	if typeof(records) != TYPE_ARRAY:
-		_error("%s must be a JSON array" % _display_path(MANIFEST_PATH))
+		_error("%s.cards must be a JSON array" % _display_path(MANIFEST_PATH))
 		return
 
 	if records.size() != IDS.size():
-		_error("%s must contain exactly %d records, found %d" % [
+		_error("%s.cards must contain exactly %d records, found %d" % [
 			_display_path(MANIFEST_PATH), IDS.size(), records.size(),
 		])
 
 	for i in range(records.size()):
 		var rec: Variant = records[i]
 		if typeof(rec) != TYPE_DICTIONARY:
-			_error("manifest[%d] must be an object" % i)
+			_error("manifest.cards[%d] must be an object" % i)
 			continue
 		_check_record(i, rec)
 
@@ -76,34 +86,34 @@ func _check_manifest() -> void:
 func _check_record(index: int, rec: Dictionary) -> void:
 	for key in REQUIRED:
 		if not rec.has(key):
-			_error("manifest[%d] missing required field '%s'" % [index, key])
+			_error("manifest.cards[%d] missing required field '%s'" % [index, key])
 			continue
 		if typeof(rec[key]) != TYPE_STRING:
-			_error("manifest[%d].%s must be a string" % [index, key])
+			_error("manifest.cards[%d].%s must be a string" % [index, key])
 			continue
 		if String(rec[key]).strip_edges().is_empty():
-			_error("manifest[%d].%s must not be empty" % [index, key])
+			_error("manifest.cards[%d].%s must not be empty" % [index, key])
 
 	if index < IDS.size():
 		var expected_id := String(IDS[index])
 		var actual_id := String(rec.get("id", ""))
 		if actual_id != expected_id:
-			_error("manifest[%d].id must be '%s', found '%s'" % [index, expected_id, actual_id])
+			_error("manifest.cards[%d].id must be '%s', found '%s'" % [index, expected_id, actual_id])
 	else:
-		_error("manifest[%d] is outside the immutable %d-card ID list" % [index, IDS.size()])
+		_error("manifest.cards[%d] is outside the immutable %d-card ID list" % [index, IDS.size()])
 
 	if rec.has("kind") and typeof(rec["kind"]) == TYPE_STRING and not VALID_KIND.has(String(rec["kind"])):
-		_error("manifest[%d].kind must be one of %s" % [index, VALID_KIND])
+		_error("manifest.cards[%d].kind must be one of %s" % [index, VALID_KIND])
 
 	if rec.has("rarity") and typeof(rec["rarity"]) == TYPE_STRING and not VALID_RARITY.has(String(rec["rarity"])):
-		_error("manifest[%d].rarity must be one of %s" % [index, VALID_RARITY])
+		_error("manifest.cards[%d].rarity must be one of %s" % [index, VALID_RARITY])
 
 	if rec.has("amount") and typeof(rec["amount"]) == TYPE_STRING:
 		var amount := String(rec["amount"])
 		if amount.contains("\n") or amount.contains("\r"):
-			_error("manifest[%d].amount must not contain a line break" % index)
+			_error("manifest.cards[%d].amount must not contain a line break" % index)
 
-	_check_placeholder_copy("manifest[%d]" % index, rec)
+	_check_placeholder_copy("manifest.cards[%d]" % index, rec)
 
 
 func _check_assets() -> void:
