@@ -29,8 +29,8 @@
       "selected_panel": "right",
       "primary": "violet #A56BFF",
       "secondary": "ink black; small cyan accent",
-      "silhouette": "young female cyber magician; tall narrow silhouette; short angular hair; fitted long coat",
-      "profession_prop": "projection glove; floating playing cards",
+      "silhouette": "young female cyber magician; tall narrow silhouette; short angular hair",
+      "profession_prop": "projection glove; floating playing cards; fitted long coat",
       "pose": "controlled one-hand flourish",
       "forbid": ["photorealism", "3d render", "chibi", "low-poly mannequin", "generic bodysuit", "same face as another character", "tiny unreadable profession prop", "copied anime character", "text", "logo", "watermark"],
       "avatar_crop": [0.20, 0.02, 0.60, 0.42]
@@ -119,9 +119,9 @@
       "selected_panel": "center",
       "primary": "ice blue #9FE9FF",
       "secondary": "graphite; small violet accent",
-      "silhouette": "adult female tattoo artist; sturdy medium build; blunt asymmetric hair; sleeveless utility apron; visible bold geometric body art",
+      "silhouette": "adult female tattoo artist; sturdy medium build; blunt asymmetric hair; sleeveless utility apron",
       "profession_prop": "tattoo machine and ink cartridges",
-      "pose": "sturdy presentation stance focused on tattoo work",
+      "pose": "visible bold geometric body art",
       "forbid": ["photorealism", "3d render", "chibi", "low-poly mannequin", "generic bodysuit", "same face as another character", "tiny unreadable profession prop", "copied anime character", "text", "logo", "watermark"],
       "avatar_crop": [0.20, 0.02, 0.60, 0.42]
     }
