@@ -236,13 +236,13 @@
     async function main() {
       const params = new URLSearchParams(location.search);
       const id = params.get("id");
-      const scale = params.get("scale") || "1";
+      const scale = params.get("scale");
       if (!id || !/^[a-z0-9]+$/.test(id)) {
         fatal("bad query: expected ?id=<id>&scale=<1|8>");
         return;
       }
       if (!SCALE_VALUES.has(scale)) {
-        fatal("bad query: scale must be 1 or 8");
+        fatal("bad query: scale is required and must be 1 or 8");
         return;
       }
       document.documentElement.style.setProperty("--scale", scale);

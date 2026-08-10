@@ -40,11 +40,17 @@ fi
 if [ "$SELECTOR" = "all" ]; then
   IDS="$ALL_IDS"
 else
+  if printf '%s' "$SELECTOR" | grep -Eq '(^|,)[[:space:]]*($|,)'; then
+    printf 'malformed selector: empty joker ID in %s\n' "$SELECTOR" >&2
+    usage
+    exit 2
+  fi
   IDS="$(printf '%s\n' "$SELECTOR" | tr ',' '\n')"
 fi
 
 if [ -z "$IDS" ]; then
-  printf 'empty selector\n' >&2
+  printf 'malformed selector: empty selector\n' >&2
+  usage
   exit 2
 fi
 
