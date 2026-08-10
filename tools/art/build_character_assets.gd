@@ -27,15 +27,15 @@ const TARGET_FIT := Vector2i(118, 122)
 const FOOT_ANCHOR_Y := 124
 const FRAME_CENTER_X := 64
 const OPAQUE_THRESHOLD := 1.0 / 255.0
-const STAGING_ROOT := "res://assets/characters"
+const BUILD_STAGES: Array[String] = ["portrait", "walk", "dance"]
 
 var _errors: Array[String] = []
 var _manifest: Dictionary = {}
 var _records_by_id: Dictionary = {}
+var MARKER_ROOT := "res://assets/characters"
 var _stage_name := "all"
 var _stage_targets: Array[String] = []
 var _staging_dir := ""
-var _marker_path := ""
 var _staged_outputs: Dictionary = {}
 
 
@@ -52,8 +52,7 @@ func _initialize() -> void:
 	var stages := _parse_stages()
 	_stage_targets = _target_paths_for_stages(stages)
 	_staging_dir = _new_staging_dir(_stage_name)
-	_marker_path = _marker_path_for_stage(_stage_name)
-	_write_build_marker(_marker_path, "failed", _stage_name, _stage_targets)
+	_write_stage_marker("failed", _stage_name, _stage_targets)
 	if not _errors.is_empty():
 		_finish()
 		return
@@ -81,7 +80,7 @@ func _initialize() -> void:
 	if _errors.is_empty():
 		_publish_staged_outputs()
 	if _errors.is_empty():
-		_write_build_marker(_marker_path, "ok", _stage_name, _stage_targets)
+		_mark_successful_build(_stage_name, _stage_targets)
 
 	_finish()
 
@@ -487,11 +486,34 @@ func _staging_name(final_path: String) -> String:
 
 
 func _new_staging_dir(stage: String) -> String:
-	return "%s/.build-%s-staging-%d" % [STAGING_ROOT, stage, Time.get_ticks_usec()]
+	return "%s/Sync5-character-build-%s-%d" % [OS.get_temp_dir(), stage, Time.get_ticks_usec()]
 
 
 func _marker_path_for_stage(stage: String) -> String:
-	return "%s/.build-%s-failed.json" % [STAGING_ROOT, stage]
+	return "%s/.build-%s-failed.json" % [MARKER_ROOT, stage]
+
+
+func _write_stage_marker(status: String, stage: String, targets: Array[String]) -> void:
+	_write_build_marker(_marker_path_for_stage(stage), status, stage, targets)
+
+
+func _mark_successful_build(stage: String, targets: Array[String]) -> void:
+	if stage == "all":
+		_write_stage_marker("ok", "all", _target_paths_for_stages({"portrait": true, "walk": true, "dance": true}))
+		for single_stage in BUILD_STAGES:
+			_write_stage_marker("ok", single_stage, _target_paths_for_stages({single_stage: true}))
+		return
+
+	_write_stage_marker("ok", stage, targets)
+	if _all_individual_markers_ok():
+		_write_stage_marker("ok", "all", _target_paths_for_stages({"portrait": true, "walk": true, "dance": true}))
+
+
+func _all_individual_markers_ok() -> bool:
+	for stage in BUILD_STAGES:
+		if _read_marker_status(_marker_path_for_stage(stage)) != "ok":
+			return false
+	return true
 
 
 func _write_build_marker(path: String, status: String, stage: String, targets: Array[String]) -> void:
@@ -557,6 +579,9 @@ func _run_self_tests() -> void:
 	_self_test_chroma_soft_edge(failures)
 	_self_test_failure_marker_preserves_final(failures)
 	_self_test_success_marker(failures)
+	_self_test_staged_markers_supersede_all_failure(failures)
+	_self_test_all_success_writes_all_markers(failures)
+	_self_test_staging_uses_os_temp(failures)
 
 	if failures.is_empty():
 		print("character asset builder self-test OK")
@@ -631,6 +656,39 @@ func _self_test_success_marker(failures: Array[String]) -> void:
 	_write_build_marker(marker_path, "ok", "walk", [final_path])
 	_assert(_read_marker_status(marker_path) == "ok", "success marker records ok status", failures)
 	_errors.clear()
+
+
+func _self_test_staged_markers_supersede_all_failure(failures: Array[String]) -> void:
+	var old_root := MARKER_ROOT
+	MARKER_ROOT = "/tmp/sync5-character-builder-marker-test-%d" % Time.get_ticks_usec()
+	_write_stage_marker("failed", "all", ["target-all"])
+	_mark_successful_build("portrait", ["target-portrait"])
+	_assert(_read_marker_status(_marker_path_for_stage("all")) == "failed", "portrait alone leaves all marker failed", failures)
+	_mark_successful_build("walk", ["target-walk"])
+	_assert(_read_marker_status(_marker_path_for_stage("all")) == "failed", "portrait plus walk leaves all marker failed", failures)
+	_mark_successful_build("dance", ["target-dance"])
+	_assert(_read_marker_status(_marker_path_for_stage("all")) == "ok", "three successful individual stages mark all ok", failures)
+	_assert(_read_marker_status(_marker_path_for_stage("portrait")) == "ok", "portrait marker ok after staged success", failures)
+	_assert(_read_marker_status(_marker_path_for_stage("walk")) == "ok", "walk marker ok after staged success", failures)
+	_assert(_read_marker_status(_marker_path_for_stage("dance")) == "ok", "dance marker ok after staged success", failures)
+	MARKER_ROOT = old_root
+	_errors.clear()
+
+
+func _self_test_all_success_writes_all_markers(failures: Array[String]) -> void:
+	var old_root := MARKER_ROOT
+	MARKER_ROOT = "/tmp/sync5-character-builder-marker-test-%d" % Time.get_ticks_usec()
+	_mark_successful_build("all", ["target-all"])
+	for stage in ["all", "portrait", "walk", "dance"]:
+		_assert(_read_marker_status(_marker_path_for_stage(stage)) == "ok", "all success writes %s marker ok" % stage, failures)
+	MARKER_ROOT = old_root
+	_errors.clear()
+
+
+func _self_test_staging_uses_os_temp(failures: Array[String]) -> void:
+	var staging := _new_staging_dir("walk")
+	_assert(not staging.begins_with("res://"), "staging path is outside res://", failures)
+	_assert(staging.begins_with(OS.get_temp_dir()), "staging path uses OS temp dir", failures)
 
 
 func _read_marker_status(path: String) -> String:
