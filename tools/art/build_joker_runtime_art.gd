@@ -20,6 +20,9 @@ func _initialize() -> void:
 	var selected := _select_ids(cards)
 	if selected.is_empty() and _errors.is_empty():
 		_error("no joker IDs selected")
+	if not _errors.is_empty():
+		_finish()
+		return
 
 	for id in selected:
 		_build_runtime_art(String(id))
@@ -109,7 +112,7 @@ func _select_ids(cards: Array) -> Array[String]:
 	if selection.begins_with("--id="):
 		raw_ids.append(selection.substr(5))
 	else:
-		raw_ids.assign(selection.substr(6).split(",", false))
+		raw_ids.assign(selection.substr(6).split(",", true))
 
 	var selected: Array[String] = []
 	var seen := {}

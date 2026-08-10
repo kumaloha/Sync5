@@ -21,6 +21,9 @@ CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 PORT="61356"
 SERVER_PORT="61355"
 SELECTOR="$1"
+TMPDIR=""
+SERVER_PID=""
+CHROME_PID=""
 
 if [ ! -f "$MANIFEST" ]; then
   printf 'missing manifest: %s\n' "$MANIFEST" >&2
@@ -66,12 +69,62 @@ if [ -n "$UNKNOWN" ]; then
   exit 2
 fi
 
+port_is_free() {
+  python3 - "$1" <<'PY'
+import socket
+import sys
+
+port = int(sys.argv[1])
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+try:
+    sock.bind(("127.0.0.1", port))
+except OSError:
+    sys.exit(1)
+finally:
+    sock.close()
+PY
+}
+
+preflight_port() {
+  local port="$1"
+  local label="$2"
+  if ! port_is_free "$port"; then
+    printf 'port %s (%s) is already occupied; aborting before rendering\n' "$port" "$label" >&2
+    exit 1
+  fi
+}
+
+ensure_pid_alive() {
+  local pid="$1"
+  local label="$2"
+  if ! kill -0 "$pid" >/dev/null 2>&1; then
+    printf '%s process exited before it became ready\n' "$label" >&2
+    return 1
+  fi
+}
+
+print_log_tail() {
+  local path="$1"
+  local label="$2"
+  if [ -f "$path" ]; then
+    printf '\n--- %s tail (%s) ---\n' "$label" "$path" >&2
+    tail -n 40 "$path" >&2 || true
+  fi
+}
+
+preflight_port "$SERVER_PORT" "HTTP server"
+preflight_port "$PORT" "Chrome DevTools"
+
 mkdir -p "$REPO_ROOT/assets/jokers/cards" "$REPO_ROOT/assets/jokers/previews"
 TMPDIR="$(mktemp -d "${TMPDIR:-/tmp}/sync5-joker-render.XXXXXX")"
-SERVER_PID=""
-CHROME_PID=""
 
 cleanup() {
+  local status="$?"
+  if [ "$status" -ne 0 ] && [ -n "$TMPDIR" ]; then
+    print_log_tail "$TMPDIR/http.log" "http.log"
+    print_log_tail "$TMPDIR/chrome.log" "chrome.log"
+  fi
   if [ -n "$CHROME_PID" ]; then
     kill "$CHROME_PID" >/dev/null 2>&1 || true
     wait "$CHROME_PID" >/dev/null 2>&1 || true
@@ -89,11 +142,13 @@ python3 -m http.server "$SERVER_PORT" --bind 127.0.0.1 >"$TMPDIR/http.log" 2>&1 
 SERVER_PID="$!"
 
 for _ in $(seq 1 100); do
+  ensure_pid_alive "$SERVER_PID" "HTTP server"
   if curl -fsS "http://127.0.0.1:$SERVER_PORT/assets/jokers/manifest.json" >/dev/null 2>&1; then
     break
   fi
   sleep 0.05
 done
+ensure_pid_alive "$SERVER_PID" "HTTP server"
 curl -fsS "http://127.0.0.1:$SERVER_PORT/assets/jokers/manifest.json" >/dev/null
 
 "$CHROME" \
@@ -107,12 +162,30 @@ curl -fsS "http://127.0.0.1:$SERVER_PORT/assets/jokers/manifest.json" >/dev/null
 CHROME_PID="$!"
 
 for _ in $(seq 1 100); do
+  ensure_pid_alive "$CHROME_PID" "Chrome"
   if curl -fsS "http://127.0.0.1:$PORT/json/version" >/dev/null 2>&1; then
     break
   fi
   sleep 0.05
 done
-curl -fsS "http://127.0.0.1:$PORT/json/version" >/dev/null
+ensure_pid_alive "$CHROME_PID" "Chrome"
+VERSION_JSON="$(curl -fsS "http://127.0.0.1:$PORT/json/version")"
+DEVTOOLS_ENDPOINT="$(printf '%s' "$VERSION_JSON" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("webSocketDebuggerUrl", ""))')"
+if [ -z "$DEVTOOLS_ENDPOINT" ]; then
+  printf 'Chrome DevTools endpoint missing from /json/version\n' >&2
+  exit 1
+fi
+for _ in $(seq 1 100); do
+  ensure_pid_alive "$CHROME_PID" "Chrome"
+  if grep -Fq "$DEVTOOLS_ENDPOINT" "$TMPDIR/chrome.log"; then
+    break
+  fi
+  sleep 0.05
+done
+if ! grep -Fq "$DEVTOOLS_ENDPOINT" "$TMPDIR/chrome.log"; then
+  printf 'Chrome DevTools endpoint was not emitted by the launched Chrome process\n' >&2
+  exit 1
+fi
 
 render_one() {
   local id="$1"
@@ -124,6 +197,7 @@ render_one() {
 
   python3 - "$PORT" "$url" "$width" "$height" "$out" <<'PY'
 import base64
+import atexit
 import json
 import os
 import socket
@@ -144,6 +218,15 @@ def request_json(endpoint, data=None, method=None):
         return json.loads(response.read().decode())
 
 target = request_json("/json/new?" + urllib.parse.quote(url, safe=":/?&=%"), method="PUT")
+target_id = target["id"]
+
+def close_target():
+    try:
+        request_json("/json/close/" + urllib.parse.quote(target_id, safe=""))
+    except Exception:
+        pass
+
+atexit.register(close_target)
 ws_url = target["webSocketDebuggerUrl"]
 parts = urllib.parse.urlparse(ws_url)
 sock = socket.create_connection((parts.hostname, parts.port), timeout=5)
