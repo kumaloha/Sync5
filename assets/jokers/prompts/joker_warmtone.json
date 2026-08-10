@@ -1,0 +1,9 @@
+{
+  "id": "warmtone",
+  "prompt": "Use case: stylized-concept. Asset type: Sync5 game Joker central totem for a compact 145×50 runtime window. Reference is only a guide for black-glass material and sharp neon rim; do not copy its synth, text, frame, or composition. Original hard-edged 2D cyberpunk nightclub illustration, dark glass and black metal, crisp cyan neon rim, one tiny magenta hotspot, memorable silhouette. One compact centered totem; entire silhouette visible; subject fills at least 55% width and 60% height when possible; prefer compact near-square or sturdy vertical structure, not a thin strip; immediately readable at 145×50. Perfectly flat uniform solid #00ff00 background, no texture, gradient, floor, shadow, reflection, or variation; no #00ff00 in subject. No card frame, title, digits, letters, words, random glyphs, logo, watermark, narrative scene, or cropping. Crisp edges; avoid photorealism, haze, generic circles, tiny detail. Common cyan shell with warm red and amber secondary light. Create ‘暖色 / Warm Tone’: one compact twin-lamp machine containing a heart-like red gem and a diamond-like red gem, both washed in warm stage light; no card faces or text.",
+  "revision": 1,
+  "source_sha256": "7457cb5facc8ede8484671b437c3c140f5f02fe141c3dbb4e6fb11a4c5902415",
+  "tool_mode": "built-in",
+  "reference": "assets/reference/ref_joker_holo_synth.png",
+  "raw_codex_path": "/Users/kuma/.codex/generated_images/019fe632-fdfa-76f2-850c-53239465ebcd/exec-f655fc7c-10db-4de1-a0c5-765440f3af3d.png"
+}
