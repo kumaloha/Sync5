@@ -7,9 +7,7 @@
       "fx": "Your Target works at half power",
       "params": {
         "target_power": 0.5
-      },
-      "proof": "score",
-      "tier": 3
+      }
     },
     {
       "id": "static",
@@ -18,9 +16,34 @@
       "fx": "Score bonuses are disabled",
       "params": {
         "bonus_disabled": true
-      },
-      "proof": "score",
-      "tier": 2
+      }
+    },
+    {
+      "id": "rotation",
+      "name": "Forced Rotation",
+      "cn": "强制换血",
+      "fx": "Zero discards score half",
+      "params": {
+        "zero_discard_factor": 0.5
+      }
+    },
+    {
+      "id": "cover",
+      "name": "Cover Charge",
+      "cn": "入场费",
+      "fx": "Pay one coin each phrase",
+      "params": {
+        "phrase_toll": 1
+      }
+    },
+    {
+      "id": "freshsheet",
+      "name": "Fresh Sheet",
+      "cn": "翻篇",
+      "fx": "Replace the whole cache each phrase",
+      "params": {
+        "cache_evict": 3
+      }
     },
     {
       "id": "norepeat",
@@ -34,65 +57,12 @@
       "tier": 1
     },
     {
-      "id": "rerun",
-      "name": "Rerun",
-      "cn": "炒冷饭",
-      "fx": "Repeating last hand scores nothing",
-      "params": {
-        "repeat_factor": 0.0
-      },
-      "proof": "score",
-      "tier": 3
-    },
-    {
-      "id": "rotation",
-      "name": "Forced Rotation",
-      "cn": "强制换血",
-      "fx": "Zero discards: score halved",
-      "params": {
-        "zero_discard_factor": 0.5
-      }
-    },
-    {
-      "id": "rush",
-      "name": "Rush Hour",
-      "cn": "赶场",
-      "fx": "Phrases are 2 seconds shorter",
-      "params": {
-        "time_penalty": 2.0
-      },
-      "proof": "solver",
-      "tier": 4
-    },
-    {
-      "id": "cover",
-      "name": "Cover Charge",
-      "cn": "入场费",
-      "fx": "Pay 1 coin each phrase",
-      "params": {
-        "phrase_toll": 1
-      },
-      "proof": "score",
-      "tier": 1
-    },
-    {
       "id": "lostpage",
       "name": "Lost Pages",
       "cn": "丢谱",
-      "fx": "Lose 1 random cache card each phrase",
+      "fx": "Lose one marked cache card each phrase",
       "params": {
         "cache_evict": 1
-      },
-      "proof": "solver",
-      "tier": 1
-    },
-    {
-      "id": "freshsheet",
-      "name": "Fresh Sheet",
-      "cn": "翻篇",
-      "fx": "The whole cache is replaced each phrase",
-      "params": {
-        "cache_evict": 3
       },
       "proof": "solver",
       "tier": 1
@@ -101,34 +71,12 @@
       "id": "smallstage",
       "name": "Small Stage",
       "cn": "窄台",
-      "fx": "The cache holds only 2 cards",
+      "fx": "Cache holds only two cards",
       "params": {
         "cache_cap_delta": -1
       },
       "proof": "solver",
       "tier": 1
-    },
-    {
-      "id": "setlist",
-      "name": "Set List",
-      "cn": "定调",
-      "fx": "First hand type locks; others score half",
-      "params": {
-        "lock_first": 0.5
-      },
-      "proof": "score",
-      "tier": 2
-    },
-    {
-      "id": "blindspot",
-      "name": "Blind Spot",
-      "cn": "暗补",
-      "fx": "Discarded cards return face down",
-      "params": {
-        "hide_refill": 1
-      },
-      "proof": "belief",
-      "tier": 2
     },
     {
       "id": "facedown",
@@ -142,15 +90,249 @@
       "tier": 1
     },
     {
+      "id": "lastcall",
+      "name": "Last Call",
+      "cn": "收线",
+      "fx": "No discards in final two seconds",
+      "params": {
+        "discard_lock_last": 2.0
+      },
+      "proof": "tape",
+      "tape_required": true,
+      "tier": 1
+    },
+    {
+      "id": "lockup",
+      "name": "Lock Up",
+      "cn": "封盘",
+      "fx": "No swaps in final two seconds",
+      "params": {
+        "swap_lock_last": 2.0
+      },
+      "proof": "tape",
+      "tape_required": true,
+      "tier": 1
+    },
+    {
+      "id": "onetake",
+      "name": "One Take",
+      "cn": "一口气",
+      "fx": "Discard only once each phrase",
+      "params": {
+        "discard_actions": 1
+      },
+      "proof": "solver",
+      "tape_required": true,
+      "tier": 1
+    },
+    {
+      "id": "oneswap",
+      "name": "One Swap",
+      "cn": "单换",
+      "fx": "Swap only once each phrase",
+      "params": {
+        "swap_actions": 1
+      },
+      "proof": "solver",
+      "tape_required": true,
+      "tier": 1
+    },
+    {
+      "id": "setlist",
+      "name": "Set List",
+      "cn": "定调",
+      "fx": "Off setlist hands score half",
+      "params": {
+        "lock_first": 0.5
+      },
+      "proof": "score",
+      "tier": 2
+    },
+    {
+      "id": "blindspot",
+      "name": "Blind Spot",
+      "cn": "暗补",
+      "fx": "Discard refills stay face down",
+      "params": {
+        "hide_refill": 1
+      },
+      "proof": "belief",
+      "tier": 2
+    },
+    {
+      "id": "throttle",
+      "name": "Throttle",
+      "cn": "限流",
+      "fx": "Three discard or swap actions total",
+      "params": {
+        "action_limit": 3
+      },
+      "proof": "solver",
+      "tape_required": true,
+      "tier": 2
+    },
+    {
+      "id": "request",
+      "name": "Request",
+      "cn": "点歌",
+      "fx": "Miss request and lose ten percent",
+      "params": {
+        "request_factor": 0.9
+      },
+      "proof": "score",
+      "tape_required": true,
+      "tier": 2
+    },
+    {
+      "id": "redlight",
+      "name": "Red Light",
+      "cn": "红灯",
+      "fx": "Red cards cannot enter cache",
+      "params": {
+        "cache_block_red": 1
+      },
+      "proof": "solver",
+      "tier": 2
+    },
+    {
+      "id": "lowend",
+      "name": "Low End",
+      "cn": "低音",
+      "fx": "Discard refills draw ranks two through nine",
+      "params": {
+        "refill_rank_min": 2,
+        "refill_rank_max": 9
+      },
+      "proof": "solver",
+      "tier": 2
+    },
+    {
+      "id": "wetink",
+      "name": "Wet Ink",
+      "cn": "墨迹",
+      "fx": "New cache cards lock this phrase",
+      "params": {
+        "cache_lock_phrases": 1
+      },
+      "proof": "solver",
+      "tier": 2
+    },
+    {
+      "id": "handseal",
+      "name": "Hand Seal",
+      "cn": "封条",
+      "fx": "Lowest starting hand card cannot discard",
+      "params": {
+        "seal_lowest_start": 1
+      },
+      "proof": "solver",
+      "tape_required": true,
+      "tier": 2
+    },
+    {
+      "id": "rerun",
+      "name": "Rerun",
+      "cn": "炒冷饭",
+      "fx": "Repeated hand type scores nothing",
+      "params": {
+        "repeat_factor": 0.0
+      },
+      "proof": "score",
+      "tier": 3
+    },
+    {
       "id": "raisedbar",
       "name": "Raised Bar",
       "cn": "加码",
-      "fx": "This section's target is 50% higher",
+      "fx": "Section target rises fifty percent",
       "params": {
         "target_mult": 1.5
       },
       "proof": "target",
       "tier": 3
+    },
+    {
+      "id": "trilogy",
+      "name": "Trilogy",
+      "cn": "曲目",
+      "fx": "Make three hand types this section",
+      "params": {
+        "required_kinds": 3
+      },
+      "proof": "solver",
+      "tier": 3
+    },
+    {
+      "id": "blackout",
+      "name": "Blackout",
+      "cn": "暗灯",
+      "fx": "Face cards and refills stay hidden",
+      "params": {
+        "hide_faces": 1,
+        "hide_refill": 1
+      },
+      "proof": "belief",
+      "tier": 3
+    },
+    {
+      "id": "doubleseal",
+      "name": "Double Seal",
+      "cn": "双封",
+      "fx": "Lowest hand and oldest cache lock",
+      "params": {
+        "seal_lowest_start": 1,
+        "seal_oldest_cache": 1
+      },
+      "proof": "solver",
+      "tape_required": true,
+      "tier": 3
+    },
+    {
+      "id": "patchin",
+      "name": "Patch In",
+      "cn": "接线",
+      "fx": "Use starting cache card for full Jokers",
+      "params": {
+        "joker_power": 0.5,
+        "restore_with_initial_cache": 1
+      },
+      "proof": "score",
+      "tier": 3
+    },
+    {
+      "id": "ration",
+      "name": "Ration",
+      "cn": "配给",
+      "fx": "Twelve discards shared across section",
+      "params": {
+        "section_discard_budget": 12
+      },
+      "proof": "solver",
+      "tier": 3
+    },
+    {
+      "id": "switchtrack",
+      "name": "Switch Track",
+      "cn": "岔轨",
+      "fx": "First action closes the other track",
+      "params": {
+        "exclusive_action_tracks": 1
+      },
+      "proof": "solver",
+      "tape_required": true,
+      "tier": 3
+    },
+    {
+      "id": "rush",
+      "name": "Rush Hour",
+      "cn": "赶场",
+      "fx": "Phrases are two seconds shorter",
+      "params": {
+        "time_penalty": 2.0
+      },
+      "proof": "solver",
+      "tape_required": true,
+      "tier": 4
     }
   ],
   "families": {
@@ -162,8 +344,5 @@
   "fixed_tiers": [
     4
   ],
-  "weak_upper_bound": [
-    "lostpage",
-    "static"
-  ]
+  "weak_upper_bound": []
 }

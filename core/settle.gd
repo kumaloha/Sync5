@@ -50,6 +50,12 @@ static func run(result: Dictionary, slots: Array, extra: Dictionary) -> Dictiona
 		"target_factor": 1.0,
 	}
 	var mod := String(extra.get("mod", ""))
+	var patch_power := SectionMod.joker_power(mod)
+	var patch_restored := bool(extra.get("patch_restored", false))
+	var pre_joker_mult: float = ctx.mult
+	var pre_joker_additive: int = int(ctx.additive)
+	var pre_joker_bonus: int = int(ctx.bonus)
+	var pre_joker_bonus_pct: float = float(ctx.bonus_pct)
 	var popups: Array = []
 	for i in range(slots.size()):
 		var j = slots[i]
@@ -69,6 +75,21 @@ static func run(result: Dictionary, slots: Array, extra: Dictionary) -> Dictiona
 				ctx.target_factor = hf
 		if text != "":
 			popups.append({"slot": i, "text": text})
+	# Scale one aggregate Joker delta after the complete chain. Per-Joker
+	# rounding makes two +3 effects become +4 at half power; aggregate rounding
+	# correctly makes their combined +6 become +3.
+	if patch_power < 1.0 and not patch_restored:
+		ctx.additive = pre_joker_additive + int(round(
+			float(int(ctx.additive) - pre_joker_additive) * patch_power))
+		ctx.bonus = pre_joker_bonus + int(round(
+			float(int(ctx.bonus) - pre_joker_bonus) * patch_power))
+		ctx.bonus_pct = pre_joker_bonus_pct + (
+			float(ctx.bonus_pct) - pre_joker_bonus_pct) * patch_power
+		if pre_joker_mult > 0.0:
+			var joker_factor: float = float(ctx.mult) / pre_joker_mult
+			ctx.mult = pre_joker_mult * (1.0 + (joker_factor - 1.0) * patch_power)
+		for popup in popups:
+			popup["text"] = "½ " + String(popup["text"])
 	# the protagonist closes the chain
 	var ch = extra.get("character")
 	if ch != null:
@@ -98,6 +119,9 @@ static func run(result: Dictionary, slots: Array, extra: Dictionary) -> Dictiona
 	var fk: int = int(extra.get("first_kind", -99))
 	if lf < 1.0 and fk != -99 and int(ctx.kind) != fk:
 		score = int(score * lf)
+	var qf := SectionMod.request_factor(mod)
+	if qf < 1.0 and not bool(extra.get("request_met", true)):
+		score = int(score * qf)
 	var coins := int(result.get("coins", 0)) + int(ctx.coins_bonus)
 	return {
 		"score": score, "coins": coins, "popups": popups,

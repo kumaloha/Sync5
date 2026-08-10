@@ -127,13 +127,13 @@ func _button(text: String) -> Button:
 ## 盲注板会显示未加码的目标, 而「还差多少分」正是段中商店买牌的唯一依据。
 ## **乘法只写一处**(`Run.section_target_for`), 展示侧一律消费 `run.target()`。
 func open(slots: Array, coins: int, section_idx: int, mod = null,
-		score: int = -1, left: int = -1, target: int = -1) -> void:
+		score: int = -1, left: int = -1, target: int = -1, boon = null) -> void:
 	_reroll_count = 0
 	_blind_board.setup(section_idx,
 		target if target >= 0 else Run.section_target_for(
 			GameConfig.SECTION_TARGETS, section_idx,
 			"" if mod == null else String(mod.id)),
-		mod, "下一场", score, left)
+		mod, "下一场", score, left, boon)
 	redeal(slots, coins, section_idx)
 
 

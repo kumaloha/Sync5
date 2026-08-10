@@ -20,6 +20,13 @@ var prev_kind := -99
 ## run state, and sim/curve must see the same lock the player does.
 var first_kind := -99
 var run_faces: Dictionary = {}      # wall section -> face id, rolled at run start
+var run_boon := ""                  # rolled up front, revealed only in section four
+var section_discards_used := 0
+var section_kinds: Dictionary = {}
+var cache_meta: Dictionary = {"ages": {}, "next": 0}
+var previous_raw_score := 0
+var request_last := ""
+var _blind_rng := RandomNumberGenerator.new()
 var character: Character = null
 ## Coins carried across phrases. The Phrase owns them during a phrase (that is
 ## where tolls and discards are charged); this is the carry between phrases, so
@@ -45,6 +52,11 @@ func reset(face_seed: int = -1) -> void:
 	joker_slots = [null, null, null, null]
 	prev_kind = -99
 	first_kind = -99
+	section_discards_used = 0
+	section_kinds.clear()
+	cache_meta = {"ages": {}, "next": 0}
+	previous_raw_score = 0
+	request_last = ""
 	character = null
 	coins = GameConfig.STARTING_COINS
 	stage = Stage.DECISION
@@ -55,19 +67,61 @@ func reset(face_seed: int = -1) -> void:
 ## mechanic — the preview one section ahead is what turns a face from an
 ## execution into a routing decision).
 func roll_faces(face_seed: int = -1) -> void:
-	var rng := RandomNumberGenerator.new()
 	if face_seed >= 0:
-		rng.seed = face_seed
+		_blind_rng.seed = face_seed
 	else:
-		rng.randomize()
+		_blind_rng.randomize()
 	run_faces = {}
 	for w in GameConfig.WALL_SECTIONS:
-		run_faces[w] = SectionMod.roll(w, rng)
+		run_faces[w] = SectionMod.roll(w, _blind_rng)
+	run_boon = BlindBoon.roll(_blind_rng)
 
 
 ## This section's Boss face id ("" = none).
 func face() -> String:
 	return String(run_faces.get(section_idx, ""))
+
+
+## The positive finale surprise is deliberately unavailable to earlier-round
+## previews even though its deterministic roll already lives in run state.
+func boon() -> String:
+	if section_idx < GameConfig.SECTIONS_PER_RUN - 1:
+		return ""
+	return run_boon
+
+
+const REQUEST_GOALS := ["color_mix", "face_or_ace", "initial_cache", "fresh_kind"]
+
+
+func next_request_goal(p: Phrase = null) -> String:
+	var pool: Array = REQUEST_GOALS.duplicate()
+	if phrase_in_section == 0:
+		pool.erase("fresh_kind")
+	if p != null:
+		var valid: Array = []
+		for goal in pool:
+			if p.request_goal_valid(String(goal)):
+				valid.append(goal)
+		pool = valid
+	# Prefer the non-repeating contract whenever the dealt state offers a
+	# second valid route. If the only achievable request is the previous one,
+	# keep it public instead of silently turning the whole Request beat off.
+	if pool.size() > 1:
+		pool.erase(request_last)
+	if pool.is_empty():
+		return ""
+	var picked := String(pool[_blind_rng.randi_range(0, pool.size() - 1)])
+	request_last = picked
+	return picked
+
+
+static func request_label(goal: String) -> String:
+	match goal:
+		"color_mix": return "红黑同台"
+		"face_or_ace": return "含 J/Q/K/A"
+		"initial_cache": return "用初始缓存"
+		"fresh_kind": return "更换牌型"
+	return ""
 
 
 ## The section's target, after the face's multiplier (raisedbar 1.5).
@@ -116,9 +170,12 @@ static func section_target_for(table: Array, section: int, mod: String) -> int:
 func advance() -> Dictionary:
 	phrase_in_section += 1
 	var done := phrase_in_section >= GameConfig.PHRASES_PER_SECTION
+	var kinds_needed := SectionMod.required_kinds(face())
+	var requirements_met := kinds_needed <= 0 or section_kinds.size() >= kinds_needed
 	return {"section_done": done,
 		"shop_break": not done and phrase_in_section % GameConfig.PHRASES_PER_SHOP == 0,
-		"cleared": done and section_score >= target(),
+		"cleared": done and section_score >= target() and requirements_met,
+		"requirements_met": requirements_met,
 		"is_wall": GameConfig.is_wall(section_idx),
 		"finale": section_idx >= GameConfig.SECTIONS_PER_RUN - 1}
 
@@ -149,3 +206,6 @@ func next_section() -> void:
 	section_score = 0
 	# the lock is per-SECTION: a new blind opens with nothing locked
 	first_kind = -99
+	section_discards_used = 0
+	section_kinds.clear()
+	request_last = ""

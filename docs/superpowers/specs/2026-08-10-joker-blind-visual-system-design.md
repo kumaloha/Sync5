@@ -32,10 +32,16 @@ No character illustration, new theme, or decorative card-art system is added.
 
 ## Asset contract
 
-The canonical catalog is
-`assets/design/joker_blind_visual_system.html`. It contains all 23 Joker and
-13 active Blind fingerprints, their approved labels, colors, and the state
-language.
+The canonical catalogs are:
+
+- `assets/design/joker_blind_visual_system.html` for all 23 Jokers and the
+  shared card language;
+- `assets/design/blind_card_ui.html` for the final 25 pressure Blinds and four
+  finale boons.
+
+The Blind catalog supersedes the earlier 13-face exploration still visible in
+the combined contact sheet. It contains the approved labels, colors, mechanic
+fingerprints, and main/sub-mechanic explanation for every final entry.
 
 Implementations may convert the vectors to Godot draw calls or individual SVG
 textures. Conversion must preserve:
@@ -55,6 +61,7 @@ textures. Conversion must preserve:
 | Uncommon Support | Violet |
 | Rare Support | Gold |
 | Blind face | Magenta |
+| Positive finale boon | Gold |
 
 Color supplements shape; it never replaces shape as the identifier.
 
@@ -87,8 +94,8 @@ Animations must never change the identifying silhouette.
 
 - With names hidden, every Joker is distinguishable from the other Jokers at
   the current rack size.
-- With names hidden, every active Blind face is distinguishable from the other
-  Blind faces.
+- With names hidden, all 25 pressure Blinds and four finale boons are
+  distinguishable from one another.
 - A card's trigger and result are readable without parsing an English sentence.
 - Existing stage, glass, neon, and audio-equipment identity remains recognizable.
 - All numeric labels are sourced from game data; the view does not hardcode

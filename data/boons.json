@@ -1,0 +1,40 @@
+{
+  "boons": [
+    {
+      "id": "doubleset",
+      "name": "Double Set",
+      "cn": "双响",
+      "fx": "Replay score at half power",
+      "params": {
+        "score_replay_factor": 0.5
+      }
+    },
+    {
+      "id": "spotlight",
+      "name": "Spotlight",
+      "cn": "聚光",
+      "fx": "Best five of six cards",
+      "params": {
+        "spotlight_cards": 1
+      }
+    },
+    {
+      "id": "afterglow",
+      "name": "Afterglow",
+      "cn": "余响",
+      "fx": "Add ten percent previous score",
+      "params": {
+        "previous_raw_factor": 0.1
+      }
+    },
+    {
+      "id": "encore",
+      "name": "Encore",
+      "cn": "返场",
+      "fx": "First discarded hand batch still scores",
+      "params": {
+        "ghost_first_discard": 1
+      }
+    }
+  ]
+}

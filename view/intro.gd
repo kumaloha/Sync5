@@ -47,7 +47,7 @@ func _ready() -> void:
 
 ## Announce the section that is about to start. `mod` is the section's own
 ## boss face (SectionMod or null — walls only).
-func open(section_idx: int, target: int, mod) -> void:
+func open(section_idx: int, target: int, mod, boon = null) -> void:
 	# a stale timer from the previous card must not dismiss this one
 	if _auto != null and _auto.is_valid():
 		_auto.kill()
@@ -55,7 +55,7 @@ func open(section_idx: int, target: int, mod) -> void:
 		_fade.kill()
 	var is_wall := GameConfig.is_wall(section_idx)
 	skipped = false
-	_board.setup(section_idx, target, mod, "")
+	_board.setup(section_idx, target, mod, "", -1, -1, boon)
 	visible = true
 	modulate.a = 1.0
 	_live = true
@@ -90,4 +90,3 @@ func _dismiss() -> void:
 	_fade.tween_callback(func() -> void:
 		visible = false
 		done.emit())
-

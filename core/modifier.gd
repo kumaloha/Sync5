@@ -123,6 +123,13 @@ static func _param(mod_id: String, key: String, dflt: float) -> float:
 	return dflt
 
 
+static func _entry(mod_id: String) -> Dictionary:
+	for e in DB.faces().get("faces", []):
+		if String(e["id"]) == mod_id:
+			return e
+	return {}
+
+
 ## Extra seconds shaved off the phrase clock by this modifier.
 static func time_penalty(mod_id: String) -> float:
 	return _param(mod_id, "time_penalty", 0.0)
@@ -191,6 +198,90 @@ static func hide_refill(mod_id: String) -> bool:
 ## facedown: every J/Q/K is face down for the phrase.
 static func hide_faces(mod_id: String) -> bool:
 	return _param(mod_id, "hide_faces", 0.0) > 0.0
+
+
+static func discard_lock_last(mod_id: String) -> float:
+	return _param(mod_id, "discard_lock_last", 0.0)
+
+
+static func swap_lock_last(mod_id: String) -> float:
+	return _param(mod_id, "swap_lock_last", 0.0)
+
+
+## Time-window gates are shared by the view and probes so the exact boundary
+## ("the final two seconds" includes 2.00) cannot drift between call sites.
+static func discard_open(mod_id: String, seconds_left: float) -> bool:
+	var close_last := discard_lock_last(mod_id)
+	return close_last <= 0.0 or seconds_left > close_last
+
+
+static func swap_open(mod_id: String, seconds_left: float) -> bool:
+	var close_last := swap_lock_last(mod_id)
+	return close_last <= 0.0 or seconds_left > close_last
+
+
+static func discard_action_limit(mod_id: String) -> int:
+	return int(_param(mod_id, "discard_actions", -1.0))
+
+
+static func swap_action_limit(mod_id: String) -> int:
+	return int(_param(mod_id, "swap_actions", -1.0))
+
+
+static func action_limit(mod_id: String) -> int:
+	return int(_param(mod_id, "action_limit", -1.0))
+
+
+static func cache_blocks_red(mod_id: String) -> bool:
+	return _param(mod_id, "cache_block_red", 0.0) > 0.0
+
+
+static func refill_rank_min(mod_id: String) -> int:
+	return int(_param(mod_id, "refill_rank_min", 2.0))
+
+
+static func refill_rank_max(mod_id: String) -> int:
+	return int(_param(mod_id, "refill_rank_max", 15.0))
+
+
+static func cache_lock_phrases(mod_id: String) -> int:
+	return int(_param(mod_id, "cache_lock_phrases", 0.0))
+
+
+static func seals_lowest_start(mod_id: String) -> bool:
+	return _param(mod_id, "seal_lowest_start", 0.0) > 0.0
+
+
+static func seals_oldest_cache(mod_id: String) -> bool:
+	return _param(mod_id, "seal_oldest_cache", 0.0) > 0.0
+
+
+static func required_kinds(mod_id: String) -> int:
+	return int(_param(mod_id, "required_kinds", 0.0))
+
+
+static func restores_with_initial_cache(mod_id: String) -> bool:
+	return _param(mod_id, "restore_with_initial_cache", 0.0) > 0.0
+
+
+static func section_discard_budget(mod_id: String) -> int:
+	return int(_param(mod_id, "section_discard_budget", -1.0))
+
+
+static func exclusive_action_tracks(mod_id: String) -> bool:
+	return _param(mod_id, "exclusive_action_tracks", 0.0) > 0.0
+
+
+static func request_factor(mod_id: String) -> float:
+	return _param(mod_id, "request_factor", 1.0)
+
+
+static func joker_power(mod_id: String) -> float:
+	return _param(mod_id, "joker_power", 1.0)
+
+
+static func tape_required(mod_id: String) -> bool:
+	return bool(_entry(mod_id).get("tape_required", false))
 
 
 ## Whether the flat-bonus channel is zeroed (static).

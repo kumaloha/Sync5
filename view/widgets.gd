@@ -580,19 +580,13 @@ void fragment() {
 		return _bar
 
 
-	## 档位色 = **四档递进**(2026-08-06 用户拍板: 4 个盲注全是 BOSS 墙,
-	## 小盲/大盲的概念作废, 递进感全部由档位色 + 序号承担):
-	## 蓝 → 橙 → 红 → 粉, 逐档升温。前三档沿用用户拍板的红蓝橙
-	## (「不喜欢这个绿色, 红蓝橙可能更好」), 第四档取调色板里的粉——
-	## 霓虹灯管最刺眼的就是品红, 语义上是「红再往上」的终局色。
-	## 首页舞台卡与局内盲注卡共用这一处, 两边永远同色。
-	static func accent_for(section_idx: int) -> Color:
-		match clampi(section_idx, 0, 3):
-			0: return StageTheme.BLUE
-			1: return StageTheme.AMBER
-			2: return StageTheme.RED
-			_: return StageTheme.PINK
-		return StageTheme.BLUE
+	## 盲注是一个稳定的视觉类别，而不是用颜色兼任难度刻度。所有轮次统一
+	## 用品红；轮次和压力靠 01/04、规则名和目标数读取。终局正向惊喜另用金色。
+	static func accent_for(_section_idx: int) -> Color:
+		return StageTheme.PINK
+
+	static func boon_accent() -> Color:
+		return StageTheme.GOLD
 
 	## ★★☆ difficulty read of the blind tier (NOT a save record — meta
 	## progression is design/ui_meta.md and unimplemented). 四档结构下直接是 1..4。
@@ -612,11 +606,21 @@ class BlindCard:
 	var section_idx := 0
 	var mod = null            # 本段的脸(只有墙才有)
 	var next_mod = null       # 下一面墙的预告
+	var boon = null           # 第四轮进入时才揭示的正向惊喜
+	var status_text := ""     # per-phrase public state (request, budget, seals)
 
-	func setup(p_section: int, p_mod, p_next) -> void:
+	func setup(p_section: int, p_mod, p_next, p_boon = null) -> void:
 		section_idx = p_section
 		mod = p_mod
 		next_mod = p_next
+		boon = p_boon
+		status_text = ""
+		queue_redraw()
+
+	func set_status(text: String) -> void:
+		if status_text == text:
+			return
+		status_text = text
 		queue_redraw()
 
 	## 卡面照抄手牌的排版(用户 2026-08-05:「放一张卡牌」「不是我说的风格」——
@@ -695,11 +699,24 @@ class BlindCard:
 		var band := Rect2(8.0 * s, h - 46.0 * s, w - 16.0 * s, 34.0 * s)
 		draw_style_box(StageTheme.box(Color(fc.r, fc.g, fc.b, 0.12),
 			Color(fc.r, fc.g, fc.b, 0.45), 1, int(8.0 * s)), band)
-		draw_string(med, Vector2(band.position.x, band.position.y + 13.0 * s),
-			"NEXT ⚠" if preview else "⚠ BOSS", HORIZONTAL_ALIGNMENT_CENTER, band.size.x,
-			int(10.0 * s), Color(fc.r, fc.g, fc.b, 0.75))
-		draw_string(zh, Vector2(band.position.x, band.position.y + 29.0 * s), face.cn_name,
-			HORIZONTAL_ALIGNMENT_CENTER, band.size.x, int(14.0 * s), fc)
+		var live_status := status_text != "" and not preview
+		draw_string(zh if live_status else med,
+			Vector2(band.position.x, band.position.y + 13.0 * s),
+			("⚠ %s" % face.cn_name) if live_status else ("NEXT ⚠" if preview else "⚠ BOSS"),
+			HORIZONTAL_ALIGNMENT_CENTER, band.size.x, int((11.0 if live_status else 10.0) * s),
+			Color(fc.r, fc.g, fc.b, 0.82))
+		draw_string(zh, Vector2(band.position.x, band.position.y + 29.0 * s),
+			status_text if live_status else face.cn_name,
+			HORIZONTAL_ALIGNMENT_CENTER, band.size.x,
+			int((10.0 if live_status else 14.0) * s), fc)
+		if boon != null:
+			var bc := StageCard.boon_accent()
+			var br := Rect2(12.0 * s, h - 62.0 * s, w - 24.0 * s, 18.0 * s)
+			draw_style_box(StageTheme.box(Color(bc.r, bc.g, bc.b, 0.14),
+				Color(bc.r, bc.g, bc.b, 0.68), 1, int(6.0 * s)), br)
+			draw_string(zh, Vector2(br.position.x, br.position.y + 13.0 * s),
+				"✦ %s" % boon.cn_name, HORIZONTAL_ALIGNMENT_CENTER, br.size.x,
+				int(10.0 * s), bc)
 
 
 ## The blind board (盲注公示) — the home screen's stage card, sized for use
@@ -710,6 +727,7 @@ class BlindBoard:
 	var section_idx := 0
 	var target := 0
 	var mod = null          # SectionMod or null
+	var boon = null         # BlindBoon or null; positive and visually separate
 	var prefix := ""        # "下一场" on the shop, "" on the intro card
 	# 段中商店态(2026-08-06 商店与盲注解耦): >= 0 时这块板讲的不是「下一场是什么」
 	# 而是「这一场还差多少」—— 玩家已经打了半个盲注, 买牌是解题不是下注。
@@ -725,10 +743,11 @@ class BlindBoard:
 		queue_redraw()
 
 	func setup(p_section: int, p_target: int, p_mod, p_prefix: String,
-			p_score: int = -1, p_left: int = -1) -> void:
+			p_score: int = -1, p_left: int = -1, p_boon = null) -> void:
 		section_idx = p_section
 		target = p_target
 		mod = p_mod
+		boon = p_boon
 		prefix = p_prefix
 		score = p_score
 		phrases_left = p_left
@@ -816,9 +835,12 @@ class BlindBoard:
 		if in_progress():
 			limits = "还剩 %d 拍 · %.0f 秒/句" % [phrases_left,
 				GameConfig.phrase_duration(section_idx)]
+		var limits_color: Color = StageTheme.DIM if not in_progress() else Color(acc.r, acc.g, acc.b, 0.92)
+		if boon != null:
+			limits = "✦ %s · %s" % [boon.cn_name, boon.fx_text]
+			limits_color = StageCard.boon_accent()
 		draw_string(zh, Vector2(pad, 232), limits,
-			HORIZONTAL_ALIGNMENT_LEFT, cw, 15,
-			StageTheme.DIM if not in_progress() else Color(acc.r, acc.g, acc.b, 0.92))
+			HORIZONTAL_ALIGNMENT_LEFT, cw, 15, limits_color)
 		if mod != null:
 			var ftxt := "⚠ %s · %s" % [mod.cn_name, mod.fx_text]
 			var ffs := 14
@@ -850,7 +872,9 @@ class DJKey:
 		for st in ["normal", "hover", "pressed", "disabled", "focus"]:
 			add_theme_stylebox_override(st, StyleBoxEmpty.new())
 	func _can_drop_data(_pos: Vector2, data: Variant) -> bool:
-		return accept_drop and data is Dictionary and ["hand", "cache"].has(data.get("zone", ""))
+		return accept_drop and data is Dictionary \
+			and not bool(data.get("discard_blocked", false)) \
+			and ["hand", "cache"].has(data.get("zone", ""))
 	func _drop_data(_pos: Vector2, data: Variant) -> void:
 		dropped.emit(data)
 	## dcshake — the key jolts when the press could not be honoured, so a

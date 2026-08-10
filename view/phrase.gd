@@ -34,6 +34,8 @@ var cur_modifier := ""        # this section's boss face ("" = none)
 var acted_late := false        # any discard/swap/sort inside the final 2 seconds
 var last_action_time := -1.0   # elapsed at the last action; -1 = untouched phrase
 var _last_warn_digit := -1     # countdown heartbeat edge detector (final 3s)
+var _discard_gate_open := true # edge-cached so the keys redraw exactly once on close
+var _swap_gate_open := true
 
 # draft (2026-08 shop model) — the board lives in view/shop.gd, the replace
 # state in view/replace.gd; 钱和打点留在这里(铁律)
@@ -199,8 +201,9 @@ func _build_ui() -> void:
 func _enter_section() -> void:
 	state = St.INTRO
 	var m := SectionMod.by_id(String(run.run_faces.get(run.section_idx, "")))
+	var boon := BlindBoon.by_id(run.boon())
 	_tape_section()
-	intro.open(run.section_idx, run.target(), m)
+	intro.open(run.section_idx, run.target(), m, boon)
 
 
 ## 进段打点。两个入口:_enter_section(开局/重开)与 _next_section(段间),
@@ -209,6 +212,7 @@ func _enter_section() -> void:
 func _tape_section() -> void:
 	Tape.on("sec", {"i": run.section_idx, "target": run.target(),
 		"face": String(run.run_faces.get(run.section_idx, "")),
+		"boon": run.boon(),
 		"wall": GameConfig.is_wall(run.section_idx),
 		# ⚠ 段首 `phrase` 还没建(第一段就是这样), 此时钱在 `run.coins` 上。
 		# 原本这里写死 0, 于是**第一段的 `sec` 事件把起始金币记成了 0**(真值 6)——
@@ -236,7 +240,7 @@ func _start_phrase() -> void:
 		cur_modifier = run.face()
 		var m := SectionMod.by_id(cur_modifier)
 		var nxt := SectionMod.by_id(String(run.run_faces.get(run.section_idx + 1, "")))
-		blind_card.setup(run.section_idx, m, nxt)
+		blind_card.setup(run.section_idx, m, nxt, BlindBoon.by_id(run.boon()))
 	# 规则全在这一句里:解析脸 → 发牌(缓存容量在 start() 生效)→ 收入场费 → 推进计数器。
 	# 这三样曾经在六个文件里各写一遍, 而入场费那份我一度还判断错了它有没有用(design/tech.md)。
 	phrase = Beat.begin(run)
@@ -248,6 +252,8 @@ func _start_phrase() -> void:
 	cur_duration = run.phrase_duration()
 	cur_warning = GameConfig.warning_time(cur_duration)
 	cur_lock = GameConfig.lock_time(cur_duration)
+	_discard_gate_open = _discard_open()
+	_swap_gate_open = _swap_open()
 	orbit.set_mode("walk")
 	hand.clear_selection()
 	hand.deal_flip()
@@ -257,7 +263,9 @@ func _start_phrase() -> void:
 	# (2026-08-06 抄 Balatro 那次), 老日志的 best0 就和同一行的 hand 打架, 且不会报错。
 	Tape.on("beat", {"i": run.phrase_index, "p": run.phrase_in_section,
 		"dur": cur_duration, "coins": phrase.coins,
-		"hand": Tape.cards(phrase.hand), "cache": Tape.cards(run.cache)})
+		"hand": Tape.cards(phrase.hand), "cache": Tape.cards(run.cache),
+		"boon": run.boon(), "request": phrase.request_goal,
+		"spotlight": "" if phrase.spotlight_card == null else phrase.spotlight_card.label()})
 	_refresh()
 
 
@@ -265,6 +273,12 @@ func _process(delta: float) -> void:
 	match state:
 		St.DECISION:
 			elapsed += delta
+			var discard_now := _discard_open()
+			var swap_now := _swap_open()
+			if discard_now != _discard_gate_open or swap_now != _swap_gate_open:
+				_discard_gate_open = discard_now
+				_swap_gate_open = swap_now
+				_refresh()
 			var warn := elapsed >= cur_warning
 			orbit.set_progress(elapsed / cur_lock, warn, cur_lock - elapsed)
 			# final-seconds heartbeat: eq curtain reddens/speeds, each countdown
@@ -308,6 +322,9 @@ func _settle() -> void:
 		"coin": gained_coins, "total": run.section_score,
 		"disc": phrase.discards_used, "late": acted_late,
 		"act": last_action_time, "mod": cur_modifier,
+		"raw": int(outcome.get("raw_score", gained_score)),
+		"boon": run.boon(), "boon_bonus": int(outcome.get("boon_bonus", 0)),
+		"request": phrase.request_goal, "request_ok": phrase.request_met,
 		"cards": Tape.cards(res.get("resolved", [])),
 		"fired": Tape.fired(outcome["popups"], run.joker_slots)})
 	state = St.RESOLVE
@@ -481,7 +498,8 @@ func _open_draft() -> void:
 		SectionMod.by_id(String(run.run_faces.get(run.section_idx, ""))),
 		run.section_score if mid else -1,
 		run.phrases_left() if mid else -1,
-		run.target())      # ⚠ 加码脸乘过的那个目标, 不是原始表(2026-08-09)
+		run.target(),      # ⚠ 加码脸乘过的那个目标, 不是原始表(2026-08-09)
+		BlindBoon.by_id(run.boon()))
 	# 段中/段末两态要分开统计:段中是「已知缺口下的解题」, 段末是「对下一场下注」,
 	# 购买行为本来就不该混在一起看(design/levels.md 的核心论证)
 	Tape.on("shop", {"mid": mid, "sec": run.section_idx, "coins": phrase.coins,
@@ -582,6 +600,56 @@ func _on_slot_tapped(k: int) -> void:
 # ============================== INPUT ==============================
 
 
+func _seconds_left() -> float:
+	return maxf(0.0, cur_lock - elapsed)
+
+
+func _discard_open() -> bool:
+	return SectionMod.discard_open(cur_modifier, _seconds_left())
+
+
+func _swap_open() -> bool:
+	return SectionMod.swap_open(cur_modifier, _seconds_left()) \
+		and (phrase == null or phrase.can_swap_action())
+
+
+func _blind_status() -> String:
+	match cur_modifier:
+		"request":
+			return "点歌 · %s" % Run.request_label(phrase.request_goal)
+		"lostpage":
+			return "将丢 · %s" % ("?" if phrase.marked_cache_card == null \
+				else phrase.marked_cache_card.label())
+		"throttle":
+			return "操作余 %d" % maxi(0, SectionMod.action_limit(cur_modifier) - phrase.action_count)
+		"onetake":
+			return "弃牌余 %d 次" % maxi(0,
+				SectionMod.discard_action_limit(cur_modifier) - phrase.discard_actions_used)
+		"oneswap":
+			return "交换余 %d 次" % maxi(0,
+				SectionMod.swap_action_limit(cur_modifier) - phrase.swap_actions_used)
+		"ration":
+			return "弃牌余 %d 张" % maxi(0, phrase.discard_budget - phrase.discards_used)
+		"trilogy":
+			return "曲目 %d/%d" % [run.section_kinds.size(),
+				SectionMod.required_kinds(cur_modifier)]
+		"switchtrack":
+			return "选择轨道" if phrase.action_track == "" else (
+				"仅可弃牌" if phrase.action_track == "discard" else "仅可交换")
+		"handseal":
+			return "弃牌封 · %s" % ("?" if phrase.sealed_hand_card == null \
+				else phrase.sealed_hand_card.label())
+		"doubleseal":
+			return "手牌/缓存双封"
+		"wetink":
+			return "缓存锁 %d" % phrase.locked_cache_cards.size()
+		"rush":
+			if run.boon() == "spotlight" and phrase.spotlight_card != null:
+				return "聚光 · %s" % phrase.spotlight_card.label()
+			return "固定 6 秒"
+	return ""
+
+
 func _on_hand_sort() -> void:
 	if state != St.DECISION:
 		return
@@ -596,9 +664,15 @@ func _on_hand_sort() -> void:
 func _on_hand_swap(hand_i: int, cache_i: int) -> void:
 	if state != St.DECISION:
 		return
+	if not _swap_open():
+		Tape.on("deny", {"why": "blind_swap", "h": hand_i, "c": cache_i, "at": elapsed})
+		_refresh()
+		return
 	if phrase.swap_with_cache(hand_i, cache_i):
 		Tape.on("swap", {"h": hand_i, "c": cache_i, "at": elapsed})
 		_action_feedback()
+	else:
+		Tape.on("deny", {"why": "blind_swap", "h": hand_i, "c": cache_i, "at": elapsed})
 	_refresh()
 
 
@@ -640,45 +714,58 @@ func _on_hand_discard(sel_h: Array, sel_c: Array) -> void:
 	if state != St.DECISION:
 		return
 	var total: int = sel_h.size() + sel_c.size()
-	if total == 0 or not phrase.can_discard(total):
+	var selection_ok := phrase.can_discard_selected(sel_h, sel_c) if total > 0 else false
+	if total == 0 or not _discard_open() or not selection_ok:
 		hand.reject_discard()    # nothing selected, or not enough coins
 		# 「想弃但弃不了」是挫败点, 也是弃牌定价的直接证据 —— 只记成交会漏掉它
-		Tape.on("deny", {"why": "empty" if total == 0 else "coins",
+		var why := "empty" if total == 0 else ("blind_discard" if not _discard_open() \
+			or not selection_ok else "coins")
+		Tape.on("deny", {"why": why,
 			"k": total, "at": elapsed})
 		return
 	# 弃掉的是哪几张, 得在换牌之前抄下来
 	var gone: Array = []
 	for i in sel_h:
 		gone.append(phrase.hand[i].label())
-		hand.ghost(i)
 	for i in sel_c:
 		gone.append(run.cache[i].label())
 	if phrase.discard_selected(sel_h.duplicate(), sel_c.duplicate()):
+		for i in sel_h:
+			hand.ghost(i)
 		Tape.on("disc", {"k": total, "h": sel_h.size(), "c": sel_c.size(),
 			"cost": Economy.discard_cost(total), "coins": phrase.coins,
 			"cards": gone, "got": _refilled(sel_h, sel_c), "at": elapsed})
 		_notify_discard(total)
-	hand.clear_selection()
-	vinyl.spin_boost()
-	_action_feedback()
+		hand.clear_selection()
+		vinyl.spin_boost()
+		_action_feedback()
 	_refresh()
 
 
 ## A card was dropped straight onto the 弃牌 key -> discard just that card.
 func _on_hand_single_discard(zone: String, idx: int) -> void:
-	if state != St.DECISION or not phrase.can_discard(1):
-		hand.reject_discard()
-		Tape.on("deny", {"why": "coins", "k": 1, "at": elapsed})
+	if state != St.DECISION:
 		return
+	var hand_sel: Array = [idx] if zone == "hand" else []
+	var cache_sel: Array = [idx] if zone == "cache" else []
+	if not ["hand", "cache"].has(zone):
+		return
+	if not _discard_open() or not phrase.can_discard_selected(hand_sel, cache_sel):
+		hand.reject_discard()
+		Tape.on("deny", {"why": "blind_discard",
+			"k": 1, "at": elapsed})
+		return
+	var succeeded := false
 	if zone == "hand":
 		if idx >= 0 and idx < phrase.hand.size():
 			var gone := phrase.hand[idx].label()
-			hand.ghost(idx)
 			if phrase.discard_selected([idx], []):
+				hand.ghost(idx)
 				Tape.on("disc", {"k": 1, "h": 1, "c": 0,
 					"cost": Economy.discard_cost(1), "coins": phrase.coins,
 					"cards": [gone], "got": _refilled([idx], []), "at": elapsed})
 				_notify_discard(1)
+				succeeded = true
 	elif zone == "cache":
 		if idx < 0 or idx >= run.cache.size():
 			return
@@ -688,11 +775,13 @@ func _on_hand_single_discard(zone: String, idx: int) -> void:
 				"cost": Economy.discard_cost(1), "coins": phrase.coins,
 				"cards": [gone_c], "got": _refilled([], [idx]), "at": elapsed})
 			_notify_discard(1)
+			succeeded = true
+	if succeeded:
+		hand.clear_selection()
+		vinyl.spin_boost()
+		_action_feedback()
 	else:
-		return
-	hand.clear_selection()
-	vinyl.spin_boost()
-	_action_feedback()
+		Tape.on("deny", {"why": "blind_discard", "k": 1, "at": elapsed})
 	_refresh()
 
 
@@ -729,8 +818,19 @@ func _refresh() -> void:
 
 	# hand + run.cache + keys render in view/hand.gd; assemble its view-model
 	var total_sel: int = hand.selection_total()
+	blind_card.set_status(_blind_status())
+	var marked_cards := {}
+	if phrase.marked_cache_card != null:
+		marked_cards[phrase.marked_cache_card] = true
 	hand.refresh({"hand": phrase.hand, "cache": run.cache, "scoring": scoring_set,
 		"decide": decide, "fee": total_sel * GameConfig.DISCARD_COST,
-		"can_discard_sel": total_sel > 0 and phrase.can_discard(total_sel),
-		"can_drop": phrase.can_discard(1), "hidden": phrase.hidden})
+		"can_discard_sel": total_sel > 0 and _discard_open() \
+			and phrase.can_discard_selected(hand.sel_hand, hand.sel_cache),
+		"can_drop": _discard_open() and phrase.can_discard(1),
+		"can_swap": _swap_open(), "hidden": phrase.hidden,
+		"discard_blocked_hand": phrase.discard_blocked_hand(),
+		"discard_blocked_cache": phrase.discard_blocked_cache(),
+		"swap_blocked_hand": phrase.swap_blocked_hand(),
+		"swap_blocked_cache": phrase.swap_blocked_cache(),
+		"marked_cards": marked_cards})
 	vinyl.set_count(run.deck.remaining())

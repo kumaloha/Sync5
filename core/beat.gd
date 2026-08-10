@@ -44,7 +44,17 @@ static func begin(run: Run) -> Phrase:
 	var mod := run.face()
 	var p := Phrase.new(run.deck, run.cache, run.coins)
 	p.mod = mod                        # ⚠ 必须在 start() 之前
+	p.boon = run.boon()
+	p.cache_meta = run.cache_meta
+	var section_budget := SectionMod.section_discard_budget(mod)
+	if section_budget >= 0:
+		p.discard_budget = maxi(0, section_budget - run.section_discards_used)
+	if SectionMod.request_factor(mod) < 1.0:
+		p.request_prev_kind = run.prev_kind
 	p.start()
+	if SectionMod.request_factor(mod) < 1.0:
+		p.request_goal = run.next_request_goal(p)
+		p.request_met = p.request_goal == ""
 	var toll := SectionMod.phrase_toll(mod)
 	if toll > 0:
 		p.coins = maxi(0, p.coins - toll)
@@ -67,6 +77,7 @@ static func settle(run: Run, p: Phrase, flags: Dictionary = {}) -> Dictionary:
 	if not _expect(run, Run.Stage.DECISION, "settle"):
 		return {}
 	var res := p.lock_and_settle()
+	run.section_kinds[int(res.get("kind", -99))] = true
 	var outcome := Settle.run(res, run.joker_slots, {
 		"prev_kind": run.prev_kind,
 		"acted_late": bool(flags.get("late", false)),
@@ -77,12 +88,29 @@ static func settle(run: Run, p: Phrase, flags: Dictionary = {}) -> Dictionary:
 		"mod": run.face(),
 		"character": run.character,
 		"first_kind": run.first_kind,
+		"request_met": p.request_met,
+		"patch_restored": SectionMod.restores_with_initial_cache(run.face()) \
+			and p.has_initial_cache_in_hand(),
 	})
+	var raw_score := int(outcome["score"])
+	var boon_bonus := 0
+	var replay_factor := BlindBoon.score_replay_factor(run.boon())
+	if replay_factor > 0.0:
+		boon_bonus += int(round(float(raw_score) * replay_factor))
+	var previous_factor := BlindBoon.previous_raw_factor(run.boon())
+	if previous_factor > 0.0:
+		boon_bonus += int(round(float(run.previous_raw_score) * previous_factor))
+	outcome["raw_score"] = raw_score
+	outcome["boon_bonus"] = boon_bonus
+	outcome["score"] = raw_score + boon_bonus
+	run.previous_raw_score = raw_score
 	if run.phrase_in_section == 0:
 		run.first_kind = int(res.get("kind", -99))
 	run.prev_kind = int(res.get("kind", -99))
 	p.coins += int(outcome["coins"])
 	run.coins = p.coins
+	if SectionMod.section_discard_budget(run.face()) >= 0:
+		run.section_discards_used += p.discards_used
 	run.section_score += int(outcome["score"])
 	run.stage = Run.Stage.SETTLED
 	outcome["res"] = res

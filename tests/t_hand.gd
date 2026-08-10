@@ -31,6 +31,15 @@ func run(t) -> void:
 	t.check(swaps[1] == [4, 2], "reverse drop keeps the same argument order")
 	h._on_hand_drop({"zone": "bogus", "index": 0}, 1)
 	t.eq(swaps.size(), 2, "a drop from an unknown zone is ignored")
+	h._can_swap = false
+	h._on_cache_drop({"zone": "hand", "index": 1}, 0)
+	t.eq(swaps.size(), 2, "a closed Blind swap gate blocks drag intent in the view")
+	h._can_swap = true
+	var drop_key := Widgets.DJKey.new()
+	drop_key.accept_drop = true
+	t.check(not drop_key._can_drop_data(Vector2.ZERO,
+		{"zone": "hand", "discard_blocked": true}),
+		"a sealed card cannot bypass its marker by being dragged onto discard")
 
 	# selection must survive a swap-free tap sequence but clear on a real swap
 	h.clear_selection()
@@ -38,3 +47,18 @@ func run(t) -> void:
 	h._on_cache_drop({"zone": "hand", "index": 0}, 2)
 	t.check(h.sel_hand.is_empty() and h.sel_cache.is_empty(), "a swap clears the selection")
 	h.queue_free()
+
+	for section in range(GameConfig.SECTIONS_PER_RUN):
+		t.eq(Widgets.StageCard.accent_for(section), StageTheme.PINK,
+			"Blind section %d uses the shared magenta identity" % (section + 1))
+	t.eq(Widgets.StageCard.boon_accent(), StageTheme.GOLD,
+		"the positive finale surprise keeps a separate gold identity")
+
+	var blind_card := Widgets.BlindCard.new()
+	var rush := SectionMod.by_id("rush")
+	var boon := BlindBoon.by_id("doubleset")
+	blind_card.setup(3, rush, null, boon)
+	t.eq(blind_card.boon, boon, "the current round-four card receives the revealed boon")
+	blind_card.set_status("点歌 · 红黑同台")
+	t.eq(blind_card.status_text, "点歌 · 红黑同台",
+		"the in-run Blind card receives the active public request")

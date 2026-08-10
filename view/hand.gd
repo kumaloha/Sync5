@@ -39,6 +39,14 @@ var _last_hand: Array = []
 var _last_cache: Array = []
 var _deal_flip := false
 var _decide := false
+# Default keeps direct unit/probe construction backward-compatible; every
+# runtime refresh immediately replaces it with the current Blind gate.
+var _can_swap := true
+var _discard_blocked_hand: Dictionary = {}
+var _discard_blocked_cache: Dictionary = {}
+var _swap_blocked_hand: Dictionary = {}
+var _swap_blocked_cache: Dictionary = {}
+var _marked_cards: Dictionary = {}
 ## PaperCard -> 正在跑的翻牌 tween。存着是为了在下一次翻牌前掐掉上一个,
 ## 见 _flip_reveal 顶部的注释。
 var _flips_running: Dictionary = {}
@@ -119,6 +127,8 @@ func _v2(a: Array) -> Vector2:
 func _on_hand_tap(i: int) -> void:
 	if not _decide:
 		return
+	if i >= 0 and i < hand_cards.size() and _discard_blocked_hand.has(hand_cards[i].card):
+		return
 	var on := not sel_hand.has(i)
 	if on:
 		sel_hand.append(i)
@@ -136,6 +146,8 @@ func _on_hand_tap(i: int) -> void:
 func _on_cache_card_tap(i: int) -> void:
 	if not _decide:
 		return
+	if i >= 0 and i < _last_cache.size() and _discard_blocked_cache.has(_last_cache[i]):
+		return
 	var on := not sel_cache.has(i)
 	if on:
 		sel_cache.append(i)
@@ -147,7 +159,11 @@ func _on_cache_card_tap(i: int) -> void:
 
 func _on_hand_drop(data: Dictionary, i: int) -> void:
 	# a cache card was dropped onto hand card i -> swap
-	if not _decide:
+	if not _decide or not _can_swap:
+		return
+	if bool(data.get("swap_blocked", false)):
+		return
+	if i >= 0 and i < hand_cards.size() and _swap_blocked_hand.has(hand_cards[i].card):
 		return
 	if String(data.get("zone", "")) == "cache":
 		sel_hand.clear()
@@ -157,7 +173,11 @@ func _on_hand_drop(data: Dictionary, i: int) -> void:
 
 func _on_cache_drop(data: Dictionary, i: int) -> void:
 	# a hand card was dropped onto cache card i -> swap
-	if not _decide:
+	if not _decide or not _can_swap:
+		return
+	if bool(data.get("swap_blocked", false)):
+		return
+	if i >= 0 and i < _last_cache.size() and _swap_blocked_cache.has(_last_cache[i]):
 		return
 	if String(data.get("zone", "")) == "hand":
 		sel_hand.clear()
@@ -198,9 +218,15 @@ func ghost(i: int) -> void:
 # ---- render ----
 
 ## vm keys: hand:Array[Card], cache:Array[Card], scoring:Dictionary,
-##          decide:bool, fee:int, can_discard_sel:bool, can_drop:bool
+##          decide:bool, can_swap:bool, fee:int, can_discard_sel:bool, can_drop:bool
 func refresh(vm: Dictionary) -> void:
 	_decide = bool(vm["decide"])
+	_can_swap = _decide and bool(vm.get("can_swap", true))
+	_discard_blocked_hand = vm.get("discard_blocked_hand", {})
+	_discard_blocked_cache = vm.get("discard_blocked_cache", {})
+	_swap_blocked_hand = vm.get("swap_blocked_hand", {})
+	_swap_blocked_cache = vm.get("swap_blocked_cache", {})
+	_marked_cards = vm.get("marked_cards", {})
 	var cards_hand: Array = vm["hand"]
 	var cards_cache: Array = vm["cache"]
 	var scoring_set: Dictionary = vm["scoring"]
@@ -221,6 +247,14 @@ func refresh(vm: Dictionary) -> void:
 		# refresh 自然就翻开了(用户 2026-08-07 拍板的时机)。
 		pc.set_back(hidden.has(card))
 		pc.set_states(scoring_set.has(card), sel_hand.has(i))
+		var hand_mark := ""
+		if _marked_cards.has(card):
+			hand_mark = "丢"
+		if _discard_blocked_hand.has(card):
+			hand_mark = "弃"
+		if _swap_blocked_hand.has(card):
+			hand_mark = "锁" if hand_mark != "" else "换"
+		pc.set_blocked(hand_mark)
 		var ty := LIFT_BASE
 		if sel_hand.has(i):
 			ty = LIFT_SELECTED
@@ -228,7 +262,11 @@ func refresh(vm: Dictionary) -> void:
 			ty = LIFT_SCORING
 		var tw := create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 		tw.tween_property(pc, "position:y", ty, 0.18)
-		pc.drag_payload = {"zone": "hand", "index": i} if _decide else {}
+		var hand_can_swap := _can_swap and not _swap_blocked_hand.has(card)
+		pc.drag_payload = {"zone": "hand", "index": i,
+			"discard_blocked": _discard_blocked_hand.has(card),
+			"swap_blocked": not hand_can_swap} if _decide else {}
+		pc.accept_zones = ["cache"] if hand_can_swap else []
 		if _deal_flip or (was != null and was != card):
 			_flip_reveal(pc, 0.09 * float(flips), not hidden.has(card))
 			flips += 1
@@ -254,9 +292,19 @@ func refresh(vm: Dictionary) -> void:
 		pc.setup(cards_cache[i])
 		pc.set_back(hidden.has(cards_cache[i]))
 		pc.set_states(false, sel_cache.has(i))
+		var cache_card: Card = cards_cache[i]
+		var cache_mark := "丢" if _marked_cards.has(cache_card) else ""
+		if _discard_blocked_cache.has(cache_card):
+			cache_mark = "弃"
+		if _swap_blocked_cache.has(cache_card):
+			cache_mark = "锁" if cache_mark != "" else "换"
+		pc.set_blocked(cache_mark)
 		pc.pressed.connect(_on_cache_card_tap.bind(i))
-		pc.drag_payload = {"zone": "cache", "index": i} if _decide else {}
-		pc.accept_zones = ["hand"]
+		var cache_can_swap := _can_swap and not _swap_blocked_cache.has(cache_card)
+		pc.drag_payload = {"zone": "cache", "index": i,
+			"discard_blocked": _discard_blocked_cache.has(cache_card),
+			"swap_blocked": not cache_can_swap} if _decide else {}
+		pc.accept_zones = ["hand"] if cache_can_swap else []
 		pc.drop_received.connect(_on_cache_drop.bind(i))
 		cache_holder.add_child(pc)
 		var was_c: Card = _last_cache[i] if i < _last_cache.size() else null

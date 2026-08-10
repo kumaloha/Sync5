@@ -51,3 +51,44 @@ func run(t) -> void:
 	# empty result guard
 	var r9 := Settle.run({}, [mono], {})
 	t.eq(r9["score"], 0, "empty result settles to zero")
+
+	# Request is a transparent final-score factor, applied only when the public
+	# goal was missed.
+	var request_hit := Settle.run(flush_res, [null, null, null, null],
+		{"mod": "request", "request_met": true})
+	var request_miss := Settle.run(flush_res, [null, null, null, null],
+		{"mod": "request", "request_met": false})
+	t.eq(request_hit["score"], base, "a completed request leaves score untouched")
+	t.eq(request_miss["score"], int(base * SectionMod.request_factor("request")),
+		"a missed request applies the configured ten-percent loss")
+
+	# Patch In scales the aggregate settlement contribution after every Joker has
+	# applied. Bringing a phrase-start cache object into the final hand restores
+	# the exact full chain.
+	var neon := Joker.by_id("neonsign")
+	var patch_full := Settle.run(flush_res, [mono, neon, null, null], {})
+	var patch_half := Settle.run(flush_res, [mono, neon, null, null],
+		{"mod": "patchin", "patch_restored": false})
+	var patch_restored := Settle.run(flush_res, [mono, neon, null, null],
+		{"mod": "patchin", "patch_restored": true})
+	var pattern_mult := float(flush_res["pmult"])
+	var want_half_mult := pattern_mult + (float(patch_full["mult"]) - pattern_mult) * 0.5
+	t.check(absf(float(patch_half["mult"]) - want_half_mult) < 0.001,
+		"Patch In halves the Joker multiplier contribution")
+	t.eq(patch_half["bonus"], int(round(float(patch_full["bonus"]) * 0.5)),
+		"Patch In halves flat score rewards")
+	t.eq(patch_restored["score"], patch_full["score"],
+		"using an initial cache card restores full Joker power")
+	# Two odd +3 contributions expose the rounding boundary: aggregate 6 × 50%
+	# is 3, while incorrectly rounding each Joker separately would become 4.
+	var vinyl_a := Joker.by_id("vinyl")
+	var vinyl_b := Joker.by_id("vinyl")
+	vinyl_a.on_discard(1)
+	vinyl_b.on_discard(1)
+	var aggregate_full := Settle.run(flush_res, [null, vinyl_a, vinyl_b, null], {})
+	var aggregate_half := Settle.run(flush_res, [null, vinyl_a, vinyl_b, null],
+		{"mod": "patchin", "patch_restored": false})
+	var base_chips := int(flush_res["chips"])
+	t.eq(aggregate_half["base"], base_chips + int(round(
+		float(int(aggregate_full["base"]) - base_chips) * 0.5)),
+		"Patch In rounds one aggregate Joker delta, not each Joker separately")

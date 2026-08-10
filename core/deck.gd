@@ -58,6 +58,35 @@ func draw() -> Card:
 		return null
 	return draw_pile.pop_back()
 
+
+## Draw the next available card whose rank is inside an inclusive range while
+## leaving ineligible cards in the deck. Low End uses this only for discard
+## refills; the opening deal still follows ordinary deck order.
+func draw_rank_range(min_rank: int, max_rank: int) -> Card:
+	if draw_pile.is_empty():
+		_reshuffle_discard()
+	var found := _take_rank_range(min_rank, max_rank)
+	if found != null:
+		return found
+	# A filtered draw can exhaust eligible ranks before the ordinary pile is
+	# empty. Recycle discards here; otherwise Low End can return a null live card
+	# merely because a few ineligible high cards remain on top of the shoe.
+	if not discard_pile.is_empty():
+		draw_pile.append_array(discard_pile)
+		discard_pile.clear()
+		shuffle()
+		return _take_rank_range(min_rank, max_rank)
+	return null
+
+
+func _take_rank_range(min_rank: int, max_rank: int) -> Card:
+	for i in range(draw_pile.size() - 1, -1, -1):
+		var card: Card = draw_pile[i]
+		if card.rank >= min_rank and card.rank <= max_rank:
+			draw_pile.remove_at(i)
+			return card
+	return null
+
 ## A random index in [0, n) drawn from the DECK's own rng, so anything that
 ## reseeds the deck stays reproducible. Used by the cache-eviction faces —
 ## core/ must not reach for a clock or a global rng.

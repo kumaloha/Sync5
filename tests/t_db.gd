@@ -3,6 +3,8 @@ extends RefCounted
 # --- Data config (design/tech.md): loader + validation ---
 func run(t) -> void:
 	t.eq(DB.load_error(), "", "all data files load clean")
+	t.check(FileAccess.file_exists("res://data/boons.json"),
+		"finale boons are configured independently from punitive faces")
 	# 踩过两次的坑: sim 按 SECTIONS_PER_RUN 迭代, 表比段数长就被**静默截断**成
 	# 一个放水盘(random 通关率一度从 0.8% 飙到 42%)。长度必须锁死在一起。
 	t.eq(DB.sim()["bot_targets"].size(), GameConfig.SECTIONS_PER_RUN,
@@ -63,3 +65,8 @@ func run(t) -> void:
 	face_with_why["_why"] = "hello"
 	t.check(DB.validate_faces({"faces": [face_with_why]}) != "",
 		"faces.json rejects a per-face _why key (prose must live in design/blinds.md §7)")
+	var tape_face := good_face.duplicate(true)
+	tape_face["proof"] = "tape"
+	tape_face["tape_required"] = true
+	t.eq(DB.validate_faces({"faces": [tape_face], "fixed_tiers": [1]}), "",
+		"real-time faces can declare tape proof and tape_required")

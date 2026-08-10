@@ -44,6 +44,7 @@ static func load_error() -> String:
 	run()
 	economy()
 	faces()
+	boons()
 	characters()
 	jokers()
 	sim()
@@ -62,6 +63,10 @@ static func economy() -> Dictionary:
 
 static func faces() -> Dictionary:
 	return _load("faces", func(d): return validate_faces(d))
+
+
+static func boons() -> Dictionary:
+	return _load("boons", func(d): return validate_boons(d))
 
 
 static func characters() -> Array:
@@ -202,10 +207,17 @@ static func validate_tape(d: Dictionary) -> String:
 ## fast path and the face would quietly stop working. Both lists are asserted
 ## against SectionMod in tests/runner.gd.
 const _FACE_PARAMS_SETTLE := ["target_power", "bonus_disabled", "repeat_factor",
-	"zero_discard_factor", "lock_first"]
+	"zero_discard_factor", "lock_first", "request_factor", "joker_power"]
 const _FACE_PARAMS_OTHER := ["time_penalty", "phrase_toll", "cache_evict",
-	"cache_cap_delta", "target_mult", "hide_refill", "hide_faces"]
+	"cache_cap_delta", "target_mult", "hide_refill", "hide_faces",
+	"discard_lock_last", "swap_lock_last", "discard_actions", "swap_actions",
+	"action_limit", "cache_block_red", "refill_rank_min", "refill_rank_max",
+	"cache_lock_phrases", "seal_lowest_start", "required_kinds",
+	"seal_oldest_cache", "restore_with_initial_cache", "section_discard_budget",
+	"exclusive_action_tracks"]
 const _FACE_PARAMS := _FACE_PARAMS_SETTLE + _FACE_PARAMS_OTHER
+const _BOON_PARAMS := ["score_replay_factor", "spotlight_cards",
+	"previous_raw_factor", "ghost_first_discard"]
 
 
 ## faces.json is data-only (2026-08-09: design prose moved to design/blinds.md).
@@ -226,8 +238,10 @@ static func validate_faces(d: Dictionary) -> String:
 	var ids := {}
 	for e in d["faces"]:
 		for k in e:
-			if not ["id", "name", "cn", "fx", "params", "proof", "tier"].has(k):
+			if not ["id", "name", "cn", "fx", "params", "proof", "tape_required", "tier"].has(k):
 				return "face '%s' unknown key '%s' — faces.json is data-only now, design notes belong in design/blinds.md §7" % [e.get("id", "?"), k]
+		if e.has("tape_required") and not e["tape_required"] is bool:
+			return "face '%s' tape_required wants bool" % e.get("id", "?")
 		if ids.has(e["id"]):
 			return "duplicate face id '%s'" % e["id"]
 		var params: Dictionary = e.get("params", {})
@@ -286,6 +300,34 @@ static func validate_faces(d: Dictionary) -> String:
 	return _validate_face_proof(d, tier_of)
 
 
+static func validate_boons(d: Dictionary) -> String:
+	for k in d:
+		if k != "boons":
+			return "boons.json unknown top-level key '%s'" % k
+	if not d.has("boons") or not d["boons"] is Array:
+		return "wants 'boons' array"
+	var ids := {}
+	for e in d["boons"]:
+		if not e is Dictionary:
+			return "boon entry wants object"
+		for k in e:
+			if not ["id", "name", "cn", "fx", "params"].has(k):
+				return "boon '%s' unknown key '%s'" % [e.get("id", "?"), k]
+		for k in ["id", "name", "cn", "fx", "params"]:
+			if not e.has(k):
+				return "boon '%s' missing '%s'" % [e.get("id", "?"), k]
+		var id := String(e["id"])
+		if ids.has(id):
+			return "duplicate boon id '%s'" % id
+		ids[id] = true
+		if not e["params"] is Dictionary or e["params"].is_empty():
+			return "boon '%s' has no params" % id
+		for pk in e["params"]:
+			if not _BOON_PARAMS.has(String(pk)):
+				return "boon '%s' unknown param '%s'" % [id, pk]
+	return ""
+
+
 ## 覆盖自证契约(design/gates.md):**一条规则如果进不了模型, 它就不该进池子。**
 ## 每张进了池子的脸必须声明它在模型里走哪条通路, `tools/gate.gd` 照着这个声明
 ## 给它造配对对照臂。漏声明 = 直接红, 和 `_FACE_PARAMS` 两张表同一个思路:
@@ -295,7 +337,7 @@ static func validate_faces(d: Dictionary) -> String:
 ## ⚠ **选错通路会把结论量反, 而且不报错。** 2026-08-07 第一次全量跑抓到: 用规则 bot 量
 ## freshsheet(翻篇)得到 **+1584 分**(脸让玩家变强!), 换成完美玩家是 **−790**。
 ## 规则 bot 不跨拍养缓存, 洗掉缓存反而帮它甩了烂牌。**攻击跨拍养牌或时间预算的脸必须走 solver。**
-const FACE_PROOFS := ["score", "solver", "belief", "target"]
+const FACE_PROOFS := ["score", "solver", "belief", "target", "tape"]
 
 
 static func _validate_face_proof(d: Dictionary, tier_of: Dictionary) -> String:

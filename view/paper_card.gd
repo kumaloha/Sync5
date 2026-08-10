@@ -36,6 +36,7 @@ var show_back := false
 var violet := false                 # cache slots use the violet chrome
 var drag_payload: Dictionary = {}
 var accept_zones: Array = []
+var blocked_label := ""             # compact public Blind marker: 弃 / 换 / 丢
 
 static var _sheen: GradientTexture2D = null
 
@@ -79,6 +80,7 @@ func _sync_mirror() -> void:
 	_mirror.violet = violet
 	_mirror.scoring = scoring
 	_mirror.selected = selected
+	_mirror.blocked_label = blocked_label
 	_mirror.size = size
 	# Flipped AND foreshortened. A 1:1 mirror masked to the spec's 22% band
 	# only ever showed the card's bottom edge — a bare frame. Squashing the
@@ -131,7 +133,8 @@ func _get_drag_data(_pos: Vector2) -> Variant:
 	return drag_payload
 
 func _can_drop_data(_pos: Vector2, data: Variant) -> bool:
-	return data is Dictionary and accept_zones.has(data.get("zone", ""))
+	return data is Dictionary and not bool(data.get("swap_blocked", false)) \
+		and accept_zones.has(data.get("zone", ""))
 
 func _drop_data(_pos: Vector2, data: Variant) -> void:
 	drop_received.emit(data)
@@ -156,6 +159,14 @@ func set_states(p_scoring: bool, p_selected: bool) -> void:
 	scoring = p_scoring
 	selected = p_selected
 	_apply_style()
+	_sync_mirror()
+	queue_redraw()
+
+
+func set_blocked(label: String) -> void:
+	if blocked_label == label:
+		return
+	blocked_label = label
 	_sync_mirror()
 	queue_redraw()
 
@@ -253,6 +264,13 @@ func _draw() -> void:
 
 	if selected:
 		_draw_tag(w)
+	if blocked_label != "":
+		var mark := Rect2(w - 33.0, 8.0, 25.0, 25.0)
+		draw_style_box(StageTheme.box(Color(0.12, 0.01, 0.06, 0.92),
+			StageTheme.PINK, 1, 7, Color(StageTheme.PINK.r,
+			StageTheme.PINK.g, StageTheme.PINK.b, 0.32), 7), mark)
+		draw_string(StageTheme.zh(), Vector2(mark.position.x, mark.position.y + 18.0),
+			blocked_label, HORIZONTAL_ALIGNMENT_CENTER, mark.size.x, 13, Color("ffd5e6"))
 
 
 

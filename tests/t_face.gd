@@ -18,6 +18,15 @@ func run(t) -> void:
 	# 2026-08-06: no verses left — all 4 sections are walls, so every one of
 	# them carries a face. 教学空间因此归零, 首段的池必须留在最温和档。
 	t.eq(GameConfig.WALL_SECTIONS.size(), GameConfig.SECTIONS_PER_RUN, "no verses remain")
+	var expected_pools := [
+		["norepeat", "lostpage", "smallstage", "facedown", "lastcall", "lockup", "onetake", "oneswap"],
+		["setlist", "blindspot", "throttle", "request", "redlight", "lowend", "wetink", "handseal"],
+		["rerun", "raisedbar", "trilogy", "blackout", "doubleseal", "patchin", "ration", "switchtrack"],
+		["rush"],
+	]
+	for idx in range(expected_pools.size()):
+		t.check(SectionMod.pool_for(idx) == expected_pools[idx],
+			"S%d matches the approved final pool" % (idx + 1))
 	# ⚠ These used to spell out S1's pool by id, which meant every pool retune
 	# reddened the suite for no reason (CLAUDE.md: 抄死断言等于给每次调参加返工).
 	# What actually has to hold are STRUCTURAL properties — they survive both
@@ -96,7 +105,7 @@ func run(t) -> void:
 	t.check(SectionMod.proof("rotation") == "", "a retired face needs no proof channel")
 	# ⚠ 通路选错会把结论量**反**, 不是量小: 规则 bot 量 freshsheet 得 +1584(脸让人变强),
 	# 完美玩家量是 −790。攻击跨拍养牌/时间预算的脸必须走 solver, 不能走 score。
-	for fid in ["lostpage", "freshsheet", "smallstage", "rush"]:
+	for fid in ["lostpage", "smallstage", "rush"]:
 		t.eq(SectionMod.proof(fid), "solver",
 			"%s attacks the solver's planning, so its proof arm must be the perfect player" % fid)
 	var _p: Dictionary = {"faces": [{"id": "a", "name": "A", "cn": "a", "fx": "x",
@@ -168,7 +177,7 @@ func run(t) -> void:
 	#   —— 「転」那一段本就该是节奏变化处, 放第二轮只是把「承」变成单纯加量。
 	#   它曾在这张清单上, 理由是「不改玩法、只把目标分 ×1.5, 是难度靠抽签的极端形态」;
 	#   那**从来不是退役, 是待拍板**(design/blinds.md 里一直写着「要放回来, 告诉我放哪一轮」)。
-	const RETIRED := ["rotation"]
+	const RETIRED := ["unplugged", "static", "rotation", "cover", "freshsheet"]
 	for m in SectionMod.roster():
 		if RETIRED.has(m.id):
 			t.check(not placed.has(m.id), "%s 保持退役(见 design/blinds.md §5)" % m.id)
@@ -211,6 +220,31 @@ func run(t) -> void:
 	t.check(not SectionMod.hide_refill(""), "no face -> refills are visible")
 	t.check(SectionMod.hide_faces("facedown"), "facedown hides J/Q/K")
 	t.check(not SectionMod.hide_faces("norepeat"), "an unrelated face hides nothing")
+	# --- 最终池新增参数全部通过 SectionMod 单一数据门面读取 ---
+	t.eq(SectionMod.discard_lock_last("lastcall"), 2.0, "lastcall closes discard for two seconds")
+	t.eq(SectionMod.swap_lock_last("lockup"), 2.0, "lockup closes swap for two seconds")
+	t.eq(SectionMod.discard_action_limit("onetake"), 1, "onetake allows one discard action")
+	t.eq(SectionMod.swap_action_limit("oneswap"), 1, "oneswap allows one swap action")
+	t.eq(SectionMod.action_limit("throttle"), 3, "throttle shares three actions")
+	t.check(SectionMod.cache_blocks_red("redlight"), "redlight rejects red cards entering cache")
+	t.eq(SectionMod.refill_rank_min("lowend"), 2, "lowend refill minimum comes from data")
+	t.eq(SectionMod.refill_rank_max("lowend"), 9, "lowend refill maximum comes from data")
+	t.eq(SectionMod.cache_lock_phrases("wetink"), 1, "wetink locks new cache cards for this phrase")
+	t.check(SectionMod.seals_lowest_start("handseal"), "handseal freezes the opening low card")
+	t.check(SectionMod.seals_oldest_cache("doubleseal"), "doubleseal freezes the oldest cache card")
+	t.eq(SectionMod.required_kinds("trilogy"), 3, "trilogy requires three hand types")
+	t.check(SectionMod.restores_with_initial_cache("patchin"), "patchin has a recoverable full-power condition")
+	t.eq(SectionMod.section_discard_budget("ration"), 12, "ration shares twelve discarded cards")
+	t.check(SectionMod.exclusive_action_tracks("switchtrack"), "switchtrack closes the unchosen route")
+	t.eq(SectionMod.request_factor("request"), 0.9, "a missed request keeps ninety percent")
+	t.eq(SectionMod.joker_power("patchin"), 0.5, "patchin defaults settlement Jokers to half power")
+	t.check(SectionMod.tape_required("lastcall"), "clock faces declare their Tape requirement")
+	t.check(SectionMod.discard_open("lastcall", 2.01), "lastcall permits discard before the final window")
+	t.check(not SectionMod.discard_open("lastcall", 2.0), "lastcall closes exactly at two seconds left")
+	t.check(SectionMod.swap_open("lockup", 2.01), "lockup permits swap before the final window")
+	t.check(not SectionMod.swap_open("lockup", 2.0), "lockup closes exactly at two seconds left")
+	t.check(SectionMod.discard_open("", 0.0) and SectionMod.swap_open("", 0.0),
+		"a normal blind does not invent an action gate")
 	# --- 「这张脸进不进 Settle」的分类 ---
 	# ⚠ 这不是性能标注, 是**正确性**标注:分错了 Solver 的恒等快路径会跳过结算,
 	# 那张脸就静默失效, 而目标分照着「它生效了」的难度算。所以直接对着 Settle 验:

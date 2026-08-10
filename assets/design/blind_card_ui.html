@@ -1,0 +1,488 @@
+<div id="sync5-blind-card-ui">
+  <style>
+    #sync5-blind-card-ui {
+      font-family: "Rajdhani", "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: #eef7ff;
+    }
+    #sync5-blind-card-ui * { box-sizing: border-box; }
+    #sync5-blind-card-ui .sync5-surface {
+      position: relative;
+      overflow: hidden;
+      padding: 18px;
+      border: 1px solid rgba(125, 150, 255, .22);
+      background:
+        radial-gradient(circle at 18% 0%, rgba(35, 205, 255, .12), transparent 30%),
+        radial-gradient(circle at 84% 4%, rgba(255, 50, 141, .13), transparent 31%),
+        linear-gradient(180deg, #090711 0%, #000 72%);
+      box-shadow: inset 0 0 42px rgba(118, 66, 255, .08);
+    }
+    #sync5-blind-card-ui .sync5-surface::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: .18;
+      background: repeating-linear-gradient(0deg, transparent 0 19px, rgba(120, 190, 255, .08) 20px);
+    }
+    #sync5-blind-card-ui .sync5-topline {
+      position: relative;
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(145, 177, 255, .16);
+    }
+    #sync5-blind-card-ui .sync5-titleblock strong {
+      display: block;
+      font-size: 18px;
+      font-weight: 500;
+      letter-spacing: .16em;
+    }
+    #sync5-blind-card-ui .sync5-titleblock span {
+      display: block;
+      margin-top: 3px;
+      color: #8391b3;
+      font-size: 11px;
+      letter-spacing: .08em;
+    }
+    #sync5-blind-card-ui .sync5-rounds {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+    #sync5-blind-card-ui .sync5-rounds button {
+      min-width: 56px;
+      padding: 6px 8px;
+      border: 1px solid rgba(130, 151, 192, .24);
+      border-radius: 3px;
+      background: rgba(4, 6, 13, .9);
+      color: #8793b4;
+      font: inherit;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    #sync5-blind-card-ui .sync5-rounds button[aria-pressed="true"] {
+      border-color: #ff328d;
+      color: #fff0f7;
+      box-shadow: inset 0 -2px #ff328d, 0 0 12px rgba(255, 50, 141, .24);
+    }
+    #sync5-blind-card-ui .sync5-inspector {
+      position: relative;
+      display: grid;
+      grid-template-columns: 154px minmax(0, 1fr);
+      gap: 18px;
+      align-items: center;
+      min-height: 224px;
+      padding: 15px 0;
+    }
+    #sync5-blind-card-ui .sync5-hero-slot {
+      display: grid;
+      place-items: center;
+    }
+    #sync5-blind-card-ui .sync5-detail {
+      min-width: 0;
+      padding-left: 16px;
+      border-left: 2px solid #ff328d;
+    }
+    #sync5-blind-card-ui .sync5-detail-code {
+      color: #ff328d;
+      font-family: ui-monospace, monospace;
+      font-size: 10px;
+      letter-spacing: .12em;
+    }
+    #sync5-blind-card-ui .sync5-detail h2 {
+      margin: 5px 0 11px;
+      font-size: 28px;
+      font-weight: 500;
+      letter-spacing: .12em;
+    }
+    #sync5-blind-card-ui .sync5-detail-grid {
+      display: grid;
+      grid-template-columns: 56px 1fr;
+      gap: 7px 10px;
+      font-size: 12px;
+    }
+    #sync5-blind-card-ui .sync5-detail-grid dt {
+      color: #7785a7;
+      font-family: ui-monospace, monospace;
+    }
+    #sync5-blind-card-ui .sync5-detail-grid dd {
+      margin: 0;
+      color: #dce9f5;
+    }
+    #sync5-blind-card-ui .sync5-collection-label {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      margin: 0 0 10px;
+      color: #7f8cab;
+      font: 10px ui-monospace, monospace;
+      letter-spacing: .12em;
+    }
+    #sync5-blind-card-ui .sync5-collection-label::after {
+      content: "";
+      height: 1px;
+      flex: 1;
+      background: linear-gradient(90deg, rgba(255, 50, 141, .3), transparent);
+    }
+    #sync5-blind-card-ui .sync5-deck {
+      position: relative;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 12px;
+    }
+    #sync5-blind-card-ui .sync5-card-button {
+      width: 118px;
+      height: 176px;
+      padding: 0;
+      border: 0;
+      border-radius: 9px;
+      background: transparent;
+      color: inherit;
+      cursor: pointer;
+    }
+    #sync5-blind-card-ui .sync5-card-button:focus-visible {
+      outline: 2px solid #fff;
+      outline-offset: 3px;
+    }
+    #sync5-blind-card-ui .sync5-card-button[aria-pressed="true"] .sync5-blind {
+      transform: translateY(-4px);
+      filter: brightness(1.17);
+    }
+    #sync5-blind-card-ui .sync5-blind {
+      position: relative;
+      width: 118px;
+      height: 176px;
+      overflow: hidden;
+      border: 1px solid #ff328d;
+      border-radius: 9px;
+      background:
+        radial-gradient(circle, color-mix(in srgb, currentColor 24%, transparent) 0 .7px, transparent .9px) 0 0 / 14px 14px,
+        linear-gradient(145deg, rgba(255, 50, 141, .09), rgba(21, 7, 24, .72) 42%, rgba(3, 4, 9, .96)),
+        #070510;
+      box-shadow: 0 0 10px rgba(255, 50, 141, .27), inset 0 0 20px rgba(255, 50, 141, .08);
+      transition: transform .16s ease, filter .16s ease;
+    }
+    #sync5-blind-card-ui .sync5-blind::before {
+      content: "";
+      position: absolute;
+      inset: 4px;
+      border: 1px solid rgba(255, 255, 255, .09);
+      border-radius: 6px;
+      pointer-events: none;
+    }
+    #sync5-blind-card-ui .sync5-blind::after {
+      content: "";
+      position: absolute;
+      top: -42px;
+      left: 82px;
+      width: 35px;
+      height: 190px;
+      transform: rotate(18deg);
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .12), transparent);
+      pointer-events: none;
+    }
+    #sync5-blind-card-ui .sync5-r1,
+    #sync5-blind-card-ui .sync5-r2,
+    #sync5-blind-card-ui .sync5-r3,
+    #sync5-blind-card-ui .sync5-r4 {
+      color: #ff328d;
+      border-color: #ff328d;
+      box-shadow: 0 0 10px rgba(255, 50, 141, .27), inset 0 0 20px rgba(255, 50, 141, .08);
+    }
+    #sync5-blind-card-ui .sync5-boon {
+      color: #ffd36e;
+      border-color: #ffd36e;
+      background:
+        radial-gradient(circle, rgba(255, 211, 110, .22) 0 .7px, transparent .9px) 0 0 / 14px 14px,
+        linear-gradient(145deg, rgba(255, 211, 110, .1), rgba(53, 11, 45, .74) 46%, rgba(3, 4, 9, .96)),
+        #070510;
+      box-shadow: 0 0 12px rgba(255, 211, 110, .27), inset 0 0 20px rgba(255, 50, 141, .08);
+    }
+    #sync5-blind-card-ui .sync5-card-head {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 25px;
+      padding: 0 7px;
+      border-bottom: 1px solid currentColor;
+      font: 8px ui-monospace, monospace;
+      letter-spacing: .08em;
+    }
+    #sync5-blind-card-ui .sync5-card-head b {
+      color: #eef7ff;
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: .08em;
+    }
+    #sync5-blind-card-ui .sync5-signal-box {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      place-items: center;
+      height: 91px;
+      margin: 5px 6px 0;
+      border: 1px solid color-mix(in srgb, currentColor 35%, transparent);
+      border-radius: 5px;
+      background:
+        radial-gradient(circle, color-mix(in srgb, currentColor 14%, transparent), transparent 63%),
+        repeating-linear-gradient(0deg, transparent 0 14px, color-mix(in srgb, currentColor 8%, transparent) 15px),
+        repeating-linear-gradient(90deg, transparent 0 19px, color-mix(in srgb, currentColor 7%, transparent) 20px);
+    }
+    #sync5-blind-card-ui .sync5-signal {
+      width: 68px;
+      height: 68px;
+      overflow: visible;
+      filter: drop-shadow(0 0 5px currentColor);
+    }
+    #sync5-blind-card-ui .sync5-signal .signal-hot { stroke: #f8f5ff; }
+    #sync5-blind-card-ui .sync5-card-foot {
+      position: absolute;
+      z-index: 1;
+      left: 7px;
+      right: 7px;
+      bottom: 6px;
+      height: 43px;
+      padding: 6px 5px 4px;
+      border-left: 2px solid currentColor;
+      background: linear-gradient(90deg, color-mix(in srgb, currentColor 16%, transparent), rgba(0, 0, 0, .1));
+      text-align: left;
+    }
+    #sync5-blind-card-ui .sync5-card-foot strong {
+      display: block;
+      overflow: hidden;
+      color: #f4fbff;
+      font-size: 11px;
+      font-weight: 500;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+    #sync5-blind-card-ui .sync5-card-foot span {
+      display: block;
+      overflow: hidden;
+      margin-top: 2px;
+      color: currentColor;
+      font: 8px ui-monospace, monospace;
+      letter-spacing: .05em;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+    #sync5-blind-card-ui .sync5-hero-card .sync5-blind {
+      width: 142px;
+      height: 212px;
+      transform: none;
+    }
+    #sync5-blind-card-ui .sync5-hero-card .sync5-card-head { height: 30px; font-size: 9px; }
+    #sync5-blind-card-ui .sync5-hero-card .sync5-card-head b { font-size: 12px; }
+    #sync5-blind-card-ui .sync5-hero-card .sync5-signal-box { height: 114px; }
+    #sync5-blind-card-ui .sync5-hero-card .sync5-signal { width: 84px; height: 84px; }
+    #sync5-blind-card-ui .sync5-hero-card .sync5-card-foot { height: 52px; padding-top: 8px; }
+    #sync5-blind-card-ui .sync5-hero-card .sync5-card-foot strong { font-size: 13px; }
+    #sync5-blind-card-ui .sync5-hero-card .sync5-card-foot span { font-size: 9px; }
+    #sync5-blind-card-ui .sync5-footnote {
+      position: relative;
+      margin-top: 13px;
+      color: #677391;
+      font: 9px ui-monospace, monospace;
+      text-align: center;
+      letter-spacing: .08em;
+    }
+    @media (max-width: 520px) {
+      #sync5-blind-card-ui .sync5-surface { padding: 13px 10px; }
+      #sync5-blind-card-ui .sync5-topline { display: block; }
+      #sync5-blind-card-ui .sync5-rounds { margin-top: 10px; }
+      #sync5-blind-card-ui .sync5-inspector { grid-template-columns: 1fr; }
+      #sync5-blind-card-ui .sync5-detail { padding: 10px 0 0; border-left: 0; border-top: 2px solid #ff328d; }
+      #sync5-blind-card-ui .sync5-detail h2 { font-size: 22px; }
+      #sync5-blind-card-ui .sync5-deck { gap: 10px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #sync5-blind-card-ui .sync5-blind { transition: none; }
+    }
+  </style>
+
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="s5-norepeat" viewBox="0 0 100 100"><g fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"><path d="M25 33a33 33 0 0 1 55 14m0 0-12-9m12 9 7-14M75 67a33 33 0 0 1-55-14m0 0 12 9m-12-9-7 14"/><path class="signal-hot" d="M31 76 69 24" stroke-width="7"/><rect x="41" y="40" width="18" height="20" rx="3" stroke-width="3"/></g></symbol>
+      <symbol id="s5-lostpage" viewBox="0 0 100 100"><g fill="none" stroke="currentColor" stroke-width="4"><rect x="12" y="32" width="22" height="38" rx="3"/><rect x="39" y="32" width="22" height="38" rx="3"/><path d="M66 32h22v38H76" stroke-dasharray="6 5"/><path class="signal-hot" d="m71 30 17 17m0-17L71 47M72 65h17m0 0-8-7m8 7-8 7" stroke-width="5"/></g></symbol>
+      <symbol id="s5-smallstage" viewBox="0 0 100 100"><g fill="none" stroke="currentColor"><path d="M9 20v60h14M91 20v60H77" stroke-width="5"/><rect x="24" y="30" width="21" height="42" rx="3" stroke-width="4"/><rect class="signal-hot" x="50" y="30" width="21" height="42" rx="3" stroke-width="4"/><path d="M76 30h15v42H76" stroke-width="3" stroke-dasharray="5 5" opacity=".45"/></g></symbol>
+      <symbol id="s5-facedown" viewBox="0 0 100 100"><g fill="none" stroke="currentColor"><rect x="22" y="14" width="56" height="72" rx="6" stroke-width="5"/><path d="M34 28h32M34 40h32M34 52h32M34 64h32" stroke-width="2" opacity=".5"/><path class="signal-hot" d="M29 78 72 21" stroke-width="7"/><path d="M30 23h14v16H30z" stroke-width="3"/></g></symbol>
+      <symbol id="s5-lastcall" viewBox="0 0 100 100"><g fill="none" stroke="currentColor"><circle cx="52" cy="47" r="29" stroke-width="5"/><path d="M52 47V25m0 22 16 12M44 12h16" stroke-width="4"/><path class="signal-hot" d="M52 47 78 33a29 29 0 0 1 3 24" stroke-width="8"/><path d="M15 70h28m-20 0 8 9m-8-9 8-9" stroke-width="4"/></g></symbol>
+      <symbol id="s5-lockup" viewBox="0 0 100 100"><g fill="none" stroke="currentColor" stroke-width="4"><rect x="12" y="35" width="22" height="31" rx="3"/><rect x="66" y="35" width="22" height="31" rx="3"/><path d="M36 44h25m0 0-8-7m8 7-8 7M64 58H39m0 0 8-7m-8 7 8 7"/><path class="signal-hot" d="M48 27h18v46H48zM52 27v-8c0-12 14-12 14 0v8" stroke-width="5"/></g></symbol>
+      <symbol id="s5-onetake" viewBox="0 0 100 100"><g fill="none" stroke="currentColor"><rect x="16" y="26" width="21" height="38" rx="3" stroke-width="3"/><rect x="29" y="32" width="21" height="38" rx="3" stroke-width="3"/><rect x="42" y="38" width="21" height="38" rx="3" stroke-width="3"/><path d="M20 82h51" stroke-width="3"/><circle class="signal-hot" cx="76" cy="52" r="14" stroke-width="6"/><path class="signal-hot" d="M76 43v18" stroke-width="3"/></g></symbol>
+      <symbol id="s5-oneswap" viewBox="0 0 100 100"><g fill="none" stroke="currentColor" stroke-width="4"><rect x="11" y="31" width="24" height="39" rx="3"/><rect x="65" y="31" width="24" height="39" rx="3"/><path d="M37 39h25m0 0-8-7m8 7-8 7M63 61H38m0 0 8-7m-8 7 8 7"/><path class="signal-hot" d="M50 20v60M43 27l14 14-14 14 14 14" stroke-width="5"/></g></symbol>
+
+      <symbol id="s5-setlist" viewBox="0 0 100 100"><g fill="none" stroke="currentColor"><path d="M18 20h48v62H18Z" stroke-width="5"/><path d="M29 36h24M29 49h24M29 62h17" stroke-width="3"/><rect class="signal-hot" x="53" y="47" width="31" height="29" rx="4" stroke-width="4"/><path class="signal-hot" d="M61 47v-8c0-12 15-12 15 0v8" stroke-width="4"/></g></symbol>
+      <symbol id="s5-blindspot" viewBox="0 0 100 100"><g fill="none" stroke="currentColor"><path d="M12 48c20-25 56-25 76 0-20 25-56 25-76 0Z" stroke-width="4"/><circle cx="50" cy="48" r="11" stroke-width="4"/><rect class="signal-hot" x="57" y="44" width="25" height="36" rx="3" transform="rotate(13 69 62)" stroke-width="4"/><path class="signal-hot" d="M23 79 78 22" stroke-width="4"/></g></symbol>
+      <symbol id="s5-throttle" viewBox="0 0 100 100"><g fill="none" stroke="currentColor"><rect x="15" y="29" width="18" height="44" rx="3" stroke-width="4"/><rect x="41" y="29" width="18" height="44" rx="3" stroke-width="4"/><rect class="signal-hot" x="67" y="29" width="18" height="44" rx="3" stroke-width="5"/><path d="M12 82h76" stroke-width="2"/><path class="signal-hot" d="M86 20v60" stroke-width="4"/></g></symbol>
+      <symbol id="s5-request" viewBox="0 0 100 100"><g fill="none" stroke="currentColor"><path d="M37 18h26v34c0 18-26 18-26 0Z" stroke-width="5"/><path d="M26 49c0 31 48 31 48 0M50 73v13M35 86h30" stroke-width="4"/><circle class="signal-hot" cx="74" cy="30" r="13" stroke-width="4"/><path class="signal-hot" d="m74 20 3 7 8 1-6 5 2 8-7-4-7 4 2-8-6-5 8-1Z" stroke-width="2"/></g></symbol>
+      <symbol id="s5-redlight" viewBox="0 0 100 100"><g fill="none" stroke="currentColor"><path d="M14 27h25v46H14zM62 27h25v46H62z" stroke-width="4"/><path d="M41 40h18m0 0-8-7m8 7-8 7" stroke-width="4"/><path class="signal-hot" d="M43 23 75 77M75 23 43 77" stroke-width="6"/><path d="m24 39 6 10-6 10-6-10Z" stroke-width="3"/></g></symbol>
+      <symbol id="s5-lowend" viewBox="0 0 100 100"><g fill="none" stroke="currentColor"><path d="M13 69h10V49h10v20h10V38h10v31h10V25h10v44h14" stroke-width="5"/><path class="signal-hot" d="M17 80h51M70 19v62" stroke-width="5"/><path d="M73 29h14M73 45h14M73 61h14" stroke-width="3" opacity=".5"/></g></symbol>
+      <symbol id="s5-wetink" viewBox="0 0 100 100"><g fill="none" stroke="currentColor"><rect x="20" y="26" width="42" height="56" rx="4" stroke-width="5"/><path d="M30 39h22M30 51h17" stroke-width="3"/><path class="signal-hot" d="M64 18c0 12-14 16-14 28 0 8 6 14 14 14s14-6 14-14c0-12-14-16-14-28Z" stroke-width="4"/><rect class="signal-hot" x="53" y="57" width="31" height="25" rx="4" stroke-width="4"/><path class="signal-hot" d="M61 57v-7c0-11 15-11 15 0v7" stroke-width="4"/></g></symbol>
+      <symbol id="s5-handseal" viewBox="0 0 100 100"><g fill="none" stroke="currentColor"><path d="M13 72h74" stroke-width="3"/><rect x="16" y="33" width="19" height="34" rx="3" stroke-width="3"/><rect x="41" y="24" width="19" height="43" rx="3" stroke-width="3"/><rect x="66" y="18" width="19" height="49" rx="3" stroke-width="3"/><path class="signal-hot" d="M10 79h31M25 25v57" stroke-width="6"/><circle class="signal-hot" cx="25" cy="50" r="11" stroke-width="4"/></g></symbol>
+
+      <symbol id="s5-rerun" viewBox="0 0 100 100"><g fill="none" stroke="currentColor"><circle cx="50" cy="50" r="33" stroke-width="5" stroke-dasharray="42 12"/><path d="m72 20 7 16-17-2" stroke-width="4"/><circle class="signal-hot" cx="50" cy="50" r="14" stroke-width="5"/><path class="signal-hot" d="M40 40 60 60M60 40 40 60" stroke-width="5"/></g></symbol>
+      <symbol id="s5-raisedbar" viewBox="0 0 100 100"><g fill="none" stroke="currentColor"><path d="M12 78h76M18 66h18V54h17V41h17V28h17" stroke-width="5"/><path class="signal-hot" d="M27 37 51 13l24 24M51 14v55" stroke-width="5"/></g></symbol>
+      <symbol id="s5-trilogy" viewBox="0 0 100 100"><g fill="none" stroke="currentColor"><circle cx="24" cy="51" r="13" stroke-width="4"/><rect class="signal-hot" x="40" y="35" width="20" height="31" rx="3" stroke-width="4"/><path d="m76 34 14 25H62Z" stroke-width="4"/><path d="M13 78h74" stroke-width="3" stroke-dasharray="6 5"/><path class="signal-hot" d="M24 79v8M50 79v8M76 79v8" stroke-width="4"/></g></symbol>
+      <symbol id="s5-blackout" viewBox="0 0 100 100"><g fill="none" stroke="currentColor"><path d="M12 49c20-25 56-25 76 0-20 25-56 25-76 0Z" stroke-width="4"/><circle cx="50" cy="49" r="12" stroke-width="4"/><path class="signal-hot" d="M14 82 86 16" stroke-width="9"/><path d="M25 19h13v19H25zM64 61h13v20H64z" stroke-width="3"/></g></symbol>
+      <symbol id="s5-doubleseal" viewBox="0 0 100 100"><g fill="none" stroke="currentColor"><rect x="11" y="24" width="34" height="52" rx="4" stroke-width="4"/><rect x="55" y="24" width="34" height="52" rx="4" stroke-width="4"/><path d="M20 36h16M64 36h16" stroke-width="3"/><circle class="signal-hot" cx="28" cy="58" r="12" stroke-width="5"/><path class="signal-hot" d="M28 48v20M18 58h20M62 46h20v24H62zM66 46v-6c0-9 12-9 12 0v6" stroke-width="4"/></g></symbol>
+      <symbol id="s5-patchin" viewBox="0 0 100 100"><g fill="none" stroke="currentColor"><rect x="10" y="32" width="24" height="38" rx="3" stroke-width="4"/><path d="M34 51h18c9 0 9-18 18-18h10" stroke-width="5"/><path d="M28 45v12M18 45v12" stroke-width="4"/><circle class="signal-hot" cx="76" cy="51" r="17" stroke-width="5"/><path class="signal-hot" d="M76 40v22M65 51h22" stroke-width="4"/><path d="M48 51h7" stroke-width="3" stroke-dasharray="3 4"/></g></symbol>
+      <symbol id="s5-ration" viewBox="0 0 100 100"><g fill="none" stroke="currentColor"><path d="M14 23h72v54H14z" stroke-width="4"/><path d="M22 37h56M22 50h56M22 63h56" stroke-width="3" stroke-dasharray="5 5"/><path class="signal-hot" d="M24 29v42M42 29v42M60 29v42" stroke-width="4"/><path class="signal-hot" d="M78 25v50" stroke-width="6"/></g></symbol>
+      <symbol id="s5-switchtrack" viewBox="0 0 100 100"><g fill="none" stroke="currentColor" stroke-linecap="round"><path d="M18 18v24c0 12 12 12 24 12h40M18 82V66c0-12 12-12 24-12" stroke-width="5"/><path d="m73 46 10 8-10 8" stroke-width="4"/><path class="signal-hot" d="M44 22 78 79M78 22 44 79" stroke-width="7"/><circle cx="18" cy="50" r="7" stroke-width="4"/></g></symbol>
+
+      <symbol id="s5-rush" viewBox="0 0 100 100"><g fill="none" stroke="currentColor"><circle cx="56" cy="51" r="31" stroke-width="5"/><path d="M56 51V29m0 22 19 11M47 12h18" stroke-width="4"/><path class="signal-hot" d="M12 33h22M7 50h25M13 67h22" stroke-width="5"/><text x="47" y="59" fill="currentColor" stroke="none" font-size="25" font-family="ui-monospace">6</text></g></symbol>
+      <symbol id="s5-doubleset" viewBox="0 0 100 100"><g fill="none" stroke="currentColor"><circle cx="40" cy="50" r="25" stroke-width="5"/><circle class="signal-hot" cx="63" cy="50" r="25" stroke-width="5"/><path d="M19 82h62" stroke-width="3"/><path class="signal-hot" d="m49 38 12 12-12 12" stroke-width="4"/></g></symbol>
+      <symbol id="s5-spotlight" viewBox="0 0 100 100"><g fill="none" stroke="currentColor"><path class="signal-hot" d="M50 10 24 76h52Z" stroke-width="4"/><rect x="11" y="55" width="17" height="28" rx="2" stroke-width="3"/><rect x="31" y="50" width="17" height="33" rx="2" stroke-width="3"/><rect x="52" y="46" width="17" height="37" rx="2" stroke-width="3"/><rect x="73" y="55" width="17" height="28" rx="2" stroke-width="3"/><rect class="signal-hot" x="42" y="25" width="17" height="29" rx="2" stroke-width="4"/></g></symbol>
+      <symbol id="s5-afterglow" viewBox="0 0 100 100"><g fill="none" stroke="currentColor" stroke-linecap="round"><path d="M12 65c13-8 13-22 0-30M31 74c25-15 25-33 0-48M51 82c36-22 36-43 0-64" stroke-width="5" opacity=".55"/><path class="signal-hot" d="M64 27c20 12 20 34 0 46" stroke-width="6"/><circle class="signal-hot" cx="13" cy="50" r="6" stroke-width="4"/></g></symbol>
+      <symbol id="s5-encore" viewBox="0 0 100 100"><g fill="none" stroke="currentColor"><path d="M17 28h24v39H17zM59 28h24v39H59z" stroke-width="4"/><path d="M43 45h14m0 0-7-7m7 7-7 7" stroke-width="4"/><path class="signal-hot" d="M21 78c15 13 43 13 58 0M29 75l-9 3 4 10" stroke-width="6"/><path class="signal-hot" d="M33 22v34M67 22v34" stroke-width="3" stroke-dasharray="5 4"/></g></symbol>
+    </defs>
+  </svg>
+
+  <section class="sync5-surface" aria-label="Sync5 盲注牌面视觉方案">
+    <header class="sync5-topline">
+      <div class="sync5-titleblock">
+        <strong>BLIND SIGNAL DECK</strong>
+        <span>真实局内尺寸 · 118 × 176 · 名称遮住也要能认出</span>
+      </div>
+      <nav class="sync5-rounds" aria-label="选择轮次">
+        <button type="button" data-round="1" aria-pressed="true">01 起</button>
+        <button type="button" data-round="2" aria-pressed="false">02 承</button>
+        <button type="button" data-round="3" aria-pressed="false">03 转</button>
+        <button type="button" data-round="4" aria-pressed="false">04 合</button>
+      </nav>
+    </header>
+
+    <div class="sync5-inspector">
+      <div class="sync5-hero-slot" id="sync5-hero-slot"></div>
+      <div class="sync5-detail" id="sync5-detail">
+        <span class="sync5-detail-code"></span>
+        <h2></h2>
+        <dl class="sync5-detail-grid">
+          <dt>主机制</dt><dd data-detail="main"></dd>
+          <dt>副机制</dt><dd data-detail="sub"></dd>
+          <dt>目的</dt><dd data-detail="purpose"></dd>
+        </dl>
+      </div>
+    </div>
+
+    <div class="sync5-collection-label"><span id="sync5-round-label">ROUND 01 · ENTRY PRESSURE</span></div>
+    <div class="sync5-deck" id="sync5-deck"></div>
+    <div class="sync5-footnote">盲注统一粉红；轮次由编号与标题表达，中央机制指纹负责记忆</div>
+  </section>
+
+  <script>
+    (() => {
+      const root = document.getElementById('sync5-blind-card-ui');
+      const blindData = [
+        {id:'norepeat',round:1,name:'禁回',code:'REPEAT / 01',icon:'s5-norepeat',command:'重复牌型减半',signal:'REPEAT ×50%',main:'重复上一拍牌型时分数减半。',sub:'上一拍牌型持续显示。',purpose:'教玩家主动改变牌型。'},
+        {id:'lostpage',round:1,name:'丢谱',code:'CACHE / 02',icon:'s5-lostpage',command:'预告驱逐一张缓存',signal:'CACHE −1',main:'每拍结束驱逐一张缓存牌。',sub:'被驱逐牌提前一拍标记。',purpose:'教玩家不要把未来押在一张牌上。'},
+        {id:'smallstage',round:1,name:'窄台',code:'SPACE / 03',icon:'s5-smallstage',command:'缓存只留两格',signal:'CACHE 2',main:'缓存容量从三格降为两格。',sub:'第三格直接熄灭。',purpose:'让玩家感知缓存是一种有限资源。'},
+        {id:'facedown',round:1,name:'蒙面',code:'HIDDEN / 04',icon:'s5-facedown',command:'人头牌盖面',signal:'JQK HIDE',main:'J、Q、K盖面发出。',sub:'结算时自动翻开。',purpose:'温和引入信息不足。'},
+        {id:'lastcall',round:1,name:'收线',code:'DISCARD / 05',icon:'s5-lastcall',command:'最后两秒禁弃',signal:'CLOSE −2s',main:'最后两秒不能弃牌。',sub:'弃牌区提前进入关闭动画。',purpose:'教玩家把弃牌决定前置。'},
+        {id:'lockup',round:1,name:'封盘',code:'SWAP / 06',icon:'s5-lockup',command:'最后两秒禁换',signal:'LOCK −2s',main:'最后两秒不能交换。',sub:'缓存连线提前关闭。',purpose:'教玩家先完成未来规划。'},
+        {id:'onetake',round:1,name:'一口气',code:'DISCARD / 07',icon:'s5-onetake',command:'弃牌只能按一次',signal:'ONE TAKE',main:'每拍只能执行一次弃牌。',sub:'一次可以弃任意张。',purpose:'把连续试错变成一次批量决定。'},
+        {id:'oneswap',round:1,name:'单换',code:'SWAP / 08',icon:'s5-oneswap',command:'交换只能做一次',signal:'ONE SWAP',main:'每拍只能交换一次。',sub:'使用后交换连线烧毁。',purpose:'让交换从整理动作变成承诺。'},
+
+        {id:'setlist',round:2,name:'定调',code:'PATTERN / 01',icon:'s5-setlist',command:'首个牌型锁定',signal:'OTHERS ×50%',main:'第一拍牌型成为本段主牌型，其他牌型减半。',sub:'主牌型固定显示在舞台中央。',purpose:'要求玩家围绕一个方向展开构筑。'},
+        {id:'blindspot',round:2,name:'暗补',code:'HIDDEN / 02',icon:'s5-blindspot',command:'补牌保持盖面',signal:'REFILL HIDE',main:'弃牌补入的牌保持盖面。',sub:'结算时统一揭晓。',purpose:'让重复抽牌承担信息风险。'},
+        {id:'throttle',round:2,name:'限流',code:'ACTION / 03',icon:'s5-throttle',command:'每拍三次操作',signal:'ACTION 3',main:'每拍最多进行三次弃牌或交换。',sub:'三格操作计数器逐格熄灭。',purpose:'逼玩家优先处理最重要的动作。'},
+        {id:'request',round:2,name:'点歌',code:'REQUEST / 04',icon:'s5-request',command:'完成公开点歌',signal:'MISS −10%',main:'每拍出现一个公开的宽条件目标。',sub:'未完成时本拍最终分降低10%。',purpose:'给玩家一个可以主动追逐的小任务。'},
+        {id:'redlight',round:2,name:'红灯',code:'ROUTE / 05',icon:'s5-redlight',command:'红牌禁入缓存',signal:'RED BLOCK',main:'红牌不能交换进缓存。',sub:'缓存槽显示红色拒绝状态。',purpose:'改变牌的去留路线，而不是直接砍分。'},
+        {id:'lowend',round:2,name:'低音',code:'REFILL / 06',icon:'s5-lowend',command:'补牌只出 2–9',signal:'RANK 2—9',main:'弃牌补牌只会出现2至9。',sub:'初始手牌和缓存中的高张不受影响。',purpose:'让玩家提前储备高张关键牌。'},
+        {id:'wetink',round:2,name:'墨迹',code:'CACHE / 07',icon:'s5-wetink',command:'新缓存锁一拍',signal:'LOCK 1',main:'新换入缓存的牌锁定一拍。',sub:'锁定在下一拍自动解除。',purpose:'让缓存选择产生短期承诺。'},
+        {id:'handseal',round:2,name:'封条',code:'HAND / 08',icon:'s5-handseal',command:'最低手牌禁弃',signal:'LOW LOCK',main:'拍首最低点数的一张手牌不能弃掉。',sub:'目标在拍首确定并持续标记。',purpose:'让玩家围绕一张坏牌重新组织手牌。'},
+
+        {id:'rerun',round:3,name:'炒冷饭',code:'REPEAT / 01',icon:'s5-rerun',command:'重复牌型归零',signal:'REPEAT 0',main:'重复上一拍牌型时，本拍牌型分归零。',sub:'上一拍牌型持续显示，高牌豁免。',purpose:'把第一轮学过的变化要求推到极限。'},
+        {id:'raisedbar',round:3,name:'加码',code:'TARGET / 02',icon:'s5-raisedbar',command:'段目标提高',signal:'TARGET +50%',main:'本段目标提高50%。',sub:'进度条同时标出原始目标位置。',purpose:'用最简单的方式检验构筑上限。'},
+        {id:'trilogy',round:3,name:'曲目',code:'PATTERN / 03',icon:'s5-trilogy',command:'六拍完成三牌型',signal:'VARIETY 3',main:'六拍内需要完成三个不同牌型。',sub:'三个曲目槽逐个点亮。',purpose:'让玩家按整段而非单拍规划。'},
+        {id:'blackout',round:3,name:'暗灯',code:'HIDDEN / 04',icon:'s5-blackout',command:'起手与补牌盖面',signal:'FULL HIDE',main:'初始J/Q/K与所有补牌均盖面。',sub:'结算时统一揭晓。',purpose:'将信息压力推到完整形态。'},
+        {id:'doubleseal',round:3,name:'双封',code:'LOCK / 05',icon:'s5-doubleseal',command:'手牌缓存各封一张',signal:'DOUBLE LOCK',main:'最低手牌禁弃，最旧缓存牌禁换。',sub:'两张牌都在拍首确定并标记。',purpose:'同时压迫当前手牌与未来储备。'},
+        {id:'patchin',round:3,name:'接线',code:'JOKER / 06',icon:'s5-patchin',command:'缓存牌接入全功率',signal:'POWER ×50%',main:'结算型小丑的数值贡献默认半功率。',sub:'最终手牌含初始缓存牌时恢复全功率。',purpose:'用核心操作软克制构筑。'},
+        {id:'ration',round:3,name:'配给',code:'DISCARD / 07',icon:'s5-ration',command:'全段共享弃牌',signal:'DISCARD 12',main:'全段共享十二张弃牌额度。',sub:'舞台中央显示剩余额度。',purpose:'把即时重抽变成跨拍资源规划。'},
+        {id:'switchtrack',round:3,name:'岔轨',code:'ACTION / 08',icon:'s5-switchtrack',command:'先选弃牌或交换',signal:'ONE TRACK',main:'第一次弃牌或交换后，另一类操作关闭。',sub:'两条轨道只保留玩家先选的一条。',purpose:'在改善现在与准备未来之间选择。'},
+
+        {id:'rush',round:4,name:'赶场',code:'PRESSURE / FIXED',icon:'s5-rush',command:'每拍固定六秒',signal:'CLOCK 6s',main:'每拍操作时间固定为六秒。',sub:'提前公开，并始终保持六秒。',purpose:'用单一时间压力形成终演张力。'},
+        {id:'doubleset',round:4,name:'双响',code:'ENCORE / BUILD',icon:'s5-doubleset',command:'半功率追加结算',signal:'REPLAY ×50%',main:'本拍结算后以50%强度追加一次计分。',sub:'不重复成长、弃牌与边界钩子。',purpose:'让成型小丑构筑集中爆发。',boon:true},
+        {id:'spotlight',round:4,name:'聚光',code:'ENCORE / HAND',icon:'s5-spotlight',command:'六张自动取最佳五张',signal:'HAND +1',main:'每拍额外发一张不可操作的聚光牌。',sub:'系统从六张中自动取最佳五张。',purpose:'在六秒内直接提高成牌质量。',boon:true},
+        {id:'afterglow',round:4,name:'余响',code:'ENCORE / SCORE',icon:'s5-afterglow',command:'上一拍原始分流入',signal:'CARRY 10%',main:'上一拍原始得分的10%加入本拍。',sub:'不读取已经附加的余响。',purpose:'让终演形成连续升高的高潮。',boon:true},
+        {id:'encore',round:4,name:'返场',code:'ENCORE / FLOW',icon:'s5-encore',command:'首批弃牌幽灵返场',signal:'GHOST HAND',main:'第一次弃掉的手牌仍参与最终选牌。',sub:'幽灵牌不能再次操作或触发弃牌钩子。',purpose:'把快速大胆的弃牌本身变成爽点。',boon:true}
+      ];
+
+      const roundNames = {
+        1:'ROUND 01 · ENTRY PRESSURE',
+        2:'ROUND 02 · SUSTAINED PRESSURE',
+        3:'ROUND 03 · BUILD TWIST',
+        4:'ROUND 04 · 6s PRESSURE + SECRET ENCORE'
+      };
+      let activeRound = 1;
+      let selectedId = 'norepeat';
+      const deck = root.querySelector('#sync5-deck');
+      const hero = root.querySelector('#sync5-hero-slot');
+      const detail = root.querySelector('#sync5-detail');
+      const roundLabel = root.querySelector('#sync5-round-label');
+
+      function classFor(item) {
+        return item.boon ? 'sync5-blind sync5-boon' : `sync5-blind sync5-r${item.round}`;
+      }
+
+      function slotFor(item) {
+        const entries = blindData.filter(entry => entry.round === item.round);
+        const index = entries.findIndex(entry => entry.id === item.id);
+        if (item.round < 4) return String(index + 1).padStart(2, '0');
+        if (!item.boon) return '6s';
+        return String.fromCharCode(64 + index);
+      }
+
+      function face(item, heroMode = false) {
+        return `<div class="${heroMode ? 'sync5-hero-card' : ''}">
+          <div class="${classFor(item)}">
+            <div class="sync5-card-head"><b>${item.name}</b><span>${slotFor(item)}</span></div>
+            <div class="sync5-signal-box"><svg class="sync5-signal" viewBox="0 0 100 100" aria-hidden="true"><use href="#${item.icon}"></use></svg></div>
+            <div class="sync5-card-foot"><strong>${item.command}</strong><span>${item.signal}</span></div>
+          </div>
+        </div>`;
+      }
+
+      function selectCard(id) {
+        selectedId = id;
+        const item = blindData.find(entry => entry.id === id);
+        hero.innerHTML = face(item, true);
+        detail.querySelector('.sync5-detail-code').textContent = item.code;
+        detail.querySelector('h2').textContent = item.name;
+        detail.querySelector('[data-detail="main"]').textContent = item.main;
+        detail.querySelector('[data-detail="sub"]').textContent = item.sub;
+        detail.querySelector('[data-detail="purpose"]').textContent = item.purpose;
+        detail.style.borderColor = item.boon ? '#ffd36e' : '#ff328d';
+        detail.querySelector('.sync5-detail-code').style.color = detail.style.borderColor;
+        deck.querySelectorAll('.sync5-card-button').forEach(button => {
+          button.setAttribute('aria-pressed', String(button.dataset.cardId === id));
+        });
+      }
+
+      function renderRound(round) {
+        activeRound = round;
+        const entries = blindData.filter(item => item.round === round);
+        if (!entries.some(item => item.id === selectedId)) selectedId = entries[0].id;
+        deck.innerHTML = entries.map(item => `<button type="button" class="sync5-card-button" data-card-id="${item.id}" aria-label="查看${item.name}" aria-pressed="${item.id === selectedId}">${face(item)}</button>`).join('');
+        deck.querySelectorAll('.sync5-card-button').forEach(button => {
+          button.addEventListener('click', () => selectCard(button.dataset.cardId));
+        });
+        root.querySelectorAll('.sync5-rounds button').forEach(button => {
+          button.setAttribute('aria-pressed', String(Number(button.dataset.round) === round));
+        });
+        roundLabel.textContent = roundNames[round];
+        selectCard(selectedId);
+      }
+
+      root.querySelectorAll('.sync5-rounds button').forEach(button => {
+        button.addEventListener('click', () => renderRound(Number(button.dataset.round)));
+      });
+      renderRound(activeRound);
+    })();
+  </script>
+</div>

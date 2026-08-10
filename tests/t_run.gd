@@ -163,6 +163,109 @@ func _test_run_machine(t) -> void:
 	lr.first_kind = Pattern.Kind.FLUSH
 	lr.next_section()
 	t.eq(lr.first_kind, -99, "a new blind opens with the lock cleared")
+
+	# Finale boon is rolled with the run but remains hidden until section four.
+	var boon_run := Run.new()
+	boon_run.reset(712)
+	t.check(BlindBoon.ids().has(boon_run.run_boon), "a run rolls one approved finale boon")
+	t.eq(boon_run.boon(), "", "the boon is hidden before round four")
+	boon_run.section_idx = GameConfig.SECTIONS_PER_RUN - 1
+	t.eq(boon_run.boon(), boon_run.run_boon, "entering round four reveals the rolled boon")
+	for boon_id in BlindBoon.ids():
+		boon_run.run_boon = boon_id
+		t.eq(boon_run.phrase_duration(), 6.0, "%s never changes Rush timing" % boon_id)
+
+	# Request goals never repeat consecutively; the opening phrase cannot ask
+	# for a different hand from a previous phrase that does not exist.
+	var request_run := Run.new()
+	request_run.reset(713)
+	request_run.run_faces[0] = "request"
+	request_run.phrase_in_section = 0
+	var first_goal: String = request_run.next_request_goal()
+	t.check(first_goal != "fresh_kind", "the opening request never references a previous hand")
+	var previous_goal: String = first_goal
+	for _i in range(12):
+		request_run.phrase_in_section = 1
+		var goal: String = request_run.next_request_goal()
+		t.check(goal != previous_goal, "request goals do not repeat consecutively")
+		previous_goal = goal
+	# With a live phrase supplied, the roll is filtered to goals the current
+	# visible state can actually reach without gambling on a hidden draw.
+	var valid_phrase := Phrase.new(Deck.new(1713), [], 0)
+	valid_phrase.mod = "request"
+	valid_phrase.start()
+	valid_phrase.hand = [t._c(2, 0), t._c(3, 0), t._c(4, 0), t._c(5, 0), t._c(6, 0)]
+	valid_phrase.cache = [t._c(7, 0), t._c(8, 0), t._c(9, 0)]
+	request_run.request_last = ""
+	var validated_goal := request_run.next_request_goal(valid_phrase)
+	t.check(validated_goal not in ["color_mix", "face_or_ace"],
+		"request roll excludes goals invalid for the dealt phrase")
+	request_run.phrase_in_section = 0
+	request_run.request_last = "initial_cache"
+	t.eq(request_run.next_request_goal(valid_phrase), "initial_cache",
+		"request keeps the only valid public goal instead of producing an empty beat")
+
+	# Ration is shared across the whole section, not reset each phrase.
+	var ration_run := Run.new()
+	ration_run.reset(714)
+	ration_run.run_faces[0] = "ration"
+	var ration_p1 := Beat.begin(ration_run)
+	t.eq(ration_p1.discard_budget, 12, "ration starts with twelve cards")
+	t.check(ration_p1.discard_selected([0, 1, 2, 3, 4], [0, 1, 2]), "ration can spend eight cards")
+	Beat.settle(ration_run, ration_p1)
+	t.eq(ration_run.section_discards_used, 8, "the run records spent ration cards")
+	Beat.phrase_end(ration_run, ration_p1)
+	ration_run.phrase_in_section = 1
+	var ration_p2 := Beat.begin(ration_run)
+	t.eq(ration_p2.discard_budget, 4, "the next phrase receives only the remaining ration")
+	t.check(not ration_p2.discard_selected([0, 1, 2, 3, 4]), "ration rejects five when four remain")
+
+	# Trilogy adds a clear condition beside score; it does not alter the target.
+	var trilogy_run := Run.new()
+	trilogy_run.reset(715)
+	trilogy_run.run_faces[2] = "trilogy"
+	trilogy_run.section_idx = 2
+	trilogy_run.section_score = trilogy_run.target() + 1
+	trilogy_run.section_kinds = {Pattern.Kind.PAIR: true, Pattern.Kind.FLUSH: true}
+	trilogy_run.phrase_in_section = GameConfig.PHRASES_PER_SECTION - 1
+	var trilogy_miss := trilogy_run.advance()
+	t.check(not bool(trilogy_miss["cleared"]), "two of three Trilogy types cannot clear")
+	trilogy_run.phrase_in_section = GameConfig.PHRASES_PER_SECTION - 1
+	trilogy_run.section_kinds[Pattern.Kind.STRAIGHT] = true
+	var trilogy_clear := trilogy_run.advance()
+	t.check(bool(trilogy_clear["cleared"]), "score plus three Trilogy types clears")
+
+	# Double Set adds one score-only replay after the normal settlement.
+	var double_run := Run.new()
+	double_run.reset(716)
+	double_run.section_idx = GameConfig.SECTIONS_PER_RUN - 1
+	double_run.run_faces[double_run.section_idx] = "rush"
+	double_run.run_boon = "doubleset"
+	var double_phrase := Beat.begin(double_run)
+	var double_out := Beat.settle(double_run, double_phrase)
+	t.eq(double_out["score"], int(double_out["raw_score"]) + int(round(
+		float(double_out["raw_score"]) * BlindBoon.score_replay_factor("doubleset"))),
+		"Double Set adds half the raw score once")
+	t.eq(double_run.section_score, double_out["score"], "the section ledger receives the boon total once")
+
+	# Afterglow reads the previous raw score, never a total that already contains
+	# an earlier Afterglow addition.
+	var glow_run := Run.new()
+	glow_run.reset(717)
+	glow_run.section_idx = GameConfig.SECTIONS_PER_RUN - 1
+	glow_run.run_faces[glow_run.section_idx] = "rush"
+	glow_run.run_boon = "afterglow"
+	glow_run.previous_raw_score = 1000
+	var glow_p1 := Beat.begin(glow_run)
+	var glow_o1 := Beat.settle(glow_run, glow_p1)
+	t.eq(glow_o1["boon_bonus"], 100, "Afterglow reads the supplied previous raw score")
+	var first_raw := int(glow_o1["raw_score"])
+	Beat.phrase_end(glow_run, glow_p1)
+	glow_run.phrase_in_section = 1
+	var glow_p2 := Beat.begin(glow_run)
+	var glow_o2 := Beat.settle(glow_run, glow_p2)
+	t.eq(glow_o2["boon_bonus"], int(round(float(first_raw) * 0.1)),
+		"Afterglow chains from raw score rather than the prior boon total")
 	r.section_idx = 1
 	r.phrase_in_section = GameConfig.PHRASES_PER_SECTION - 1
 	r.section_score = 0

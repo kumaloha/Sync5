@@ -16,7 +16,7 @@ const DOMAINS := [
 	"t_stat",
 	"t_card", "t_deck", "t_economy", "t_pattern", "t_phrase", "t_rules",
 	"t_db", "t_run", "t_shop", "t_hand", "t_face", "t_wild", "t_settle",
-	"t_joker", "t_character", "t_solver", "t_draft", "t_tape",
+	"t_boon", "t_joker", "t_character", "t_solver", "t_draft", "t_tape",
 ]
 
 var _pass := 0
