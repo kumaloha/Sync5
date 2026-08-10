@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="zh-CN" data-ready="false">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sync5 Joker Card Renderer</title>
+  <style>
+    @font-face {
+      font-family: "Rajdhani";
+      src: url("/assets/fonts/Rajdhani-Medium.ttf") format("truetype");
+      font-weight: 500;
+    }
+    @font-face {
+      font-family: "Rajdhani";
+      src: url("/assets/fonts/Rajdhani-SemiBold.ttf") format("truetype");
+      font-weight: 650;
+    }
+    @font-face {
+      font-family: "Rajdhani";
+      src: url("/assets/fonts/Rajdhani-Bold.ttf") format("truetype");
+      font-weight: 800;
+    }
+    :root {
+      --scale: 1;
+      --w: calc(155px * var(--scale));
+      --h: calc(172px * var(--scale));
+      --radius: calc(14px * var(--scale));
+      --outer: calc(6px * var(--scale));
+      --header: calc(35px * var(--scale));
+      --art: calc(74px * var(--scale));
+      --desc: calc(61px * var(--scale));
+      --name-size: calc(18px * var(--scale));
+      --amount-size: calc(17px * var(--scale));
+      --effect-size: calc(14px * var(--scale));
+      --cyan: #36f2e3;
+      --hot: #ff4f9d;
+      --rarity: #36f2e3;
+    }
+    html,
+    body {
+      width: var(--w);
+      height: var(--h);
+      margin: 0;
+      overflow: hidden;
+      background: transparent;
+    }
+    body {
+      display: grid;
+      place-items: stretch;
+      font-family: "Rajdhani", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+      color: #ecffff;
+    }
+    * { box-sizing: border-box; }
+    .fatal {
+      width: var(--w);
+      height: var(--h);
+      display: grid;
+      place-items: center;
+      padding: calc(10px * var(--scale));
+      border: calc(2px * var(--scale)) solid var(--hot);
+      background: rgba(8, 3, 12, .86);
+      color: #ffe4f0;
+      font-size: calc(11px * var(--scale));
+      text-align: center;
+    }
+    .card {
+      position: relative;
+      width: var(--w);
+      height: var(--h);
+      overflow: hidden;
+      border: calc(1.5px * var(--scale)) solid var(--cyan);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(110deg, rgba(255,255,255,.08), transparent 16%, transparent 75%, rgba(54,242,227,.08)),
+        radial-gradient(circle at 50% 18%, rgba(54,242,227,.20), transparent 44%),
+        linear-gradient(150deg, rgba(7, 23, 33, .93), rgba(5, 7, 15, .98) 72%);
+      box-shadow:
+        0 0 calc(11px * var(--scale)) rgba(54, 242, 227, .52),
+        inset 0 0 calc(20px * var(--scale)) rgba(54, 242, 227, .14);
+    }
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: calc(4px * var(--scale));
+      border: calc(1px * var(--scale)) solid rgba(54, 242, 227, .34);
+      border-radius: calc(10px * var(--scale));
+      pointer-events: none;
+      z-index: 5;
+    }
+    .card::after {
+      content: "";
+      position: absolute;
+      top: calc(-42px * var(--scale));
+      left: calc(-83px * var(--scale));
+      width: calc(63px * var(--scale));
+      height: calc(280px * var(--scale));
+      transform: rotate(17deg);
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.13), transparent);
+      z-index: 6;
+      pointer-events: none;
+    }
+    .grid {
+      position: absolute;
+      inset: var(--outer);
+      border-radius: calc(9px * var(--scale));
+      background:
+        repeating-linear-gradient(0deg, transparent 0 calc(11px * var(--scale)), rgba(54,242,227,.09) calc(12px * var(--scale))),
+        repeating-linear-gradient(90deg, transparent 0 calc(17px * var(--scale)), rgba(54,242,227,.06) calc(18px * var(--scale)));
+      opacity: .56;
+      pointer-events: none;
+    }
+    .header {
+      position: relative;
+      height: var(--header);
+      margin: 0 var(--outer);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: calc(6px * var(--scale));
+      border-bottom: calc(1px * var(--scale)) solid rgba(54, 242, 227, .40);
+      z-index: 2;
+    }
+    .name {
+      min-width: 0;
+      color: #f2ffff;
+      font-size: var(--name-size);
+      font-weight: 800;
+      line-height: .95;
+      text-shadow: 0 0 calc(7px * var(--scale)) rgba(54, 242, 227, .56);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .code {
+      flex: 0 0 auto;
+      color: var(--rarity);
+      font-size: calc(9px * var(--scale));
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-shadow: 0 0 calc(8px * var(--scale)) color-mix(in srgb, var(--rarity) 75%, transparent);
+    }
+    .art {
+      position: relative;
+      height: var(--art);
+      margin: calc(6px * var(--scale)) var(--outer) 0;
+      display: grid;
+      place-items: center;
+      border: calc(1px * var(--scale)) solid rgba(54, 242, 227, .34);
+      border-radius: calc(8px * var(--scale));
+      background:
+        radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--rarity) 19%, transparent), transparent 58%),
+        linear-gradient(180deg, rgba(255,255,255,.04), transparent);
+      box-shadow: inset 0 0 calc(13px * var(--scale)) color-mix(in srgb, var(--rarity) 18%, transparent);
+      z-index: 1;
+    }
+    .art img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      filter: drop-shadow(0 0 calc(5px * var(--scale)) color-mix(in srgb, var(--rarity) 50%, transparent));
+    }
+    .amount {
+      position: absolute;
+      right: calc(10px * var(--scale));
+      top: calc(32px * var(--scale));
+      min-width: calc(30px * var(--scale));
+      padding: calc(1px * var(--scale)) calc(5px * var(--scale));
+      border: calc(1px * var(--scale)) solid var(--rarity);
+      background: rgba(3, 6, 13, .92);
+      color: var(--rarity);
+      font-size: var(--amount-size);
+      font-weight: 800;
+      line-height: 1.05;
+      text-align: center;
+      box-shadow: 0 0 calc(8px * var(--scale)) color-mix(in srgb, var(--rarity) 38%, transparent);
+      z-index: 3;
+    }
+    .desc {
+      position: absolute;
+      left: var(--outer);
+      right: var(--outer);
+      bottom: var(--outer);
+      height: var(--desc);
+      padding: calc(8px * var(--scale)) calc(8px * var(--scale)) calc(5px * var(--scale));
+      border-left: calc(3px * var(--scale)) solid var(--cyan);
+      background:
+        linear-gradient(90deg, rgba(54, 242, 227, .16), transparent 82%),
+        rgba(2, 5, 12, .55);
+      z-index: 2;
+    }
+    .trigger {
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+      overflow: hidden;
+      color: #ebffff;
+      font-size: var(--effect-size);
+      font-weight: 650;
+      line-height: 1.12;
+      text-shadow: 0 0 calc(5px * var(--scale)) rgba(54, 242, 227, .35);
+    }
+    .rule {
+      margin-top: calc(3px * var(--scale));
+      color: var(--hot);
+      font-size: calc(9px * var(--scale));
+      font-weight: 800;
+      letter-spacing: .08em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  </style>
+</head>
+<body>
+  <main id="root" class="fatal">NOT READY</main>
+  <script>
+    const SCALE_VALUES = new Set(["1", "8"]);
+    const RARITY = { common: "#36f2e3", uncommon: "#9e74ff", rare: "#ffd453" };
+    const root = document.getElementById("root");
+
+    function fatal(message) {
+      document.documentElement.dataset.ready = "false";
+      document.documentElement.dataset.fatal = message;
+      root.className = "fatal";
+      root.textContent = message;
+    }
+
+    async function loadImage(img) {
+      if (img.complete && img.naturalWidth > 0) return;
+      await new Promise((resolve, reject) => {
+        img.addEventListener("load", resolve, { once: true });
+        img.addEventListener("error", () => reject(new Error("image failed")), { once: true });
+      });
+    }
+
+    async function main() {
+      const params = new URLSearchParams(location.search);
+      const id = params.get("id");
+      const scale = params.get("scale") || "1";
+      if (!id || !/^[a-z0-9]+$/.test(id)) {
+        fatal("bad query: expected ?id=<id>&scale=<1|8>");
+        return;
+      }
+      if (!SCALE_VALUES.has(scale)) {
+        fatal("bad query: scale must be 1 or 8");
+        return;
+      }
+      document.documentElement.style.setProperty("--scale", scale);
+
+      let manifest;
+      try {
+        const response = await fetch("/assets/jokers/manifest.json", { cache: "no-store" });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        manifest = await response.json();
+      } catch (error) {
+        fatal(`manifest fetch failed: ${error.message}`);
+        return;
+      }
+      if (!manifest || !Array.isArray(manifest.cards)) {
+        fatal("invalid manifest: cards array missing");
+        return;
+      }
+      const card = manifest.cards.find((entry) => entry && entry.id === id);
+      if (!card) {
+        fatal(`missing card: ${id}`);
+        return;
+      }
+
+      const accent = RARITY[card.rarity] || RARITY.common;
+      document.documentElement.style.setProperty("--rarity", accent);
+      root.className = "card";
+      root.innerHTML = `
+        <div class="grid"></div>
+        <header class="header">
+          <div class="name"></div>
+          <div class="code"></div>
+        </header>
+        <section class="art"><img alt=""></section>
+        <div class="amount"></div>
+        <section class="desc">
+          <div class="trigger"></div>
+          <div class="rule">CYAN CATEGORY IDENTITY</div>
+        </section>
+      `;
+      root.querySelector(".name").textContent = card.cn;
+      root.querySelector(".code").textContent = card.code;
+      root.querySelector(".amount").textContent = card.amount;
+      root.querySelector(".trigger").textContent = card.trigger_zh;
+      const img = root.querySelector("img");
+      img.src = `/assets/jokers/source/joker_${id}.png`;
+
+      try {
+        await Promise.all([document.fonts.ready, loadImage(img)]);
+      } catch (error) {
+        fatal(`asset load failed: ${error.message}`);
+        return;
+      }
+      document.documentElement.dataset.ready = "true";
+    }
+
+    main().catch((error) => fatal(error.message));
+  </script>
+</body>
+</html>
