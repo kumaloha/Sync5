@@ -627,6 +627,227 @@
      }
     }
    ]
+  },
+  {
+   "id": "shredder",
+   "name": "Shredder",
+   "cn": "速弹",
+   "kind": "target",
+   "rarity": "rare",
+   "proof": "score",
+   "fx": "Early finish: made hands ×4",
+   "effects": [
+    {
+     "when": {
+      "early_finish": true,
+      "kind_in": [
+       "PAIR",
+       "TWO_PAIR",
+       "THREE_KIND",
+       "STRAIGHT",
+       "FLUSH",
+       "FULL_HOUSE",
+       "FOUR_KIND",
+       "STRAIGHT_FLUSH",
+       "ROYAL_FLUSH"
+      ]
+     },
+     "do": {
+      "mult": 4.0
+     }
+    }
+   ]
+  },
+  {
+   "id": "opener",
+   "name": "Opener",
+   "cn": "开场",
+   "kind": "support",
+   "rarity": "uncommon",
+   "curve": "burst",
+   "proof": "score",
+   "fx": "First phrase of section: +80%",
+   "effects": [
+    {
+     "when": {
+      "first_phrase": true
+     },
+     "do": {
+      "bonus_pct": 0.8
+     }
+    }
+   ]
+  },
+  {
+   "id": "popup",
+   "name": "Pop-Up",
+   "cn": "快闪",
+   "kind": "support",
+   "rarity": "common",
+   "curve": "decay",
+   "proof": "score",
+   "fx": "Section one only: +200",
+   "effects": [
+    {
+     "when": {
+      "section_eq": 0
+     },
+     "do": {
+      "bonus": 200
+     }
+    }
+   ]
+  },
+  {
+   "id": "rainbow",
+   "name": "Rainbow",
+   "cn": "彩虹",
+   "kind": "support",
+   "rarity": "common",
+   "curve": "burst",
+   "proof": "score",
+   "fx": "All four suits in hand: +150",
+   "effects": [
+    {
+     "when": {
+      "all_suits": true
+     },
+     "do": {
+      "bonus": 150
+     }
+    }
+   ]
+  },
+  {
+   "id": "nopair",
+   "name": "No Pair",
+   "cn": "清流",
+   "kind": "support",
+   "rarity": "common",
+   "curve": "burst",
+   "proof": "score",
+   "fx": "No pair in hand: +60",
+   "effects": [
+    {
+     "when": {
+      "no_pair": true
+     },
+     "do": {
+      "bonus": 60
+     }
+    }
+   ]
+  },
+  {
+   "id": "backup",
+   "name": "Backup",
+   "cn": "伴唱",
+   "kind": "support",
+   "rarity": "common",
+   "curve": "burst",
+   "proof": "solver",
+   "fx": "Cache all face cards: +150",
+   "effects": [
+    {
+     "when": {
+      "cache_all_faces": true
+     },
+     "do": {
+      "bonus": 150
+     }
+    }
+   ]
+  },
+  {
+   "id": "rehearsal",
+   "name": "Rehearsal",
+   "cn": "排练",
+   "kind": "support",
+   "rarity": "common",
+   "curve": "burst",
+   "proof": "solver",
+   "fx": "Cache forms a run: +150",
+   "effects": [
+    {
+     "when": {
+      "cache_run": true
+     },
+     "do": {
+      "bonus": 150
+     }
+    }
+   ]
+  },
+  {
+   "id": "bassclef",
+   "name": "Bass Clef",
+   "cn": "低音谱",
+   "kind": "support",
+   "rarity": "uncommon",
+   "curve": "fixed",
+   "proof": "score",
+   "fx": "Low cards count as 10",
+   "effects": [
+    {
+     "do": {
+      "additive_low_value": 10
+     }
+    }
+   ]
+  },
+  {
+   "id": "warmtone",
+   "name": "Warm Tone",
+   "cn": "暖色",
+   "kind": "support",
+   "rarity": "common",
+   "curve": "fixed",
+   "proof": "score",
+   "fx": "Red scoring cards: +6 chips each",
+   "effects": [
+    {
+     "do": {
+      "chips_per_card": 6,
+      "card_filter": "red"
+     }
+    }
+   ]
+  },
+  {
+   "id": "cooltone",
+   "name": "Cool Tone",
+   "cn": "冷色",
+   "kind": "support",
+   "rarity": "common",
+   "curve": "fixed",
+   "proof": "score",
+   "fx": "Black scoring cards: +6 chips each",
+   "effects": [
+    {
+     "do": {
+      "chips_per_card": 6,
+      "card_filter": "black"
+     }
+    }
+   ]
+  },
+  {
+   "id": "undertone",
+   "name": "Undertone",
+   "cn": "低声部",
+   "kind": "support",
+   "rarity": "common",
+   "curve": "fixed",
+   "proof": "score",
+   "fx": "Fives and under: +9 chips each",
+   "effects": [
+    {
+     "do": {
+      "chips_per_card": 9,
+      "card_filter": "rank_lte_5"
+     }
+    }
+   ]
   }
  ]
 }

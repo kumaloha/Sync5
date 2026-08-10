@@ -85,6 +85,8 @@ static func settle(run: Run, p: Phrase, flags: Dictionary = {}) -> Dictionary:
 		"coins": p.coins,
 		"phrase_idx": run.phrase_in_section,
 		"cache_cards": run.cache,
+		"early_finish": bool(flags.get("early", false)),
+		"section_idx": run.section_idx,
 		"mod": run.face(),
 		"character": run.character,
 		"first_kind": run.first_kind,

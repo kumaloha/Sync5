@@ -215,10 +215,17 @@ func _run_score(cfg: Dictionary, ids: Array, n: int) -> void:
 ##     不是覆盖结论。**为一个不归这道门管的问题烧预算, 换来的是一道跑不动或者常红的门**,
 ##     而常红的门等于没有门(`gate.gd::_run_sentinel` 同一条理由)。
 ## 所以:**证物率没有显著上升 = ❌ 没接上**;证物过了而分差没过 = **⚠**, 附实测数字。
+##
+## ⚠ 2026-08-10 批 3 修仪器:solver 通路出现了第二种形状 —— **带 effects 的织构卡**
+## (伴唱/排练:不改判定规则, 改的是完美玩家愿不愿意为一个结算奖励**养缓存织构**)。
+## WITNESS 表对它们没有定义, 证物率恒报「成手率 0→0%」的**假红**;它们进 popup 链,
+## 分差和触发率都量得到。所以按 `has_effects()` 分岔:有 effects → 硬判据 = 分差;
+## 无 effects → 照旧证物率。实测:伴唱 +631(z=4.06, 8.9%)/ 排练 +560(z=3.96, 7.9%)——
+## 分差本身就过双判据, 不是「为平衡结论烧预算」那种情况。
 func _run_solver(cfg: Dictionary, ids: Array, n: int) -> void:
 	print("\n  ---- ②  solver 通路(完美玩家, 无商店) ----")
-	print("    ⚠ 这一栏的「触发率」恒为 0 且**无意义** —— 这四张没有 effects, 不进 popup 链。")
-	print("       **硬判据 = 证物率**(它该造出来的东西真的出现了吗), 分差只作参考。")
+	print("    ⚠ 无 effects 的规则/牌堆卡:触发率恒 0 无意义, **硬判据 = 证物率**, 分差只作参考;")
+	print("       带 effects 的织构卡:WITNESS 无定义, **硬判据 = 分差**, 触发率照报。")
 	var bases := {}
 	for jid in ids:
 		var pre: Array = _prereq(jid)
@@ -229,6 +236,10 @@ func _run_solver(cfg: Dictionary, ids: Array, n: int) -> void:
 				% [Stat.mean(bases[key]["score"]), "空" if pre.is_empty() else str(pre)])
 		var base: Dictionary = bases[key]
 		var arm := _play(cfg, _install(pre + [jid]), false, true, _arm_n(jid, n))
+		if Joker.by_id(jid).has_effects():
+			_judge(jid, base["score"], arm["score"], Stat.mean(base["score"]),
+				_trigger_txt(arm, jid))
+			continue
 		var w0 := _witness_series(base, jid)
 		var w1 := _witness_series(arm, jid)
 		var wt := "%s%.0f→%.0f%%" % [_witness_name(jid), Stat.mean(w0) * 100.0,

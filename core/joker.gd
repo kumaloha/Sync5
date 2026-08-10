@@ -111,6 +111,11 @@ func apply(ctx: Dictionary) -> String:
 	return Fx.apply_effects(_effects, state, ctx)
 
 
+## 有无 effects 决定 kit 的 solver 臂用哪把判据(证物率 vs 分差)—— 见 tools/kit.gd::_run_solver。
+func has_effects() -> bool:
+	return not _effects.is_empty()
+
+
 static func by_id(p_id: String) -> Joker:
 	for j in pool():
 		if j.id == p_id:

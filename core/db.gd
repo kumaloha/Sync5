@@ -360,9 +360,12 @@ static func _validate_face_proof(d: Dictionary, tier_of: Dictionary) -> String:
 
 const _PREDICATES := ["kind", "kind_in", "same_as_prev", "diff_from_prev",
 	"acted_late", "discards_eq", "discards_gte", "coins_gte", "base_gte",
-	"last_phrase", "cache_mono_suit", "top_rank_gte", "counter_gte"]
+	"last_phrase", "cache_mono_suit", "top_rank_gte", "counter_gte",
+	"first_phrase", "section_eq", "early_finish", "all_suits", "no_pair",
+	"cache_all_faces", "cache_run", "cache_trio"]
 const _DO_KEYS := ["mult", "mult_add", "additive", "bonus", "bonus_pct",
-	"coins", "per", "step", "cap", "mult_from_target_factor", "additive_face_value"]
+	"coins", "per", "step", "cap", "mult_from_target_factor", "additive_face_value",
+	"additive_low_value", "chips_per_card", "card_filter"]
 
 
 ## 小丑牌的覆盖自证通路。含义见 `validate_jokers` 里的注释与 design/jokers.md。
@@ -422,6 +425,8 @@ static func validate_jokers(d: Dictionary) -> String:
 			for dk in fx.get("do", {}):
 				if not _DO_KEYS.has(dk):
 					return "unknown do key '%s' (%s)" % [dk, e["id"]]
+				if dk == "card_filter" and not ["red", "black", "rank_lte_5"].has(String(fx["do"][dk])):
+					return "unknown card_filter '%s' (%s)" % [fx["do"][dk], e["id"]]
 	return ""
 
 

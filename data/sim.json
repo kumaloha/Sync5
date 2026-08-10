@@ -74,7 +74,8 @@
   "mono": 6.0,
   "triplet": 5.0,
   "lonewolf": 4.0,
-  "kaleido": 4.0
+  "kaleido": 4.0,
+  "shredder": 4.0
  },
  "counterfactual_tv": {
   "twin": 2.6,
@@ -82,7 +83,8 @@
   "mono": 1.55,
   "triplet": 2.2,
   "lonewolf": 1.7,
-  "kaleido": 2.3
+  "kaleido": 2.3,
+  "shredder": 2.0
  },
  "lonewolf_value": {
   "high_prior": 0.35,

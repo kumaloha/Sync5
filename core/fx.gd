@@ -75,6 +75,58 @@ static func _when_ok(w: Dictionary, state: Dictionary, ctx: Dictionary) -> bool:
 			"counter_gte":
 				if float(state.get(String(v[0]), 0.0)) < float(v[1]):
 					return false
+			"first_phrase":
+				if int(ctx.get("phrase_idx", -1)) != 0:
+					return false
+			"section_eq":
+				if int(ctx.get("section_idx", -1)) != int(v):
+					return false
+			"early_finish":
+				if not bool(ctx.get("early_finish", false)):
+					return false
+			"all_suits":
+				var seen_suits := {}
+				for c in ctx.get("scoring_cards", []):
+					if not c.is_wild():
+						seen_suits[c.suit] = true
+				if seen_suits.size() < 4:
+					return false
+			"no_pair":
+				var seen_ranks := {}
+				for c in ctx.get("scoring_cards", []):
+					if c.is_wild():
+						continue
+					if seen_ranks.has(c.rank):
+						return false
+					seen_ranks[c.rank] = true
+			"cache_all_faces":
+				var cc: Array = ctx.get("cache_cards", [])
+				if cc.is_empty():
+					return false
+				for c in cc:
+					if not c.is_wild() and (c.rank < 11 or c.rank > 13):
+						return false
+			"cache_run":
+				var run_ranks := []
+				for c in ctx.get("cache_cards", []):
+					if not c.is_wild():
+						run_ranks.append(int(c.rank))
+				if run_ranks.size() < 3:
+					return false
+				run_ranks.sort()
+				for i in range(1, run_ranks.size()):
+					if run_ranks[i] != run_ranks[i - 1] + 1:
+						return false
+			"cache_trio":
+				var trio_ranks := []
+				for c in ctx.get("cache_cards", []):
+					if not c.is_wild():
+						trio_ranks.append(int(c.rank))
+				if trio_ranks.size() < 3:
+					return false
+				for r in trio_ranks:
+					if r != trio_ranks[0]:
+						return false
 			_:
 				push_error("[Fx] unknown predicate '%s'" % k)
 				return false
@@ -116,6 +168,38 @@ static func _do(d: Dictionary, state: Dictionary, ctx: Dictionary) -> String:
 		if boost > 0:
 			ctx.additive += boost
 			return "+%d" % boost
+		return ""
+	# additive_face_value 的镜像:小牌(2..5)按 val 计 chips —— 低牌路的规则卡。
+	if d.has("additive_low_value"):
+		var lval := int(d["additive_low_value"])
+		var lboost := 0
+		for c in ctx.get("scoring_cards", []):
+			if not c.is_wild() and c.rank >= 2 and c.rank <= 5:
+				lboost += lval - c.rank
+		if lboost > 0:
+			ctx.additive += lboost
+			return "+%d" % lboost
+		return ""
+	# 记分牌逐张过滤加 chips(走 additive 通道,吃全部倍率 —— B1:早抽才值钱)。
+	# 一个操作码解锁整个牌面族(红/黑/低段), filter 值由 db.gd 校验。
+	if d.has("chips_per_card"):
+		var per_card := int(d["chips_per_card"])
+		var filt := String(d.get("card_filter", ""))
+		var hits := 0
+		for c in ctx.get("scoring_cards", []):
+			if c.is_wild():
+				continue
+			var hit := false
+			match filt:
+				"red": hit = c.is_red()
+				"black": hit = not c.is_red()
+				"rank_lte_5": hit = c.rank <= 5
+				_: push_error("[Fx] unknown card_filter '%s'" % filt)
+			if hit:
+				hits += 1
+		if hits > 0:
+			ctx.additive += per_card * hits
+			return "+%d" % (per_card * hits)
 		return ""
 
 	var cnt := _count(d, state, ctx)

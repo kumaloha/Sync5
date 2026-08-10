@@ -46,6 +46,8 @@ static func run(result: Dictionary, slots: Array, extra: Dictionary) -> Dictiona
 		"coins": extra.get("coins", 0),
 		"phrase_idx": extra.get("phrase_idx", -1),
 		"cache_cards": extra.get("cache_cards", []),
+		"early_finish": extra.get("early_finish", false),
+		"section_idx": extra.get("section_idx", -1),
 		"scoring_cards": result.get("resolved", []),
 		"target_factor": 1.0,
 	}
