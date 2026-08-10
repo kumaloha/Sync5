@@ -27,19 +27,33 @@ const TARGET_FIT := Vector2i(118, 122)
 const FOOT_ANCHOR_Y := 124
 const FRAME_CENTER_X := 64
 const OPAQUE_THRESHOLD := 1.0 / 255.0
+const STAGING_ROOT := "res://assets/characters"
 
 var _errors: Array[String] = []
 var _manifest: Dictionary = {}
 var _records_by_id: Dictionary = {}
+var _stage_name := "all"
+var _stage_targets: Array[String] = []
+var _staging_dir := ""
+var _marker_path := ""
+var _staged_outputs: Dictionary = {}
 
 
 func _initialize() -> void:
+	if OS.get_cmdline_user_args().has("--self-test"):
+		_run_self_tests()
+		return
+
 	if OS.get_cmdline_user_args().has("--check-only"):
 		print("character asset builder parse OK")
 		quit(0)
 		return
 
 	var stages := _parse_stages()
+	_stage_targets = _target_paths_for_stages(stages)
+	_staging_dir = _new_staging_dir(_stage_name)
+	_marker_path = _marker_path_for_stage(_stage_name)
+	_write_build_marker(_marker_path, "failed", _stage_name, _stage_targets)
 	if not _errors.is_empty():
 		_finish()
 		return
@@ -64,22 +78,37 @@ func _initialize() -> void:
 		if stages.has("dance"):
 			_build_animation_sheet(id, "dance")
 
+	if _errors.is_empty():
+		_publish_staged_outputs()
+	if _errors.is_empty():
+		_write_build_marker(_marker_path, "ok", _stage_name, _stage_targets)
+
 	_finish()
 
 
 func _parse_stages() -> Dictionary:
+	return _parse_stage_args(OS.get_cmdline_user_args())
+
+
+func _parse_stage_args(args: PackedStringArray) -> Dictionary:
 	var stage := "all"
-	for arg in OS.get_cmdline_user_args():
+	var stage_seen := false
+	for arg in args:
 		var text := String(arg)
-		if text == "--check-only":
+		if text == "--check-only" or text == "--self-test":
 			continue
 		if text.begins_with("--stage="):
-			if stage != "all":
+			if stage_seen:
 				_error("use only one --stage argument")
 				continue
+			stage_seen = true
 			stage = text.substr(8).strip_edges()
 		else:
 			_error("unknown argument '%s'" % text)
+
+	_stage_name = stage
+	if not _errors.is_empty():
+		return {}
 
 	match stage:
 		"all":
@@ -93,6 +122,20 @@ func _parse_stages() -> Dictionary:
 		_:
 			_error("unknown stage '%s'; expected portrait, walk, dance, or all" % stage)
 			return {}
+
+
+func _target_paths_for_stages(stages: Dictionary) -> Array[String]:
+	var paths: Array[String] = []
+	for id in IDS:
+		var output_dir := OUTPUT_DIR_TEMPLATE % id
+		if stages.has("portrait"):
+			paths.append("%s/portrait.png" % output_dir)
+			paths.append("%s/avatar.png" % output_dir)
+		if stages.has("walk"):
+			paths.append("%s/walk.png" % output_dir)
+		if stages.has("dance"):
+			paths.append("%s/dance.png" % output_dir)
+	return paths
 
 
 func _collect_missing_sources(stages: Dictionary) -> void:
@@ -178,13 +221,8 @@ func _build_portrait_and_avatar(id: String) -> void:
 	portrait.resize(PORTRAIT_SIZE.x, PORTRAIT_SIZE.y, Image.INTERPOLATE_LANCZOS)
 
 	var output_dir := OUTPUT_DIR_TEMPLATE % id
-	_ensure_dir(output_dir)
 	var portrait_path := "%s/portrait.png" % output_dir
-	var save_error := portrait.save_png(portrait_path)
-	if save_error != OK:
-		_error("cannot save %s: %s" % [_display_path(portrait_path), error_string(save_error)])
-		return
-	print("saved %s" % _display_path(portrait_path))
+	_stage_output(portrait, portrait_path)
 
 	_build_avatar(id, portrait)
 
@@ -226,11 +264,7 @@ func _build_avatar(id: String, portrait: Image) -> void:
 	avatar.resize(AVATAR_SIZE.x, AVATAR_SIZE.y, Image.INTERPOLATE_LANCZOS)
 
 	var avatar_path := "%s/avatar.png" % (OUTPUT_DIR_TEMPLATE % id)
-	var save_error := avatar.save_png(avatar_path)
-	if save_error != OK:
-		_error("cannot save %s: %s" % [_display_path(avatar_path), error_string(save_error)])
-		return
-	print("saved %s" % _display_path(avatar_path))
+	_stage_output(avatar, avatar_path)
 
 
 func _build_animation_sheet(id: String, kind: String) -> void:
@@ -240,10 +274,10 @@ func _build_animation_sheet(id: String, kind: String) -> void:
 		return
 
 	var source_size := source.get_size()
-	var cell_size := Vector2i(source_size.x / CELL_GRID.x, source_size.y / CELL_GRID.y)
-	if cell_size.x <= 0 or cell_size.y <= 0:
-		_error("source %s is too small to divide into a 4x2 sheet" % _display_path(source_path))
+	if not _validate_animation_grid(source_size, source_path):
 		return
+
+	var cell_size := Vector2i(source_size.x / CELL_GRID.x, source_size.y / CELL_GRID.y)
 
 	var frames: Array[Image] = []
 	for row in range(CELL_GRID.y):
@@ -264,13 +298,20 @@ func _build_animation_sheet(id: String, kind: String) -> void:
 		sheet.blit_rect(frames[i], Rect2i(Vector2i.ZERO, FRAME_SIZE), Vector2i(i * FRAME_SIZE.x, 0))
 
 	var output_dir := OUTPUT_DIR_TEMPLATE % id
-	_ensure_dir(output_dir)
 	var output_path := "%s/%s.png" % [output_dir, kind]
-	var save_error := sheet.save_png(output_path)
-	if save_error != OK:
-		_error("cannot save %s: %s" % [_display_path(output_path), error_string(save_error)])
-		return
-	print("saved %s" % _display_path(output_path))
+	_stage_output(sheet, output_path)
+
+
+func _validate_animation_grid(source_size: Vector2i, source_path: String) -> bool:
+	if source_size.x <= 0 or source_size.y <= 0:
+		_error("source %s is empty: found %dx%d" % [_display_path(source_path), source_size.x, source_size.y])
+		return false
+	if source_size.x % CELL_GRID.x != 0 or source_size.y % CELL_GRID.y != 0:
+		_error("source %s must divide evenly into 4 columns and 2 rows, found %dx%d" % [
+			_display_path(source_path), source_size.x, source_size.y,
+		])
+		return false
+	return true
 
 
 func _process_animation_cell(source: Image, cell: Rect2i, id: String, kind: String, frame_index: int) -> Image:
@@ -333,11 +374,17 @@ func _apply_chroma_key(image: Image) -> void:
 			var pixel := image.get_pixel(x, y)
 			var distance := _rgb_distance_255(pixel, CHROMA_KEY)
 			if distance <= KEY_REMOVE_DISTANCE:
-				pixel.a = 0.0
+				pixel = Color(0, 0, 0, 0)
 			elif distance < KEY_SOFT_DISTANCE:
 				var factor := (distance - KEY_REMOVE_DISTANCE) / (KEY_SOFT_DISTANCE - KEY_REMOVE_DISTANCE)
 				pixel.a *= clampf(factor, 0.0, 1.0)
+				pixel = _despill_green(pixel)
 			image.set_pixel(x, y, pixel)
+
+
+func _despill_green(pixel: Color) -> Color:
+	pixel.g = min(pixel.g, max(pixel.r, pixel.b))
+	return pixel
 
 
 func _rgb_distance_255(a: Color, b: Color) -> float:
@@ -398,9 +445,81 @@ func _source_path(id: String, kind: String) -> String:
 	return "%s/%s_%s.png" % [SOURCE_DIR, id, kind]
 
 
+func _stage_output(image: Image, final_path: String) -> void:
+	_ensure_dir(_staging_dir)
+	if not _errors.is_empty():
+		return
+
+	var staged_path := "%s/%s" % [_staging_dir, _staging_name(final_path)]
+	var save_error := image.save_png(_global_path(staged_path))
+	if save_error != OK:
+		_error("cannot stage %s: %s" % [_display_path(final_path), error_string(save_error)])
+		return
+	_staged_outputs[final_path] = staged_path
+	print("staged %s" % _display_path(final_path))
+
+
+func _publish_staged_outputs() -> void:
+	for final_path in _stage_targets:
+		if not _staged_outputs.has(final_path):
+			_error("internal error: missing staged output for %s" % _display_path(final_path))
+
+	if not _errors.is_empty():
+		return
+
+	for final_path in _stage_targets:
+		var staged_path := String(_staged_outputs[final_path])
+		var staged := _load_image(staged_path)
+		if staged.is_empty():
+			return
+		_ensure_dir(final_path.get_base_dir())
+		if not _errors.is_empty():
+			return
+		var save_error := staged.save_png(_global_path(final_path))
+		if save_error != OK:
+			_error("cannot save %s: %s" % [_display_path(final_path), error_string(save_error)])
+			return
+		print("saved %s" % _display_path(final_path))
+
+
+func _staging_name(final_path: String) -> String:
+	return _display_path(final_path).replace("/", "__")
+
+
+func _new_staging_dir(stage: String) -> String:
+	return "%s/.build-%s-staging-%d" % [STAGING_ROOT, stage, Time.get_ticks_usec()]
+
+
+func _marker_path_for_stage(stage: String) -> String:
+	return "%s/.build-%s-failed.json" % [STAGING_ROOT, stage]
+
+
+func _write_build_marker(path: String, status: String, stage: String, targets: Array[String]) -> void:
+	_ensure_dir(path.get_base_dir())
+	if not _errors.is_empty():
+		return
+
+	var target_paths: Array[String] = []
+	for target in targets:
+		target_paths.append(_display_path(target))
+
+	var payload := {
+		"status": status,
+		"stage": stage,
+		"targets": target_paths,
+	}
+	var text := JSON.stringify(payload, "\t")
+	var file := FileAccess.open(_global_path(path), FileAccess.WRITE)
+	if file == null:
+		_error("cannot write marker %s: %s" % [_display_path(path), error_string(FileAccess.get_open_error())])
+		return
+	file.store_string(text + "\n")
+	file.close()
+
+
 func _ensure_dir(path: String) -> void:
 	var display := _display_path(path)
-	var error := DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(path))
+	var error := DirAccess.make_dir_recursive_absolute(_global_path(path))
 	if error != OK and error != ERR_ALREADY_EXISTS:
 		_error("cannot create directory %s: %s" % [display, error_string(error)])
 
@@ -421,5 +540,113 @@ func _display_path(path: String) -> String:
 	return path
 
 
+func _global_path(path: String) -> String:
+	if path.begins_with("res://") or path.begins_with("user://"):
+		return ProjectSettings.globalize_path(path)
+	return path
+
+
 func _error(message: String) -> void:
 	_errors.append(message)
+
+
+func _run_self_tests() -> void:
+	var failures: Array[String] = []
+	_self_test_duplicate_stage(failures)
+	_self_test_non_divisible_sheet(failures)
+	_self_test_chroma_soft_edge(failures)
+	_self_test_failure_marker_preserves_final(failures)
+	_self_test_success_marker(failures)
+
+	if failures.is_empty():
+		print("character asset builder self-test OK")
+		quit(0)
+	else:
+		for failure in failures:
+			printerr(failure)
+		printerr("character asset builder self-test FAILED: %d errors" % failures.size())
+		quit(1)
+
+
+func _self_test_duplicate_stage(failures: Array[String]) -> void:
+	_errors.clear()
+	var old_stage := _stage_name
+	var stages := _parse_stage_args(PackedStringArray(["--stage=all", "--stage=walk"]))
+	_assert(stages.is_empty(), "duplicate stage returns no selected stages", failures)
+	_assert(_errors.size() == 1, "duplicate stage reports exactly one error", failures)
+	_assert(_errors.size() > 0 and String(_errors[0]).contains("use only one --stage"), "duplicate stage error is explicit", failures)
+	_errors.clear()
+	_stage_name = old_stage
+
+
+func _self_test_non_divisible_sheet(failures: Array[String]) -> void:
+	_errors.clear()
+	var ok := _validate_animation_grid(Vector2i(401, 201), "res://assets/characters/source/dj_walk.png")
+	_assert(not ok, "non-divisible animation source is rejected", failures)
+	_assert(_errors.size() == 1, "non-divisible source reports exactly one error", failures)
+	_assert(
+		_errors.size() > 0 and String(_errors[0]).contains("found 401x201"),
+		"non-divisible source error includes actual dimensions",
+		failures
+	)
+	_errors.clear()
+
+
+func _self_test_chroma_soft_edge(failures: Array[String]) -> void:
+	var image := Image.create(2, 1, false, Image.FORMAT_RGBA8)
+	image.set_pixel(0, 0, CHROMA_KEY)
+	image.set_pixel(1, 0, Color8(50, 255, 102, 255))
+	_apply_chroma_key(image)
+
+	var removed := image.get_pixel(0, 0)
+	var soft := image.get_pixel(1, 0)
+	_assert(removed.a == 0.0, "fully keyed pixel alpha is zero", failures)
+	_assert(removed.r == 0.0 and removed.g == 0.0 and removed.b == 0.0, "fully keyed pixel RGB is cleared", failures)
+	_assert(soft.a > 0.0 and soft.a < 1.0, "soft-edge pixel keeps partial alpha", failures)
+	_assert(soft.g <= max(soft.r, soft.b) + 0.001, "soft-edge pixel is green-despilled", failures)
+
+
+func _self_test_failure_marker_preserves_final(failures: Array[String]) -> void:
+	var root := "/tmp/sync5-character-builder-self-test-%d" % Time.get_ticks_usec()
+	var marker_path := "%s/.build-walk-failed.json" % root
+	var final_path := "%s/dj/walk.png" % root
+	_ensure_dir(final_path.get_base_dir())
+	var stale := Image.create(2, 2, false, Image.FORMAT_RGBA8)
+	stale.fill(Color.RED)
+	_assert(stale.save_png(final_path) == OK, "atomicity test writes existing final fixture", failures)
+	var before_hash := FileAccess.get_sha256(final_path)
+	_write_build_marker(marker_path, "failed", "walk", [final_path])
+	var ok := _validate_animation_grid(Vector2i(401, 201), "%s/source_bad_walk.png" % root)
+	_assert(not ok, "atomicity test fault input is rejected", failures)
+	var after_hash := FileAccess.get_sha256(final_path)
+	_assert(before_hash == after_hash, "failed marker does not touch existing final bytes", failures)
+	_assert(_read_marker_status(marker_path) == "failed", "failed marker records failed status", failures)
+	_errors.clear()
+
+
+func _self_test_success_marker(failures: Array[String]) -> void:
+	var root := "/tmp/sync5-character-builder-self-test-%d" % Time.get_ticks_usec()
+	var marker_path := "%s/.build-walk-failed.json" % root
+	var final_path := "%s/dj/walk.png" % root
+	_write_build_marker(marker_path, "ok", "walk", [final_path])
+	_assert(_read_marker_status(marker_path) == "ok", "success marker records ok status", failures)
+	_errors.clear()
+
+
+func _read_marker_status(path: String) -> String:
+	if not FileAccess.file_exists(path):
+		return ""
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		return ""
+	var parser := JSON.new()
+	if parser.parse(file.get_as_text()) != OK:
+		return ""
+	if typeof(parser.data) != TYPE_DICTIONARY:
+		return ""
+	return String((parser.data as Dictionary).get("status", ""))
+
+
+func _assert(condition: bool, message: String, failures: Array[String]) -> void:
+	if not condition:
+		failures.append(message)
