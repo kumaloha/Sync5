@@ -15,6 +15,9 @@ const VALID_KIND := ["target", "support"]
 const VALID_RARITY := ["common", "uncommon", "rare"]
 
 const MANIFEST_PATH := "res://assets/jokers/manifest.json"
+const CARD_SIZE := Vector2i(1240, 1376)
+const PREVIEW_SIZE := Vector2i(155, 172)
+const RUNTIME_ART_SIZE := Vector2i(1024, 400)
 const PLACEHOLDER_WORDS := [
 	"todo", "tbd", "fixme", "placeholder", "lorem", "xxx", "replace me", "fill in",
 	"待定", "占位",
@@ -33,7 +36,7 @@ func _initialize() -> void:
 		print("joker asset manifest OK: %d records" % IDS.size())
 		quit(0)
 	else:
-		print("joker asset manifest FAILED: %d errors" % _errors.size())
+		printerr("joker asset manifest FAILED: %d errors" % _errors.size())
 		quit(1)
 
 
@@ -61,6 +64,8 @@ func _check_manifest() -> void:
 		return
 
 	var manifest_dict := manifest as Dictionary
+	_check_manifest_envelope(manifest_dict)
+
 	if not manifest_dict.has("cards"):
 		_error("%s missing required field 'cards'" % _display_path(MANIFEST_PATH))
 		return
@@ -83,6 +88,47 @@ func _check_manifest() -> void:
 		_check_record(i, rec)
 
 
+func _check_manifest_envelope(manifest: Dictionary) -> void:
+	if not manifest.has("version"):
+		_error("%s missing required field 'version'" % _display_path(MANIFEST_PATH))
+	elif typeof(manifest["version"]) != TYPE_FLOAT and typeof(manifest["version"]) != TYPE_INT:
+		_error("%s.version must be 1" % _display_path(MANIFEST_PATH))
+	elif float(manifest["version"]) != 1.0:
+		_error("%s.version must be 1, found %s" % [_display_path(MANIFEST_PATH), str(manifest["version"])])
+
+	_check_size_field(manifest, "card_size", CARD_SIZE)
+	_check_size_field(manifest, "preview_size", PREVIEW_SIZE)
+	_check_size_field(manifest, "runtime_art_size", RUNTIME_ART_SIZE)
+
+
+func _check_size_field(manifest: Dictionary, key: String, expected: Vector2i) -> void:
+	var path := "%s.%s" % [_display_path(MANIFEST_PATH), key]
+	if not manifest.has(key):
+		_error("%s missing required field '%s'" % [_display_path(MANIFEST_PATH), key])
+		return
+
+	var value: Variant = manifest[key]
+	if typeof(value) != TYPE_ARRAY:
+		_error("%s must be [%d, %d]" % [path, expected.x, expected.y])
+		return
+
+	var size_array := value as Array
+	if size_array.size() != 2:
+		_error("%s must have exactly 2 entries, found %d" % [path, size_array.size()])
+		return
+
+	for i in range(2):
+		if typeof(size_array[i]) != TYPE_FLOAT and typeof(size_array[i]) != TYPE_INT:
+			_error("%s[%d] must be a number" % [path, i])
+			return
+
+	var actual := Vector2i(int(size_array[0]), int(size_array[1]))
+	if actual != expected or float(size_array[0]) != float(expected.x) or float(size_array[1]) != float(expected.y):
+		_error("%s must be [%d, %d], found [%s, %s]" % [
+			path, expected.x, expected.y, str(size_array[0]), str(size_array[1]),
+		])
+
+
 func _check_record(index: int, rec: Dictionary) -> void:
 	for key in REQUIRED:
 		if not rec.has(key):
@@ -102,6 +148,12 @@ func _check_record(index: int, rec: Dictionary) -> void:
 	else:
 		_error("manifest.cards[%d] is outside the immutable %d-card ID list" % [index, IDS.size()])
 
+	if index < IDS.size() and rec.has("code") and typeof(rec["code"]) == TYPE_STRING:
+		var expected_code := _expected_code(index)
+		var actual_code := String(rec["code"])
+		if actual_code != expected_code:
+			_error("manifest.cards[%d].code must be '%s', found '%s'" % [index, expected_code, actual_code])
+
 	if rec.has("kind") and typeof(rec["kind"]) == TYPE_STRING and not VALID_KIND.has(String(rec["kind"])):
 		_error("manifest.cards[%d].kind must be one of %s" % [index, VALID_KIND])
 
@@ -116,13 +168,19 @@ func _check_record(index: int, rec: Dictionary) -> void:
 	_check_placeholder_copy("manifest.cards[%d]" % index, rec)
 
 
+func _expected_code(index: int) -> String:
+	if index < 8:
+		return "T-%02d" % (index + 1)
+	return "S-%02d" % (index - 7)
+
+
 func _check_assets() -> void:
 	for id in IDS:
 		var joker_id := String(id)
 		_check_image("source", "res://assets/jokers/source/joker_%s.png" % joker_id, Vector2i(1024, 1024))
-		_check_image("runtime", "res://assets/jokers/joker_%s.png" % joker_id, Vector2i(1024, 400))
-		_check_image("card", "res://assets/jokers/cards/joker_%s.png" % joker_id, Vector2i(1240, 1376))
-		_check_image("preview", "res://assets/jokers/previews/joker_%s.png" % joker_id, Vector2i(155, 172))
+		_check_image("runtime", "res://assets/jokers/joker_%s.png" % joker_id, RUNTIME_ART_SIZE)
+		_check_image("card", "res://assets/jokers/cards/joker_%s.png" % joker_id, CARD_SIZE)
+		_check_image("preview", "res://assets/jokers/previews/joker_%s.png" % joker_id, PREVIEW_SIZE)
 		_check_prompt(joker_id)
 
 
