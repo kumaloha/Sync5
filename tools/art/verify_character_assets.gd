@@ -94,8 +94,11 @@ func _check_manifest() -> void:
 			continue
 
 		var gameplay_rec := {}
-		if i < gameplay_records.size() and typeof(gameplay_records[i]) == TYPE_DICTIONARY:
-			gameplay_rec = gameplay_records[i] as Dictionary
+		if i < gameplay_records.size():
+			if typeof(gameplay_records[i]) == TYPE_DICTIONARY:
+				gameplay_rec = gameplay_records[i] as Dictionary
+			else:
+				_error("%s.characters[%d] must be an object" % [_display_path(GAMEPLAY_PATH), i])
 
 		_check_record(i, rec as Dictionary, gameplay_rec, seen)
 
@@ -190,6 +193,13 @@ func _check_avatar_crop(index: int, rec: Dictionary) -> void:
 			_error("manifest.characters[%d].avatar_crop[%d] must be a number" % [index, i])
 			return
 
+	var x := float(crop[0])
+	var y := float(crop[1])
+	var w := float(crop[2])
+	var h := float(crop[3])
+	if x < 0.0 or y < 0.0 or w <= 0.0 or h <= 0.0 or x + w > 1.0 or y + h > 1.0:
+		_error("manifest.characters[%d].avatar_crop must stay within normalized bounds with x,y >= 0, w,h > 0, x+w <= 1, y+h <= 1" % index)
+
 
 func _check_assets() -> void:
 	for id_value in IDS:
@@ -260,6 +270,8 @@ func _check_prompt(id: String) -> void:
 		_error("prompt %s id must be '%s', found '%s'" % [
 			_display_path(path), id, String(prompt.get("id", "")),
 		])
+
+	_check_placeholder_copy("prompt %s" % _display_path(path), prompt)
 
 	for key in PROMPT_FIELDS:
 		if typeof(prompt.get(key)) != TYPE_STRING or String(prompt.get(key, "")).strip_edges().is_empty():
