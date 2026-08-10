@@ -1,0 +1,9 @@
+{
+  "id": "stageexit",
+  "prompt": "Use case: stylized-concept. Asset type: Sync5 game Joker central totem for a compact 145×50 runtime window. The reference is only a high-level guide for black-glass material and sharp neon rim; do not copy its subject, text, frame, or composition. Style/medium: original high-contrast hard-edged 2D cyberpunk nightclub illustration, black glass and dark metal, crisp cyan neon rim, one tiny magenta hotspot, strong memorable silhouette. Composition: one compact centered symbolic totem, entire silhouette visible, meaningful subject should occupy at least 55% of image width and 60% of image height when possible, prefer a compact near-square or sturdy vertical arrangement over a thin panoramic strip, generous but not excessive padding, immediately readable after conversion to a 145×50 display. Background: perfectly flat solid #00ff00, uniform, no texture, gradient, floor, shadow, reflection, or lighting variation; no #00ff00 in subject. Constraints: no card frame, title, digits, letters, words, random glyphs, logo, watermark, detailed narrative scene, or cropped subject; crisp separated edges. Avoid photorealism, painterly haze, generic circles, tiny details. Common cyan secondary. Create ‘让位 / Stage Exit’: three distinct royal-mask busts—a youthful page, a queen with crown, and a king with crown—bowing together while stepping off a small stage arrow, no letters, ranks, or text.",
+  "revision": 1,
+  "source_sha256": "9177a8262d9643f0b944498257bc11e10f108fea2c85c162cd7e55c3b222a7b4",
+  "tool_mode": "built-in",
+  "reference": "assets/reference/ref_joker_holo_synth.png",
+  "raw_codex_path": "/Users/kuma/.codex/generated_images/019fe632-fdfa-76f2-850c-53239465ebcd/exec-b0fd7c31-845e-4163-9424-b536ae0ed22e.png"
+}
