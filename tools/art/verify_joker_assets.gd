@@ -243,6 +243,14 @@ func _check_prompt(id: String) -> void:
 	var source_sha := String(prompt.get("source_sha256", ""))
 	if not _is_sha256(source_sha):
 		_error("prompt %s source_sha256 must be 64 lowercase SHA-256 hex characters" % _display_path(path))
+	else:
+		var source_path := "res://assets/jokers/source/joker_%s.png" % id
+		if FileAccess.file_exists(source_path):
+			var actual_source_sha := FileAccess.get_sha256(source_path)
+			if source_sha != actual_source_sha:
+				_error("prompt %s source_sha256 does not match %s" % [
+					_display_path(path), _display_path(source_path),
+				])
 
 
 func _check_placeholder_copy(path: String, value: Variant) -> void:

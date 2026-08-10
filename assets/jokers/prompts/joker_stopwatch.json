@@ -2,7 +2,7 @@
   "id": "stopwatch",
   "prompt": "Use case: stylized-concept. Asset type: Sync5 game Joker central totem for a compact 145×50 runtime window. Reference only guides black-glass material and sharp neon rim; do not copy its synth, text, frame, or composition. Original hard-edged 2D cyberpunk nightclub illustration, dark glass/metal, crisp cyan neon rim, one tiny magenta hotspot, memorable silhouette. One compact centered totem; full silhouette visible; subject fills at least 55% width and 60% height where possible; prefer compact near-square or sturdy vertical structure, no thin strip; readable at 145×50. Perfectly flat uniform solid #00ff00 background, no texture, gradient, floor, shadow, reflection, or variation; no #00ff00 in subject. No card frame, title, digits, letters, words, random glyphs, logo, watermark, crowded narrative, or crop. Crisp edges; avoid photorealism, haze, generic circles, tiny detail. Uncommon violet secondary. Create ‘秒表 / Stopwatch’: one unmistakable mechanical stopwatch with a segmented remaining-time wedge still glowing and several dark elapsed wedges; no digits or text, strong top button and hand.",
   "revision": 1,
-  "source_sha256": "5423366ec445505babeefa00c93a79a2f406010ec10a9fb97ac72164d3d7069b",
+  "source_sha256": "2e5143b38723cb080282d2677370f75ec702b8400135d06c89f6a711025eea46",
   "tool_mode": "built-in",
   "reference": "assets/reference/ref_joker_holo_synth.png",
   "raw_codex_path": "/Users/kuma/.codex/generated_images/019fe632-fdfa-76f2-850c-53239465ebcd/exec-87928abb-6223-4cc7-bc7e-13aa6971c49d.png"
