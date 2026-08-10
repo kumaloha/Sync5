@@ -45,6 +45,13 @@ buying it replaces yours outright: the pivot arc). Support defines **HOW**.
   upgrade-once system; full slots → replace one or skip.
 - **Roster size: Target 5 + Support 18** (batch 2 added three rule rescues).
 - Targets carry no rarity — one per run, drafted equally.
+- **⚑ 2026-08-10 用户拍板:roster 目标总数 60**(Target 8 + Support 52)。终选名单、
+  配额 60 口径、稀释数学与实施状态全在 [`jokers_atlas.md`](jokers_atlas.md) §0/§5,
+  本文的 roster/quota 节保留为批 2 时代的历史口径。批 3 分波入池,每张过
+  `SYNC5_KIT_ID=<id>` 单卡门;`curve`(burst/fixed/growth/floating/decay)自此为
+  support 的**数据必填项**(`core/db.gd` 校验)—— 配额表的记账单位,忘填直接红。
+- ⚑ 同日新增判据:**有用但无感 = 没用**(杀延长音的理由:「谁差这一秒」)——
+  卡的价值必须能被感受,不只是被测量;与「测出近零不许改内容」互为两个方向的镜像。
 
 ## Scoring formula and channels
 
@@ -136,7 +143,11 @@ currency, never just inflates the number):
   watchable Rube Goldberg machine; FLY/MERGE/BURST must show how the number
   snowballed.
 
-## Support quota table (hard targets for the 15-card roster)
+## Support quota table (batch-2 时代的 15 张口径,历史保留)
+
+> ⚑ **60 张口径的配额表在 [`jokers_atlas.md`](jokers_atlas.md) §0**(2026-08-10 起生效):
+> burst ~22 · fixed ~10 · growth ~8 · floating ~6 · decay ≤2;普 ~24 / 罕 ~18 / 稀 8(稀释保护);
+> 原则上限不随规模放大:复制 1 · 甜品 ≤2 · 衰减 ≤2 且不入稀有。
 
 | Axis | Quota |
 |---|---|
@@ -152,6 +163,11 @@ prev_kind, acted_late, discards, coins`.
 To add for the v0.1 roster: `additive` (B1 channel), `last_action_time`,
 `phrase_idx_in_section`, cache contents at settle, per-joker state counters.
 Economy hook: discard cost must consult installed jokers.
+
+⚑ 2026-08-10 批 3 扩容后的现役 ctx 追加:`phrase_idx` `cache_cards` `scoring_cards`
+`early_finish` `section_idx`;谓词扩到 21 个、操作码新增 `additive_low_value` 与
+`chips_per_card{card_filter}`(一个操作码解锁整个牌面族)。完整词汇账单见
+[`jokers_atlas.md`](jokers_atlas.md) §3。
 
 ## Draft shop (decided + implemented 2026-08)
 
