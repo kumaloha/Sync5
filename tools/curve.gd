@@ -23,7 +23,10 @@ const N_RUNS := 100
 ##   "adaptive" → 规则机器人。产出 `sim.json bot_targets`(**影子表**, 只给 sim 判生死用)
 ## 机器人比完美玩家弱得多, 所以两张表差一个量级 —— 拿错了会让 sim 的通关率整体失真
 ## (2026-08-07 实测:影子表过期后 random 队列通关 95.3%, 尺子彻底没有区分度)。
-const BOT := "adaptive"
+## 2026-08-10 起可用 SYNC5_CURVE_BOT=perfect|adaptive 覆盖(SYNC5_KIT_ID 同款先例),
+## 两个尺度可以连跑, 不用再改这个常量。默认仍是 adaptive, 行为不变。
+var BOT: String = OS.get_environment("SYNC5_CURVE_BOT") \
+	if OS.get_environment("SYNC5_CURVE_BOT") in ["perfect", "adaptive"] else "adaptive"
 
 ## 设计难度谱:每段「到达者中的死亡率」。**2026-08-07 用户拍板挪进 `data/run.json`** ——
 ## 目标函数已换成「留存最大化」, 所以这条曲线的形状是**待搜索的参数**, 不是我拍的常量。

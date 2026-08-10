@@ -52,7 +52,10 @@ func _amt(id: String) -> float:
 	for e in DB.jokers():
 		if String(e["id"]) == id:
 			for fx in e.get("effects", []):
-				for ch in ["mult_add", "additive", "bonus", "bonus_pct", "coins"]:
+				# chips_per_card / additive_low_value 是 2026-08-10 批 3 的新操作码 ——
+				# 前者返回每张的 chips, 后者返回「按多少计」的面值;期望命中数在 ev.cards 里。
+				for ch in ["mult_add", "additive", "bonus", "bonus_pct", "coins",
+						"chips_per_card", "additive_low_value"]:
 					if fx.get("do", {}).has(ch):
 						var raw = fx["do"][ch]
 						return 0.0 if raw is Dictionary else float(raw)
@@ -125,6 +128,23 @@ func _card_ev(id: String, st: Dictionary, slots: Array, phrases_left: int) -> fl
 			var tb: Array = p["target_bonus"]
 			var bonus: float = float(tb[1]) if tid in tb[0] else 0.0
 			return (float(p["base"]) + bonus) * score_mean
+		# ---- 2026-08-10 批 3。缺这些臂时兜底 0.0 = bot 永远不买新卡 →
+		# 货架 2/3 死货 → 金币边际价值塌平, gate 单调性哨兵当场红(起始金币 −3→0 无差)。
+		# 数额照旧 _amt 从 json 推导, 行为先验(fixed_rate/hits/pairs)在 ev.cards。 ----
+		"variation":
+			return (1.0 - _rate(st, String(p["rate"]), float(p["prior"]))) * _amt(id) * mult_mean
+		"reprise":
+			return _rate(st, String(p["rate"]), float(p["prior"])) * _amt(id) * score_mean
+		"opener":
+			return float(p["fixed_rate"]) * _amt(id) * score_mean
+		"popup", "rainbow", "nopair", "backup", "rehearsal", "fullcast":
+			return float(p["fixed_rate"]) * _amt(id) * mult_mean
+		"superfan":
+			return _amt(id) * float(p["pairs"]) * score_mean
+		"warmtone", "cooltone", "undertone":
+			return _amt(id) * float(p["hits"]) * mult_mean
+		"bassclef":
+			return (_amt(id) - float(p["avg_low_rank"])) * float(p["hits"]) * mult_mean
 	return 0.0
 
 

@@ -63,6 +63,7 @@ func _replay_one(path: String, inject: bool) -> void:
 		return
 	var hand: Array = []
 	var cache: Array = []
+	var spot := ""
 	var have_beat := false
 	var n_line := 0
 	while not fh.eof_reached():
@@ -80,6 +81,9 @@ func _replay_one(path: String, inject: bool) -> void:
 				# 锚点:一拍开始时的真实局面。
 				hand = _arr(d.get("hand", []))
 				cache = _arr(d.get("cache", []))
+				# S4 聚光 boon 的第六张(2026-08-10 抓到的重放缺口:打点没漏 ——
+				# beat 事件一直带着 spotlight 字段 —— 是这边的状态模型没读它)。
+				spot = String(d.get("spotlight", ""))
 				have_beat = true
 				# A(s) 的规模在这里就该是确定的 —— 手牌 5 + 缓存 cap。
 				# 缓存容量随脸变(smallstage 3→2), 所以只断言"非空且 <= cap"。
@@ -144,9 +148,27 @@ func _replay_one(path: String, inject: bool) -> void:
 				# 必须和实际计分的 5 张**逐张相同**(集合意义)。
 				# 对不上 = 形式化漏了一条会改手牌的转移。
 				var played := _arr(d.get("cards", []))
-				if not _same_multiset(played, hand):
-					_fail.append("%s settle 打的是 %s, 而重放推出的手牌是 %s —— 状态模型漏了一条转移"
-						% [path, str(played), str(hand)])
+				if spot == "":
+					if not _same_multiset(played, hand):
+						_fail.append("%s settle 打的是 %s, 而重放推出的手牌是 %s —— 状态模型漏了一条转移"
+							% [path, str(played), str(hand)])
+				else:
+					# 聚光拍:结算 = 手牌 5 + 聚光牌里取最佳 5。重放不追踪 deck.rules
+					# (「最佳」依赖规则牌), 所以不重推最佳, 只断言**合法性**:
+					# 打出的 5 张必须是 hand ∪ {spotlight} 的子多重集 —— L2 管的是
+					# 转移合法, 「选得对不对」由 t_boon 的单元契约守。
+					var pool: Array = hand.duplicate()
+					pool.append(spot)
+					var missing := 0
+					for c in played:
+						var at2: int = pool.find(c)
+						if at2 >= 0:
+							pool.remove_at(at2)
+						else:
+							missing += 1
+					if played.size() != GameConfig.HAND_SIZE or missing > 0:
+						_fail.append("%s settle(聚光) 打的 %s 不是 hand+spotlight(%s + %s) 的合法五张"
+							% [path, str(played), str(hand), spot])
 				have_beat = false
 	fh.close()
 	if inject:

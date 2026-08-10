@@ -2,10 +2,10 @@
  "_comment": "机器人信念表(design/tech.md)。牌面数额不在这里——_card_ev/_target_mult 直接读 jokers.json,消灭双写。",
  "_comment_targets": "机器人尺度**影子表**, 只给 sim 判生死用 —— **不是**真人面对的表(那张在 run.json)。由 `tools/curve.gd` 生成(`BOT := \"adaptive\"`): 规则机器人打满 24 拍不判生死, 按设计谱 [10%,30%,45%,60%] 逐段在幸存者里取分位数。2026-08-07 重算: 旧值 [215,540,895,1345] 是 2026-08-06 定的, 之后经历公式改 chips×mult、节奏改 4×6、**弃牌免费**、牌型倍率两轮重定、Target 全面重定价, **一次都没重算** —— 失效到 `random` 队列通关 **95.3%**(乱打都能过), 尺子彻底没有区分度。⚠ **表长必须 == 段数**(短了会被静默截断成放水盘, 测试锁着)。⚠ 改任何规则或数值后都要重算它, 否则 sim 的绝对通关率不可读, 只能看相对排名。",
  "bot_targets": [
-  505,
-  1673,
-  3396,
-  4331
+  496,
+  995,
+  4004,
+  4741
  ],
  "runs": 1000,
  "cohorts": [
@@ -101,6 +101,51 @@
   "growth_horizon": 0.5,
   "glowstick_horizon": 10.0,
   "cards": {
+   "variation": {
+    "rate": "rep",
+    "prior": 0.3
+   },
+   "reprise": {
+    "rate": "rep",
+    "prior": 0.3
+   },
+   "opener": {
+    "fixed_rate": 0.167
+   },
+   "popup": {
+    "fixed_rate": 0.25
+   },
+   "rainbow": {
+    "fixed_rate": 0.25
+   },
+   "nopair": {
+    "fixed_rate": 0.45
+   },
+   "backup": {
+    "fixed_rate": 0.15
+   },
+   "rehearsal": {
+    "fixed_rate": 0.3
+   },
+   "fullcast": {
+    "fixed_rate": 0.12
+   },
+   "superfan": {
+    "pairs": 3.0
+   },
+   "warmtone": {
+    "hits": 2.5
+   },
+   "cooltone": {
+    "hits": 2.5
+   },
+   "undertone": {
+    "hits": 1.4
+   },
+   "bassclef": {
+    "avg_low_rank": 3.5,
+    "hits": 1.4
+   },
    "encore": {
     "rate": "rep",
     "prior": 0.3
