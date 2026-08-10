@@ -6,5 +6,5 @@
   "dance_prompt": "Using the supplied approved portrait as the exact identity reference, create an eight-frame looping victory dance for this same character.\nProfession action: toss and catch the shaker, then present a glowing drink.\nLayout: clean 4 columns × 2 rows, chronological frames left-to-right then top-to-bottom, equal cell size, full body visible, consistent camera, scale, face, hair, clothes, palette, and profession prop.\nThe loop must have a clear anticipation, two strong celebration keys, and a return pose. Readable at 128×128; simplify tiny costume details without changing identity.\nFlat chroma-key background exactly #00FF66, no shadows, no floor, no borders, no labels, no numbers, no text, no watermark.",
   "portrait_source_sha256": "ae3ff72ef0f9f5d12a813e733b8494d97dbe314005553222245e3ca31e74571f",
   "walk_source_sha256": "a0e1dc613031823077813b4d44e17d4b42d42a4a79ee2d99ced65b7e8c54f1d9",
-  "dance_source_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+  "dance_source_sha256": "eb55c5f70e4523542fea7de06b67c6f5f583d2b22b9536831d2a23b8cfdfeb21"
 }

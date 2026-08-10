@@ -6,5 +6,5 @@
   "dance_prompt": "Using the supplied approved portrait as the exact identity reference, create an eight-frame looping victory dance for this same character.\nProfession action: bounce low, punch one hand toward the crowd, then lift the microphone.\nLayout: clean 4 columns × 2 rows, chronological frames left-to-right then top-to-bottom, equal cell size, full body visible, consistent camera, scale, face, hair, clothes, palette, and profession prop.\nThe loop must have a clear anticipation, two strong celebration keys, and a return pose. Readable at 128×128; simplify tiny costume details without changing identity.\nFlat chroma-key background exactly #00FF66, no shadows, no floor, no borders, no labels, no numbers, no text, no watermark.",
   "portrait_source_sha256": "9a8ba7db487b90b7cf1350b19d61d2c98dd1a94760709a487576180a40cacba4",
   "walk_source_sha256": "580d336f025ff07b29a88baf0d2f828bdc8fa893612a106240d035ce5806f16a",
-  "dance_source_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+  "dance_source_sha256": "26373a3f40da4aa2b72b6c4f4e10fd69ca9b300fe35312e983cd7a1ab02aeb59"
 }

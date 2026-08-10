@@ -6,5 +6,5 @@
   "dance_prompt": "Using the supplied approved portrait as the exact identity reference, create an eight-frame looping victory dance for this same character.\nProfession action: spin the tattoo machine safely, reveal a glowing geometric motif, then nod.\nLayout: clean 4 columns × 2 rows, chronological frames left-to-right then top-to-bottom, equal cell size, full body visible, consistent camera, scale, face, hair, clothes, palette, and profession prop.\nThe loop must have a clear anticipation, two strong celebration keys, and a return pose. Readable at 128×128; simplify tiny costume details without changing identity.\nFlat chroma-key background exactly #00FF66, no shadows, no floor, no borders, no labels, no numbers, no text, no watermark.",
   "portrait_source_sha256": "76b0e2b53d9e6f4f51eb2649ca3cb298471e9017a1681b4b4b1e80bfaa648496",
   "walk_source_sha256": "ab7665e33be76459eccfbeb684fff082808fdaa63f626868e8a60702665abe79",
-  "dance_source_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+  "dance_source_sha256": "f24b87c3fb406d54e684aac8047f9436db57971d7aeea418027f592a0c652b77"
 }
