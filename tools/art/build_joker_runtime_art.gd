@@ -5,7 +5,9 @@ const SOURCE_TEMPLATE := "res://assets/jokers/source/joker_%s.png"
 const OUTPUT_TEMPLATE := "res://assets/jokers/joker_%s.png"
 const SOURCE_SIZE := Vector2i(1024, 1024)
 const OUTPUT_SIZE := Vector2i(1024, 400)
-const ART_BOX_SIZE := Vector2i(400, 400)
+const ART_BOX_SIZE := Vector2i(900, 360)
+const ALPHA_THRESHOLD := 64.0 / 255.0
+const BBOX_PADDING := 24
 
 var _errors: Array[String] = []
 
@@ -153,15 +155,19 @@ func _build_runtime_art(id: String) -> void:
 		return
 
 	source.convert(Image.FORMAT_RGBA8)
-	if not _has_visible_pixel(source):
-		_error("source %s has no non-transparent pixel" % _display_path(source_path))
+	var bbox := _meaningful_alpha_bbox(source)
+	if bbox.size == Vector2i.ZERO:
+		_error("source %s has no meaningful non-transparent pixel" % _display_path(source_path))
 		return
 
-	var scale: float = min(1.0, min(float(ART_BOX_SIZE.x) / float(size.x), float(ART_BOX_SIZE.y) / float(size.y)))
-	var scaled_size := Vector2i(max(1, int(round(size.x * scale))), max(1, int(round(size.y * scale))))
-	var art := Image.create(size.x, size.y, false, Image.FORMAT_RGBA8)
-	art.blit_rect(source, Rect2i(Vector2i.ZERO, size), Vector2i.ZERO)
-	if scaled_size != size:
+	var padded_bbox := _pad_rect(bbox, BBOX_PADDING, size)
+	var crop_size := padded_bbox.size
+	var scale: float = min(1.0, min(float(ART_BOX_SIZE.x) / float(crop_size.x), float(ART_BOX_SIZE.y) / float(crop_size.y)))
+	var scaled_size := Vector2i(max(1, int(round(crop_size.x * scale))), max(1, int(round(crop_size.y * scale))))
+	var art := Image.create(crop_size.x, crop_size.y, false, Image.FORMAT_RGBA8)
+	art.fill(Color(0, 0, 0, 0))
+	art.blit_rect(source, padded_bbox, Vector2i.ZERO)
+	if scaled_size != crop_size:
 		art.resize(scaled_size.x, scaled_size.y, Image.INTERPOLATE_LANCZOS)
 
 	var output := Image.create(OUTPUT_SIZE.x, OUTPUT_SIZE.y, false, Image.FORMAT_RGBA8)
@@ -178,12 +184,30 @@ func _build_runtime_art(id: String) -> void:
 	print("saved %s" % _display_path(output_path))
 
 
-func _has_visible_pixel(image: Image) -> bool:
+func _meaningful_alpha_bbox(image: Image) -> Rect2i:
+	var min_x := image.get_width()
+	var min_y := image.get_height()
+	var max_x := -1
+	var max_y := -1
 	for y in range(image.get_height()):
 		for x in range(image.get_width()):
-			if image.get_pixel(x, y).a > 0.0:
-				return true
-	return false
+			if image.get_pixel(x, y).a >= ALPHA_THRESHOLD:
+				min_x = min(min_x, x)
+				min_y = min(min_y, y)
+				max_x = max(max_x, x)
+				max_y = max(max_y, y)
+
+	if max_x < min_x or max_y < min_y:
+		return Rect2i(Vector2i.ZERO, Vector2i.ZERO)
+	return Rect2i(min_x, min_y, max_x - min_x + 1, max_y - min_y + 1)
+
+
+func _pad_rect(rect: Rect2i, padding: int, bounds: Vector2i) -> Rect2i:
+	var x: int = max(0, rect.position.x - padding)
+	var y: int = max(0, rect.position.y - padding)
+	var right: int = min(bounds.x, rect.position.x + rect.size.x + padding)
+	var bottom: int = min(bounds.y, rect.position.y + rect.size.y + padding)
+	return Rect2i(x, y, right - x, bottom - y)
 
 
 func _finish() -> void:

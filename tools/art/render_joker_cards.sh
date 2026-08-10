@@ -144,7 +144,7 @@ stage_webroot() {
   stage_file "$REPO_ROOT/assets/fonts/Rajdhani-Bold.ttf" "assets/fonts/Rajdhani-Bold.ttf"
   while IFS= read -r id; do
     [ -n "$id" ] || continue
-    stage_file "$REPO_ROOT/assets/jokers/source/joker_$id.png" "assets/jokers/source/joker_$id.png"
+    stage_file "$REPO_ROOT/assets/jokers/joker_$id.png" "assets/jokers/joker_$id.png"
   done <<EOF
 $IDS
 EOF
@@ -209,7 +209,7 @@ require_http_status "/assets/jokers/manifest.json" "200"
 require_http_status "/project.godot" "404"
 while IFS= read -r id; do
   [ -n "$id" ] || continue
-  require_http_status "/assets/jokers/source/joker_$id.png" "200"
+  require_http_status "/assets/jokers/joker_$id.png" "200"
 done <<EOF
 $IDS
 EOF

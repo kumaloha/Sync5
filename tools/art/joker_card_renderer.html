@@ -279,7 +279,7 @@
       root.querySelector(".amount").textContent = card.amount;
       root.querySelector(".trigger").textContent = card.trigger_zh;
       const img = root.querySelector("img");
-      img.src = `/assets/jokers/source/joker_${id}.png`;
+      img.src = `/assets/jokers/joker_${id}.png`;
 
       try {
         await Promise.all([document.fonts.ready, loadImage(img)]);
