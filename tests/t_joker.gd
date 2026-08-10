@@ -2,9 +2,9 @@ extends RefCounted
 
 # --- v0.1 joker roster ---
 func run(t) -> void:
-	# roster shape: Target 5 + Support 15, rarity 7/5/3 (design/jokers.md quota table)
+	# roster shape (2026-08-10 批3首波): Target 6 + Support 22, 终态 60 见 design/jokers_atlas.md §5
 	var pool := Joker.pool()
-	t.eq(pool.size(), 23, "pool holds 23 jokers")
+	t.eq(pool.size(), 28, "pool holds 28 jokers")
 	var targets := 0
 	var rarities := {"common": 0, "uncommon": 0, "rare": 0}
 	for j in pool:
@@ -17,9 +17,9 @@ func run(t) -> void:
 			rarities[j.rarity] = int(rarities.get(j.rarity, 0)) + 1
 		# principle D2: EN card text, ≤7 words
 		t.check(j.fx_text.split(" ").size() <= 7, "%s card text within 7 words" % j.id)
-	t.eq(targets, 5, "five targets")
-	t.eq(rarities["common"], 7, "seven common supports")
-	t.eq(rarities["uncommon"], 6, "six uncommon supports")
+	t.eq(targets, 6, "six targets (wrecker 待 bot 弃牌策略后 +1)")
+	t.eq(rarities["common"], 9, "nine common supports")
+	t.eq(rarities["uncommon"], 8, "eight uncommon supports")
 	t.eq(rarities["rare"], 5, "five rare supports")
 	t.check(Joker.by_id("nope") == null, "by_id on unknown id -> null")
 

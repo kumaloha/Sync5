@@ -22,21 +22,23 @@ func run(t) -> void:
 	t.eq(Character.roster().size(), 8, "8 characters from data")
 	t.check(DB.validate_characters({"characters": [{"idx": 1, "cn": "x", "title": "t", "fx": "f"}]}) != "",
 		"non-dense idx detected")
-	t.eq(Joker.pool().size(), 23, "23 jokers from data")
+	t.eq(Joker.pool().size(), 28, "28 jokers from data (2026-08-10 批3首波:+kaleido/variation/reprise/fullcast/superfan;wrecker 等 bot 学会弃牌流再入)")
 	# 卡面文字随平衡改, 别抄死 —— 只锁「读得回来 + 符合 D2 的 ≤7 词」
 	t.check(Joker.by_id("twin").fx_text.length() > 0, "joker text roundtrip")
 	for oid in GameConfig.JOKER_PRICE_OVERRIDES:
 		t.check(Joker.by_id(String(oid)) != null, "price override id '%s' exists" % oid)
 	# ⚠ 夹具必须带 `proof` —— 否则 2026-08-09 加的「proof 必填」会**先**把它拦下,
 	# 这条断言照样是绿的, 但它测的就不再是「未知谓词」了。
+	# ⚠ 夹具同样必须带 `curve`(2026-08-10 必填)—— 理由同上面 proof 那条:
+	# 缺了它断言照绿, 但测的就不再是「未知谓词」了。
 	t.check(DB.validate_jokers({"jokers": [{"id": "x", "name": "X", "cn": "x", "kind": "support",
-		"rarity": "common", "proof": "score", "fx": "f",
+		"rarity": "common", "curve": "burst", "proof": "score", "fx": "f",
 		"effects": [{"when": {"typo": 1}, "do": {"bonus": 1}}]}]}) != "",
 		"unknown predicate detected")
 	# 小丑牌的覆盖自证通路(design/jokers.md 验证方案)—— 漏声明必须直接红,
 	# 否则一张新牌可以悄悄绕过 `tools/kit.gd` 那道门。和脸的 `proof` 同一条锁。
 	var good_joker := {"id": "x", "name": "X", "cn": "x", "kind": "support",
-		"rarity": "common", "proof": "score", "fx": "f"}
+		"rarity": "common", "curve": "burst", "proof": "score", "fx": "f"}
 	t.eq(DB.validate_jokers({"jokers": [good_joker]}), "",
 		"a joker with a declared proof channel validates (sanity check on the fixture)")
 	var no_proof := good_joker.duplicate()

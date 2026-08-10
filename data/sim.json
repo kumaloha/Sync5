@@ -73,14 +73,16 @@
   "stair": 8.0,
   "mono": 6.0,
   "triplet": 5.0,
-  "lonewolf": 4.0
+  "lonewolf": 4.0,
+  "kaleido": 4.0
  },
  "counterfactual_tv": {
   "twin": 2.6,
   "stair": 1.5,
   "mono": 1.55,
   "triplet": 2.2,
-  "lonewolf": 1.7
+  "lonewolf": 1.7,
+  "kaleido": 2.3
  },
  "lonewolf_value": {
   "high_prior": 0.35,

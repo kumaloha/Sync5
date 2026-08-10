@@ -150,6 +150,7 @@
    "cn": "回响",
    "kind": "support",
    "rarity": "common",
+   "curve": "burst",
    "proof": "score",
    "fx": "Same hand as last phrase: +80",
    "effects": [
@@ -169,6 +170,7 @@
    "cn": "尾声",
    "kind": "support",
    "rarity": "common",
+   "curve": "burst",
    "proof": "score",
    "fx": "Act in final 2 seconds: +70",
    "effects": [
@@ -188,6 +190,7 @@
    "cn": "周转",
    "kind": "support",
    "rarity": "common",
+   "curve": "burst",
    "proof": "score",
    "fx": "+20 per discard this phrase",
    "effects": [
@@ -208,6 +211,7 @@
    "cn": "小费罐",
    "kind": "support",
    "rarity": "common",
+   "curve": "burst",
    "proof": "coin",
    "fx": "Zero discards this phrase: +2 coins",
    "effects": [
@@ -227,6 +231,7 @@
    "cn": "和弦",
    "kind": "support",
    "rarity": "common",
+   "curve": "burst",
    "proof": "score",
    "fx": "Cache all one suit: +120",
    "effects": [
@@ -246,6 +251,7 @@
    "cn": "灯牌",
    "kind": "support",
    "rarity": "common",
+   "curve": "fixed",
    "proof": "score",
    "fx": "+80",
    "effects": [
@@ -262,6 +268,7 @@
    "cn": "黑胶",
    "kind": "support",
    "rarity": "common",
+   "curve": "growth",
    "proof": "score",
    "fx": "Every discard: +3 forever",
    "counters": {
@@ -290,6 +297,7 @@
    "cn": "副歌",
    "kind": "support",
    "rarity": "uncommon",
+   "curve": "burst",
    "proof": "score",
    "fx": "Last phrase of section: +75%",
    "effects": [
@@ -309,6 +317,7 @@
    "cn": "利息",
    "kind": "support",
    "rarity": "uncommon",
+   "curve": "floating",
    "proof": "coin",
    "fx": "+1 coin per 4 held",
    "effects": [
@@ -330,6 +339,7 @@
    "cn": "惯性",
    "kind": "support",
    "rarity": "uncommon",
+   "curve": "growth",
    "proof": "score",
    "fx": "Each early finish: +10% forever",
    "counters": {
@@ -358,6 +368,7 @@
    "cn": "贵宾",
    "kind": "support",
    "rarity": "uncommon",
+   "curve": "fixed",
    "proof": "score",
    "fx": "Face cards count as 15",
    "effects": [
@@ -374,6 +385,7 @@
    "cn": "荧光棒",
    "kind": "support",
    "rarity": "uncommon",
+   "curve": "decay",
    "proof": "score",
    "fx": "+60%, fades 6% each phrase",
    "counters": {
@@ -405,6 +417,7 @@
    "cn": "近道",
    "kind": "support",
    "rarity": "uncommon",
+   "curve": "fixed",
    "proof": "solver",
    "fx": "Straights may skip one rank",
    "acquire": {
@@ -417,6 +430,7 @@
    "cn": "四指",
    "kind": "support",
    "rarity": "rare",
+   "curve": "fixed",
    "proof": "solver",
    "fx": "Four-card straights count",
    "acquire": {
@@ -429,6 +443,7 @@
    "cn": "双色调",
    "kind": "support",
    "rarity": "rare",
+   "curve": "fixed",
    "proof": "solver",
    "fx": "Flushes need only matching colors",
    "acquire": {
@@ -441,6 +456,7 @@
    "cn": "贝斯线",
    "kind": "support",
    "rarity": "rare",
+   "curve": "growth",
    "proof": "score",
    "fx": "Every 12 discards: ×0.25 forever",
    "counters": {
@@ -470,6 +486,7 @@
    "cn": "镜面",
    "kind": "support",
    "rarity": "rare",
+   "curve": "floating",
    "proof": "score",
    "fx": "Copies your Target at half power",
    "effects": [
@@ -486,11 +503,130 @@
    "cn": "百搭",
    "kind": "support",
    "rarity": "rare",
+   "curve": "fixed",
    "proof": "solver",
    "fx": "Two wild cards join your deck",
    "acquire": {
     "wilds": 2
    }
+  },
+  {
+   "id": "kaleido",
+   "name": "Kaleidoscope",
+   "cn": "万花筒",
+   "kind": "target",
+   "rarity": "rare",
+   "proof": "score",
+   "fx": "Different made hand: ×4",
+   "effects": [
+    {
+     "when": {
+      "diff_from_prev": true,
+      "kind_in": [
+       "PAIR",
+       "TWO_PAIR",
+       "THREE_KIND",
+       "STRAIGHT",
+       "FLUSH",
+       "FULL_HOUSE",
+       "FOUR_KIND",
+       "STRAIGHT_FLUSH",
+       "ROYAL_FLUSH"
+      ]
+     },
+     "do": {
+      "mult": 4.0
+     }
+    }
+   ]
+  },
+  {
+   "id": "variation",
+   "name": "Variation",
+   "cn": "变奏",
+   "kind": "support",
+   "rarity": "common",
+   "curve": "burst",
+   "proof": "score",
+   "fx": "Different hand than last phrase: +50",
+   "effects": [
+    {
+     "when": {
+      "diff_from_prev": true
+     },
+     "do": {
+      "bonus": 50
+     }
+    }
+   ]
+  },
+  {
+   "id": "reprise",
+   "name": "Reprise",
+   "cn": "复读",
+   "kind": "support",
+   "rarity": "uncommon",
+   "curve": "burst",
+   "proof": "score",
+   "fx": "Same hand as last: +50%",
+   "effects": [
+    {
+     "when": {
+      "same_as_prev": true
+     },
+     "do": {
+      "bonus_pct": 0.5
+     }
+    }
+   ]
+  },
+  {
+   "id": "fullcast",
+   "name": "Full Cast",
+   "cn": "全员",
+   "kind": "support",
+   "rarity": "common",
+   "curve": "burst",
+   "proof": "score",
+   "fx": "Five-card hands: +150",
+   "effects": [
+    {
+     "when": {
+      "kind_in": [
+       "STRAIGHT",
+       "FLUSH",
+       "FULL_HOUSE",
+       "STRAIGHT_FLUSH",
+       "ROYAL_FLUSH"
+      ]
+     },
+     "do": {
+      "bonus": 150
+     }
+    }
+   ]
+  },
+  {
+   "id": "superfan",
+   "name": "Superfan",
+   "cn": "铁粉",
+   "kind": "support",
+   "rarity": "uncommon",
+   "curve": "floating",
+   "proof": "score",
+   "fx": "+5% per 2 coins held",
+   "effects": [
+    {
+     "when": {
+      "coins_gte": 2
+     },
+     "do": {
+      "bonus_pct": 0.05,
+      "per": "coins:2",
+      "cap": 0.3
+     }
+    }
+   ]
   }
  ]
 }

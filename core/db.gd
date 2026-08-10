@@ -368,6 +368,11 @@ const _DO_KEYS := ["mult", "mult_add", "additive", "bonus", "bonus_pct",
 ## 小丑牌的覆盖自证通路。含义见 `validate_jokers` 里的注释与 design/jokers.md。
 const _JOKER_PROOFS := ["score", "solver", "coin"]
 
+## ⚑ `curve` = 时间形状, support 配额表的记账单位(2026-08-10 用户定分类三题后必填)。
+## 15→18 张时配额表静默过期, 病根是「这张卡属于哪类」可以被忘掉 ——
+## 和脸的 tier 同一个病同一个药:**强制作者做一次决定**。quota 见 design/jokers_atlas.md §0。
+const _JOKER_CURVES := ["burst", "fixed", "growth", "floating", "decay"]
+
 
 static func validate_jokers(d: Dictionary) -> String:
 	if not d.has("jokers"):
@@ -376,8 +381,18 @@ static func validate_jokers(d: Dictionary) -> String:
 	for e in d["jokers"]:
 		for k in e:
 			if not ["id", "name", "cn", "kind", "rarity", "proof", "fx", "effects",
-					"counters", "acquire", "shelf"].has(k) and not String(k).begins_with("_"):
+					"counters", "acquire", "shelf", "curve"].has(k) and not String(k).begins_with("_"):
 				return "joker unknown key '%s' (%s)" % [k, e.get("id", "?")]
+		# support 必填 curve(配额记账);target 不填 —— 它是 WHAT 不是 HOW, 不进配额表,
+		# 填了等于同一个口径写两处。
+		if String(e.get("kind", "")) == "support":
+			if not e.has("curve"):
+				return "support '%s' 没有 curve 声明(%s)—— 配额表的记账单位, 见 design/jokers_atlas.md" \
+					% [e.get("id", "?"), " / ".join(_JOKER_CURVES)]
+			if not _JOKER_CURVES.has(String(e["curve"])):
+				return "joker '%s' 的 curve '%s' 不认识, 只能是 %s" % [e["id"], e["curve"], str(_JOKER_CURVES)]
+		elif e.has("curve"):
+			return "target '%s' 不该有 curve(Target 不进 support 配额表)" % e.get("id", "?")
 		# ⚠ `proof` = 这张牌**用什么仪器**证明「模型看得见它」(design/jokers.md 验证方案)。
 		# 和脸的 `proof` 同一个思路,连声明必填这条也一样 —— 漏声明 = 直接红。
 		# **通路是按仪器分的, 不是按机制分的**:
