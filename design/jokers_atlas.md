@@ -2,9 +2,11 @@
 
 > **状态:候选池,等待人工删选;不是已批准内容,数值全部只是量级示意。**
 >
-> 用户拍板(2026-08-10):**roster 总数 60 张**。拆分建议:Target 8(现役 5 + 新 3)
-> + Support 52(现役 18 + 新 34)。本图谱提供 Target 候选 6 + Support 候选 45,
-> 超额约 1/3 供删选。现役 23 张是底座,本文不动它们。
+> 用户拍板(2026-08-10):**roster 总数 60 张;候选出到 100 再做减法**(与盲注图谱同方法:
+> 先覆盖空间,再由人判断趣味、重复、成本与平衡——候选池里有大量不好的,那是覆盖的成本不是事故)。
+> 拆分建议:Target 8(现役 5 + 新 3)+ Support 52(现役 18 + 新 34)。
+> 本图谱提供 **Target 候选 9 + Support 候选 92 = 101 张**,约 2.7 倍超额。
+> 现役 23 张是底座,本文不动它们。
 >
 > 分类口径(2026-08-10 三题决议):五维分类沿用(kind / rarity⇔通道 / proof / curve / 功能轴);
 > **`curve` 升为数据必填**(配额表的记账单位,15→18 张时配额静默过期的教训);
@@ -80,7 +82,7 @@
 | J-07 | 抢拍 Headstart | 普通 | First action within 2 seconds: +50 | burst | 尾声的镜像(早 vs 晚张力对) |
 | J-08 | 谢幕 Curtain Call | 罕见 | Act in the final second: +60% | burst | 尾声的 % 大哥,窗口更窄更险 |
 | J-09 | 定格 Freeze Frame | 罕见 | Early finish: next phrase +30% | burst | 时机×序列杂交;early_finish 事件现成 |
-| J-10 | 双点 Two-Touch | 罕见 | Act early and late: +150 | burst | ⚠ 双窗口,阅读边缘,删选优先怀疑它 |
+| J-10 | 双点 Two-Touch | 普通 | Act early and late: +150 | burst | ⚠ 双窗口,阅读边缘,删选优先怀疑它 |
 | J-11 | 半场 Halftime | 普通 | Phrases 3 and 4: +80 | burst | 段中商店相邻拍;`phrase_idx` 信号要加 |
 
 ### 2.3 序列族(身份轴)
@@ -88,8 +90,8 @@
 | ID | 名称 | 稀有度 | 卡面 | curve | 备注 |
 |---|---|---|---|---|---|
 | J-12 | 复读 Reprise | 罕见 | Same hand as last: +50% | burst | 回响的 % 大哥;撞炒冷饭墙是自选的赌 |
-| J-13 | 首演 Premiere | 罕见 | First time each hand type: +120 | burst | ⚠ A3 边缘:once-per-kind 旗标挂结算内容(无雷可踩,但要拍板) |
-| J-14 | 回旋 Rondo | 罕见 | Alternate two hand types: +70 | burst | ⚠ 要两拍记忆窗(prev2),小词汇 |
+| J-13 | 首演 Premiere | 普通 | First time each hand type: +120 | burst | ⚠ A3 边缘:once-per-kind 旗标挂结算内容(无雷可踩,但要拍板) |
+| J-14 | 回旋 Rondo | 普通 | Alternate two hand types: +70 | burst | ⚠ 要两拍记忆窗(prev2),小词汇 |
 
 (批 3 已含:变奏 J-B3 / 开场 J-B4,见 §2.9)
 
@@ -106,8 +108,8 @@
 |---|---|---|---|---|---|
 | J-17 | 静物 Still Life | 普通 | Zero swaps this phrase: +60 | burst | 小费罐的交换镜像;和弦成套(稳缓存流) |
 | J-18 | 高阁 Top Shelf | 普通 | Cache all ten or higher: +120 | burst | 和弦同形状新谓词;贵宾/独狼配件 |
-| J-19 | 排练 Rehearsal | 罕见 | Cache forms a run: +150 | burst | 阶梯流缓存配件;`cache_run` 小词汇 |
-| J-20 | 三重唱 Trio | 罕见 | Cache three same rank: +200 | burst | 三连音流缓存配件 |
+| J-19 | 排练 Rehearsal | 普通 | Cache forms a run: +150 | burst | 阶梯流缓存配件;`cache_run` 小词汇 |
+| J-20 | 三重唱 Trio | 普通 | Cache three same rank: +200 | burst | 三连音流缓存配件 |
 
 (批 3 已含:串场/伴唱,见 §2.9)
 
@@ -161,8 +163,120 @@
 | J-34 | 空位 Empty Seats | 罕见 | +8% per empty support slot | floating | 反槽位经济:买卡自削——「要不要第三张卡」第一次成为问题 |
 | J-35 | 烟花 Fireworks | 罕见 | ×2.5, leaves after this section | decay | ⚠ 第二张衰减(C5 上限 2);自毁机制要小钩子;「租一段的稀有力量」 |
 | J-36 | 灯串 House Lights | 普通 | +50 and +1 coin | fixed | 第二张无条件甜品(C4 上限 2);双通道小甜水 |
-| J-37 | 铜管 Brass | 罕见 | Made hands: +25% | fixed | 无条件 %,删选优先怀疑(荧光棒的无聊版) |
+| ~~J-37~~ | ~~铜管 Brass~~ | — | ~~Made hands: +25%~~ | — | ❌ **自查出局(B2)**:无条件 % 不是任何档位的合法货币——荧光棒的无条件 % 是拿衰减付的税,这张什么都没付 |
 | J-38 | 收藏家 Collector | 罕见 | Each card bought: +15 forever | growth | 成长挂购买(有代价 A4✓) |
+
+### 2.11 牌面族续(花色与点数结构)
+
+| ID | 名称 | 稀有度 | 卡面 | curve | 备注 |
+|---|---|---|---|---|---|
+| J-39 | 彩虹 Rainbow | 普通 | All four suits in hand: +150 | burst | 反同花纹理;与单色流互斥的张力对 |
+| J-40 | 同色 One Color | 普通 | All cards one color: +100 | burst | 双色调的 burst 小弟;两色 UI 直读 |
+| J-41 | 清唱 A Cappella | 普通 | No face cards: +90 | burst | 反贵宾路线;与低音谱/低声部成套 |
+| J-42 | 双 A Pocket Aces | 普通 | A pair of Aces: +150 | burst | ⚠ 彩票感;高音/尖峰家族的尖子 |
+| J-43 | 高声部 Treble | 普通 | Tens and up: +7 chips each | fixed | chip_per_card 家族;与高阁成套 |
+| J-44 | 低声部 Bass Section | 普通 | Fives and under: +9 chips each | fixed | 小牌流的 chips 底座 |
+| J-45 | 中音 Midrange | 普通 | Sixes through nines: +8 chips each | fixed | ⚠ 纯填充嫌疑,删选优先怀疑 |
+| J-46 | 清流 No Pair | 普通 | No pair in hand: +60 | burst | 反对子纹理;顺/同花/独狼三路的垫 |
+
+### 2.12 弃牌内容族(弃「什么」——A2 四行为里最没被开发的半格)
+
+| ID | 名称 | 稀有度 | 卡面 | curve | 备注 |
+|---|---|---|---|---|---|
+| J-47 | 让位 Stage Exit | 普通 | Each face card discarded: +30 | burst | 反贵宾路线的燃料;蒙面墙下变盲赌 |
+| J-48 | 拆台 Breakup | 普通 | Discard a pair: +100 | burst | 牺牲机制:拆掉现成对子换分,twin 的对家 |
+| J-49 | 舍身 Sacrifice | 普通 | Discard your highest card: +80 | burst | ⚠ 「最高」要标记,阅读边缘 |
+| J-50 | 拾荒 Scavenger | 普通 | Each discard: +1 coin | burst | ⚠ A4 张力:弃牌免费,仅时间限流;金币臂必测 |
+| J-51 | 早弃 Early Purge | 普通 | All discards before 4 seconds: +80 | burst | 收线墙的训练卡;时机×弃牌 |
+| J-52 | 组合拳 Combo | 普通 | Swap and discard this phrase: +80 | burst | 双动词教学(走台候选的奖励侧转世) |
+
+### 2.13 缓存/交换族续
+
+| ID | 名称 | 稀有度 | 卡面 | curve | 备注 |
+|---|---|---|---|---|---|
+| J-53 | 暖房 Greenhouse | 普通 | Cache all one color: +100 | burst | 和弦的宽松版;条件易读 |
+| J-54 | 候场 Understudies | 普通 | Cache holds a pair: +80 | burst | 三重唱的小弟 |
+| J-55 | 保险柜 Vault | 罕见 | Untouched cache all section: +150% | burst | ⚠ 段级状态管道;与丢谱/翻篇/墨迹墙对赌,大赌卡 |
+| J-56 | 原班 Original Cast | 普通 | Settle the dealt hand: +120 | burst | 零弃+零换的胆量封顶;小费罐/静物一家 |
+| ~~J-57~~ | ~~走位 Footwork~~ | — | ~~+30 per swap this phrase~~ | — | ❌ **自查出局(A4)**:交换免费且次数无上限,按次付钱 = 来回换牌刷分机。我起初写的「自然封顶」是错的——串场(J-B2)要求参与成牌才有上限,这张没有 |
+
+### 2.14 时机/序列族续(身份轴加厚)
+
+| ID | 名称 | 稀有度 | 卡面 | curve | 备注 |
+|---|---|---|---|---|---|
+| J-58 | 换手 Opening Swap | 普通 | First action a swap: +60 | burst | 动词顺序条件;岔轨墙联动 |
+| J-59 | 休止符 Rest Note | 普通 | Untouched phrase: +120 | burst | ⚠ 反决策密度边缘:玩点=「这拍歇不歇」,乐理上很美,删选时想清楚 |
+| J-60 | 渐强 Crescendo | 普通 | Beat last phrase's score: +60 | burst | 自链棘轮;⚠ 轻微藏分动机 |
+| J-61 | 秒表 Stopwatch | 罕见 | +8% per second left at settle | burst | 速弹 Target 的最佳拍档;时间→分数的字面翻译 |
+| J-62 | 压轴 Grand Finale | 罕见 | Final section: +100% | burst | S4 特化;和 6s+返场共舞 |
+| J-63 | 快闪 Pop-Up | 普通 | Section one only: +200 | decay | ⚠ 衰减席位(≤2):悬崖式,glowstick 是坡式 |
+| J-64 | 热场 Warm-Up Act | 普通 | +100, fades 10 each phrase | decay | ⚠ 同上,线性版;四张衰减候选选二 |
+
+### 2.15 经济族续(金币玩点的主战场)
+
+| ID | 名称 | 稀有度 | 卡面 | curve | 备注 |
+|---|---|---|---|---|---|
+| J-65 | 全下 All-In | 罕见 | Spend every coin: +30% | burst | ⚠ 跨商店→拍状态管道;反利息的张力对 |
+| J-66 | 穷开心 Broke & Happy | 稀有 | Coins cap at 5; +35% | fixed | 自断经济换常驻力量;与利息/囤积互斥 |
+| J-67 | 常客 Regular | 稀有 | Rerolls cost nothing | fixed | 60 张池的搜索机制之三(联票/赞助之后) |
+| J-68 | 守财 Saver | 罕见 | Buy nothing at shop: +40% | burst | ⚠ 反构筑动机(不买卡变强),想清楚再留 |
+| J-69 | 打包 Doggy Bag | 普通 | Double the target: +3 coins | burst | 溢出分→金币;twin 的天然伴生 |
+| J-70 | 逆袭 Underdog | 罕见 | Behind target at settle: +40% | burst | ⚠ 橡皮筋手感;落后补偿 |
+| J-71 | 预支 Advance | 罕见 | 8 coins now, then −1 each phrase | decay | ⚠ 自愿贷款(不违金币禁令——那是盲注侧的);feel-bad 风险 |
+| J-72 | 常规 Bread & Butter | 普通 | Pairs: +1 coin | burst | twin 经济引擎;平淡而有家 |
+| J-73 | 加薪 Raise | 罕见 | Section wages: +2 coins | fixed | 工资线放大;最朴素的经济卡 |
+| J-74 | 告别 Farewell Show | 罕见 | Sell a joker: next phrase +150 | burst | ⚠ 卖卡→下拍状态管道;换血流的润滑 |
+| J-75 | 点唱机 Jukebox | 稀有 | Shops always offer a rule card | fixed | 定向搜索(独狼 target_guaranteed 先例);规则流的可靠性来源 |
+
+### 2.16 规则/牌库/信息族续
+
+| ID | 名称 | 稀有度 | 卡面 | curve | 备注 |
+|---|---|---|---|---|---|
+| J-76 | 保底 Floor | 罕见 | High Card scores as Pair | fixed | kind 重映射(结算层,非判定手术);新手/独狼垫。与 J-77 同族选一 |
+| J-77 | 升格 Promotion | 稀有 | Two Pair scores as Trips | fixed | 同上;三连音路线的桥 |
+| J-78 | 转型 Reinvention | 罕见 | Each Target change: +40% forever | growth | 成长挂换旗(有代价 A4✓);pivot 弧的奖励侧 |
+| J-79 | 修剪 Trim | 稀有 | Twos and threes leave deck | fixed | 牌库手术(enable_wilds 先例);抽牌质量的构筑投资 |
+| J-80 | 加签 Extra Aces | 稀有 | Two extra Aces join deck | fixed | 牌库注入;高音/尖峰/独狼一家 |
+| J-81 | 第六人 Sixth Man | 稀有 | Draw a sixth card each phrase | fixed | ⚠ 手牌布局手术;若聚光 boon 落地则机制现成 |
+| J-82 | 透牌 X-Ray | 稀有 | Preview your next refill | fixed | 信息增益卡(构筑侧唯一);被砍的预视 boon 转世;belief 通路 |
+| J-83 | 盲奏 Blind Play | 罕见 | +15 chips per hidden card | fixed | 只在蒙面/暗补/暗灯墙下点亮——不读脸 ID 的墙联动;C3 sleeper 典型 |
+| J-84 | 半途 Halfway | 普通 | Three ranks in a row: +80 | burst | 顺子上坡垫;与台阶灯/排练一家 |
+| J-85 | 大满贯 Jackpot | 普通 | Quads or better: +500 | burst | ⚠ 彩票尖峰;kind_in 零词汇 |
+
+### 2.17 Target 候选续
+
+| ID | 名称 | 卡面 | 流派 | 备注 |
+|---|---|---|---|---|
+| T-07 | 拆迁 Demolition | Three discards: made hands ×3.5 | 弃牌行为流 | 周转/快手/黑胶的旗;与配给墙对赌 |
+| T-08 | 串流 Flow | After a swap: hands ×3 | 交换行为流 | 交换轴的旗;单换墙下每拍一次抉择 |
+| T-09 | 满花 All Suits | Four suits in hand: ×4 | 反同花纹理流 | 彩虹的旗;与单色正面互斥 |
+
+### 2.18 有意不开的空间(不是漏了,是不该去)
+
+| 空间 | 不开的理由 |
+|---|---|
+| 第二张复制卡 | B4 槽序无意义 → 邻位复制无法定义;镜面保持唯一(C6) |
+| 万能牌扩张(第三张 wild) | 判定暴力代入 ≤2 是引擎硬顶 |
+| 读脸 ID 的卡(「某某墙下 ×2」) | 盲注不检查小丑,反向也一样——耦合爆炸;盲奏(J-83)读的是「盖住的牌」这个状态,不是脸 ID,是唯一合法形态 |
+| 主角联动卡 | 主角 roster 自己还是初稿,过早耦合 |
+| 主动技能卡 | 全被动是拍板(8 秒的注意力归时钟) |
+| 算术条件卡(「手牌点数和 ≥N」) | 压力语言是操作不是心算 |
+
+### 2.19 标准自查记录(2026-08-10,用户点名「回忆标准再说」之后补)
+
+对照 design/jokers.md 的 A1–A5 / B1–B4 / C1–C6 / D1–D3 逐张过了一遍,结果:
+
+| 处置 | 卡 | 违反的条款 |
+|---|---|---|
+| **出局 ×2** | 走位(J-57) | A4:交换免费且无限,按次付钱 = 刷分机 |
+| | 铜管(J-37) | B2:无条件 % 不是任何档位的合法货币 |
+| **降普通 ×12** | 双点/首演/回旋/排练/三重唱/双A/清流/拆台/舍身/原班/休止符/大满贯 | B2:**平加(+N)是普通档的货币**——「条件更难」不是货币,不能靠它抬稀有度 |
+| **升罕见 ×1** | 逆袭(J-70) | B2 反向:条件 % 不是普通档的货币 |
+| **降罕见 ×1** | 保险柜(J-55) | B2:% 不是稀有档的货币(稀有 = ×倍率/复制/改规则) |
+| **待改支付 ×1** | 穷开心(J-66) | 保稀有的话,回报应从 +35% 改成 ×1.3 一类(规则是稀有货币,报酬也该是) |
+
+我犯的系统性错误就一条:**拿条件难度当稀有度**——这是 B2「升稀有度只许换货币、不许只加大数字」的镜像违规。
+另有四张衰减形(荧光棒现役/烟花/快闪/热场)争 ≤2 席、两张无条件甜品(灯牌现役/灯串)争 ≤2 席,删选时按席位裁。
 
 ---
 
@@ -177,8 +291,9 @@
 
 ## 4. 删选建议与回传格式
 
-超额约 1/3。建议按族删:每族至少留一对张力(早 vs 晚、动 vs 稳、红 vs 黑),
-单卡自足 ≥2/3,⚠ 标记的六张(J-10/13/14/28/35/37)优先怀疑。
+自查后有效候选 **99 张**(2 张出局见 §2.19),对 37 个名额约 2.7 倍超额——按你的方法论,大量不好是覆盖的成本。
+建议按族删:每族至少留一对张力(早 vs 晚、动 vs 稳、红 vs 黑、存 vs 花),
+单卡自足 ≥2/3,带 ⚠ 的十余张优先怀疑,四张衰减选一、两张甜品选一。
 删完后我按 60 口径重写 jokers.md 配额表、`curve` 进 schema、逐张入 json(数值留你调)。
 
 ```text
