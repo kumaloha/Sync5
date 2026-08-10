@@ -1,0 +1,9 @@
+{
+  "id": "variation",
+  "prompt": "Use case: stylized-concept. Asset type: Sync5 game Joker central totem inside a 145×50 runtime window. The input reference is only a high-level guide for black-glass material and sharp neon rim; do not copy its subject, text, card frame, or composition. Style/medium: original high-contrast hard-edged 2D cyberpunk nightclub illustration, dark glass and black metal, crisp cyan neon rim, strong memorable silhouette. Composition/framing: exactly one centered symbolic mechanism or prop, at most one supporting object, generous padding, entire recognition-critical silhouette visible in the center safe area and readable after conversion into a 145×50 display window. Scene/backdrop: perfectly flat solid #00ff00 chroma-key background, uniform, no texture, gradient, floor, shadow, reflection, or lighting variation; no #00ff00 in subject. Constraints: no narrative scene, no card frame, no title, digits, letters, words, random glyphs, logo, or watermark; crisp separated edges. Avoid photorealism, soft painterly haze, crowded scene, cropped subject, repeated generic circle icon, tiny details. Common secondary color: cyan only, with one tiny magenta hotspot. Create the Joker totem ‘变奏 / Variation’. Subject: one melody rail that forks into two visibly different angular routes and rejoins, conveying two variations of the same phrase; no musical letters or text.",
+  "revision": 1,
+  "source_sha256": "f6a3b3fcb2fa79065800f9fd4693d3897337c9bb0bac6eb855fadb589a0b2e74",
+  "tool_mode": "built-in",
+  "reference": "assets/reference/ref_joker_holo_synth.png",
+  "raw_codex_path": "/Users/kuma/.codex/generated_images/019fe632-fdfa-76f2-850c-53239465ebcd/exec-39df6a9a-6d34-43a5-9d6b-ac3912b61a92.png"
+}
