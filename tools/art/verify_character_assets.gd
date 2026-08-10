@@ -21,6 +21,7 @@ const SOURCE_SHA_FIELDS := {
 	"walk": "walk_source_sha256",
 	"dance": "dance_source_sha256",
 }
+const BUILD_MARKER_STAGES := ["portrait", "walk", "dance", "all"]
 const MANIFEST_PATH := "res://assets/characters/manifest.json"
 const GAMEPLAY_PATH := "res://data/characters.json"
 const PLACEHOLDER_WORDS := [
@@ -34,6 +35,7 @@ var _errors: Array[String] = []
 
 
 func _initialize() -> void:
+	_check_build_markers()
 	_check_manifest()
 	_check_assets()
 
@@ -101,6 +103,35 @@ func _check_manifest() -> void:
 				_error("%s.characters[%d] must be an object" % [_display_path(GAMEPLAY_PATH), i])
 
 		_check_record(i, rec as Dictionary, gameplay_rec, seen)
+
+
+func _check_build_markers() -> void:
+	for stage_value in BUILD_MARKER_STAGES:
+		var expected_stage := String(stage_value)
+		var path := "res://assets/characters/.build-%s-failed.json" % expected_stage
+		if not FileAccess.file_exists(path):
+			continue
+
+		var marker_value: Variant = _read_json_object(path)
+		if marker_value == null:
+			continue
+
+		var marker := marker_value as Dictionary
+		var stage := String(marker.get("stage", ""))
+		if stage != expected_stage:
+			_error("build marker %s stage must be '%s', found '%s'" % [
+				_display_path(path), expected_stage, stage,
+			])
+
+		var status := String(marker.get("status", ""))
+		if status != "ok" and status != "failed":
+			_error("build marker %s status must be 'ok' or 'failed', found '%s'" % [
+				_display_path(path), status,
+			])
+		elif status == "failed":
+			_error("build marker %s reports failed stage '%s'; character assets may be stale" % [
+				_display_path(path), expected_stage,
+			])
 
 
 func _check_manifest_envelope(manifest: Dictionary) -> void:
