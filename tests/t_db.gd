@@ -67,6 +67,10 @@ func run(t) -> void:
 		"faces.json rejects a per-face _why key (prose must live in design/blinds.md §7)")
 	var tape_face := good_face.duplicate(true)
 	tape_face["proof"] = "tape"
-	tape_face["tape_required"] = true
-	t.eq(DB.validate_faces({"faces": [tape_face], "fixed_tiers": [1]}), "",
-		"real-time faces can declare tape proof and tape_required")
+	t.check(DB.validate_faces({"faces": [tape_face], "fixed_tiers": [1]}) != "",
+		"'tape' is not a proof channel — proof stays model-side, gate has no tape arm to build")
+	var rt_face := good_face.duplicate(true)
+	rt_face["proof"] = "solver"
+	rt_face["tape_required"] = true
+	t.eq(DB.validate_faces({"faces": [rt_face], "fixed_tiers": [1]}), "",
+		"real-time faces keep a model proof and declare tape_required separately")

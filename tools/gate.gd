@@ -149,6 +149,9 @@ func _run_belief(cfg: Dictionary, ids: Array, n: int) -> void:
 func _run_target(cfg: Dictionary, ids: Array, n: int) -> void:
 	print("\n  ---- ③ target 通路(目标分) ----")
 	for fid in ids:
+		if SectionMod.required_kinds(fid) > 0:
+			_check_kind_gate(fid)
+			continue
 		var mult := SectionMod.target_mult(fid)
 		var run := Run.new()
 		var moved := false
@@ -167,10 +170,41 @@ func _run_target(cfg: Dictionary, ids: Array, n: int) -> void:
 			% [fid, mult, "✓ 目标分随之变化" if moved else "❌ 目标分纹丝不动"])
 		if not moved:
 			_fail.append("%s: 目标分完全没动 —— 没接上 core/run.gd" % fid)
+	# 2026-08-10 起给行为臂传真实基准与豁免位:trilogy 实测 0.0 ±0.0 —— 规则 bot
+	# 六拍里天然打出 ≥3 种牌型(对子/两对/高牌), 配额对它不 binding。这是「对仪器是
+	# 空气」不是「没接上」(_check_kind_gate 的翻盘验算证明接上了), 所以要走豁免通道,
+	# 而豁免只在「量级小」分支生效 —— 不传基准时量级恒真, 豁免永远够不着。
 	var base := _play_sections(cfg, "", 1.0, 0, n)
 	for fid in ids:
 		var arm := _play_sections(cfg, fid, 1.0, 0, n)
-		_judge("%s: 通关段数(判生死)" % fid, base, arm)
+		_judge("%s: 通关段数(判生死)" % fid, base, arm, Stat.mean(base), _weak_declared(fid))
+
+
+## required_kinds 族(trilogy):惩罚不长在 target() 的数值上, 长在 advance() 的
+## `cleared` 判定里 —— 分数够但牌型种数不够 = 段失败(2026-08-10 抓到的教训:
+## 它声明 solver 时量出精确 +0.0, 因为 solver 臂只看总分, 而它根本不动分数)。
+## 所以算术验算不问「目标动没动」, 直接问 Run:同一份高分, 种数差一即必须翻盘。
+## 行为臂(通关段数)与 target_mult 族共用上面那段。
+func _check_kind_gate(fid: String) -> void:
+	var kinds := SectionMod.required_kinds(fid)
+	var flipped := true
+	for met_quota in [false, true]:
+		var run := Run.new()
+		run.section_idx = 0
+		run.run_faces = {0: fid}
+		run.phrase_in_section = GameConfig.PHRASES_PER_SECTION - 1
+		run.section_score = run.target() + 1
+		run.section_kinds = {}
+		var have: int = kinds if met_quota else kinds - 1
+		for i in have:
+			run.section_kinds["kind_%d" % i] = true
+		var out := run.advance()
+		if bool(out["cleared"]) != met_quota:
+			flipped = false
+	print("    %-28s required_kinds = %d  %s"
+		% [fid, kinds, "✓ 种数不足即翻盘(判生死接上了)" if flipped else "❌ cleared 没有随种数翻转"])
+	if not flipped:
+		_fail.append("%s: 分数达标时 cleared 没有随牌型种数翻转 —— required_kinds 没接进 core/run.gd" % fid)
 
 
 ## --- ④ 结构单调性(design/gates.md):无论数值怎么调都必须成立的方向。 ---

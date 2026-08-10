@@ -97,7 +97,7 @@
       "params": {
         "discard_lock_last": 2.0
       },
-      "proof": "tape",
+      "proof": "solver",
       "tape_required": true,
       "tier": 1
     },
@@ -109,7 +109,7 @@
       "params": {
         "swap_lock_last": 2.0
       },
-      "proof": "tape",
+      "proof": "solver",
       "tape_required": true,
       "tier": 1
     },
@@ -259,7 +259,7 @@
       "params": {
         "required_kinds": 3
       },
-      "proof": "solver",
+      "proof": "target",
       "tier": 3
     },
     {
@@ -344,5 +344,14 @@
   "fixed_tiers": [
     4
   ],
-  "weak_upper_bound": []
+  "weak_upper_bound": [
+    "lastcall",
+    "lockup",
+    "onetake",
+    "wetink",
+    "request",
+    "lostpage",
+    "lowend",
+    "trilogy"
+  ]
 }

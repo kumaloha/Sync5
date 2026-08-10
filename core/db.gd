@@ -337,7 +337,11 @@ static func validate_boons(d: Dictionary) -> String:
 ## ⚠ **选错通路会把结论量反, 而且不报错。** 2026-08-07 第一次全量跑抓到: 用规则 bot 量
 ## freshsheet(翻篇)得到 **+1584 分**(脸让玩家变强!), 换成完美玩家是 **−790**。
 ## 规则 bot 不跨拍养缓存, 洗掉缓存反而帮它甩了烂牌。**攻击跨拍养牌或时间预算的脸必须走 solver。**
-const FACE_PROOFS := ["score", "solver", "belief", "target", "tape"]
+## ⚠ 「tape」不是通路(2026-08-10 修复):真人验证是另一条证据线, 用每张脸的
+## `tape_required` 标志声明, 不顶替模型通路 —— 否则 tools/gate.gd 无臂可造,
+## 门会当场红(实测 lastcall 就是这样死的)。时间窗类脸走 solver + weak_upper_bound
+## (模型上界近零, 真人待定), 与铁律「测出近零不许改内容」同一条线。
+const FACE_PROOFS := ["score", "solver", "belief", "target"]
 
 
 static func _validate_face_proof(d: Dictionary, tier_of: Dictionary) -> String:

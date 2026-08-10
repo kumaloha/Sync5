@@ -580,11 +580,23 @@ void fragment() {
 		return _bar
 
 
-	## 盲注是一个稳定的视觉类别，而不是用颜色兼任难度刻度。所有轮次统一
-	## 用品红；轮次和压力靠 01/04、规则名和目标数读取。终局正向惊喜另用金色。
-	static func accent_for(_section_idx: int) -> Color:
-		return StageTheme.PINK
+	## 档位色 = **四档递进**(2026-08-06 用户拍板: 4 个盲注全是 BOSS 墙,
+	## 小盲/大盲的概念作废, 递进感全部由档位色 + 序号承担):
+	## 蓝 → 橙 → 红 → 粉, 逐档升温。前三档沿用用户拍板的红蓝橙
+	## (「不喜欢这个绿色, 红蓝橙可能更好」), 第四档取调色板里的粉——
+	## 霓虹灯管最刺眼的就是品红, 语义上是「红再往上」的终局色。
+	## 首页舞台卡与局内盲注卡共用这一处, 两边永远同色。
+	## (2026-08-10 曾被改成全轮统一品红, 违反上述已锁定拍板, 已还原。)
+	static func accent_for(section_idx: int) -> Color:
+		match clampi(section_idx, 0, 3):
+			0: return StageTheme.BLUE
+			1: return StageTheme.AMBER
+			2: return StageTheme.RED
+			_: return StageTheme.PINK
+		return StageTheme.BLUE
 
+	## 第四轮爽点的专属色:金。它是「正向惊喜」这个新视觉类别, 不参与档位递进,
+	## 也只在 boon 条上出现 —— 语义自带颜色的小件不受全局 chrome 规则影响(同头像环青/金币金)。
 	static func boon_accent() -> Color:
 		return StageTheme.GOLD
 
