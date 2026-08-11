@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  body { margin:0; background:#04050d; }
+  a { color:#35e8e0; text-decoration:none; } a:hover { color:#ff4fa3; }
+  @keyframes dcrain { from { background-position:0 0, 0 0; } to { background-position:-80px 900px, -60px 760px; } }
+  @keyframes dcpulse { 0%,100% { opacity:.85; } 50% { opacity:1; } }
+  @keyframes dcfloat { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-9px); } }
+  @keyframes dcbadge { 0%,100% { transform:scale(1); } 50% { transform:scale(1.16); } }
+</style>
+</helmet>
+<div style="position:relative;width:720px;height:1280px;margin:0 auto;overflow:hidden;background:linear-gradient(180deg,#070a1a 0%,#0a0d22 45%,#05060f 78%,#03030a 100%);font-family:'Rajdhani','Noto Sans SC',sans-serif;color:#cfe6ef;user-select:none;">
+  <div style="position:absolute;inset:0;background:radial-gradient(520px 300px at 12% 2%,{{ cA2 }},transparent 68%),radial-gradient(560px 340px at 88% 6%,{{ cA2 }},transparent 68%),radial-gradient(520px 440px at 50% 40%,{{ cA2 }},transparent 74%);"></div>
+  <div style="position:absolute;inset:0;pointer-events:none;background:linear-gradient(115deg,transparent 18%,rgba(160,200,255,.04) 32%,rgba(255,255,255,.06) 39%,transparent 50%,transparent 64%,rgba(160,200,255,.04) 76%,transparent 88%);"></div>
+
+  <div style="position:absolute;left:44px;right:44px;top:22px;display:flex;align-items:center;gap:14px;padding:12px 20px;border-radius:22px;border:1px solid {{ cA2 }};background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.07) 45%,transparent 58%),radial-gradient({{ cA2 }} 1px,transparent 1.4px),linear-gradient(178deg,rgba(24,28,56,.34),rgba(7,9,22,.42));background-size:auto,26px 26px,auto;backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);box-shadow:0 0 24px {{ cA2 }}, inset 0 0 24px {{ cA2 }};z-index:10;">
+    <div style="position:absolute;left:22px;right:22px;top:-1px;height:1.5px;border-radius:2px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.9) 26%,rgba(255,255,255,.75) 74%,transparent);box-shadow:0 0 9px {{ cA6 }}, 0 0 22px {{ cA4 }};pointer-events:none;"></div>
+    <div style="position:absolute;left:80px;right:80px;bottom:-1px;height:1px;background:linear-gradient(90deg,transparent,{{ cA4 }},transparent);pointer-events:none;"></div>
+    <div style="flex:1;min-width:0;">
+      <div style="font-size:22px;font-weight:700;letter-spacing:6px;color:#eaf6ff;text-shadow:0 0 10px {{ cA5 }};">主角图鉴</div>
+      <div style="margin-top:2px;font-size:13px;letter-spacing:3px;color:#7487ac;">已解锁 {{ ownedCount }} / 12</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;padding:3px 12px;border-radius:12px;border:1px solid rgba(255,179,71,.45);background:rgba(30,18,4,.45);">
+      <div style="width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ffe9c9,#ffb347 60%,#c77b12);box-shadow:0 0 8px rgba(255,179,71,.7);"></div>
+      <div style="font-size:16px;font-weight:700;color:#ffd9a0;">{{ coins }}</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;padding:3px 12px;border-radius:12px;border:1px solid rgba(165,107,255,.45);background:rgba(20,10,36,.45);">
+      <div style="width:13px;height:13px;background:linear-gradient(135deg,#e7d6ff,#a56bff 60%,#6a35c2);transform:rotate(45deg);border-radius:3px;box-shadow:0 0 8px rgba(165,107,255,.7);"></div>
+      <div style="font-size:16px;font-weight:700;color:#cdb2ff;">86</div>
+    </div>
+  </div>
+
+  <div style="position:absolute;left:44px;right:44px;top:112px;height:504px;border-radius:26px;border:1px solid {{ cA2 }};background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.06) 45%,transparent 60%),radial-gradient({{ cA2 }} 1px,transparent 1.4px),linear-gradient(178deg,rgba(24,28,56,.34),rgba(7,9,22,.46));background-size:auto,26px 26px,auto;backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);box-shadow:0 0 30px {{ cA2 }}, inset 0 0 30px {{ cA2 }};overflow:hidden;z-index:4;">
+    <div style="position:absolute;left:26px;right:26px;top:-1px;height:1.5px;border-radius:2px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.9) 26%,rgba(255,255,255,.75) 74%,transparent);box-shadow:0 0 9px {{ cA6 }}, 0 0 22px {{ cA4 }};pointer-events:none;"></div>
+    <div style="position:absolute;left:50%;bottom:-140px;width:420px;height:420px;transform:translateX(-50%);border-radius:50%;background:radial-gradient(circle,{{ cA3 }},transparent 68%);filter:blur(30px);pointer-events:none;"></div>
+
+    <div style="position:absolute;left:50%;top:40px;width:300px;height:360px;transform:translateX(-50%);display:flex;align-items:center;justify-content:center;animation:dcfloat 6s ease-in-out infinite;pointer-events:none;">
+      <svg width="170" height="170" viewBox="0 0 26 26" fill="none" style="opacity:.28;filter:drop-shadow(0 0 14px {{ cA5 }});">
+        <path d="M13,4.5 a4,4 0 1,0 0.01,0 M6,21.5 Q6,15 13,15 Q20,15 20,21.5" stroke="{{ c }}" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"></path>
+      </svg>
+    </div>
+
+    <div style="position:absolute;left:26px;top:56px;display:flex;flex-direction:column;gap:9px;">
+      <div style="font-size:12px;letter-spacing:3px;color:{{ cDim }};">TYPE</div>
+      <div style="font-size:19px;font-weight:600;letter-spacing:2px;color:#eaf6ff;text-shadow:0 0 9px {{ cA5 }};">{{ heroType }}</div>
+      <div style="margin-top:6px;font-size:12px;letter-spacing:3px;color:{{ cDim }};">RARITY</div>
+      <div style="display:flex;gap:3px;font-size:17px;line-height:1;">
+        <sc-for list="{{ rarityStars }}" as="st" hint-placeholder-count="4">
+          <span style="color:{{ st.color }};text-shadow:0 0 8px {{ st.glow }};">★</span>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="position:absolute;right:26px;top:56px;display:flex;flex-direction:column;gap:12px;align-items:flex-end;">
+      <sc-for list="{{ stats }}" as="s" hint-placeholder-count="3">
+        <div style="width:112px;">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;">
+            <span style="font-size:12px;letter-spacing:2px;color:{{ cDim }};">{{ s.label }}</span>
+            <span style="font-size:15px;font-weight:700;color:#eaf6ff;">{{ s.value }}</span>
+          </div>
+          <div style="margin-top:4px;height:5px;border-radius:3px;background:rgba(20,26,54,.9);border:1px solid {{ cA2 }};overflow:hidden;">
+            <div style="width:{{ s.pct }};height:100%;border-radius:3px;background:linear-gradient(90deg,{{ cA6 }},{{ c }});box-shadow:0 0 8px {{ cA6 }};"></div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="position:absolute;left:26px;right:26px;bottom:22px;">
+      <div style="display:flex;align-items:baseline;justify-content:center;gap:12px;">
+        <div style="font-size:40px;font-weight:700;letter-spacing:6px;color:#fff;text-shadow:0 0 14px {{ cA9 }}, 0 0 36px {{ cA5 }};line-height:1.1;">{{ heroName }}</div>
+        <div style="font-size:14px;letter-spacing:3px;color:{{ cDim }};">{{ heroEn }}</div>
+      </div>
+      <div style="margin-top:10px;height:1px;background:linear-gradient(90deg,transparent,{{ cA5 }},transparent);"></div>
+      <div style="margin-top:10px;display:flex;align-items:center;gap:12px;">
+        <div style="flex-shrink:0;padding:4px 12px;border-radius:10px;border:1px solid {{ cA5 }};font-size:13px;letter-spacing:2px;color:{{ c }};text-shadow:0 0 8px {{ cA5 }};">被动</div>
+        <div style="flex:1;min-width:0;font-size:16px;color:#e8f2ff;text-wrap:pretty;">{{ heroSkill }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="position:absolute;left:44px;right:44px;top:640px;display:grid;grid-template-columns:repeat(4,1fr);gap:14px;z-index:4;">
+    <sc-for list="{{ heroes }}" as="h" hint-placeholder-count="12">
+      <div onClick="{{ h.onClick }}" style-hover="transform:translateY(-3px);" style-active="transform:scale(.95);" style="position:relative;height:136px;border-radius:16px;cursor:pointer;transition:transform .16s;border:{{ h.border }};background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.06) 46%,transparent 62%),radial-gradient({{ h.dots }} 1px,transparent 1.4px),linear-gradient(178deg,rgba(24,28,56,.34),rgba(7,9,22,.44));background-size:auto,22px 22px,auto;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);box-shadow:{{ h.glow }};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;overflow:hidden;">
+        <div style="position:absolute;left:14px;right:14px;top:-1px;height:1.5px;border-radius:2px;background:linear-gradient(90deg,transparent,{{ h.edge }} 30%,{{ h.edge }} 70%,transparent);pointer-events:none;"></div>
+        <svg width="52" height="52" viewBox="0 0 26 26" fill="none" style="opacity:{{ h.iconOpacity }};filter:drop-shadow(0 0 7px {{ h.iconGlow }});">
+          <path d="M13,4.5 a4,4 0 1,0 0.01,0 M6,21.5 Q6,15 13,15 Q20,15 20,21.5" stroke="{{ h.iconColor }}" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"></path>
+        </svg>
+        <div style="font-size:15px;font-weight:600;letter-spacing:2px;color:{{ h.nameColor }};text-shadow:{{ h.textGlow }};">{{ h.name }}</div>
+        <div style="display:flex;gap:2px;font-size:10px;line-height:1;color:{{ h.starColor }};">{{ h.starStr }}</div>
+        <sc-if value="{{ h.locked }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;inset:0;background:rgba(4,6,16,.62);display:flex;align-items:center;justify-content:center;">
+            <svg width="26" height="26" viewBox="0 0 26 26" fill="none" style="opacity:.7;">
+              <path d="M8,11.5 L18,11.5 L18,20 L8,20 Z M10,11.5 L10,8.5 a3,3 0 0,1 6,0 L16,11.5" stroke="#8ea3c8" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path>
+            </svg>
+          </div>
+        </sc-if>
+        <sc-if value="{{ h.isNew }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;right:6px;top:6px;padding:1px 7px;border-radius:8px;background:#ff4f7d;color:#fff;font-size:10px;font-weight:700;letter-spacing:1px;box-shadow:0 0 8px rgba(255,79,125,.7);animation:dcbadge 1.6s ease-in-out infinite;">NEW</div>
+        </sc-if>
+      </div>
+    </sc-for>
+  </div>
+
+  <div style="position:absolute;left:44px;right:44px;bottom:22px;height:132px;display:flex;z-index:5;">
+    <sc-for list="{{ tabs }}" as="tab" hint-placeholder-count="4">
+      <div onClick="{{ tab.onClick }}" style-hover="transform:translateY(-3px);" style-active="transform:scale(.94);" style="position:relative;flex:1;cursor:pointer;transition:transform .18s;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;">
+        <svg width="60" height="60" viewBox="0 0 26 26" fill="none" style="filter:drop-shadow(0 0 10px {{ tab.iconGlow }});">
+          <path d="{{ tab.iconPath }}" stroke="{{ tab.color }}" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"></path>
+        </svg>
+        <div style="font-size:19px;font-weight:600;letter-spacing:4px;text-indent:4px;color:{{ tab.color }};text-shadow:{{ tab.textGlow }};">{{ tab.name }}</div>
+        <sc-if value="{{ tab.active }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;left:50%;bottom:4px;width:32px;height:2.5px;transform:translateX(-50%);border-radius:2px;background:{{ tab.accent }};box-shadow:0 0 10px {{ tab.accent }}, 0 0 22px {{ tab.accent }};"></div>
+        </sc-if>
+      </div>
+    </sc-for>
+  </div>
+
+  <sc-if value="{{ rainOn }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;inset:0;pointer-events:none;z-index:9;opacity:.3;background-image:repeating-linear-gradient(168deg,transparent 0px,transparent 34px,rgba(180,220,255,.18) 35px,transparent 37px),repeating-linear-gradient(172deg,transparent 0px,transparent 58px,rgba(150,200,255,.10) 59px,transparent 62px);animation:dcrain 1.3s linear infinite;"></div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: 720, &quot;height&quot;: 1280}, &quot;coins&quot;: {&quot;editor&quot;: &quot;int&quot;, &quot;default&quot;: 2480, &quot;tsType&quot;: &quot;number&quot;, &quot;section&quot;: &quot;玩家信息&quot;}, &quot;rain&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;氛围&quot;}}">
+class Component extends DCLogic {
+  state = { sel: 0 };
+  heroes = [
+    { name: '雨宫', en: 'AMEMIYA', type: '节拍手', color: '#35e8e0', rarity: 4, locked: false, isNew: false, skill: '每回合首次出牌，额外 +15 分', stats: [['分数', 82], ['倍率', 64], ['手气', 47]] },
+    { name: '零', en: 'ZERO', type: '静默者', color: '#a56bff', rarity: 5, locked: false, isNew: true, skill: '弃牌不消耗次数，每局限两次', stats: [['分数', 70], ['倍率', 88], ['手气', 55]] },
+    { name: '霓虹', en: 'NEON', type: '闪光术士', color: '#ff4fa3', rarity: 4, locked: false, isNew: false, skill: '同花牌型倍率 ×1.5', stats: [['分数', 66], ['倍率', 92], ['手气', 40]] },
+    { name: '铁砂', en: 'GRIT', type: '重低音', color: '#ffb347', rarity: 3, locked: false, isNew: false, skill: '手牌上限 +1', stats: [['分数', 90], ['倍率', 42], ['手气', 58]] },
+    { name: '潮汐', en: 'TIDE', type: '混音师', color: '#5fa8ff', rarity: 4, locked: false, isNew: false, skill: '每弃一张牌，本回合 +8 分', stats: [['分数', 74], ['倍率', 60], ['手气', 72]] },
+    { name: '赤羽', en: 'AKAHA', type: '爆音手', color: '#ff5f6e', rarity: 5, locked: false, isNew: false, skill: '出牌 ≥4 张时，倍率 +3', stats: [['分数', 88], ['倍率', 80], ['手气', 36]] },
+    { name: '灯芯', en: 'WICK', type: '调频员', color: '#8ef5b8', rarity: 3, locked: false, isNew: false, skill: '每回合开始随机重抽一张', stats: [['分数', 58], ['倍率', 54], ['手气', 86]] },
+    { name: '夜莺', en: 'NIGHTINGALE', type: '高音域', color: '#c9a3ff', rarity: 4, locked: true, isNew: false, skill: '对子与三条计分翻倍', stats: [['分数', 76], ['倍率', 70], ['手气', 50]] },
+    { name: '钢齿', en: 'FANG', type: '破音者', color: '#7fd8d0', rarity: 3, locked: true, isNew: false, skill: '无视 BOSS 花色禁用一次', stats: [['分数', 84], ['倍率', 48], ['手气', 44]] },
+    { name: '幻影', en: 'PHANTOM', type: '全息投影', color: '#ff8fd0', rarity: 5, locked: true, isNew: false, skill: '暗牌可翻明，每局一次', stats: [['分数', 62], ['倍率', 95], ['手气', 68]] },
+    { name: '断线', en: 'STATIC', type: '干扰源', color: '#ffd76a', rarity: 4, locked: true, isNew: false, skill: '每局首次失败可重来一回合', stats: [['分数', 68], ['倍率', 66], ['手气', 78]] },
+    { name: '白噪', en: 'WHITE', type: '未知', color: '#dfe9ff', rarity: 5, locked: true, isNew: false, skill: '未解锁', stats: [['分数', 0], ['倍率', 0], ['手气', 0]] }
+  ];
+  renderVals() {
+    const hexA = (hex, a) => hex + Math.round(a * 255).toString(16).padStart(2, '0');
+    const i = this.state.sel;
+    const h = this.heroes[i];
+    const c = h.color;
+    const tabDefs = [
+      { name: '关卡', iconPath: 'M9.5,4.5 L18.5,4.5 Q20.5,4.5 20.5,6.5 L20.5,17.5 Q20.5,19.5 18.5,19.5 L9.5,19.5 Q7.5,19.5 7.5,17.5 L7.5,6.5 Q7.5,4.5 9.5,4.5 M14,8.5 L16.8,12 L14,15.5 L11.2,12 Z M7.5,8 L5.5,8.8 Q4,9.5 4.6,11.4 L7.5,19 Q8.2,20.8 10,20.5' },
+      { name: '主角', iconPath: 'M13,4.5 a4,4 0 1,0 0.01,0 M6,21.5 Q6,15 13,15 Q20,15 20,21.5' },
+      { name: '小丑牌', iconPath: 'M5.5,17.5 L7.5,7 L11,12 L13,5.5 L15,12 L18.5,7 L20.5,17.5 Z M5.5,17.5 L20.5,17.5 M8,20.8 L18,20.8' },
+      { name: '荣誉', iconPath: 'M9,4 L17,4 L17,10 Q17,14.2 13,15.2 Q9,14.2 9,10 Z M9,6 L5.8,6 Q5.8,10.8 9,10.8 M17,6 L20.2,6 Q20.2,10.8 17,10.8 M13,15.2 L13,18.2 M10,21.5 L16,21.5 Q16.4,19.4 13,18.2 Q9.6,19.4 10,21.5' }
+    ];
+    return {
+      rainOn: this.props.rain ?? true,
+      coins: this.props.coins ?? 2480,
+      ownedCount: this.heroes.filter(x => !x.locked).length,
+      c, cDim: hexA(c, 0.62),
+      cA2: hexA(c, 0.2), cA3: hexA(c, 0.3), cA4: hexA(c, 0.4), cA5: hexA(c, 0.5),
+      cA6: hexA(c, 0.6), cA9: hexA(c, 0.9),
+      heroName: h.name, heroEn: h.en, heroType: h.type, heroSkill: h.skill,
+      rarityStars: Array.from({ length: 5 }, (_, k) => ({
+        color: k < h.rarity ? '#ffb347' : 'rgba(120,150,200,.25)',
+        glow: k < h.rarity ? 'rgba(255,179,71,.7)' : 'transparent'
+      })),
+      stats: h.stats.map(([label, v]) => ({ label, value: v, pct: v + '%' })),
+      heroes: this.heroes.map((x, k) => ({
+        name: x.name,
+        starStr: '★'.repeat(x.rarity),
+        starColor: k === i ? '#ffb347' : 'rgba(180,200,235,.35)',
+        locked: x.locked, isNew: x.isNew,
+        iconColor: x.locked ? '#7387a8' : x.color,
+        iconOpacity: k === i ? 0.95 : (x.locked ? 0.4 : 0.6),
+        iconGlow: k === i ? hexA(x.color, 0.6) : 'transparent',
+        nameColor: k === i ? '#ffffff' : (x.locked ? '#7387a8' : '#b9cbe8'),
+        textGlow: k === i ? '0 0 10px ' + hexA(x.color, 0.8) : 'none',
+        border: k === i ? '1.5px solid ' + hexA(x.color, 0.75) : '1px solid rgba(170,195,255,.14)',
+        dots: k === i ? hexA(x.color, 0.22) : 'rgba(190,210,255,.14)',
+        edge: k === i ? 'rgba(255,255,255,.9)' : 'rgba(220,232,255,.35)',
+        glow: k === i
+          ? '0 0 18px ' + hexA(x.color, 0.35) + ', inset 0 0 22px ' + hexA(x.color, 0.16)
+          : '0 0 12px rgba(150,180,255,.06), inset 0 0 14px rgba(170,195,255,.04)',
+        onClick: () => this.setState({ sel: k })
+      })),
+      tabs: tabDefs.map((t, k) => ({
+        name: t.name, iconPath: t.iconPath,
+        active: k === 1,
+        color: k === 1 ? '#ffffff' : '#8ea3c8',
+        iconGlow: k === 1 ? hexA(c, 0.7) : 'transparent',
+        textGlow: k === 1 ? '0 0 10px ' + hexA(c, 0.8) : 'none',
+        accent: c,
+        onClick: () => {}
+      }))
+    };
+  }
+}
+</script>
+</body>
+</html>

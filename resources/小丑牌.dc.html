@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  body { margin:0; background:#04050d; }
+  a { color:#35e8e0; text-decoration:none; } a:hover { color:#ff4fa3; }
+  @keyframes dcrain { from { background-position:0 0, 0 0; } to { background-position:-80px 900px, -60px 760px; } }
+  @keyframes dcbadge { 0%,100% { transform:scale(1); } 50% { transform:scale(1.16); } }
+  @keyframes dcslot { 0%,100% { opacity:.45; } 50% { opacity:.8; } }
+</style>
+</helmet>
+<div style="position:relative;width:720px;height:1280px;margin:0 auto;overflow:hidden;background:linear-gradient(180deg,#070a1a 0%,#0a0d22 45%,#05060f 78%,#03030a 100%);font-family:'Rajdhani','Noto Sans SC',sans-serif;color:#cfe6ef;user-select:none;">
+  <div style="position:absolute;inset:0;background:radial-gradient(520px 300px at 12% 2%,{{ cA2 }},transparent 68%),radial-gradient(560px 340px at 88% 6%,{{ cA2 }},transparent 68%),radial-gradient(520px 440px at 50% 44%,{{ cA2 }},transparent 74%);"></div>
+  <div style="position:absolute;inset:0;pointer-events:none;background:linear-gradient(115deg,transparent 18%,rgba(160,200,255,.04) 32%,rgba(255,255,255,.06) 39%,transparent 50%,transparent 64%,rgba(160,200,255,.04) 76%,transparent 88%);"></div>
+
+  <div style="position:absolute;left:44px;right:44px;top:22px;display:flex;align-items:center;gap:14px;padding:12px 20px;border-radius:22px;border:1px solid {{ cA2 }};background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.07) 45%,transparent 58%),radial-gradient({{ cA2 }} 1px,transparent 1.4px),linear-gradient(178deg,rgba(24,28,56,.34),rgba(7,9,22,.42));background-size:auto,26px 26px,auto;backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);box-shadow:0 0 24px {{ cA2 }}, inset 0 0 24px {{ cA2 }};z-index:10;">
+    <div style="position:absolute;left:22px;right:22px;top:-1px;height:1.5px;border-radius:2px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.9) 26%,rgba(255,255,255,.75) 74%,transparent);box-shadow:0 0 9px {{ cA6 }}, 0 0 22px {{ cA4 }};pointer-events:none;"></div>
+    <div style="position:absolute;left:80px;right:80px;bottom:-1px;height:1px;background:linear-gradient(90deg,transparent,{{ cA4 }},transparent);pointer-events:none;"></div>
+    <div style="flex:1;min-width:0;">
+      <div style="font-size:22px;font-weight:700;letter-spacing:6px;color:#eaf6ff;text-shadow:0 0 10px {{ cA5 }};">小丑牌</div>
+      <div style="margin-top:2px;font-size:13px;letter-spacing:3px;color:#7487ac;">已收集 {{ ownedCount }} / 12 · 已装备 {{ equipCount }} / 5</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;padding:3px 12px;border-radius:12px;border:1px solid rgba(255,179,71,.45);background:rgba(30,18,4,.45);">
+      <div style="width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ffe9c9,#ffb347 60%,#c77b12);box-shadow:0 0 8px rgba(255,179,71,.7);"></div>
+      <div style="font-size:16px;font-weight:700;color:#ffd9a0;">{{ coins }}</div>
+    </div>
+  </div>
+
+  <div style="position:absolute;left:44px;right:44px;top:112px;padding:14px 18px 16px;border-radius:22px;border:1px solid {{ cA2 }};background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.06) 45%,transparent 60%),radial-gradient({{ cA2 }} 1px,transparent 1.4px),linear-gradient(178deg,rgba(24,28,56,.34),rgba(7,9,22,.46));background-size:auto,26px 26px,auto;backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);box-shadow:0 0 26px {{ cA2 }}, inset 0 0 26px {{ cA2 }};z-index:4;">
+    <div style="position:absolute;left:24px;right:24px;top:-1px;height:1.5px;border-radius:2px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.9) 26%,rgba(255,255,255,.75) 74%,transparent);box-shadow:0 0 9px {{ cA6 }}, 0 0 22px {{ cA4 }};pointer-events:none;"></div>
+    <div style="display:flex;align-items:baseline;justify-content:space-between;">
+      <div style="font-size:14px;letter-spacing:4px;color:{{ cDim }};">出战牌组 · LOADOUT</div>
+      <div style="font-size:13px;letter-spacing:2px;color:#66799f;">点击下方卡片装备 / 卸下</div>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:12px;">
+      <sc-for list="{{ slots }}" as="sl" hint-placeholder-count="5">
+        <div onClick="{{ sl.onClick }}" style-hover="transform:translateY(-3px);" style-active="transform:scale(.95);" style="position:relative;flex:1;height:150px;border-radius:12px;cursor:{{ sl.cursor }};transition:transform .16s;border:{{ sl.border }};background:{{ sl.bg }};background-size:auto,20px 20px,auto;box-shadow:{{ sl.glow }};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;overflow:hidden;">
+          <sc-if value="{{ sl.filled }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;left:10px;right:10px;top:-1px;height:1.5px;border-radius:2px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.85) 30%,rgba(255,255,255,.7) 70%,transparent);pointer-events:none;"></div>
+          </sc-if>
+          <div style="font-size:{{ sl.glyphSize }};line-height:1;color:{{ sl.glyphColor }};text-shadow:{{ sl.glyphGlow }};">{{ sl.glyph }}</div>
+          <div style="font-size:14px;font-weight:600;letter-spacing:1px;color:{{ sl.nameColor }};text-shadow:{{ sl.textGlow }};">{{ sl.name }}</div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="position:absolute;left:44px;right:44px;top:334px;display:flex;align-items:center;gap:12px;z-index:4;">
+    <div style="font-size:15px;letter-spacing:5px;color:#8ea3c8;">收藏</div>
+    <div style="flex:1;height:1px;background:linear-gradient(90deg,{{ cA4 }},transparent);"></div>
+    <sc-for list="{{ filters }}" as="f" hint-placeholder-count="3">
+      <div onClick="{{ f.onClick }}" style-hover="transform:translateY(-1px);" style="padding:4px 14px;border-radius:12px;cursor:pointer;transition:transform .14s;font-size:14px;letter-spacing:2px;border:{{ f.border }};color:{{ f.color }};background:{{ f.bg }};box-shadow:{{ f.glow }};">{{ f.name }}</div>
+    </sc-for>
+  </div>
+
+  <div style="position:absolute;left:44px;right:44px;top:378px;display:grid;grid-template-columns:repeat(4,1fr);gap:14px;z-index:4;">
+    <sc-for list="{{ jokers }}" as="j" hint-placeholder-count="12">
+      <div onClick="{{ j.onClick }}" style-hover="transform:translateY(-4px);" style-active="transform:scale(.95);" style="position:relative;height:222px;border-radius:14px;cursor:pointer;transition:transform .16s;border:{{ j.border }};background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.06) 46%,transparent 62%),radial-gradient({{ j.dots }} 1px,transparent 1.4px),linear-gradient(178deg,rgba(24,28,56,.34),rgba(7,9,22,.44));background-size:auto,20px 20px,auto;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);box-shadow:{{ j.glow }};display:flex;flex-direction:column;align-items:center;padding:12px 8px 10px;box-sizing:border-box;overflow:hidden;">
+        <div style="position:absolute;left:12px;right:12px;top:-1px;height:1.5px;border-radius:2px;background:linear-gradient(90deg,transparent,{{ j.edge }} 30%,{{ j.edge }} 70%,transparent);pointer-events:none;"></div>
+        <sc-if value="{{ j.unlocked }}" hint-placeholder-val="{{ true }}">
+          <div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;">
+            <div style="align-self:flex-start;font-size:11px;letter-spacing:1px;color:{{ j.rarityColor }};text-shadow:0 0 8px {{ j.rarityGlow }};">{{ j.rarity }}</div>
+            <div style="margin-top:6px;font-size:46px;line-height:1;color:{{ j.glyphColor }};text-shadow:0 0 12px {{ j.glyphGlow }};">{{ j.glyph }}</div>
+            <div style="margin-top:8px;font-size:16px;font-weight:600;letter-spacing:1px;color:{{ j.nameColor }};text-shadow:{{ j.textGlow }};text-align:center;">{{ j.name }}</div>
+            <div style="margin-top:6px;font-size:12px;line-height:1.45;color:{{ j.descColor }};text-align:center;text-wrap:pretty;">{{ j.desc }}</div>
+            <div style="margin-top:auto;display:flex;align-items:center;gap:4px;">
+              <div style="width:10px;height:10px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ffe9c9,#ffb347 60%,#c77b12);box-shadow:0 0 6px rgba(255,179,71,.6);"></div>
+              <div style="font-size:13px;font-weight:700;color:#ffd9a0;">{{ j.price }}</div>
+            </div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ j.equipped }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;right:7px;top:7px;width:20px;height:20px;border-radius:50%;background:{{ j.color }};display:flex;align-items:center;justify-content:center;box-shadow:0 0 10px {{ j.glyphGlow }};">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2.5,6.3 L5,8.6 L9.5,3.6" stroke="#04060f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+          </div>
+        </sc-if>
+        <sc-if value="{{ j.locked }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;">
+            <div style="font-size:44px;line-height:1;color:{{ j.glyphColor }};opacity:.32;">{{ j.glyph }}</div>
+            <svg width="26" height="26" viewBox="0 0 26 26" fill="none" style="opacity:.7;">
+              <path d="M8,11.5 L18,11.5 L18,20 L8,20 Z M10,11.5 L10,8.5 a3,3 0 0,1 6,0 L16,11.5" stroke="#8ea3c8" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path>
+            </svg>
+            <div style="font-size:12px;letter-spacing:2px;color:#7387a8;">{{ j.unlockHint }}</div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ j.isNew }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;left:7px;bottom:7px;padding:1px 7px;border-radius:8px;background:#ff4f7d;color:#fff;font-size:10px;font-weight:700;letter-spacing:1px;box-shadow:0 0 8px rgba(255,79,125,.7);animation:dcbadge 1.6s ease-in-out infinite;">NEW</div>
+        </sc-if>
+      </div>
+    </sc-for>
+  </div>
+
+  <div style="position:absolute;left:44px;right:44px;bottom:22px;height:132px;display:flex;z-index:5;">
+    <sc-for list="{{ tabs }}" as="tab" hint-placeholder-count="4">
+      <div onClick="{{ tab.onClick }}" style-hover="transform:translateY(-3px);" style-active="transform:scale(.94);" style="position:relative;flex:1;cursor:pointer;transition:transform .18s;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;">
+        <svg width="60" height="60" viewBox="0 0 26 26" fill="none" style="filter:drop-shadow(0 0 10px {{ tab.iconGlow }});">
+          <path d="{{ tab.iconPath }}" stroke="{{ tab.color }}" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"></path>
+        </svg>
+        <div style="font-size:19px;font-weight:600;letter-spacing:4px;text-indent:4px;color:{{ tab.color }};text-shadow:{{ tab.textGlow }};">{{ tab.name }}</div>
+        <sc-if value="{{ tab.active }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;left:50%;bottom:4px;width:32px;height:2.5px;transform:translateX(-50%);border-radius:2px;background:{{ tab.accent }};box-shadow:0 0 10px {{ tab.accent }}, 0 0 22px {{ tab.accent }};"></div>
+        </sc-if>
+      </div>
+    </sc-for>
+  </div>
+
+  <sc-if value="{{ rainOn }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;inset:0;pointer-events:none;z-index:9;opacity:.3;background-image:repeating-linear-gradient(168deg,transparent 0px,transparent 34px,rgba(180,220,255,.18) 35px,transparent 37px),repeating-linear-gradient(172deg,transparent 0px,transparent 58px,rgba(150,200,255,.10) 59px,transparent 62px);animation:dcrain 1.3s linear infinite;"></div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: 720, &quot;height&quot;: 1280}, &quot;coins&quot;: {&quot;editor&quot;: &quot;int&quot;, &quot;default&quot;: 2480, &quot;tsType&quot;: &quot;number&quot;, &quot;section&quot;: &quot;玩家信息&quot;}, &quot;rain&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;氛围&quot;}}">
+class Component extends DCLogic {
+  state = { equipped: [1, 3, 6], filter: 0 };
+  jokers = [
+    { name: '回声', glyph: '◎', rarity: '普通', color: '#35e8e0', desc: '每张出牌 +4 分', price: 120, locked: false, isNew: false },
+    { name: '双生', glyph: '⧉', rarity: '普通', color: '#5fa8ff', desc: '对子额外 ×1.5 倍率', price: 160, locked: false, isNew: false },
+    { name: '雨滴', glyph: '❃', rarity: '普通', color: '#7fd8d0', desc: '弃牌后 +6 分', price: 140, locked: false, isNew: false },
+    { name: '霓虹灯', glyph: '✦', rarity: '稀有', color: '#ff4fa3', desc: '同花时倍率 +4', price: 320, locked: false, isNew: true },
+    { name: '断电', glyph: '⌁', rarity: '稀有', color: '#ffd76a', desc: '手牌不足 3 张时 ×3', price: 380, locked: false, isNew: false },
+    { name: '低音炮', glyph: '◍', rarity: '稀有', color: '#ffb347', desc: '每持有 100 金 +1 倍率', price: 300, locked: false, isNew: false },
+    { name: '镜像', glyph: '◈', rarity: '稀有', color: '#c9a3ff', desc: '复制左侧小丑牌效果', price: 420, locked: false, isNew: false },
+    { name: '静默', glyph: '◐', rarity: '稀有', color: '#8ef5b8', desc: '不出牌结束回合 +80 分', price: 350, locked: false, isNew: false },
+    { name: '幻影', glyph: '❖', rarity: '传说', color: '#ff8fd0', desc: '每回合首张牌记两次', price: 780, locked: true, isNew: false, unlockHint: '通关 05' },
+    { name: '过载', glyph: '⚛', rarity: '传说', color: '#ff5f6e', desc: '倍率每回合累加 +2', price: 820, locked: true, isNew: false, unlockHint: '通关 06' },
+    { name: '零点', glyph: '◇', rarity: '传说', color: '#a56bff', desc: '弃牌次数 +2，倍率 ×2', price: 900, locked: true, isNew: false, unlockHint: '主角「零」' },
+    { name: '白噪', glyph: '☰', rarity: '传说', color: '#dfe9ff', desc: '未知效果', price: 999, locked: true, isNew: false, unlockHint: '???' }
+  ];
+  renderVals() {
+    const hexA = (hex, a) => hex + Math.round(a * 255).toString(16).padStart(2, '0');
+    const eq = this.state.equipped;
+    const c = eq.length ? this.jokers[eq[0]].color : '#35e8e0';
+    const rarityTint = { '普通': '#8ea3c8', '稀有': '#5fd8ff', '传说': '#ffb347' };
+    const filterNames = ['全部', '稀有', '传说'];
+    const toggle = (k) => {
+      if (this.jokers[k].locked) return;
+      this.setState(s => {
+        const has = s.equipped.indexOf(k);
+        if (has >= 0) return { equipped: s.equipped.filter(x => x !== k) };
+        if (s.equipped.length >= 5) return {};
+        return { equipped: [...s.equipped, k] };
+      });
+    };
+    const visible = this.jokers
+      .map((j, k) => ({ j, k }))
+      .filter(({ j }) => this.state.filter === 0 || j.rarity === filterNames[this.state.filter]);
+    const tabDefs = [
+      { name: '关卡', iconPath: 'M9.5,4.5 L18.5,4.5 Q20.5,4.5 20.5,6.5 L20.5,17.5 Q20.5,19.5 18.5,19.5 L9.5,19.5 Q7.5,19.5 7.5,17.5 L7.5,6.5 Q7.5,4.5 9.5,4.5 M14,8.5 L16.8,12 L14,15.5 L11.2,12 Z M7.5,8 L5.5,8.8 Q4,9.5 4.6,11.4 L7.5,19 Q8.2,20.8 10,20.5' },
+      { name: '主角', iconPath: 'M13,4.5 a4,4 0 1,0 0.01,0 M6,21.5 Q6,15 13,15 Q20,15 20,21.5' },
+      { name: '小丑牌', iconPath: 'M5.5,17.5 L7.5,7 L11,12 L13,5.5 L15,12 L18.5,7 L20.5,17.5 Z M5.5,17.5 L20.5,17.5 M8,20.8 L18,20.8' },
+      { name: '荣誉', iconPath: 'M9,4 L17,4 L17,10 Q17,14.2 13,15.2 Q9,14.2 9,10 Z M9,6 L5.8,6 Q5.8,10.8 9,10.8 M17,6 L20.2,6 Q20.2,10.8 17,10.8 M13,15.2 L13,18.2 M10,21.5 L16,21.5 Q16.4,19.4 13,18.2 Q9.6,19.4 10,21.5' }
+    ];
+    return {
+      rainOn: this.props.rain ?? true,
+      coins: this.props.coins ?? 2480,
+      ownedCount: this.jokers.filter(j => !j.locked).length,
+      equipCount: eq.length,
+      c, cDim: hexA(c, 0.62),
+      cA2: hexA(c, 0.2), cA4: hexA(c, 0.4), cA5: hexA(c, 0.5), cA6: hexA(c, 0.6),
+      slots: Array.from({ length: 5 }, (_, i) => {
+        const k = eq[i];
+        if (k === undefined) return {
+          filled: false, cursor: 'default', glyph: '＋', glyphSize: '26px',
+          glyphColor: 'rgba(150,175,215,.45)', glyphGlow: 'none',
+          name: '空位', nameColor: 'rgba(140,165,205,.5)', textGlow: 'none',
+          border: '1px dashed rgba(170,195,255,.22)',
+          bg: 'linear-gradient(178deg,rgba(20,24,48,.24),rgba(7,9,22,.34))',
+          glow: 'none', onClick: () => {}
+        };
+        const j = this.jokers[k];
+        return {
+          filled: true, cursor: 'pointer', glyph: j.glyph, glyphSize: '40px',
+          glyphColor: j.color, glyphGlow: '0 0 12px ' + hexA(j.color, 0.8),
+          name: j.name, nameColor: '#ffffff', textGlow: '0 0 8px ' + hexA(j.color, 0.7),
+          border: '1.5px solid ' + hexA(j.color, 0.7),
+          bg: 'linear-gradient(115deg,transparent 30%,rgba(255,255,255,.07) 46%,transparent 62%),radial-gradient(' + hexA(j.color, 0.22) + ' 1px,transparent 1.4px),linear-gradient(178deg,rgba(24,28,56,.34),rgba(7,9,22,.44))',
+          glow: '0 0 16px ' + hexA(j.color, 0.32) + ', inset 0 0 20px ' + hexA(j.color, 0.14),
+          onClick: () => toggle(k)
+        };
+      }),
+      filters: filterNames.map((name, i) => ({
+        name,
+        border: i === this.state.filter ? '1px solid ' + hexA(c, 0.6) : '1px solid rgba(170,195,255,.16)',
+        color: i === this.state.filter ? '#ffffff' : '#8ea3c8',
+        bg: i === this.state.filter ? hexA(c, 0.14) : 'transparent',
+        glow: i === this.state.filter ? '0 0 12px ' + hexA(c, 0.25) : 'none',
+        onClick: () => this.setState({ filter: i })
+      })),
+      jokers: visible.map(({ j, k }) => {
+        const on = eq.indexOf(k) >= 0;
+        return {
+          name: j.name, glyph: j.glyph, rarity: j.rarity, desc: j.desc, price: j.price,
+          locked: j.locked, unlocked: !j.locked, isNew: j.isNew, unlockHint: j.unlockHint || '', equipped: on,
+          color: j.color,
+          glyphColor: j.locked ? '#5d6f92' : j.color,
+          glyphGlow: j.locked ? 'transparent' : hexA(j.color, on ? 0.9 : 0.55),
+          rarityColor: rarityTint[j.rarity],
+          rarityGlow: j.rarity === '普通' ? 'transparent' : hexA(rarityTint[j.rarity], 0.5),
+          nameColor: on ? '#ffffff' : (j.locked ? '#7387a8' : '#cddcf2'),
+          textGlow: on ? '0 0 10px ' + hexA(j.color, 0.8) : 'none',
+          descColor: j.locked ? '#66799f' : '#93a7cf',
+          border: on ? '1.5px solid ' + hexA(j.color, 0.75) : '1px solid rgba(170,195,255,.14)',
+          dots: on ? hexA(j.color, 0.22) : 'rgba(190,210,255,.13)',
+          edge: on ? 'rgba(255,255,255,.9)' : 'rgba(220,232,255,.32)',
+          glow: on
+            ? '0 0 18px ' + hexA(j.color, 0.35) + ', inset 0 0 22px ' + hexA(j.color, 0.16)
+            : '0 0 12px rgba(150,180,255,.06), inset 0 0 14px rgba(170,195,255,.04)',
+          onClick: () => toggle(k)
+        };
+      }),
+      tabs: tabDefs.map((t, k) => ({
+        name: t.name, iconPath: t.iconPath,
+        active: k === 2,
+        color: k === 2 ? '#ffffff' : '#8ea3c8',
+        iconGlow: k === 2 ? hexA(c, 0.7) : 'transparent',
+        textGlow: k === 2 ? '0 0 10px ' + hexA(c, 0.8) : 'none',
+        accent: c,
+        onClick: () => {}
+      }))
+    };
+  }
+}
+</script>
+</body>
+</html>

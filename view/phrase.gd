@@ -29,6 +29,7 @@ var cur_lock := 11.75
 # joker slot VIEWS — the slot data itself lives on run.joker_slots
 var _picker: PickWalker = null
 var _home: HomeScreen = null
+var _menu: Control = null     # 主角/小丑牌/荣誉 图鉴页(叠在首页上,z 85 > 80)
 var joker_views: Array = []
 var cur_modifier := ""        # this section's boss face ("" = none)
 var acted_late := false        # any discard/swap/sort inside the final 2 seconds
@@ -92,15 +93,38 @@ func _open_home() -> void:
 	Tape.on("nav", {"to": "home"})
 	_home = HomeScreen.new()
 	_home.start_pressed.connect(_on_home_start)
-	_home.character_pressed.connect(_on_home_start)
+	_home.menu_pressed.connect(_open_menu)
 	add_child(_home)
 
 
 func _on_home_start() -> void:
+	_close_menu()
 	if _home != null and is_instance_valid(_home):
 		_home.queue_free()
 	_home = null
 	_open_picker()
+
+
+## 三个图鉴页(2026-08-11 resources/主角|小丑牌|荣誉.dc.html 实装)。
+## 页面之间互切也走这里 —— 每页的页签轨发同一个 menu_pressed(idx),
+## idx 0 = 回首页(首页一直活在下面,关掉覆盖层即可)。
+func _open_menu(idx: int) -> void:
+	_close_menu()
+	if idx <= 0:
+		return
+	Tape.on("nav", {"to": ["home", "heroes", "album", "honors"][idx]})
+	match idx:
+		1: _menu = HeroesScreen.new()
+		2: _menu = AlbumScreen.new()
+		_: _menu = HonorsScreen.new()
+	_menu.menu_pressed.connect(_open_menu)
+	add_child(_menu)
+
+
+func _close_menu() -> void:
+	if _menu != null and is_instance_valid(_menu):
+		_menu.queue_free()
+	_menu = null
 
 
 ## The run starts on the protagonist pick screen. The phrase clock is held
@@ -119,6 +143,7 @@ func _open_picker() -> void:
 ## it tears down BOTH the home screen and the picker, so a probe can jump
 ## straight into a run with one call.
 func choose_character(i: int) -> void:
+	_close_menu()
 	if _home != null and is_instance_valid(_home):
 		_home.queue_free()
 	_home = null

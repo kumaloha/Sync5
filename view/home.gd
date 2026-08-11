@@ -16,7 +16,7 @@ extends Control
 ## `frame-glass4.png` from the mock is not in the repo — the frame is drawn.
 
 signal start_pressed          # 开始游戏 → run starts (protagonist pick first)
-signal character_pressed      # 主角 tab → protagonist pick
+signal menu_pressed(idx: int) # 页签 → 图鉴页(1 主角 / 2 小丑牌 / 3 荣誉)
 
 const W := 720.0
 const H := 1280.0
@@ -34,19 +34,14 @@ const CARD_INSET := 24.0                  # 霓虹轨距外框(玻璃的可见�
 ##   → 页签块(高 ~88) → 屏幕下边距 ~24
 ## 即卡片上下各 48、屏幕上下各 ~25。改任何一个都要重算其余三个:
 ## 总高 = 2×外边距 + 信息栏 + 2×48 + 924 + 页签块 = 1280。
-const TAB_Y := 1143.0     # 下缝 51:比上缝多 3px, 抵消倒影的光填缝带来的偏紧观感
-const TAB_ICON_DY := 48.0                 # 图标中心距页签区顶
-const TAB_LABEL_DY := 100.0
-const TAB_UNDER_DY := 114.0
-const TAB_H := 172.0
+# 页签轨几何在 Chrome(2026-08-11 三个图鉴页实装时迁出成四屏单源);
+# 下缝 51 比上缝多 3px 的理由不变:抵消倒影的光填缝带来的偏紧观感。
 
 # meta-progression placeholders: design/ui_meta.md is NOT implemented, so the profile
 # numbers are static here on purpose — one dict, clearly fake, easy to wire up
 # once a save system exists.
 const PROFILE := {"name": "NEON PLAYER", "title": "雨夜俱乐部 VIP", "level": 12,
 	"xp": 340, "xp_max": 500, "coins": 2480, "gems": 86}
-
-const TABS := ["关卡", "主角", "小丑牌", "荣誉"]
 
 var section_idx := 0          # which blind the card is showing
 var tab := 0
@@ -151,12 +146,10 @@ func _tap(p: Vector2) -> void:
 		var tr: Rect2 = _tab_rects[i]
 		if not tr.has_point(p):
 			continue
-		if i == 1:
-			character_pressed.emit()
-		elif i == 0:
+		if i == 0:
 			tab = 0
 		else:
-			_float("%s · 尚未开放" % TABS[i])
+			menu_pressed.emit(i)      # 三个图鉴页由编排器开(phrase._open_menu)
 		return
 
 
@@ -172,10 +165,10 @@ func _draw() -> void:
 	_draw_player_bar()
 	_draw_card()
 	_draw_tabs()
-	_draw_rain()
+	Chrome.rain(self, _t)
 	if _toast_t > 0.0:
 		var a: float = minf(1.0, _toast_t / 0.4)
-		draw_string(StageTheme.zh(), Vector2(0, TAB_Y - 30.0), _toast,
+		draw_string(StageTheme.zh(), Vector2(0, Chrome.TAB_Y - 30.0), _toast,
 			HORIZONTAL_ALIGNMENT_CENTER, W, 18, Color(1.0, 0.72, 0.82, a))
 
 
@@ -267,16 +260,7 @@ func _draw_player_bar() -> void:
 							var cr: Array = ch["avatar_crop"]
 							_avatar_crop = Rect2(float(cr[0]), float(cr[1]), float(cr[2]), float(cr[3]))
 	if _avatar_tex != null:
-		var ucx := _avatar_crop.position.x + _avatar_crop.size.x * 0.5
-		var ucy := _avatar_crop.position.y + _avatar_crop.size.y * 0.5
-		var ur := minf(_avatar_crop.size.x, _avatar_crop.size.y) * 0.5
-		var apts := PackedVector2Array()
-		var auvs := PackedVector2Array()
-		for i in range(40):
-			var aa := TAU * float(i) / 40.0
-			apts.append(c + Vector2(cos(aa), sin(aa)) * 33.0)
-			auvs.append(Vector2(ucx + cos(aa) * ur, ucy + sin(aa) * ur))
-		draw_colored_polygon(apts, Color.WHITE, auvs, _avatar_tex)
+		Chrome.avatar_disc(self, c, 33.0, _avatar_tex, _avatar_crop)
 	else:
 		var aw := num.get_string_size("DJ", HORIZONTAL_ALIGNMENT_LEFT, -1, 26).x
 		draw_string(num, c + Vector2(-aw * 0.5, 9.0), "DJ", HORIZONTAL_ALIGNMENT_LEFT, -1, 26,
@@ -313,24 +297,10 @@ func _draw_player_bar() -> void:
 		HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("66799f"))
 
 	# currency chips
-	_chip(Rect2(r.end.x - 152.0, cy - 36.0, 144.0, 31.0), StageTheme.AMBER,
+	Chrome.chip(self, Rect2(r.end.x - 152.0, cy - 36.0, 144.0, 31.0), StageTheme.AMBER,
 		"◆", "%d" % int(PROFILE["coins"]), Color("ffd9a0"))
-	_chip(Rect2(r.end.x - 152.0, cy + 5.0, 144.0, 31.0), StageTheme.VIOLET,
+	Chrome.chip(self, Rect2(r.end.x - 152.0, cy + 5.0, 144.0, 31.0), StageTheme.VIOLET,
 		"◈", "%d" % int(PROFILE["gems"]), Color("cdb2ff"))
-
-
-func _chip(r: Rect2, acc: Color, glyph: String, val: String, ink: Color) -> void:
-	draw_style_box(StageTheme.box(Color(acc.r * 0.22, acc.g * 0.16, acc.b * 0.10, 0.45),
-		Color(acc.r, acc.g, acc.b, 0.45), 1, 13), r)
-	var mid := r.position.y + r.size.y * 0.5
-	draw_string(StageTheme.zh(), Vector2(r.position.x + 12.0, mid + 6.0), glyph,
-		HORIZONTAL_ALIGNMENT_LEFT, -1, 16, acc)
-	draw_string(StageTheme.num("Bold"), Vector2(r.position.x + 36.0, mid + 7.0), val,
-		HORIZONTAL_ALIGNMENT_LEFT, -1, 19, ink)
-	draw_arc(Vector2(r.end.x - 18.0, mid), 9.0, 0, TAU, 22,
-		Color(acc.r, acc.g, acc.b, 0.6), 1.2, true)
-	draw_string(StageTheme.num("Medium"), Vector2(r.end.x - 26.0, mid + 6.0), "+",
-		HORIZONTAL_ALIGNMENT_CENTER, 16.0, 15, acc)
 
 
 ## The stage card — one blind of the tour, in the same glass language the
@@ -367,7 +337,7 @@ func _draw_card() -> void:
 	# hero row: venue name + blind index
 	y += 20.0
 	var venue := GameConfig.gig_name(section_idx)
-	_neon(zh, venue, Vector2(x, y + 44.0), 48, Color("ffffff"), acc)
+	Chrome.neon(self, zh, venue, Vector2(x, y + 44.0), 48, Color("ffffff"), acc)
 	draw_string(med, Vector2(x, y + 44.0), "BLIND %02d/%02d" % [section_idx + 1,
 		GameConfig.SECTIONS_PER_RUN], HORIZONTAL_ALIGNMENT_RIGHT, cw, 14, dim)
 	# blind tier chip under the name
@@ -392,7 +362,7 @@ func _draw_card() -> void:
 
 	# target + reward
 	var ttxt := StageTheme.fmt_thousands(GameConfig.section_target(section_idx))
-	_neon(num, ttxt, Vector2(x, y + 36.0), 40, Color("ffffff"), acc)
+	Chrome.neon(self, num, ttxt, Vector2(x, y + 36.0), 40, Color("ffffff"), acc)
 	var tnw := num.get_string_size(ttxt, HORIZONTAL_ALIGNMENT_LEFT, -1, 40).x
 	draw_string(zh, Vector2(x + tnw + 10.0, y + 36.0), "目标分",
 		HORIZONTAL_ALIGNMENT_LEFT, cw, 16, StageTheme.DIM)
@@ -447,7 +417,7 @@ func _draw_card() -> void:
 		Color(acc.r, acc.g, acc.b, 0.34 * pulse), 18), _btn_rect)
 	draw_line(_btn_rect.position + Vector2(14, 1.0), _btn_rect.position + Vector2(cw - 14, 1.0),
 		Color(1, 1, 1, 0.8), 1.5)
-	_neon(zh, "开 始 游 戏", Vector2(x, y + 40.0), 28, Color("ffffff"), acc, cw)
+	Chrome.neon(self, zh, "开 始 游 戏", Vector2(x, y + 40.0), 28, Color("ffffff"), acc, cw)
 	draw_string(med, Vector2(x, y + 62.0), "⚡ 全新巡演 · 从 BLIND 01 开始",
 		HORIZONTAL_ALIGNMENT_CENTER, cw, 14, dim)
 
@@ -505,89 +475,8 @@ func draw_tail(ci: CanvasItem) -> void:
 	Widgets.StageCard.draw_mirror(ci, card, acc, 26.0, CARD_INSET)
 
 
-## Bottom rail: 关卡 / 主角 / 小丑牌 / 荣誉.
+## Bottom rail: 关卡 / 主角 / 小丑牌 / 荣誉。画法在 Chrome(四屏单源);
+## 三个图鉴页 2026-08-11 起都有真页面了,「尚未开放」角标一起退役。
 func _draw_tabs() -> void:
-	_tab_rects = []
-	# 底部**不要**加板: 那里本来就是黑的(用户 2026-08-05 明确否掉我加的那块)。
-	# 顶栏与它取齐 —— 靠顶栏自己用半透黑, 而不是给底部补一块。
-	var x0 := CARD.position.x + 44.0
-	var tw := (CARD.size.x - 88.0) / float(TABS.size())
-	var acc := Widgets.StageCard.accent_for(section_idx)
-	for i in range(TABS.size()):
-		var r := Rect2(x0 + float(i) * tw, TAB_Y, tw, TAB_H)
-		_tab_rects.append(r)
-		var on := i == tab
-		var col: Color = Color("ffffff") if on else Color(0.73, 0.78, 0.91, 0.78)
-		var ic: Color = acc if on else Color(0.55, 0.67, 1.0, 0.35)
-		_tab_icon(i, r.position + Vector2(tw * 0.5, TAB_ICON_DY), ic)
-		draw_string(StageTheme.zh(), Vector2(r.position.x, r.position.y + TAB_LABEL_DY), TABS[i],
-			HORIZONTAL_ALIGNMENT_CENTER, tw, 20, col)
-		if on:
-			var u := Rect2(r.position.x + tw * 0.5 - 16.0, r.position.y + TAB_UNDER_DY, 32.0, 2.5)
-			draw_style_box(StageTheme.box(acc, Color(0, 0, 0, 0), 0, 2), u)
-		# the mock's unread badges — ours mark what is not built yet
-		if i >= 2:
-			# 角标贴在图标右上角, 不要戳到图标上方 —— 它会成为菜单的视觉顶端,
-			# 把「卡片↔菜单」的缝吃掉 12.5px, 看起来就比上面窄(用户 2026-08-05)
-			var b := Vector2(r.position.x + tw * 0.5 + 30.0, r.position.y + TAB_ICON_DY - 6.0)
-			draw_circle(b, 10.5, Color("ff4f7d"))
-			draw_string(StageTheme.num("Bold"), Vector2(b.x - 10.0, b.y + 5.0), "!",
-				HORIZONTAL_ALIGNMENT_CENTER, 20.0, 13, Color("ffffff"))
-
-
-## Simplified line icons for the four tabs (the mock's SVG paths).
-func _tab_icon(i: int, c: Vector2, col: Color) -> void:
-	var wd := 2.0
-	match i:
-		0:      # 关卡: a card with a diamond
-			draw_rect(Rect2(c - Vector2(15, 20), Vector2(30, 40)), col, false, wd)
-			draw_polyline(PackedVector2Array([c + Vector2(0, -9), c + Vector2(9, 0),
-				c + Vector2(0, 9), c + Vector2(-9, 0), c + Vector2(0, -9)]), col, wd, true)
-		1:      # 主角: head + shoulders
-			draw_arc(c + Vector2(0, -10), 10.0, 0, TAU, 26, col, wd, true)
-			draw_arc(c + Vector2(0, 22), 18.0, PI, TAU, 22, col, wd, true)
-		2:      # 小丑牌: the jester crown
-			draw_polyline(PackedVector2Array([c + Vector2(-18, 14), c + Vector2(-12, -12),
-				c + Vector2(-4, 2), c + Vector2(0, -16), c + Vector2(4, 2),
-				c + Vector2(12, -12), c + Vector2(18, 14), c + Vector2(-18, 14)]), col, wd, true)
-		_:      # 荣誉: a trophy
-			draw_polyline(PackedVector2Array([c + Vector2(-10, -18), c + Vector2(10, -18),
-				c + Vector2(10, -6), c + Vector2(0, 4), c + Vector2(-10, -6),
-				c + Vector2(-10, -18)]), col, wd, true)
-			draw_arc(c + Vector2(-15, -13), 6.0, PI * 0.5, PI * 1.5, 12, col, wd, true)
-			draw_arc(c + Vector2(15, -13), 6.0, PI * 1.5, PI * 2.5, 12, col, wd, true)
-			draw_line(c + Vector2(0, 4), c + Vector2(0, 12), col, wd, true)
-			draw_line(c + Vector2(-9, 18), c + Vector2(9, 18), col, wd, true)
-
-
-## Diagonal rain, straight from the mock's repeating-linear-gradient pair.
-## (The no-rain rule covers the in-game stage only — this screen and the fail
-## screen are both design-spec'd with it.)
-func _draw_rain() -> void:
-	var col := Color(0.71, 0.86, 1.0, 0.20 * 0.35)
-	var drift: float = fmod(_t / 1.3, 1.0)
-	for i in range(58):
-		var bx: float = fmod(float(i) * 47.0 - drift * 80.0, W + 200.0) - 100.0
-		var by: float = fmod(float(i) * 131.0 + drift * 900.0, H + 300.0) - 150.0
-		draw_line(Vector2(bx, by), Vector2(bx - 7.0, by + 34.0), col, 1.4, true)
-	var col2 := Color(0.59, 0.78, 1.0, 0.12 * 0.35)
-	for i in range(34):
-		var bx2: float = fmod(float(i) * 79.0 - drift * 60.0, W + 200.0) - 100.0
-		var by2: float = fmod(float(i) * 211.0 + drift * 760.0, H + 300.0) - 150.0
-		draw_line(Vector2(bx2, by2), Vector2(bx2 - 6.0, by2 + 58.0), col2, 1.2, true)
-
-
-## Glow + core text, the mock's `text-shadow: 0 0 12px, 0 0 34px`.
-func _neon(font: Font, txt: String, at: Vector2, fs: int, core: Color, glow: Color,
-		width := -1.0) -> void:
-	var align := HORIZONTAL_ALIGNMENT_LEFT if width < 0.0 else HORIZONTAL_ALIGNMENT_CENTER
-	var w: float = width if width > 0.0 else -1.0
-	for ring in [[3.2, 8, 0.12], [1.6, 6, 0.14]]:
-		var rad: float = float(ring[0])
-		var n: int = int(ring[1])
-		var a: float = float(ring[2])
-		for i in range(n):
-			var ang := TAU * float(i) / float(n)
-			draw_string(font, at + Vector2(cos(ang), sin(ang)) * rad, txt, align, w, fs,
-				Color(glow.r, glow.g, glow.b, a))
-	draw_string(font, at, txt, align, w, fs, core)
+	_tab_rects = Chrome.tab_rects()
+	Chrome.draw_tabs(self, tab, Widgets.StageCard.accent_for(section_idx))

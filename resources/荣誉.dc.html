@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  body { margin:0; background:#04050d; }
+  a { color:#35e8e0; text-decoration:none; } a:hover { color:#ff4fa3; }
+  @keyframes dcrain { from { background-position:0 0, 0 0; } to { background-position:-80px 900px, -60px 760px; } }
+  @keyframes dcbadge { 0%,100% { transform:scale(1); } 50% { transform:scale(1.16); } }
+</style>
+</helmet>
+<div style="position:relative;width:720px;height:1280px;margin:0 auto;overflow:hidden;background:linear-gradient(180deg,#070a1a 0%,#0a0d22 45%,#05060f 78%,#03030a 100%);font-family:'Rajdhani','Noto Sans SC',sans-serif;color:#cfe6ef;user-select:none;">
+  <div style="position:absolute;inset:0;background:radial-gradient(520px 300px at 12% 2%,rgba(255,179,71,.14),transparent 68%),radial-gradient(560px 340px at 88% 6%,rgba(255,179,71,.10),transparent 68%),radial-gradient(520px 440px at 50% 46%,rgba(255,179,71,.07),transparent 74%);"></div>
+  <div style="position:absolute;inset:0;pointer-events:none;background:linear-gradient(115deg,transparent 18%,rgba(160,200,255,.04) 32%,rgba(255,255,255,.06) 39%,transparent 50%,transparent 64%,rgba(160,200,255,.04) 76%,transparent 88%);"></div>
+
+  <div style="position:absolute;left:44px;right:44px;top:22px;display:flex;align-items:center;gap:14px;padding:12px 20px;border-radius:22px;border:1px solid rgba(255,179,71,.2);background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.07) 45%,transparent 58%),radial-gradient(rgba(255,179,71,.2) 1px,transparent 1.4px),linear-gradient(178deg,rgba(24,28,56,.34),rgba(7,9,22,.42));background-size:auto,26px 26px,auto;backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);box-shadow:0 0 24px rgba(255,179,71,.14), inset 0 0 24px rgba(255,179,71,.10);z-index:10;">
+    <div style="position:absolute;left:22px;right:22px;top:-1px;height:1.5px;border-radius:2px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.9) 26%,rgba(255,255,255,.75) 74%,transparent);box-shadow:0 0 9px rgba(255,179,71,.55), 0 0 22px rgba(255,179,71,.3);pointer-events:none;"></div>
+    <div style="position:absolute;left:80px;right:80px;bottom:-1px;height:1px;background:linear-gradient(90deg,transparent,rgba(255,179,71,.4),transparent);pointer-events:none;"></div>
+    <div style="flex:1;min-width:0;">
+      <div style="font-size:22px;font-weight:700;letter-spacing:6px;color:#eaf6ff;text-shadow:0 0 10px rgba(255,179,71,.5);">荣誉</div>
+      <div style="margin-top:2px;font-size:13px;letter-spacing:3px;color:#7487ac;">成就 {{ doneCount }}/18 · 全球排名 #{{ myGlobalRank }}</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;padding:3px 12px;border-radius:12px;border:1px solid rgba(255,179,71,.45);background:rgba(30,18,4,.45);">
+      <div style="width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ffe9c9,#ffb347 60%,#c77b12);box-shadow:0 0 8px rgba(255,179,71,.7);"></div>
+      <div style="font-size:16px;font-weight:700;color:#ffd9a0;">{{ coins }}</div>
+    </div>
+  </div>
+
+  <div style="position:absolute;left:44px;right:44px;top:112px;display:flex;gap:12px;z-index:6;">
+    <sc-for list="{{ subTabs }}" as="st" hint-placeholder-count="2">
+      <div onClick="{{ st.onClick }}" style-hover="transform:translateY(-2px);" style-active="transform:scale(.97);" style="position:relative;flex:1;padding:13px 0 12px;border-radius:16px;cursor:pointer;transition:transform .16s;text-align:center;border:{{ st.border }};background:{{ st.bg }};background-size:auto,24px 24px,auto;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);box-shadow:{{ st.glow }};">
+        <sc-if value="{{ st.active }}" hint-placeholder-val="{{ true }}">
+          <div style="position:absolute;left:16px;right:16px;top:-1px;height:1.5px;border-radius:2px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.9) 30%,rgba(255,255,255,.72) 70%,transparent);pointer-events:none;"></div>
+        </sc-if>
+        <div style="font-size:20px;font-weight:600;letter-spacing:6px;text-indent:6px;color:{{ st.color }};text-shadow:{{ st.textGlow }};">{{ st.name }}</div>
+      </div>
+    </sc-for>
+  </div>
+
+  <sc-if value="{{ showAchv }}" hint-placeholder-val="{{ true }}">
+    <div style="position:absolute;left:44px;right:44px;top:184px;bottom:172px;display:flex;flex-direction:column;z-index:4;">
+      <div style="position:relative;flex-shrink:0;display:flex;align-items:center;gap:20px;padding:16px 22px;border-radius:20px;border:1px solid rgba(255,179,71,.2);background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.06) 45%,transparent 60%),radial-gradient(rgba(255,179,71,.2) 1px,transparent 1.4px),linear-gradient(178deg,rgba(24,28,56,.34),rgba(7,9,22,.46));background-size:auto,26px 26px,auto;backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);box-shadow:0 0 24px rgba(255,179,71,.12), inset 0 0 24px rgba(255,179,71,.08);">
+        <div style="position:absolute;left:24px;right:24px;top:-1px;height:1.5px;border-radius:2px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.9) 26%,rgba(255,255,255,.75) 74%,transparent);box-shadow:0 0 9px rgba(255,179,71,.5);pointer-events:none;"></div>
+        <div style="position:relative;width:86px;height:86px;flex-shrink:0;border-radius:50%;background:conic-gradient(#ffb347 0deg,#ffb347 {{ progDeg }},rgba(24,30,58,.9) {{ progDeg }},rgba(24,30,58,.9) 360deg);box-shadow:0 0 18px rgba(255,179,71,.35);display:flex;align-items:center;justify-content:center;">
+          <div style="width:70px;height:70px;border-radius:50%;background:#080b1c;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+            <div style="font-size:24px;font-weight:700;color:#ffd9a0;line-height:1;">{{ donePct }}%</div>
+            <div style="font-size:10px;letter-spacing:2px;color:#7487ac;">完成度</div>
+          </div>
+        </div>
+        <div style="flex:1;display:flex;gap:14px;">
+          <sc-for list="{{ tiers }}" as="t" hint-placeholder-count="4">
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;">
+              <svg width="30" height="30" viewBox="0 0 26 26" fill="none" style="filter:drop-shadow(0 0 7px {{ t.glow }});">
+                <path d="M9,4 L17,4 L17,10 Q17,14.2 13,15.2 Q9,14.2 9,10 Z M9,6 L5.8,6 Q5.8,10.8 9,10.8 M17,6 L20.2,6 Q20.2,10.8 17,10.8 M13,15.2 L13,18.2 M10,21.5 L16,21.5 Q16.4,19.4 13,18.2 Q9.6,19.4 10,21.5" stroke="{{ t.color }}" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></path>
+              </svg>
+              <div style="font-size:19px;font-weight:700;color:{{ t.color }};line-height:1;">{{ t.count }}</div>
+              <div style="font-size:11px;letter-spacing:2px;color:#66799f;">{{ t.name }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="margin-top:14px;flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:11px;padding-right:4px;">
+        <sc-for list="{{ achievements }}" as="a" hint-placeholder-count="6">
+          <div style="position:relative;display:flex;align-items:center;gap:16px;padding:13px 18px;border-radius:16px;flex-shrink:0;border:{{ a.border }};background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.05) 46%,transparent 62%),radial-gradient({{ a.dots }} 1px,transparent 1.4px),linear-gradient(178deg,rgba(24,28,56,.30),rgba(7,9,22,.42));background-size:auto,24px 24px,auto;box-shadow:{{ a.glow }};">
+            <div style="position:absolute;left:14px;right:14px;top:-1px;height:1.5px;border-radius:2px;background:linear-gradient(90deg,transparent,{{ a.edge }} 30%,{{ a.edge }} 70%,transparent);pointer-events:none;"></div>
+            <div style="position:relative;width:62px;height:62px;flex-shrink:0;border-radius:14px;border:1.5px solid {{ a.iconBorder }};background:linear-gradient(160deg,rgba(20,26,52,.7),rgba(8,11,26,.85));box-shadow:0 0 12px {{ a.iconGlow }};display:flex;align-items:center;justify-content:center;">
+              <svg width="30" height="30" viewBox="0 0 26 26" fill="none" style="opacity:{{ a.iconOpacity }};">
+                <path d="{{ a.iconPath }}" stroke="{{ a.iconColor }}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+              </svg>
+            </div>
+            <div style="flex:1;min-width:0;">
+              <div style="display:flex;align-items:baseline;gap:9px;">
+                <div style="font-size:19px;font-weight:600;letter-spacing:1px;color:{{ a.nameColor }};text-shadow:{{ a.textGlow }};white-space:nowrap;">{{ a.name }}</div>
+                <div style="font-size:11px;letter-spacing:2px;color:{{ a.tierColor }};">{{ a.tier }}</div>
+                <div style="flex:1;"></div>
+                <div style="font-size:12px;color:#5f7196;white-space:nowrap;">{{ a.meta }}</div>
+              </div>
+              <div style="margin-top:3px;font-size:14px;color:{{ a.descColor }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ a.desc }}</div>
+              <div style="margin-top:7px;display:flex;align-items:center;gap:10px;">
+                <div style="flex:1;height:5px;border-radius:3px;background:rgba(20,26,54,.9);border:1px solid rgba(170,195,255,.12);overflow:hidden;">
+                  <div style="width:{{ a.pct }};height:100%;border-radius:3px;background:{{ a.barFill }};box-shadow:0 0 8px {{ a.iconGlow }};"></div>
+                </div>
+                <div style="font-size:12px;color:#7487ac;white-space:nowrap;">{{ a.progress }}</div>
+              </div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ showRank }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;left:44px;right:44px;top:184px;bottom:172px;display:flex;flex-direction:column;z-index:4;">
+      <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
+        <div onClick="{{ prevLevel }}" style-hover="transform:scale(1.1);" style-active="transform:scale(.92);" style="width:34px;height:44px;flex-shrink:0;border-radius:12px;cursor:pointer;transition:transform .15s;border:1px solid rgba(170,195,255,.18);background:linear-gradient(178deg,rgba(20,24,48,.3),rgba(7,9,22,.4));display:flex;align-items:center;justify-content:center;">
+          <svg width="16" height="16" viewBox="0 0 26 26" fill="none"><path d="M16,4 L8,13 L16,22" stroke="#9fb4d8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+        </div>
+        <div ref="{{ stripRef }}" style="flex:1;min-width:0;display:flex;gap:9px;overflow-x:auto;scroll-behavior:smooth;padding-bottom:2px;-ms-overflow-style:none;scrollbar-width:none;-webkit-mask-image:linear-gradient(90deg,transparent,#000 22px,#000 calc(100% - 22px),transparent);mask-image:linear-gradient(90deg,transparent,#000 22px,#000 calc(100% - 22px),transparent);">
+          <sc-for list="{{ levelChips }}" as="lc" hint-placeholder-count="6">
+            <div onClick="{{ lc.onClick }}" style-hover="transform:translateY(-2px);" style-active="transform:scale(.95);" style="flex:0 0 84px;padding:7px 0 8px;border-radius:13px;cursor:pointer;transition:transform .15s;text-align:center;border:{{ lc.border }};background:{{ lc.bg }};box-shadow:{{ lc.glow }};">
+              <div style="font-size:17px;font-weight:700;color:{{ lc.color }};text-shadow:{{ lc.textGlow }};line-height:1;">{{ lc.no }}</div>
+              <div style="margin-top:3px;font-size:11px;letter-spacing:1px;color:{{ lc.subColor }};white-space:nowrap;overflow:hidden;">{{ lc.short }}</div>
+            </div>
+          </sc-for>
+        </div>
+        <div onClick="{{ nextLevel }}" style-hover="transform:scale(1.1);" style-active="transform:scale(.92);" style="width:34px;height:44px;flex-shrink:0;border-radius:12px;cursor:pointer;transition:transform .15s;border:1px solid rgba(170,195,255,.18);background:linear-gradient(178deg,rgba(20,24,48,.3),rgba(7,9,22,.4));display:flex;align-items:center;justify-content:center;">
+          <svg width="16" height="16" viewBox="0 0 26 26" fill="none"><path d="M10,4 L18,13 L10,22" stroke="#9fb4d8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+        </div>
+      </div>
+
+      <div style="position:relative;flex-shrink:0;margin-top:14px;padding:16px 22px 18px;border-radius:20px;border:1px solid {{ lvA2 }};background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.06) 45%,transparent 60%),radial-gradient({{ lvA2 }} 1px,transparent 1.4px),linear-gradient(178deg,rgba(24,28,56,.34),rgba(7,9,22,.46));background-size:auto,26px 26px,auto;backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);box-shadow:0 0 24px {{ lvA2 }}, inset 0 0 24px {{ lvA2 }};">
+        <div style="position:absolute;left:24px;right:24px;top:-1px;height:1.5px;border-radius:2px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.9) 26%,rgba(255,255,255,.75) 74%,transparent);box-shadow:0 0 9px {{ lvA5 }};pointer-events:none;"></div>
+        <div style="display:flex;align-items:baseline;justify-content:space-between;">
+          <div style="display:flex;align-items:baseline;gap:10px;min-width:0;">
+            <div style="font-size:26px;font-weight:700;letter-spacing:4px;color:#fff;text-shadow:0 0 12px {{ lvA8 }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ lvName }}</div>
+            <div style="flex-shrink:0;font-size:13px;letter-spacing:2px;color:{{ lvDim }};">{{ levelPage }}</div>
+          </div>
+          <div style="flex-shrink:0;white-space:nowrap;font-size:13px;letter-spacing:3px;color:{{ lvDim }};">目标 {{ lvTarget }} · {{ lvEntries }} 人上榜</div>
+        </div>
+        <div style="margin-top:14px;display:flex;align-items:flex-end;gap:12px;">
+          <sc-for list="{{ podium }}" as="p" hint-placeholder-count="3">
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;">
+              <div style="position:relative;width:{{ p.size }};height:{{ p.size }};border-radius:50%;border:2px solid {{ p.medal }};background:linear-gradient(160deg,rgba(20,32,58,.85),rgba(10,18,38,.92));box-shadow:0 0 14px {{ p.medalGlow }};display:flex;align-items:center;justify-content:center;font-size:{{ p.initialSize }};font-weight:700;color:{{ p.medal }};text-shadow:0 0 10px {{ p.medalGlow }};">
+                {{ p.initial }}
+                <div style="position:absolute;left:50%;bottom:-9px;transform:translateX(-50%);width:22px;height:18px;border-radius:6px;background:{{ p.medal }};color:#08101c;font-size:12px;font-weight:700;line-height:18px;text-align:center;box-shadow:0 0 10px {{ p.medalGlow }};">{{ p.rank }}</div>
+              </div>
+              <div style="margin-top:6px;font-size:15px;font-weight:600;color:#e6f0ff;white-space:nowrap;">{{ p.name }}</div>
+              <div style="font-size:17px;font-weight:700;color:{{ p.medal }};text-shadow:0 0 8px {{ p.medalGlow }};line-height:1;">{{ p.score }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="margin-top:14px;flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:9px;padding-right:4px;">
+        <sc-for list="{{ ranks }}" as="r" hint-placeholder-count="8">
+          <div style="position:relative;display:flex;align-items:center;gap:14px;padding:11px 18px;border-radius:14px;flex-shrink:0;border:{{ r.border }};background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.05) 46%,transparent 62%),radial-gradient({{ r.dots }} 1px,transparent 1.4px),linear-gradient(178deg,rgba(24,28,56,.30),rgba(7,9,22,.42));background-size:auto,24px 24px,auto;box-shadow:{{ r.glow }};">
+            <sc-if value="{{ r.isMe }}" hint-placeholder-val="{{ false }}">
+              <div style="position:absolute;left:14px;right:14px;top:-1px;height:1.5px;border-radius:2px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.85) 30%,rgba(255,255,255,.7) 70%,transparent);pointer-events:none;"></div>
+            </sc-if>
+            <div style="width:44px;flex-shrink:0;font-size:20px;font-weight:700;color:{{ r.rankColor }};text-shadow:{{ r.rankGlow }};">{{ r.rank }}</div>
+            <div style="width:40px;height:40px;flex-shrink:0;border-radius:50%;border:1.5px solid {{ r.avaBorder }};background:linear-gradient(160deg,rgba(20,32,58,.8),rgba(10,18,38,.9));display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:{{ r.avaColor }};">{{ r.initial }}</div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:17px;font-weight:600;color:{{ r.nameColor }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ r.name }}</div>
+              <div style="font-size:12px;letter-spacing:1px;color:#5f7196;">{{ r.hand }}</div>
+            </div>
+            <div style="text-align:right;flex-shrink:0;">
+              <div style="font-size:20px;font-weight:700;color:{{ r.scoreColor }};text-shadow:{{ r.rankGlow }};line-height:1;">{{ r.score }}</div>
+              <div style="margin-top:2px;font-size:11px;letter-spacing:1px;color:#5f7196;">{{ r.when }}</div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+  <div style="position:absolute;left:44px;right:44px;bottom:22px;height:132px;display:flex;z-index:5;">
+    <sc-for list="{{ tabs }}" as="tab" hint-placeholder-count="4">
+      <div onClick="{{ tab.onClick }}" style-hover="transform:translateY(-3px);" style-active="transform:scale(.94);" style="position:relative;flex:1;cursor:pointer;transition:transform .18s;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;">
+        <svg width="60" height="60" viewBox="0 0 26 26" fill="none" style="filter:drop-shadow(0 0 10px {{ tab.iconGlow }});">
+          <path d="{{ tab.iconPath }}" stroke="{{ tab.color }}" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"></path>
+        </svg>
+        <div style="font-size:19px;font-weight:600;letter-spacing:4px;text-indent:4px;color:{{ tab.color }};text-shadow:{{ tab.textGlow }};">{{ tab.name }}</div>
+        <sc-if value="{{ tab.active }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;left:50%;bottom:4px;width:32px;height:2.5px;transform:translateX(-50%);border-radius:2px;background:#ffb347;box-shadow:0 0 10px #ffb347, 0 0 22px rgba(255,179,71,.6);"></div>
+        </sc-if>
+      </div>
+    </sc-for>
+  </div>
+
+  <sc-if value="{{ rainOn }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;inset:0;pointer-events:none;z-index:9;opacity:.28;background-image:repeating-linear-gradient(168deg,transparent 0px,transparent 34px,rgba(180,220,255,.18) 35px,transparent 37px),repeating-linear-gradient(172deg,transparent 0px,transparent 58px,rgba(150,200,255,.10) 59px,transparent 62px);animation:dcrain 1.3s linear infinite;"></div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: 720, &quot;height&quot;: 1280}, &quot;coins&quot;: {&quot;editor&quot;: &quot;int&quot;, &quot;default&quot;: 2480, &quot;tsType&quot;: &quot;number&quot;, &quot;section&quot;: &quot;玩家信息&quot;}, &quot;rain&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;氛围&quot;}}">
+class Component extends DCLogic {
+  state = { sub: 0, level: 2 };
+  achievements = [
+    { name: '首次登台', desc: '完成第一场演出', tier: '铜', cur: 1, max: 1, rare: '87.4%', date: '2026.03.02', icon: 'M13,4.5 L15.6,10 L21.5,10.8 L17.2,15 L18.3,21 L13,18.1 L7.7,21 L8.8,15 L4.5,10.8 L10.4,10 Z' },
+    { name: '雨夜常客', desc: '累计游玩 50 局', tier: '铜', cur: 50, max: 50, rare: '52.1%', date: '2026.04.18', icon: 'M13,3.5 a9.5,9.5 0 1,0 0.01,0 M13,7.5 L13,13 L17,15.5' },
+    { name: '满堂彩', desc: '单局得分超过 1000', tier: '银', cur: 1000, max: 1000, rare: '18.6%', date: '2026.06.09', icon: 'M4,20 L4,13 L8,13 L8,20 M11,20 L11,8 L15,8 L15,20 M18,20 L18,4 L22,4 L22,20' },
+    { name: '同花之夜', desc: '用同花牌型通关一次', tier: '银', cur: 1, max: 1, rare: '23.9%', date: '2026.06.22', icon: 'M13,4 L18,11 Q21,15.5 16.5,17.5 Q14.5,18.4 13,16.5 Q11.5,18.4 9.5,17.5 Q5,15.5 8,11 Z M13,18 L13,21.5' },
+    { name: '小丑收藏家', desc: '收集 12 张小丑牌', tier: '金', cur: 8, max: 12, rare: '6.2%', date: '', icon: 'M5.5,17.5 L7.5,7 L11,12 L13,5.5 L15,12 L18.5,7 L20.5,17.5 Z M5.5,17.5 L20.5,17.5 M8,20.8 L18,20.8' },
+    { name: '全员到齐', desc: '解锁全部 12 位主角', tier: '金', cur: 7, max: 12, rare: '4.8%', date: '', icon: 'M13,4.5 a4,4 0 1,0 0.01,0 M6,21.5 Q6,15 13,15 Q20,15 20,21.5' },
+    { name: '风暴征服者', desc: '通关风暴主场', tier: '金', cur: 0, max: 1, rare: '2.1%', date: '', icon: 'M14.5,3.5 L7,14 L12,14 L10.5,22.5 L19,11.5 L14,11.5 Z' },
+    { name: '霓虹之王', desc: '解锁全部成就', tier: '白金', cur: 11, max: 18, rare: '0.4%', date: '', icon: 'M6,8.5 L9.5,17 L13,6.5 L16.5,17 L20,8.5 M5,20.5 L21,20.5' }
+  ];
+  levels = [
+    { name: '雨巷入门', target: 150, color: '#ff4fa3', entries: '12.4 万' },
+    { name: '霓虹街角', target: 220, color: '#35e8e0', entries: '9.8 万' },
+    { name: '午夜俱乐部', target: 300, color: '#a56bff', entries: '6.1 万' },
+    { name: '电音天台', target: 420, color: '#ffb347', entries: '3.2 万' },
+    { name: '全息剧场', target: 600, color: '#5fa8ff', entries: '1.4 万' },
+    { name: '风暴主场', target: 850, color: '#ff5f6e', entries: '4,208' },
+    { name: '地下车库', target: 1100, color: '#8ef5b8', entries: '3,140' },
+    { name: '信号塔', target: 1400, color: '#35e8e0', entries: '2,275' },
+    { name: '霓虹长廊', target: 1750, color: '#ff4fa3', entries: '1,690' },
+    { name: '暴雨列车', target: 2200, color: '#5fa8ff', entries: '1,204' },
+    { name: '合成器海', target: 2700, color: '#a56bff', entries: '873' },
+    { name: '午夜天桥', target: 3300, color: '#ffd76a', entries: '612' },
+    { name: '镜面舞池', target: 4000, color: '#c9a3ff', entries: '405' },
+    { name: '断电街区', target: 4800, color: '#ff8fd0', entries: '288' },
+    { name: '云顶电台', target: 5700, color: '#7fd8d0', entries: '176' },
+    { name: '静默频段', target: 6700, color: '#dfe9ff', entries: '94' },
+    { name: '过载核心', target: 7800, color: '#ff5f6e', entries: '41' },
+    { name: '白噪终章', target: 9000, color: '#ffb347', entries: '12' }
+  ];
+  boards = [
+    ['ECHO_9', 'MIRA', '夜鸦', 'K.LUX', 'SABLE', '雨宫零', 'NOCT', 'DJ 白噪', 'V-01', 'RAIN'],
+    ['SABLE', 'ECHO_9', 'K.LUX', '夜鸦', 'MIRA', 'NOCT', '雨宫零', 'V-01', 'RAIN', 'DJ 白噪'],
+    ['MIRA', '夜鸦', 'SABLE', 'NOCT', 'ECHO_9', 'K.LUX', 'V-01', '雨宫零', 'DJ 白噪', 'RAIN'],
+    ['NOCT', 'K.LUX', 'MIRA', 'ECHO_9', '夜鸦', 'SABLE', 'RAIN', 'V-01', '雨宫零', 'DJ 白噪'],
+    ['K.LUX', 'SABLE', 'NOCT', 'MIRA', 'V-01', '夜鸦', 'ECHO_9', 'RAIN', 'DJ 白噪', '雨宫零'],
+    ['夜鸦', 'NOCT', 'ECHO_9', 'SABLE', 'K.LUX', 'MIRA', 'DJ 白噪', 'V-01', 'RAIN', '雨宫零']
+  ];
+  hands = ['皇家同花顺', '同花顺', '四条', '葫芦', '同花', '顺子', '三条', '两对', '对子', '高牌'];
+  componentDidUpdate() { this.centerChip(); }
+  componentDidMount() { this.centerChip(); }
+  centerChip() {
+    const el = this._strip;
+    if (!el) return;
+    const chip = el.children[this.state.level];
+    if (!chip) return;
+    const target = chip.offsetLeft - (el.clientWidth - chip.offsetWidth) / 2;
+    el.scrollTo({ left: Math.max(0, target), behavior: 'smooth' });
+  }
+  renderVals() {
+    const hexA = (hex, a) => hex + Math.round(a * 255).toString(16).padStart(2, '0');
+    const s = this.state;
+    const tierColor = { '铜': '#c98b5a', '银': '#c6d3e6', '金': '#ffb347', '白金': '#9ff0ff' };
+    const done = this.achievements.filter(a => a.cur >= a.max).length + 7;
+    const donePct = Math.round(done / 18 * 100);
+    const lv = this.levels[s.level];
+    const c = lv.color;
+    const names = this.boards[s.level % this.boards.length];
+    const base = lv.target * 4.2;
+    const rows = names.map((n, i) => ({
+      rank: i + 1,
+      name: n,
+      score: Math.round(base * Math.pow(0.93, i) / 5) * 5,
+      hand: this.hands[(i + s.level) % this.hands.length],
+      when: ['2 小时前', '今天', '昨天', '3 天前', '本周'][(i + s.level) % 5],
+      isMe: n === 'DJ 白噪'
+    }));
+    const medal = ['#ffd76a', '#d7e2f2', '#d08a4e'];
+    const tabDefs = [
+      { name: '关卡', iconPath: 'M9.5,4.5 L18.5,4.5 Q20.5,4.5 20.5,6.5 L20.5,17.5 Q20.5,19.5 18.5,19.5 L9.5,19.5 Q7.5,19.5 7.5,17.5 L7.5,6.5 Q7.5,4.5 9.5,4.5 M14,8.5 L16.8,12 L14,15.5 L11.2,12 Z M7.5,8 L5.5,8.8 Q4,9.5 4.6,11.4 L7.5,19 Q8.2,20.8 10,20.5' },
+      { name: '主角', iconPath: 'M13,4.5 a4,4 0 1,0 0.01,0 M6,21.5 Q6,15 13,15 Q20,15 20,21.5' },
+      { name: '小丑牌', iconPath: 'M5.5,17.5 L7.5,7 L11,12 L13,5.5 L15,12 L18.5,7 L20.5,17.5 Z M5.5,17.5 L20.5,17.5 M8,20.8 L18,20.8' },
+      { name: '荣誉', iconPath: 'M9,4 L17,4 L17,10 Q17,14.2 13,15.2 Q9,14.2 9,10 Z M9,6 L5.8,6 Q5.8,10.8 9,10.8 M17,6 L20.2,6 Q20.2,10.8 17,10.8 M13,15.2 L13,18.2 M10,21.5 L16,21.5 Q16.4,19.4 13,18.2 Q9.6,19.4 10,21.5' }
+    ];
+    return {
+      rainOn: this.props.rain ?? true,
+      coins: this.props.coins ?? 2480,
+      doneCount: done, donePct, progDeg: (donePct * 3.6) + 'deg',
+      myGlobalRank: '1,842',
+      showAchv: s.sub === 0, showRank: s.sub === 1,
+      subTabs: ['成就', '排行'].map((name, i) => ({
+        name, active: i === s.sub,
+        color: i === s.sub ? '#ffffff' : '#8ea3c8',
+        textGlow: i === s.sub ? '0 0 10px rgba(255,179,71,.8)' : 'none',
+        border: i === s.sub ? '1.5px solid rgba(255,179,71,.6)' : '1px solid rgba(170,195,255,.14)',
+        bg: i === s.sub
+          ? 'linear-gradient(115deg,transparent 30%,rgba(255,255,255,.07) 46%,transparent 62%),radial-gradient(rgba(255,179,71,.22) 1px,transparent 1.4px),linear-gradient(178deg,rgba(24,28,56,.34),rgba(7,9,22,.44))'
+          : 'linear-gradient(178deg,rgba(20,24,48,.24),rgba(7,9,22,.34))',
+        glow: i === s.sub ? '0 0 16px rgba(255,179,71,.3), inset 0 0 20px rgba(255,179,71,.13)' : 'none',
+        onClick: () => this.setState({ sub: i })
+      })),
+      tiers: [
+        { name: '铜', count: 5, color: '#c98b5a', glow: 'rgba(201,139,90,.6)' },
+        { name: '银', count: 4, color: '#c6d3e6', glow: 'rgba(198,211,230,.5)' },
+        { name: '金', count: 2, color: '#ffb347', glow: 'rgba(255,179,71,.6)' },
+        { name: '白金', count: 0, color: '#5d7091', glow: 'transparent' }
+      ],
+      achievements: this.achievements.map(a => {
+        const got = a.cur >= a.max;
+        const tc = tierColor[a.tier];
+        return {
+          name: a.name, desc: a.desc, tier: a.tier, iconPath: a.icon,
+          progress: got ? '已达成' : a.cur + ' / ' + a.max,
+          pct: Math.round(a.cur / a.max * 100) + '%',
+          meta: got ? a.date + ' · ' + a.rare + ' 玩家' : a.rare + ' 玩家',
+          tierColor: got ? tc : '#5d7091',
+          iconColor: got ? tc : '#5d7091',
+          iconOpacity: got ? 0.95 : 0.4,
+          iconBorder: got ? hexA(tc, 0.65) : 'rgba(170,195,255,.14)',
+          iconGlow: got ? hexA(tc, 0.35) : 'transparent',
+          nameColor: got ? '#ffffff' : '#8ea3c8',
+          textGlow: got ? '0 0 10px ' + hexA(tc, 0.6) : 'none',
+          descColor: got ? '#93a7cf' : '#66799f',
+          barFill: got ? 'linear-gradient(90deg,' + hexA(tc, 0.7) + ',' + tc + ')' : 'linear-gradient(90deg,rgba(120,150,200,.5),rgba(150,180,225,.75))',
+          border: got ? '1px solid ' + hexA(tc, 0.35) : '1px solid rgba(170,195,255,.12)',
+          dots: got ? hexA(tc, 0.16) : 'rgba(190,210,255,.1)',
+          edge: got ? hexA(tc, 0.55) : 'rgba(220,232,255,.22)',
+          glow: got ? '0 0 14px ' + hexA(tc, 0.16) + ', inset 0 0 18px ' + hexA(tc, 0.08) : 'none'
+        };
+      }),
+      stripRef: (el) => { this._strip = el; },
+      levelPage: String(s.level + 1).padStart(2, '0') + ' / ' + String(this.levels.length).padStart(2, '0'),
+      prevLevel: () => this.setState(st => ({ level: (st.level + this.levels.length - 1) % this.levels.length })),
+      nextLevel: () => this.setState(st => ({ level: (st.level + 1) % this.levels.length })),
+      levelChips: this.levels.map((l, i) => ({
+        no: String(i + 1).padStart(2, '0'),
+        short: l.name.slice(0, 4),
+        color: i === s.level ? '#ffffff' : '#8ea3c8',
+        subColor: i === s.level ? hexA(l.color, 0.9) : '#5f7196',
+        textGlow: i === s.level ? '0 0 10px ' + hexA(l.color, 0.9) : 'none',
+        border: i === s.level ? '1.5px solid ' + hexA(l.color, 0.7) : '1px solid rgba(170,195,255,.14)',
+        bg: i === s.level ? hexA(l.color, 0.16) : 'linear-gradient(178deg,rgba(20,24,48,.24),rgba(7,9,22,.34))',
+        glow: i === s.level ? '0 0 14px ' + hexA(l.color, 0.3) : 'none',
+        onClick: () => this.setState({ level: i })
+      })),
+      lvName: lv.name, lvTarget: lv.target, lvEntries: lv.entries,
+      lvDim: hexA(c, 0.62), lvA2: hexA(c, 0.2), lvA5: hexA(c, 0.5), lvA8: hexA(c, 0.8),
+      podium: [1, 0, 2].map(idx => {
+        const r = rows[idx];
+        return {
+          rank: r.rank, name: r.name, score: r.score.toLocaleString(),
+          initial: r.name.slice(0, 1),
+          size: idx === 0 ? '76px' : '62px',
+          initialSize: idx === 0 ? '28px' : '22px',
+          medal: medal[idx], medalGlow: hexA(medal[idx], 0.6)
+        };
+      }),
+      ranks: rows.map(r => ({
+        rank: r.rank, name: r.name, hand: r.hand, when: r.when,
+        score: r.score.toLocaleString(), isMe: r.isMe,
+        initial: r.name.slice(0, 1),
+        rankColor: r.rank <= 3 ? medal[r.rank - 1] : (r.isMe ? '#ffffff' : '#8ea3c8'),
+        rankGlow: r.rank <= 3 ? '0 0 8px ' + hexA(medal[r.rank - 1], 0.6) : (r.isMe ? '0 0 8px ' + hexA(c, 0.7) : 'none'),
+        scoreColor: r.isMe ? '#ffffff' : '#cddcf2',
+        nameColor: r.isMe ? '#ffffff' : '#b9cbe8',
+        avaBorder: r.isMe ? hexA(c, 0.8) : 'rgba(170,195,255,.2)',
+        avaColor: r.isMe ? c : '#8ea3c8',
+        border: r.isMe ? '1.5px solid ' + hexA(c, 0.7) : '1px solid rgba(170,195,255,.12)',
+        dots: r.isMe ? hexA(c, 0.2) : 'rgba(190,210,255,.1)',
+        glow: r.isMe ? '0 0 16px ' + hexA(c, 0.3) + ', inset 0 0 20px ' + hexA(c, 0.14) : 'none'
+      })),
+      tabs: tabDefs.map((t, k) => ({
+        name: t.name, iconPath: t.iconPath,
+        active: k === 3,
+        color: k === 3 ? '#ffffff' : '#8ea3c8',
+        iconGlow: k === 3 ? 'rgba(255,179,71,.7)' : 'transparent',
+        textGlow: k === 3 ? '0 0 10px rgba(255,179,71,.8)' : 'none',
+        onClick: () => {}
+      }))
+    };
+  }
+}
+</script>
+</body>
+</html>
