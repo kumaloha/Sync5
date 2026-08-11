@@ -222,12 +222,24 @@ func _draw_filter() -> void:
 		Color(ACC.r, ACC.g, ACC.b, 0.35), 1.0)
 
 
-func _tex(id: String) -> Texture2D:
+## 卡画用 source/ 原画(1024²,无文字)而不是 previews/ ——
+## previews 是 GPT 烘焙的迷你卡面,**数额烘死在像素里**,平衡一调就变陈数
+## (2026-08-12 Target 重锚当场撞上:格角新章 ×10、图里旧章 ×7 并排打架)。
+## 原画 + 运行时排字才是单源;alpha bbox 裁掉大边距(同 joker_slot 的做法)。
+func _tex(id: String) -> Array:      # [Texture2D, Rect2 bbox] 或空数组
 	if _art.has(id):
-		return _art[id] if _art[id] is Texture2D else null
-	var p := "res://assets/jokers/previews/joker_%s.png" % id
-	_art[id] = load(p) if ResourceLoader.exists(p) else false
-	return _art[id] if _art[id] is Texture2D else null
+		return _art[id] if _art[id] is Array else []
+	var p := "res://assets/jokers/source/joker_%s.png" % id
+	if not ResourceLoader.exists(p):
+		_art[id] = false
+		return []
+	var t: Texture2D = load(p)
+	var img := t.get_image()
+	var bb := img.get_used_rect()
+	bb = bb.grow(int(maxf(float(bb.size.x), float(bb.size.y)) * 0.04))
+	bb = bb.intersection(Rect2i(0, 0, img.get_width(), img.get_height()))
+	_art[id] = [t, Rect2(bb)]
+	return _art[id]
 
 
 ## 网格层的内容(局部坐标,clip_contents 裁掉视口外)。
@@ -258,15 +270,17 @@ func draw_grid(ci: CanvasItem) -> void:
 			ci.draw_string(num, Vector2(r.position.x, r.position.y + 19.0), c["amount"],
 				HORIZONTAL_ALIGNMENT_RIGHT, r.size.x - 9.0, 12,
 				Color(1.0, 1.0, 1.0, 0.9 * dim))
-		# 卡画
-		var tex := _tex(c["id"])
-		if tex != null:
+		# 卡画(source 原画按 alpha bbox 装进框)
+		var art := _tex(c["id"])
+		if not art.is_empty():
+			var tex: Texture2D = art[0]
+			var src: Rect2 = art[1]
 			var box := Rect2(r.position.x + 8.0, r.position.y + 26.0, r.size.x - 16.0, 112.0)
-			var sc := minf(box.size.x / float(tex.get_width()),
-				box.size.y / float(tex.get_height()))
-			var dsz := Vector2(float(tex.get_width()), float(tex.get_height())) * sc
-			ci.draw_texture_rect(tex, Rect2(box.position + (box.size - dsz) * 0.5, dsz),
-				false, Color(1, 1, 1, dim))
+			var sc := minf(box.size.x / src.size.x, box.size.y / src.size.y)
+			var dsz := src.size * sc
+			ci.draw_texture_rect_region(tex,
+				Rect2(box.position + (box.size - dsz) * 0.5, dsz), src,
+				Color(1, 1, 1, dim))
 		# 名字 + 说明
 		ci.draw_string(zh, Vector2(r.position.x, r.position.y + 160.0), c["cn"],
 			HORIZONTAL_ALIGNMENT_CENTER, r.size.x, 16,

@@ -1,608 +1,617 @@
 {
-  "version": 1,
-  "card_size": [1240, 1376],
-  "preview_size": [155, 172],
-  "runtime_art_size": [1024, 400],
-  "cards": [
-    {
-      "id": "twin",
-      "cn": "双子",
-      "code": "T-01",
-      "kind": "target",
-      "rarity": "rare",
-      "trigger_zh": "对子或两对",
-      "amount": "×6",
-      "art_subject": "一对镜像舞者"
-    },
-    {
-      "id": "stair",
-      "cn": "阶梯",
-      "code": "T-02",
-      "kind": "target",
-      "rarity": "rare",
-      "trigger_zh": "顺子或同花顺",
-      "amount": "×10",
-      "art_subject": "通往聚光灯的霓虹台阶"
-    },
-    {
-      "id": "mono",
-      "cn": "单色",
-      "code": "T-03",
-      "kind": "target",
-      "rarity": "rare",
-      "trigger_zh": "同花或同花顺",
-      "amount": "×7",
-      "art_subject": "单色灯光淹没的舞台"
-    },
-    {
-      "id": "triplet",
-      "cn": "三连音",
-      "code": "T-04",
-      "kind": "target",
-      "rarity": "rare",
-      "trigger_zh": "三条、葫芦或四条",
-      "amount": "×5",
-      "art_subject": "三个重叠音符组成三人和声"
-    },
-    {
-      "id": "lonewolf",
-      "cn": "独狼",
-      "code": "T-05",
-      "kind": "target",
-      "rarity": "rare",
-      "trigger_zh": "本拍零弃牌；目标牌必定出现",
-      "amount": "+3◆",
-      "art_subject": "独自站在麦克风前的狼"
-    },
-    {
-      "id": "kaleido",
-      "cn": "万花筒",
-      "code": "T-06",
-      "kind": "target",
-      "rarity": "rare",
-      "trigger_zh": "与上一拍不同的成牌",
-      "amount": "×4",
-      "art_subject": "万花筒中不断变形的牌面"
-    },
-    {
-      "id": "shredder",
-      "cn": "速弹",
-      "code": "T-07",
-      "kind": "target",
-      "rarity": "rare",
-      "trigger_zh": "提前完成且为成牌",
-      "amount": "×4",
-      "art_subject": "吉他速弹与指尖残影"
-    },
-    {
-      "id": "wrecker",
-      "cn": "拆迁",
-      "code": "T-08",
-      "kind": "target",
-      "rarity": "rare",
-      "trigger_zh": "本拍弃牌三次后，成牌",
-      "amount": "×3.5",
-      "art_subject": "铁球砸穿一堵扑克牌墙"
-    },
-    {
-      "id": "encore",
-      "cn": "回响",
-      "code": "S-01",
-      "kind": "support",
-      "rarity": "common",
-      "trigger_zh": "与上一拍相同牌型",
-      "amount": "+80",
-      "art_subject": "返场呼喊形成回声的观众席"
-    },
-    {
-      "id": "finale",
-      "cn": "尾声",
-      "code": "S-02",
-      "kind": "support",
-      "rarity": "common",
-      "trigger_zh": "最后两秒行动",
-      "amount": "+70",
-      "art_subject": "最后一秒爆开的谢幕烟花"
-    },
-    {
-      "id": "turnover",
-      "cn": "周转",
-      "code": "S-03",
-      "kind": "support",
-      "rarity": "common",
-      "trigger_zh": "本拍每次弃牌",
-      "amount": "+20",
-      "art_subject": "飞速换牌的一双手"
-    },
-    {
-      "id": "tipjar",
-      "cn": "小费罐",
-      "code": "S-04",
-      "kind": "support",
-      "rarity": "common",
-      "trigger_zh": "本拍零弃牌",
-      "amount": "+2◆",
-      "art_subject": "塞满硬币的玻璃小费罐"
-    },
-    {
-      "id": "chord",
-      "cn": "和弦",
-      "code": "S-05",
-      "kind": "support",
-      "rarity": "common",
-      "trigger_zh": "缓存全为同一花色",
-      "amount": "+120",
-      "art_subject": "三根同色发光琴弦"
-    },
-    {
-      "id": "neonsign",
-      "cn": "灯牌",
-      "code": "S-06",
-      "kind": "support",
-      "rarity": "common",
-      "trigger_zh": "始终生效",
-      "amount": "+80",
-      "art_subject": "一块纯粹的霓虹招牌"
-    },
-    {
-      "id": "vinyl",
-      "cn": "黑胶",
-      "code": "S-07",
-      "kind": "support",
-      "rarity": "common",
-      "trigger_zh": "每次弃牌后永久",
-      "amount": "+3",
-      "art_subject": "唱针下旋转的黑胶纹路"
-    },
-    {
-      "id": "chorus",
-      "cn": "副歌",
-      "code": "S-08",
-      "kind": "support",
-      "rarity": "uncommon",
-      "trigger_zh": "本节最后一拍",
-      "amount": "+75%",
-      "art_subject": "全场合唱的高潮声浪"
-    },
-    {
-      "id": "interest",
-      "cn": "利息",
-      "code": "S-09",
-      "kind": "support",
-      "rarity": "uncommon",
-      "trigger_zh": "每持有四枚金币",
-      "amount": "+1◆",
-      "art_subject": "一枚硬币生出小硬币"
-    },
-    {
-      "id": "momentum",
-      "cn": "惯性",
-      "code": "S-10",
-      "kind": "support",
-      "rarity": "uncommon",
-      "trigger_zh": "每次提前完成后永久",
-      "amount": "+10%",
-      "art_subject": "越滚越快的节拍飞轮"
-    },
-    {
-      "id": "vip",
-      "cn": "贵宾",
-      "code": "S-11",
-      "kind": "support",
-      "rarity": "uncommon",
-      "trigger_zh": "人头牌点数",
-      "amount": "15",
-      "art_subject": "贵宾席上的 J、Q、K"
-    },
-    {
-      "id": "glowstick",
-      "cn": "荧光棒",
-      "code": "S-12",
-      "kind": "support",
-      "rarity": "uncommon",
-      "trigger_zh": "初始加成，每拍衰减 6%",
-      "amount": "+60%",
-      "art_subject": "逐拍变暗的荧光棒"
-    },
-    {
-      "id": "shortcut",
-      "cn": "近道",
-      "code": "S-13",
-      "kind": "support",
-      "rarity": "uncommon",
-      "trigger_zh": "顺子可以跳过一级",
-      "amount": "RULE",
-      "art_subject": "跨过断层的捷径台阶"
-    },
-    {
-      "id": "fourfingers",
-      "cn": "四指",
-      "code": "S-14",
-      "kind": "support",
-      "rarity": "rare",
-      "trigger_zh": "四张牌也算顺子",
-      "amount": "RULE",
-      "art_subject": "一只清楚可数的四指手套"
-    },
-    {
-      "id": "twotone",
-      "cn": "双色调",
-      "code": "S-15",
-      "kind": "support",
-      "rarity": "rare",
-      "trigger_zh": "同色即可组成同花",
-      "amount": "RULE",
-      "art_subject": "半红半黑的双色舞台灯"
-    },
-    {
-      "id": "bassline",
-      "cn": "贝斯线",
-      "code": "S-16",
-      "kind": "support",
-      "rarity": "rare",
-      "trigger_zh": "每累计十二次弃牌后永久",
-      "amount": "×0.25",
-      "art_subject": "重复震动的低音贝斯线"
-    },
-    {
-      "id": "mirror",
-      "cn": "镜面",
-      "code": "S-17",
-      "kind": "support",
-      "rarity": "rare",
-      "trigger_zh": "复制目标牌效果",
-      "amount": "×50%",
-      "art_subject": "一面映出另一张牌的镜子"
-    },
-    {
-      "id": "wildcard",
-      "cn": "百搭",
-      "code": "S-18",
-      "kind": "support",
-      "rarity": "rare",
-      "trigger_zh": "两张万能牌加入牌库",
-      "amount": "+2",
-      "art_subject": "大小王从牌堆中探出"
-    },
-    {
-      "id": "variation",
-      "cn": "变奏",
-      "code": "S-19",
-      "kind": "support",
-      "rarity": "common",
-      "trigger_zh": "与上一拍不同牌型",
-      "amount": "+50",
-      "art_subject": "同一旋律的两种写法"
-    },
-    {
-      "id": "reprise",
-      "cn": "复读",
-      "code": "S-20",
-      "kind": "support",
-      "rarity": "uncommon",
-      "trigger_zh": "与上一拍相同牌型",
-      "amount": "+50%",
-      "art_subject": "重复出现的乐句记号"
-    },
-    {
-      "id": "fullcast",
-      "cn": "全员",
-      "code": "S-21",
-      "kind": "support",
-      "rarity": "common",
-      "trigger_zh": "五张牌组成的牌型",
-      "amount": "+150",
-      "art_subject": "五人全员站在谢幕线上"
-    },
-    {
-      "id": "superfan",
-      "cn": "铁粉",
-      "code": "S-22",
-      "kind": "support",
-      "rarity": "uncommon",
-      "trigger_zh": "每持有两枚金币",
-      "amount": "+5%",
-      "art_subject": "攥着钱包尖叫的铁杆粉丝"
-    },
-    {
-      "id": "opener",
-      "cn": "开场",
-      "code": "S-23",
-      "kind": "support",
-      "rarity": "uncommon",
-      "trigger_zh": "本节第一拍",
-      "amount": "+80%",
-      "art_subject": "拉开大幕后射入第一束光"
-    },
-    {
-      "id": "popup",
-      "cn": "快闪",
-      "code": "S-24",
-      "kind": "support",
-      "rarity": "common",
-      "trigger_zh": "仅第一节",
-      "amount": "+200",
-      "art_subject": "一张突然点亮的快闪海报"
-    },
-    {
-      "id": "rainbow",
-      "cn": "彩虹",
-      "code": "S-25",
-      "kind": "support",
-      "rarity": "common",
-      "trigger_zh": "手牌包含四种花色",
-      "amount": "+150",
-      "art_subject": "四色灯同时打向舞台"
-    },
-    {
-      "id": "nopair",
-      "cn": "清流",
-      "code": "S-26",
-      "kind": "support",
-      "rarity": "common",
-      "trigger_zh": "手牌没有对子",
-      "amount": "+60",
-      "art_subject": "五张互不相认的牌"
-    },
-    {
-      "id": "backup",
-      "cn": "伴唱",
-      "code": "S-27",
-      "kind": "support",
-      "rarity": "common",
-      "trigger_zh": "缓存全为人头牌",
-      "amount": "+150",
-      "art_subject": "三张人头牌组成伴唱"
-    },
-    {
-      "id": "rehearsal",
-      "cn": "排练",
-      "code": "S-28",
-      "kind": "support",
-      "rarity": "common",
-      "trigger_zh": "缓存形成连续点数",
-      "amount": "+150",
-      "art_subject": "候场牌排成连续队列"
-    },
-    {
-      "id": "trio",
-      "cn": "三重唱",
-      "code": "S-29",
-      "kind": "support",
-      "rarity": "common",
-      "trigger_zh": "缓存三张同点数牌",
-      "amount": "+200",
-      "art_subject": "三张同点数牌并肩合唱"
-    },
-    {
-      "id": "bassclef",
-      "cn": "低音谱",
-      "code": "S-30",
-      "kind": "support",
-      "rarity": "uncommon",
-      "trigger_zh": "低点数牌按此点数计算",
-      "amount": "10",
-      "art_subject": "放大的低音谱号托起小牌"
-    },
-    {
-      "id": "warmtone",
-      "cn": "暖色",
-      "code": "S-31",
-      "kind": "support",
-      "rarity": "common",
-      "trigger_zh": "每张参与计分的红色牌",
-      "amount": "+6",
-      "art_subject": "红桃与方块沐浴暖光"
-    },
-    {
-      "id": "cooltone",
-      "cn": "冷色",
-      "code": "S-32",
-      "kind": "support",
-      "rarity": "common",
-      "trigger_zh": "每张参与计分的黑色牌",
-      "amount": "+6",
-      "art_subject": "黑桃与梅花浸在冷光中"
-    },
-    {
-      "id": "undertone",
-      "cn": "低声部",
-      "code": "S-33",
-      "kind": "support",
-      "rarity": "common",
-      "trigger_zh": "每张参与计分的五及以下牌",
-      "amount": "+9",
-      "art_subject": "小点数牌组成低声部合唱"
-    },
-    {
-      "id": "curtain",
-      "cn": "谢幕",
-      "code": "S-34",
-      "kind": "support",
-      "rarity": "uncommon",
-      "trigger_zh": "最后一秒行动",
-      "amount": "+60%",
-      "art_subject": "幕布落下前的最后一躬"
-    },
-    {
-      "id": "stopwatch",
-      "cn": "秒表",
-      "code": "S-35",
-      "kind": "support",
-      "rarity": "uncommon",
-      "trigger_zh": "结算时每剩余一秒",
-      "amount": "+8%",
-      "art_subject": "停在剩余秒数上的机械秒表"
-    },
-    {
-      "id": "freeze",
-      "cn": "定格",
-      "code": "S-36",
-      "kind": "support",
-      "rarity": "uncommon",
-      "trigger_zh": "提前完成后，下一拍",
-      "amount": "+30%",
-      "art_subject": "定格舞姿投影进下一段时间切片"
-    },
-    {
-      "id": "earlyout",
-      "cn": "早弃",
-      "code": "S-37",
-      "kind": "support",
-      "rarity": "common",
-      "trigger_zh": "所有弃牌都在前四秒",
-      "amount": "+80",
-      "art_subject": "开场灯亮前飞出的扑克牌"
-    },
-    {
-      "id": "crescendo",
-      "cn": "渐强",
-      "code": "S-38",
-      "kind": "support",
-      "rarity": "common",
-      "trigger_zh": "超过上一拍得分",
-      "amount": "+60",
-      "art_subject": "渐强记号推高一堵音浪"
-    },
-    {
-      "id": "segue",
-      "cn": "串场",
-      "code": "S-39",
-      "kind": "support",
-      "rarity": "common",
-      "trigger_zh": "换入且参与成牌的每张牌",
-      "amount": "+40",
-      "art_subject": "扑克牌从候场滑入聚光灯"
-    },
-    {
-      "id": "stilllife",
-      "cn": "静物",
-      "code": "S-40",
-      "kind": "support",
-      "rarity": "common",
-      "trigger_zh": "本拍零交换",
-      "amount": "+60",
-      "art_subject": "三张缓存牌纹丝不动地陈列"
-    },
-    {
-      "id": "declutter",
-      "cn": "断舍离",
-      "code": "S-41",
-      "kind": "support",
-      "rarity": "uncommon",
-      "trigger_zh": "一次弃掉五张牌",
-      "amount": "+50%",
-      "art_subject": "一只手把整手牌一次撒出"
-    },
-    {
-      "id": "stageexit",
-      "cn": "让位",
-      "code": "S-42",
-      "kind": "support",
-      "rarity": "common",
-      "trigger_zh": "每张被弃的人头牌",
-      "amount": "+30",
-      "art_subject": "J、Q、K 鞠躬离开舞台"
-    },
-    {
-      "id": "doggybag",
-      "cn": "打包",
-      "code": "S-43",
-      "kind": "support",
-      "rarity": "common",
-      "trigger_zh": "得分达到目标两倍",
-      "amount": "+3◆",
-      "art_subject": "溢出分数被装进发光外带袋"
-    },
-    {
-      "id": "royalty",
-      "cn": "分成",
-      "code": "S-44",
-      "kind": "support",
-      "rarity": "uncommon",
-      "trigger_zh": "牌型金币奖励",
-      "amount": "×2",
-      "art_subject": "唱片分成支票分裂成两份"
-    },
-    {
-      "id": "digger",
-      "cn": "淘碟",
-      "code": "S-45",
-      "kind": "support",
-      "rarity": "uncommon",
-      "trigger_zh": "每次刷新后永久",
-      "amount": "+12",
-      "art_subject": "一只手在黑胶唱片堆中淘碟"
-    },
-    {
-      "id": "collector",
-      "cn": "收藏家",
-      "code": "S-46",
-      "kind": "support",
-      "rarity": "uncommon",
-      "trigger_zh": "每购买一张牌后永久",
-      "amount": "+15",
-      "art_subject": "一整面墙陈列收藏卡"
-    },
-    {
-      "id": "doublebill",
-      "cn": "联票",
-      "code": "S-47",
-      "kind": "support",
-      "rarity": "rare",
-      "trigger_zh": "商店展示四张，可购买两张",
-      "amount": "RULE",
-      "art_subject": "一张撕线票根连接两场演出"
-    },
-    {
-      "id": "sponsor",
-      "cn": "赞助",
-      "code": "S-48",
-      "kind": "support",
-      "rarity": "uncommon",
-      "trigger_zh": "商店牌价格",
-      "amount": "−1◆",
-      "art_subject": "赞助横幅压下一枚价格标签"
-    },
-    {
-      "id": "skint",
-      "cn": "穷开心",
-      "code": "S-49",
-      "kind": "support",
-      "rarity": "rare",
-      "trigger_zh": "金币上限五枚",
-      "amount": "×1.3",
-      "art_subject": "空口袋的人在霓虹雨中大笑"
-    },
-    {
-      "id": "rebrand",
-      "cn": "转型",
-      "code": "S-50",
-      "kind": "support",
-      "rarity": "uncommon",
-      "trigger_zh": "每次更换目标牌后永久",
-      "amount": "+40%",
-      "art_subject": "撕掉旧海报露出新的流派旗帜"
-    },
-    {
-      "id": "trim",
-      "cn": "修剪",
-      "code": "S-51",
-      "kind": "support",
-      "rarity": "rare",
-      "trigger_zh": "2 和 3 离开牌库",
-      "amount": "RULE",
-      "art_subject": "霓虹修枝剪剪断数字 2 与 3"
-    },
-    {
-      "id": "xray",
-      "cn": "透牌",
-      "code": "S-52",
-      "kind": "support",
-      "rarity": "uncommon",
-      "trigger_zh": "预览下一张补牌",
-      "amount": "INFO",
-      "art_subject": "荧光透视屏显出下一张牌轮廓"
-    }
-  ]
+ "version": 1,
+ "card_size": [
+  1240,
+  1376
+ ],
+ "preview_size": [
+  155,
+  172
+ ],
+ "runtime_art_size": [
+  1024,
+  400
+ ],
+ "cards": [
+  {
+   "id": "twin",
+   "cn": "双子",
+   "code": "T-01",
+   "kind": "target",
+   "rarity": "rare",
+   "trigger_zh": "对子或两对",
+   "amount": "×6",
+   "art_subject": "一对镜像舞者"
+  },
+  {
+   "id": "stair",
+   "cn": "阶梯",
+   "code": "T-02",
+   "kind": "target",
+   "rarity": "rare",
+   "trigger_zh": "顺子或同花顺",
+   "amount": "×13",
+   "art_subject": "通往聚光灯的霓虹台阶"
+  },
+  {
+   "id": "mono",
+   "cn": "单色",
+   "code": "T-03",
+   "kind": "target",
+   "rarity": "rare",
+   "trigger_zh": "同花或同花顺",
+   "amount": "×10",
+   "art_subject": "单色灯光淹没的舞台"
+  },
+  {
+   "id": "triplet",
+   "cn": "三连音",
+   "code": "T-04",
+   "kind": "target",
+   "rarity": "rare",
+   "trigger_zh": "三条、葫芦或四条",
+   "amount": "×10",
+   "art_subject": "三个重叠音符组成三人和声"
+  },
+  {
+   "id": "lonewolf",
+   "cn": "独狼",
+   "code": "T-05",
+   "kind": "target",
+   "rarity": "rare",
+   "trigger_zh": "本拍零弃牌；目标牌必定出现",
+   "amount": "+3◆",
+   "art_subject": "独自站在麦克风前的狼"
+  },
+  {
+   "id": "kaleido",
+   "cn": "万花筒",
+   "code": "T-06",
+   "kind": "target",
+   "rarity": "rare",
+   "trigger_zh": "与上一拍不同的成牌",
+   "amount": "×4",
+   "art_subject": "万花筒中不断变形的牌面"
+  },
+  {
+   "id": "shredder",
+   "cn": "速弹",
+   "code": "T-07",
+   "kind": "target",
+   "rarity": "rare",
+   "trigger_zh": "提前完成且为成牌",
+   "amount": "×4",
+   "art_subject": "吉他速弹与指尖残影"
+  },
+  {
+   "id": "wrecker",
+   "cn": "拆迁",
+   "code": "T-08",
+   "kind": "target",
+   "rarity": "rare",
+   "trigger_zh": "本拍弃牌三次后，成牌",
+   "amount": "×3.5",
+   "art_subject": "铁球砸穿一堵扑克牌墙"
+  },
+  {
+   "id": "encore",
+   "cn": "回响",
+   "code": "S-01",
+   "kind": "support",
+   "rarity": "common",
+   "trigger_zh": "与上一拍相同牌型",
+   "amount": "+80",
+   "art_subject": "返场呼喊形成回声的观众席"
+  },
+  {
+   "id": "finale",
+   "cn": "尾声",
+   "code": "S-02",
+   "kind": "support",
+   "rarity": "common",
+   "trigger_zh": "最后两秒行动",
+   "amount": "+70",
+   "art_subject": "最后一秒爆开的谢幕烟花"
+  },
+  {
+   "id": "turnover",
+   "cn": "周转",
+   "code": "S-03",
+   "kind": "support",
+   "rarity": "common",
+   "trigger_zh": "本拍每次弃牌",
+   "amount": "+20",
+   "art_subject": "飞速换牌的一双手"
+  },
+  {
+   "id": "tipjar",
+   "cn": "小费罐",
+   "code": "S-04",
+   "kind": "support",
+   "rarity": "common",
+   "trigger_zh": "本拍零弃牌",
+   "amount": "+2◆",
+   "art_subject": "塞满硬币的玻璃小费罐"
+  },
+  {
+   "id": "chord",
+   "cn": "和弦",
+   "code": "S-05",
+   "kind": "support",
+   "rarity": "common",
+   "trigger_zh": "缓存全为同一花色",
+   "amount": "+120",
+   "art_subject": "三根同色发光琴弦"
+  },
+  {
+   "id": "neonsign",
+   "cn": "灯牌",
+   "code": "S-06",
+   "kind": "support",
+   "rarity": "common",
+   "trigger_zh": "始终生效",
+   "amount": "+80",
+   "art_subject": "一块纯粹的霓虹招牌"
+  },
+  {
+   "id": "vinyl",
+   "cn": "黑胶",
+   "code": "S-07",
+   "kind": "support",
+   "rarity": "common",
+   "trigger_zh": "每次弃牌后永久",
+   "amount": "+3",
+   "art_subject": "唱针下旋转的黑胶纹路"
+  },
+  {
+   "id": "chorus",
+   "cn": "副歌",
+   "code": "S-08",
+   "kind": "support",
+   "rarity": "uncommon",
+   "trigger_zh": "本节最后一拍",
+   "amount": "+75%",
+   "art_subject": "全场合唱的高潮声浪"
+  },
+  {
+   "id": "interest",
+   "cn": "利息",
+   "code": "S-09",
+   "kind": "support",
+   "rarity": "uncommon",
+   "trigger_zh": "每持有四枚金币",
+   "amount": "+1◆",
+   "art_subject": "一枚硬币生出小硬币"
+  },
+  {
+   "id": "momentum",
+   "cn": "惯性",
+   "code": "S-10",
+   "kind": "support",
+   "rarity": "uncommon",
+   "trigger_zh": "每次提前完成后永久",
+   "amount": "+10%",
+   "art_subject": "越滚越快的节拍飞轮"
+  },
+  {
+   "id": "vip",
+   "cn": "贵宾",
+   "code": "S-11",
+   "kind": "support",
+   "rarity": "uncommon",
+   "trigger_zh": "人头牌点数",
+   "amount": "15",
+   "art_subject": "贵宾席上的 J、Q、K"
+  },
+  {
+   "id": "glowstick",
+   "cn": "荧光棒",
+   "code": "S-12",
+   "kind": "support",
+   "rarity": "uncommon",
+   "trigger_zh": "初始加成，每拍衰减 6%",
+   "amount": "+60%",
+   "art_subject": "逐拍变暗的荧光棒"
+  },
+  {
+   "id": "shortcut",
+   "cn": "近道",
+   "code": "S-13",
+   "kind": "support",
+   "rarity": "uncommon",
+   "trigger_zh": "顺子可以跳过一级",
+   "amount": "RULE",
+   "art_subject": "跨过断层的捷径台阶"
+  },
+  {
+   "id": "fourfingers",
+   "cn": "四指",
+   "code": "S-14",
+   "kind": "support",
+   "rarity": "rare",
+   "trigger_zh": "四张牌也算顺子",
+   "amount": "RULE",
+   "art_subject": "一只清楚可数的四指手套"
+  },
+  {
+   "id": "twotone",
+   "cn": "双色调",
+   "code": "S-15",
+   "kind": "support",
+   "rarity": "rare",
+   "trigger_zh": "同色即可组成同花",
+   "amount": "RULE",
+   "art_subject": "半红半黑的双色舞台灯"
+  },
+  {
+   "id": "bassline",
+   "cn": "贝斯线",
+   "code": "S-16",
+   "kind": "support",
+   "rarity": "rare",
+   "trigger_zh": "每累计十二次弃牌后永久",
+   "amount": "×0.25",
+   "art_subject": "重复震动的低音贝斯线"
+  },
+  {
+   "id": "mirror",
+   "cn": "镜面",
+   "code": "S-17",
+   "kind": "support",
+   "rarity": "rare",
+   "trigger_zh": "复制目标牌效果",
+   "amount": "×50%",
+   "art_subject": "一面映出另一张牌的镜子"
+  },
+  {
+   "id": "wildcard",
+   "cn": "百搭",
+   "code": "S-18",
+   "kind": "support",
+   "rarity": "rare",
+   "trigger_zh": "两张万能牌加入牌库",
+   "amount": "+2",
+   "art_subject": "大小王从牌堆中探出"
+  },
+  {
+   "id": "variation",
+   "cn": "变奏",
+   "code": "S-19",
+   "kind": "support",
+   "rarity": "common",
+   "trigger_zh": "与上一拍不同牌型",
+   "amount": "+50",
+   "art_subject": "同一旋律的两种写法"
+  },
+  {
+   "id": "reprise",
+   "cn": "复读",
+   "code": "S-20",
+   "kind": "support",
+   "rarity": "uncommon",
+   "trigger_zh": "与上一拍相同牌型",
+   "amount": "+50%",
+   "art_subject": "重复出现的乐句记号"
+  },
+  {
+   "id": "fullcast",
+   "cn": "全员",
+   "code": "S-21",
+   "kind": "support",
+   "rarity": "common",
+   "trigger_zh": "五张牌组成的牌型",
+   "amount": "+150",
+   "art_subject": "五人全员站在谢幕线上"
+  },
+  {
+   "id": "superfan",
+   "cn": "铁粉",
+   "code": "S-22",
+   "kind": "support",
+   "rarity": "uncommon",
+   "trigger_zh": "每持有两枚金币",
+   "amount": "+5%",
+   "art_subject": "攥着钱包尖叫的铁杆粉丝"
+  },
+  {
+   "id": "opener",
+   "cn": "开场",
+   "code": "S-23",
+   "kind": "support",
+   "rarity": "uncommon",
+   "trigger_zh": "本节第一拍",
+   "amount": "+80%",
+   "art_subject": "拉开大幕后射入第一束光"
+  },
+  {
+   "id": "popup",
+   "cn": "快闪",
+   "code": "S-24",
+   "kind": "support",
+   "rarity": "common",
+   "trigger_zh": "仅第一节",
+   "amount": "+200",
+   "art_subject": "一张突然点亮的快闪海报"
+  },
+  {
+   "id": "rainbow",
+   "cn": "彩虹",
+   "code": "S-25",
+   "kind": "support",
+   "rarity": "common",
+   "trigger_zh": "手牌包含四种花色",
+   "amount": "+150",
+   "art_subject": "四色灯同时打向舞台"
+  },
+  {
+   "id": "nopair",
+   "cn": "清流",
+   "code": "S-26",
+   "kind": "support",
+   "rarity": "common",
+   "trigger_zh": "手牌没有对子",
+   "amount": "+60",
+   "art_subject": "五张互不相认的牌"
+  },
+  {
+   "id": "backup",
+   "cn": "伴唱",
+   "code": "S-27",
+   "kind": "support",
+   "rarity": "common",
+   "trigger_zh": "缓存全为人头牌",
+   "amount": "+150",
+   "art_subject": "三张人头牌组成伴唱"
+  },
+  {
+   "id": "rehearsal",
+   "cn": "排练",
+   "code": "S-28",
+   "kind": "support",
+   "rarity": "common",
+   "trigger_zh": "缓存形成连续点数",
+   "amount": "+150",
+   "art_subject": "候场牌排成连续队列"
+  },
+  {
+   "id": "trio",
+   "cn": "三重唱",
+   "code": "S-29",
+   "kind": "support",
+   "rarity": "common",
+   "trigger_zh": "缓存三张同点数牌",
+   "amount": "+200",
+   "art_subject": "三张同点数牌并肩合唱"
+  },
+  {
+   "id": "bassclef",
+   "cn": "低音谱",
+   "code": "S-30",
+   "kind": "support",
+   "rarity": "uncommon",
+   "trigger_zh": "低点数牌按此点数计算",
+   "amount": "10",
+   "art_subject": "放大的低音谱号托起小牌"
+  },
+  {
+   "id": "warmtone",
+   "cn": "暖色",
+   "code": "S-31",
+   "kind": "support",
+   "rarity": "common",
+   "trigger_zh": "每张参与计分的红色牌",
+   "amount": "+6",
+   "art_subject": "红桃与方块沐浴暖光"
+  },
+  {
+   "id": "cooltone",
+   "cn": "冷色",
+   "code": "S-32",
+   "kind": "support",
+   "rarity": "common",
+   "trigger_zh": "每张参与计分的黑色牌",
+   "amount": "+6",
+   "art_subject": "黑桃与梅花浸在冷光中"
+  },
+  {
+   "id": "undertone",
+   "cn": "低声部",
+   "code": "S-33",
+   "kind": "support",
+   "rarity": "common",
+   "trigger_zh": "每张参与计分的五及以下牌",
+   "amount": "+9",
+   "art_subject": "小点数牌组成低声部合唱"
+  },
+  {
+   "id": "curtain",
+   "cn": "谢幕",
+   "code": "S-34",
+   "kind": "support",
+   "rarity": "uncommon",
+   "trigger_zh": "最后一秒行动",
+   "amount": "+60%",
+   "art_subject": "幕布落下前的最后一躬"
+  },
+  {
+   "id": "stopwatch",
+   "cn": "秒表",
+   "code": "S-35",
+   "kind": "support",
+   "rarity": "uncommon",
+   "trigger_zh": "结算时每剩余一秒",
+   "amount": "+8%",
+   "art_subject": "停在剩余秒数上的机械秒表"
+  },
+  {
+   "id": "freeze",
+   "cn": "定格",
+   "code": "S-36",
+   "kind": "support",
+   "rarity": "uncommon",
+   "trigger_zh": "提前完成后，下一拍",
+   "amount": "+30%",
+   "art_subject": "定格舞姿投影进下一段时间切片"
+  },
+  {
+   "id": "earlyout",
+   "cn": "早弃",
+   "code": "S-37",
+   "kind": "support",
+   "rarity": "common",
+   "trigger_zh": "所有弃牌都在前四秒",
+   "amount": "+80",
+   "art_subject": "开场灯亮前飞出的扑克牌"
+  },
+  {
+   "id": "crescendo",
+   "cn": "渐强",
+   "code": "S-38",
+   "kind": "support",
+   "rarity": "common",
+   "trigger_zh": "超过上一拍得分",
+   "amount": "+60",
+   "art_subject": "渐强记号推高一堵音浪"
+  },
+  {
+   "id": "segue",
+   "cn": "串场",
+   "code": "S-39",
+   "kind": "support",
+   "rarity": "common",
+   "trigger_zh": "换入且参与成牌的每张牌",
+   "amount": "+40",
+   "art_subject": "扑克牌从候场滑入聚光灯"
+  },
+  {
+   "id": "stilllife",
+   "cn": "静物",
+   "code": "S-40",
+   "kind": "support",
+   "rarity": "common",
+   "trigger_zh": "本拍零交换",
+   "amount": "+60",
+   "art_subject": "三张缓存牌纹丝不动地陈列"
+  },
+  {
+   "id": "declutter",
+   "cn": "断舍离",
+   "code": "S-41",
+   "kind": "support",
+   "rarity": "uncommon",
+   "trigger_zh": "一次弃掉五张牌",
+   "amount": "+50%",
+   "art_subject": "一只手把整手牌一次撒出"
+  },
+  {
+   "id": "stageexit",
+   "cn": "让位",
+   "code": "S-42",
+   "kind": "support",
+   "rarity": "common",
+   "trigger_zh": "每张被弃的人头牌",
+   "amount": "+30",
+   "art_subject": "J、Q、K 鞠躬离开舞台"
+  },
+  {
+   "id": "doggybag",
+   "cn": "打包",
+   "code": "S-43",
+   "kind": "support",
+   "rarity": "common",
+   "trigger_zh": "得分达到目标两倍",
+   "amount": "+3◆",
+   "art_subject": "溢出分数被装进发光外带袋"
+  },
+  {
+   "id": "royalty",
+   "cn": "分成",
+   "code": "S-44",
+   "kind": "support",
+   "rarity": "uncommon",
+   "trigger_zh": "牌型金币奖励",
+   "amount": "×2",
+   "art_subject": "唱片分成支票分裂成两份"
+  },
+  {
+   "id": "digger",
+   "cn": "淘碟",
+   "code": "S-45",
+   "kind": "support",
+   "rarity": "uncommon",
+   "trigger_zh": "每次刷新后永久",
+   "amount": "+12",
+   "art_subject": "一只手在黑胶唱片堆中淘碟"
+  },
+  {
+   "id": "collector",
+   "cn": "收藏家",
+   "code": "S-46",
+   "kind": "support",
+   "rarity": "uncommon",
+   "trigger_zh": "每购买一张牌后永久",
+   "amount": "+15",
+   "art_subject": "一整面墙陈列收藏卡"
+  },
+  {
+   "id": "doublebill",
+   "cn": "联票",
+   "code": "S-47",
+   "kind": "support",
+   "rarity": "rare",
+   "trigger_zh": "商店展示四张，可购买两张",
+   "amount": "RULE",
+   "art_subject": "一张撕线票根连接两场演出"
+  },
+  {
+   "id": "sponsor",
+   "cn": "赞助",
+   "code": "S-48",
+   "kind": "support",
+   "rarity": "uncommon",
+   "trigger_zh": "商店牌价格",
+   "amount": "−1◆",
+   "art_subject": "赞助横幅压下一枚价格标签"
+  },
+  {
+   "id": "skint",
+   "cn": "穷开心",
+   "code": "S-49",
+   "kind": "support",
+   "rarity": "rare",
+   "trigger_zh": "金币上限五枚",
+   "amount": "×1.3",
+   "art_subject": "空口袋的人在霓虹雨中大笑"
+  },
+  {
+   "id": "rebrand",
+   "cn": "转型",
+   "code": "S-50",
+   "kind": "support",
+   "rarity": "uncommon",
+   "trigger_zh": "每次更换目标牌后永久",
+   "amount": "+40%",
+   "art_subject": "撕掉旧海报露出新的流派旗帜"
+  },
+  {
+   "id": "trim",
+   "cn": "修剪",
+   "code": "S-51",
+   "kind": "support",
+   "rarity": "rare",
+   "trigger_zh": "2 和 3 离开牌库",
+   "amount": "RULE",
+   "art_subject": "霓虹修枝剪剪断数字 2 与 3"
+  },
+  {
+   "id": "xray",
+   "cn": "透牌",
+   "code": "S-52",
+   "kind": "support",
+   "rarity": "uncommon",
+   "trigger_zh": "预览下一张补牌",
+   "amount": "INFO",
+   "art_subject": "荧光透视屏显出下一张牌轮廓"
+  }
+ ]
 }

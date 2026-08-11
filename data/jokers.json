@@ -34,14 +34,14 @@
    "kind": "target",
    "rarity": "rare",
    "proof": "score",
-   "fx": "Straights and straight flushes: ×10",
+   "fx": "Straights and straight flushes: ×13",
    "effects": [
     {
      "when": {
       "kind": "STRAIGHT"
      },
      "do": {
-      "mult": 10.0
+      "mult": 13.0
      }
     },
     {
@@ -52,7 +52,7 @@
       ]
      },
      "do": {
-      "mult": 10.0
+      "mult": 13.0
      }
     }
    ]
@@ -64,14 +64,14 @@
    "kind": "target",
    "rarity": "rare",
    "proof": "score",
-   "fx": "Flushes and straight flushes: ×7",
+   "fx": "Flushes and straight flushes: ×10",
    "effects": [
     {
      "when": {
       "kind": "FLUSH"
      },
      "do": {
-      "mult": 7.0
+      "mult": 10.0
      }
     },
     {
@@ -82,7 +82,7 @@
       ]
      },
      "do": {
-      "mult": 7.0
+      "mult": 10.0
      }
     }
    ]
@@ -94,14 +94,14 @@
    "kind": "target",
    "rarity": "rare",
    "proof": "score",
-   "fx": "Trips, full house, quads: ×5",
+   "fx": "Trips, full house, quads: ×10",
    "effects": [
     {
      "when": {
       "kind": "THREE_KIND"
      },
      "do": {
-      "mult": 5.0
+      "mult": 10.0
      }
     },
     {
@@ -109,7 +109,7 @@
       "kind": "FULL_HOUSE"
      },
      "do": {
-      "mult": 5.0
+      "mult": 10.0
      }
     },
     {
@@ -117,7 +117,7 @@
       "kind": "FOUR_KIND"
      },
      "do": {
-      "mult": 5.0
+      "mult": 10.0
      }
     }
    ]
