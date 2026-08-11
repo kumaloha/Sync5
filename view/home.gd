@@ -236,6 +236,9 @@ func _draw_player_bar() -> void:
 	# body 交给统一的玻璃体算法(背景已归黑, 它本来就近黑) —— 不再用 override,
 	# 否则顶栏永远是"另一块材质"。
 	Widgets.StageCard.draw_card(self, r, acc, 18.0, bar_ins, false)
+	# 大卡换素材壳后,顶栏也贴同一块素材的「膜」——不然一屏两种玻璃
+	# (2026-08-12 用户:「顶部信息栏的光泽感配不上下面的玻璃板」)
+	Chrome.glass_film(self, r.grow(-2.0), 16.0)
 	# 内容锚在**线**那一圈(= 卡片轨的 70..650), 且按它的中线排 —— 直接 grow 会把
 	# 可用高度压掉 16, 右侧两个货币章会被下边线切掉。
 	r = r.grow(-bar_ins)

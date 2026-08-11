@@ -79,6 +79,7 @@ static func page_bar(ci: CanvasItem, title: String, sub: String, acc: Color,
 		gems := -1) -> void:
 	var bar := Rect2(44.0, 22.0, W - 88.0, 82.0)
 	Widgets.StageCard.draw_card(ci, bar, acc, 22.0, 8.0, false)
+	glass_film(ci, bar.grow(-2.0), 20.0)
 	var r := bar.grow(-8.0)
 	ci.draw_string(StageTheme.zh(), Vector2(r.position.x + 18.0, r.position.y + 30.0), title,
 		HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color("eaf6ff"))
@@ -94,6 +95,36 @@ static func page_bar(ci: CanvasItem, title: String, sub: String, acc: Color,
 	else:
 		chip(ci, Rect2(r.end.x - 130.0, cy - 15.0, 122.0, 31.0), StageTheme.AMBER,
 			"◆", str(coins), Color("ffd9a0"))
+
+
+## 玻璃「膜」:从首页大卡的素材(assets/frames/glass.png)裁一条反光带,
+## 按目标矩形的纵横比取源(不压扁点阵),圆角多边形 + UV 贴上去 ——
+## 让顶栏/页标题栏和大卡是**同一块材质**(2026-08-12 用户:「顶部信息栏的
+## 光泽感配不上下面的玻璃板」)。素材缺席时静默退回纯程序化,探针照跑。
+static func glass_film(ci: CanvasItem, r: Rect2, radius := 18.0, alpha := 0.9) -> void:
+	var tex := Widgets.StageCard.glass_tex(true)
+	if tex == null:
+		return
+	# 源带:横向避开 40px 霓虹轨(70..772),纵向从反光楔上沿起取同比例高
+	var src := Rect2(70.0, 58.0, 702.0, 702.0 * r.size.y / r.size.x)
+	var tw := float(tex.get_width())
+	var th := float(tex.get_height())
+	var pts := PackedVector2Array()
+	var uvs := PackedVector2Array()
+	var centers := [
+		Vector2(r.end.x - radius, r.position.y + radius),
+		Vector2(r.end.x - radius, r.end.y - radius),
+		Vector2(r.position.x + radius, r.end.y - radius),
+		Vector2(r.position.x + radius, r.position.y + radius),
+	]
+	for k in range(4):
+		for i in range(9):
+			var ang := -PI * 0.5 + PI * 0.5 * (float(k) + float(i) / 8.0)
+			pts.append(centers[k] + Vector2(cos(ang), sin(ang)) * radius)
+	for p in pts:
+		var u := src.position + (p - r.position) / r.size * src.size
+		uvs.append(Vector2(u.x / tw, u.y / th))
+	ci.draw_colored_polygon(pts, Color(1, 1, 1, alpha), uvs, tex)
 
 
 ## 货币章(原 home.gd::_chip)。
