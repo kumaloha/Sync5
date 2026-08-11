@@ -151,11 +151,13 @@ static func _build_wave_zone(host: Control, out: Dictionary, margin: float) -> v
 	host.add_child(out["eq"])
 
 	# 盲注卡: 音浪层**左侧**, 和右边的唱片对称, 音浪从两者之间穿过。
-	# 比例照手牌(114×170 → 0.67), 略大一档当"特写牌";
-	# 竖向中心压在音浪轴线 y=534 上, 和唱片同高。
+	# 2026-08-11 用户拍板「位置不变, 上下顶格放大」:撑满唱片带全高(y 426..642, 高 216),
+	# 宽按目录 118:176 比例随高走(≈145), 左缘仍在 margin —— 字号随设计空间整体 +23%,
+	# 可读性就是这次放大的全部目的。竖向中心仍落在音浪轴 534(带的中点)。
 	out["blind_card"] = Widgets.BlindCard.new()
-	out["blind_card"].size = Vector2(118, 176)
-	out["blind_card"].position = Vector2(margin, 534.0 - 176.0 * 0.5)
+	var bc_h := 216.0
+	out["blind_card"].size = Vector2(bc_h * 118.0 / 176.0, bc_h)
+	out["blind_card"].position = Vector2(margin, 426.0)
 	out["blind_card"].mouse_filter = Control.MOUSE_FILTER_IGNORE
 	host.add_child(out["blind_card"])
 
