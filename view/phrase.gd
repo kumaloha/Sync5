@@ -688,6 +688,13 @@ func _on_hand_sort() -> void:
 ## Hand intent: tap-select or drag-drop asked for a hand↔run.cache swap.
 func _on_hand_swap(hand_i: int, cache_i: int) -> void:
 	if state != St.DECISION:
+		# 锁定后的操作不许静默吞掉(2026-08-12 用户「即将结算的时候就已经无法
+		# 操作了」——一半体感来自这里的无声 return)。只在 RESOLVE 提示:
+		# 商店/公示卡状态下手牌本来就不在台上。
+		if state == St.RESOLVE:
+			fx.float_text(String(DB.ui().get("hand", {}).get("deny", {})
+				.get("locked", "本拍已锁定")),
+				hand.card_pos(hand_i) + Vector2(30, -10), StageTheme.PINK)
 		return
 	if not _swap_open():
 		Tape.on("deny", {"why": "blind_swap", "h": hand_i, "c": cache_i, "at": elapsed})
@@ -775,6 +782,10 @@ func _deny_swap_why() -> String:
 
 func _on_hand_discard(sel_h: Array, sel_c: Array) -> void:
 	if state != St.DECISION:
+		if state == St.RESOLVE:
+			fx.float_text(String(DB.ui().get("hand", {}).get("deny", {})
+				.get("locked", "本拍已锁定")),
+				hand.discard_key_pos() + Vector2(34, -12), StageTheme.PINK)
 		return
 	var total: int = sel_h.size() + sel_c.size()
 	var selection_ok := phrase.can_discard_selected(sel_h, sel_c) if total > 0 else false

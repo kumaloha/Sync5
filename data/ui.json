@@ -206,7 +206,8 @@
    "budget": "弃牌额度不足",
    "sealed": "选中有被封的牌",
    "wetink": "缓存牌锁定中",
-   "blocked": "这张换不了"
+   "blocked": "这张换不了",
+   "locked": "本拍已锁定"
   },
   "hand_tab": "手 牌 区",
   "cache_tab": "缓 存 区",

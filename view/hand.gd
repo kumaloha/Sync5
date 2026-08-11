@@ -35,6 +35,8 @@ var LIFT_SELECTED: float = float(_stage["lift_selected"])
 
 var sel_hand: Array = []
 var sel_cache: Array = []
+var cache_cards: Array = []     # 持久缓存卡(2026-08-12,见 _build 里的注释)
+var cache_seals: Array = []
 var _last_hand: Array = []
 var _last_cache: Array = []
 var _deal_flip := false
@@ -116,6 +118,26 @@ func _ready() -> void:
 	cache_holder.position = Vector2((720.0 - cw) * 0.5, CACHE_Y)
 	cache_holder.size = Vector2(cw, CARD_H)
 	add_child(cache_holder)
+	# 缓存行 = **持久实例**(2026-08-12):以前每次 refresh 整行 queue_free 重建,
+	# 而 refresh 挂在 selection_changed 上 —— 点选瞬间起手/进行中的拖拽会死在
+	# 被释放的节点上, 正是用户「选中弃牌后无法挪牌」的间歇形态(Tape 里失败的
+	# 挪牌连 deny 都没有 = 手势没活到数据层)。手牌行从来就是持久的, 缓存行同构。
+	for i in range(GameConfig.CACHE_CAP):
+		var seal := SealedSlot.new()
+		seal.size = Vector2(CARD_W, CARD_H)
+		seal.position = Vector2(float(i) * (CARD_W + GAP), 0)
+		seal.visible = false
+		cache_holder.add_child(seal)
+		cache_seals.append(seal)
+		var pc := PaperCard.new()
+		pc.size = Vector2(CARD_W, CARD_H)
+		pc.position = Vector2(float(i) * (CARD_W + GAP), 0)
+		pc.violet = true
+		pc.visible = false
+		pc.pressed.connect(_on_cache_card_tap.bind(i))
+		pc.drop_received.connect(_on_cache_drop.bind(i))
+		cache_holder.add_child(pc)
+		cache_cards.append(pc)
 
 
 func _v2(a: Array) -> Vector2:
@@ -279,7 +301,7 @@ func refresh(vm: Dictionary) -> void:
 			"swap_blocked": not hand_can_swap} if _decide else {}
 		pc.accept_zones = ["cache"] if hand_can_swap else []
 		if _deal_flip or (was != null and was != card):
-			_flip_reveal(pc, 0.09 * float(flips), not hidden.has(card))
+			_flip_reveal(pc, 0.05 * float(flips), not hidden.has(card))
 			flips += 1
 	_last_hand = cards_hand.duplicate()
 
@@ -287,40 +309,33 @@ func refresh(vm: Dictionary) -> void:
 	# takes one away for a whole section — and a slot that just renders as blank
 	# space reads as "a card went missing", not as "this blind sealed a slot".
 	# So any slot the cache is short of gets an explicit sealed marker.
-	for child in cache_holder.get_children():
-		child.queue_free()
-	for i in range(cards_cache.size(), GameConfig.CACHE_CAP):
-		var seal := SealedSlot.new()
-		seal.size = Vector2(CARD_W, CARD_H)
-		seal.position = Vector2(float(i) * (CARD_W + GAP), 0)
-		cache_holder.add_child(seal)
-	for i in range(cards_cache.size()):
-		var x := float(i) * (CARD_W + GAP)
-		var pc := PaperCard.new()
-		pc.size = Vector2(CARD_W, CARD_H)
-		pc.position = Vector2(x, 0)
-		pc.violet = true
-		pc.setup(cards_cache[i])
-		pc.set_back(hidden.has(cards_cache[i]))
-		pc.set_states(false, sel_cache.has(i))
+	for i in range(GameConfig.CACHE_CAP):
+		var seal: Control = cache_seals[i]
+		var pc: PaperCard = cache_cards[i]
+		if i >= cards_cache.size():
+			pc.visible = false
+			seal.visible = true
+			continue
+		seal.visible = false
+		pc.visible = true
 		var cache_card: Card = cards_cache[i]
+		pc.setup(cache_card)
+		pc.set_back(hidden.has(cache_card))
+		pc.set_states(false, sel_cache.has(i))
 		var cache_mark := "丢" if _marked_cards.has(cache_card) else ""
 		if _discard_blocked_cache.has(cache_card):
 			cache_mark = "弃"
 		if _swap_blocked_cache.has(cache_card):
 			cache_mark = "锁" if cache_mark != "" else "换"
 		pc.set_blocked(cache_mark)
-		pc.pressed.connect(_on_cache_card_tap.bind(i))
 		var cache_can_swap := _can_swap and not _swap_blocked_cache.has(cache_card)
 		pc.drag_payload = {"zone": "cache", "index": i,
 			"discard_blocked": _discard_blocked_cache.has(cache_card),
 			"swap_blocked": not cache_can_swap} if _decide else {}
 		pc.accept_zones = ["hand"] if cache_can_swap else []
-		pc.drop_received.connect(_on_cache_drop.bind(i))
-		cache_holder.add_child(pc)
 		var was_c: Card = _last_cache[i] if i < _last_cache.size() else null
-		if was_c != null and was_c != cards_cache[i]:
-			_flip_reveal(pc, 0.09 * float(flips), not hidden.has(cards_cache[i]))
+		if was_c != null and was_c != cache_card:
+			_flip_reveal(pc, 0.05 * float(flips), not hidden.has(cache_card))
 			flips += 1
 	_last_cache = cards_cache.duplicate()
 	_deal_flip = false
@@ -356,18 +371,21 @@ func _flip_reveal(pc: PaperCard, delay: float, reveal: bool = true) -> void:
 	_flips_running[pc] = tw
 	tw.tween_interval(delay)
 	# 1. the back drops in and settles
+	# 2026-08-12 全链路提速(用户「翻牌速度有点慢, 影响节奏」):落下 0.18→0.12,
+	# 背面停留 0.30→0.10, 翻面 0.34→0.22, 错峰 0.09→0.05 —— 整手从 ~1.2s 到 ~0.65s。
+	# 8s 一拍, 每省 0.1s 都是决策时间。
 	tw.set_parallel(true)
-	tw.tween_property(pc, "modulate:a", 1.0, 0.12)
-	tw.tween_property(pc, "scale", Vector2.ONE, 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_property(pc, "modulate:a", 1.0, 0.10)
+	tw.tween_property(pc, "scale", Vector2.ONE, 0.12).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tw.set_parallel(false)
 	# 2. hold on the back so it actually reads as a card back
-	tw.tween_interval(0.30)
+	tw.tween_interval(0.10)
 	if not reveal:
 		return                      # 盖牌脸:落下就完了, 不翻
 	# 3. turn over
-	tw.tween_property(pc, "scale:x", 0.04, 0.15).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	tw.tween_property(pc, "scale:x", 0.04, 0.10).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
 	tw.tween_callback(pc.set_back.bind(false))
-	tw.tween_property(pc, "scale:x", 1.0, 0.19).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_property(pc, "scale:x", 1.0, 0.12).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
 func _ghost_fly(pc: PaperCard) -> void:

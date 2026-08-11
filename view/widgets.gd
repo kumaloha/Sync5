@@ -880,12 +880,16 @@ class BlindBoard:
 				GameConfig.phrase_duration(section_idx)]
 		var limits_color: Color = StageTheme.DIM if not in_progress() else Color(acc.r, acc.g, acc.b, 0.92)
 		if boon != null:
-			limits = "✦ %s · %s" % [boon.cn_name, boon.fx_text]
+			limits = "✦ %s · %s" % [boon.cn_name, String(DB.ui().get("blindcard", {})
+				.get(String(boon.id), {}).get("command", boon.fx_text))]
 			limits_color = StageCard.boon_accent()
 		draw_string(zh, Vector2(pad, 232), limits,
 			HORIZONTAL_ALIGNMENT_LEFT, cw, 15, limits_color)
 		if mod != null:
-			var ftxt := "⚠ %s · %s" % [mod.cn_name, mod.fx_text]
+			# 脸说明走 ui.json 的中文 command(2026-08-12 截图抓到公示板还在
+			# 说英文 fx —— 上一轮文案汉化漏了这两行), 英文 fx 只做兜底
+			var ftxt := "⚠ %s · %s" % [mod.cn_name, String(DB.ui().get("blindcard", {})
+				.get(String(mod.id), {}).get("command", mod.fx_text))]
 			var ffs := 14
 			while ffs > 10 and med.get_string_size(ftxt, HORIZONTAL_ALIGNMENT_LEFT, -1, ffs).x > cw - 20.0:
 				ffs -= 1
