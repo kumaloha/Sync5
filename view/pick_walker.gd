@@ -17,6 +17,9 @@ const GAP := Vector2(16.0, 22.0)
 var _roster: Array = []
 var _hover := -1
 var _tiles: Array = []      # [Rect2, idx]
+## hover 立绘缓存:null=没试过 / false=试过缺图 / Texture2D=有图。
+## 缺图静默跳过 —— 无素材环境的探针照跑(与 Walker 帧图同一条兜底纪律)。
+var _portraits: Array = []
 
 
 func _ready() -> void:
@@ -27,6 +30,7 @@ func _ready() -> void:
 	# same reason as HomeScreen: the battle scene's Walker draws at z 20
 	z_index = 80
 	_roster = Character.roster()
+	_portraits.resize(_roster.size())
 
 	var grid_w := TILE.x * COLS + GAP.x * (COLS - 1)
 	var x0 := (720.0 - grid_w) * 0.5
@@ -66,6 +70,16 @@ func _hit(p: Vector2) -> int:
 	return -1
 
 
+func _portrait(i: int) -> Texture2D:
+	if _portraits[i] is Texture2D:
+		return _portraits[i]
+	if _portraits[i] != null:      # false = 已试过且缺图
+		return null
+	var p := "res://assets/characters/%s/portrait.png" % Walker.IDS[i]
+	_portraits[i] = load(p) if ResourceLoader.exists(p) else false
+	return _portraits[i] if _portraits[i] is Texture2D else null
+
+
 func _draw() -> void:
 	# the scrim belongs here, not in a child ColorRect: children paint AFTER
 	# _draw(), so a child would bury every tile and label under it
@@ -74,10 +88,28 @@ func _draw() -> void:
 	var zh := StageTheme.zh()
 	var num := StageTheme.num("Bold")
 
-	draw_string(zh, Vector2(0, 402), "选 择 主 角", HORIZONTAL_ALIGNMENT_CENTER, 720, 40,
-		StageTheme.INK)
-	draw_string(zh, Vector2(0, 442), "每位主角带一个贯穿整局的被动", HORIZONTAL_ALIGNMENT_CENTER,
-		720, 17, StageTheme.DIM)
+	# hover 立绘预览(2026-08-11 职业素材接入):上方空区画 portrait 大立绘,
+	# 1536×2048 → 262×352(比例差 <1%),职业色霓虹框,与砖的玻璃语言一致。
+	# 预览态隐掉标题两行 —— 立绘辉光会压住它,而且你已经在看具体的人,标题成了废话。
+	var ptex: Texture2D = _portrait(_hover) if _hover >= 0 else null
+	if ptex == null:
+		draw_string(zh, Vector2(0, 402), "选 择 主 角", HORIZONTAL_ALIGNMENT_CENTER, 720, 40,
+			StageTheme.INK)
+		draw_string(zh, Vector2(0, 442), "每位主角带一个贯穿整局的被动", HORIZONTAL_ALIGNMENT_CENTER,
+			720, 17, StageTheme.DIM)
+	if _hover >= 0:
+		if ptex != null:
+			var pr := Rect2(Vector2((720.0 - 270.0) * 0.5, 16.0), Vector2(270.0, 360.0))
+			var pcol := Color(String(Walker.CREW[_hover]["color"]))
+			var psb := StyleBoxFlat.new()
+			psb.bg_color = Color(0.03, 0.03, 0.08, 0.9)
+			psb.set_corner_radius_all(14)
+			psb.set_border_width_all(2)
+			psb.border_color = Color(pcol.r, pcol.g, pcol.b, 0.8)
+			psb.shadow_color = Color(pcol.r, pcol.g, pcol.b, 0.30)
+			psb.shadow_size = 24
+			draw_style_box(psb, pr)
+			draw_texture_rect(ptex, pr.grow(-4.0), false)
 
 	for t in _tiles:
 		var r: Rect2 = t[0]
