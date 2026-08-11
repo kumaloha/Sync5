@@ -62,6 +62,21 @@ const PAPER_INNER := Color(0.63, 0.71, 1.0, 0.22)
 
 static var _fonts := {}
 
+## Web 没有系统字体 —— 兜底链两件套(2026-08-12,均按全仓语料子集化,OFL):
+## Noto Sans SC(中文,800KB/1588 字)+ Noto Sans Symbols 2(▸◈⚡✦✧ 这类
+## SC 没有的装饰符)。桌面照旧先走系统字,行为不变。
+## ⚠ 文案新增了此前没用过的字要重跑子集:tools/art/fontsubset.sh
+static func _bundled_fallbacks() -> Array[Font]:
+	if not _fonts.has("_fb"):
+		var out: Array[Font] = []
+		for p in ["res://assets/fonts/NotoSansSC-Sync5.ttf",
+				"res://assets/fonts/NotoSymbols2-Sync5.ttf"]:
+			if ResourceLoader.exists(p):
+				out.append(load(p))
+		_fonts["_fb"] = out
+	return _fonts["_fb"]
+
+
 static func num(weight: String = "SemiBold") -> Font:
 	# Rajdhani ships Medium/SemiBold/Bold here; anything else maps to Medium.
 	var w := weight
@@ -69,13 +84,19 @@ static func num(weight: String = "SemiBold") -> Font:
 		w = "Medium"
 	var key := "num_" + w
 	if not _fonts.has(key):
-		_fonts[key] = load("res://assets/fonts/Rajdhani-%s.ttf" % w)
+		var f: FontFile = load("res://assets/fonts/Rajdhani-%s.ttf" % w)
+		# num/med 排过混排中文(「奖励 ◆3」「BOSS 规则」)——桌面靠系统字
+		# 静默兜底,Web 上没这条路,不挂链子就是成片豆腐(实测)。
+		f.fallbacks = _bundled_fallbacks()
+		_fonts[key] = f
 	return _fonts[key]
+
 
 static func zh() -> Font:
 	if not _fonts.has("zh"):
 		var f := SystemFont.new()
 		f.font_names = PackedStringArray(["PingFang SC", "Noto Sans SC", "Hiragino Sans GB", "sans-serif"])
+		f.fallbacks = _bundled_fallbacks()
 		_fonts["zh"] = f
 	return _fonts["zh"]
 
