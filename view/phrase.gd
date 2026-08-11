@@ -666,6 +666,7 @@ func _on_hand_swap(hand_i: int, cache_i: int) -> void:
 		return
 	if not _swap_open():
 		Tape.on("deny", {"why": "blind_swap", "h": hand_i, "c": cache_i, "at": elapsed})
+		fx.float_text(_deny_swap_why(), hand.card_pos(hand_i) + Vector2(30, -10), StageTheme.PINK)
 		_refresh()
 		return
 	if phrase.swap_with_cache(hand_i, cache_i):
@@ -673,6 +674,7 @@ func _on_hand_swap(hand_i: int, cache_i: int) -> void:
 		_action_feedback()
 	else:
 		Tape.on("deny", {"why": "blind_swap", "h": hand_i, "c": cache_i, "at": elapsed})
+		fx.float_text(_deny_swap_why(), hand.card_pos(hand_i) + Vector2(30, -10), StageTheme.PINK)
 	_refresh()
 
 
@@ -710,6 +712,42 @@ func _notify_discard(n: int) -> void:
 			j.on_discard(n)
 
 
+## 弃牌被拒时的原因短语(2026-08-11 用户「为什么经常不能弃牌」):镜像 core
+## can_discard 的分支顺序逐条问过去, 文案在 data/ui.json hand.deny(改文案=改 JSON),
+## 代码里只留兜底 —— 拒绝必须说清是哪张脸在拒。
+func _deny_discard_why(sel_h: Array, sel_c: Array) -> String:
+	var d: Dictionary = DB.ui().get("hand", {}).get("deny", {})
+	if not _discard_open():
+		return String(d.get("window", "弃牌已关闭"))
+	var lim := SectionMod.discard_action_limit(cur_modifier)
+	if lim >= 0 and phrase.discard_actions_used >= lim:
+		return String(d.get("onetake", "本拍已弃过"))
+	var shared := SectionMod.action_limit(cur_modifier)
+	if shared >= 0 and phrase.action_count >= shared:
+		return String(d.get("throttle", "操作已用尽"))
+	if SectionMod.exclusive_action_tracks(cur_modifier) and phrase.action_track == "swap":
+		return String(d.get("track_swap", "已选交换轨"))
+	if phrase.discard_budget >= 0 \
+			and phrase.discards_used + sel_h.size() + sel_c.size() > phrase.discard_budget:
+		return String(d.get("budget", "弃牌额度不足"))
+	return String(d.get("sealed", "选中有被封的牌"))
+
+
+func _deny_swap_why() -> String:
+	var d: Dictionary = DB.ui().get("hand", {}).get("deny", {})
+	var lim := SectionMod.swap_action_limit(cur_modifier)
+	if lim >= 0 and phrase.swap_actions_used >= lim:
+		return String(d.get("oneswap", "本拍已换过"))
+	var shared := SectionMod.action_limit(cur_modifier)
+	if shared >= 0 and phrase.action_count >= shared:
+		return String(d.get("throttle", "操作已用尽"))
+	if SectionMod.exclusive_action_tracks(cur_modifier) and phrase.action_track == "discard":
+		return String(d.get("track_discard", "已选弃牌轨"))
+	if not _swap_open():
+		return String(d.get("swap_window", "交换已关闭"))
+	return String(d.get("blocked", "这张换不了"))
+
+
 func _on_hand_discard(sel_h: Array, sel_c: Array) -> void:
 	if state != St.DECISION:
 		return
@@ -722,6 +760,11 @@ func _on_hand_discard(sel_h: Array, sel_c: Array) -> void:
 			or not selection_ok else "coins")
 		Tape.on("deny", {"why": why,
 			"k": total, "at": elapsed})
+		# 2026-08-11 用户反馈「为什么经常不能弃牌」:键抖动只说「不行」不说「为什么」——
+		# 盲注的动作限制脸(收线/一口气/岔轨/配给/封条)拒绝时必须把原因浮出来。
+		if total > 0:
+			fx.float_text(_deny_discard_why(sel_h, sel_c),
+				hand.discard_key_pos() + Vector2(34, -12), StageTheme.PINK)
 		return
 	# 弃掉的是哪几张, 得在换牌之前抄下来
 	var gone: Array = []

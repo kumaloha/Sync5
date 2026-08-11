@@ -209,6 +209,17 @@ func reject_discard() -> void:
 	discard_key.shake()
 
 
+## 拒绝原因浮字的锚点(view/phrase.gd 用):弃牌键 / 某张手牌的全局位置。
+func discard_key_pos() -> Vector2:
+	return discard_key.get_global_position()
+
+
+func card_pos(i: int) -> Vector2:
+	if i >= 0 and i < hand_cards.size():
+		return hand_cards[i].get_global_position()
+	return get_global_position()
+
+
 ## Ghost-fly the hand card at i (discard feedback).
 func ghost(i: int) -> void:
 	if i >= 0 and i < hand_cards.size():
@@ -255,11 +266,11 @@ func refresh(vm: Dictionary) -> void:
 		if _swap_blocked_hand.has(card):
 			hand_mark = "锁" if hand_mark != "" else "换"
 		pc.set_blocked(hand_mark)
+		# 2026-08-11 用户反馈「默认高度经常不同」:计分五张的抬升被读成噪音而不是信息 ——
+		# 高度从此只区分「选中」,「哪五张在计分」交给 set_states 的 scoring 光效表达。
 		var ty := LIFT_BASE
 		if sel_hand.has(i):
 			ty = LIFT_SELECTED
-		elif scoring_set.has(card):
-			ty = LIFT_SCORING
 		var tw := create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 		tw.tween_property(pc, "position:y", ty, 0.18)
 		var hand_can_swap := _can_swap and not _swap_blocked_hand.has(card)

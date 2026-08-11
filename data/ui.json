@@ -133,6 +133,19 @@
   "replace_prompt_w": 410
  },
  "hand": {
+  "deny": {
+   "window": "弃牌已关闭",
+   "swap_window": "交换已关闭",
+   "onetake": "本拍已弃过",
+   "oneswap": "本拍已换过",
+   "throttle": "操作已用尽",
+   "track_swap": "已选交换轨",
+   "track_discard": "已选弃牌轨",
+   "budget": "弃牌额度不足",
+   "sealed": "选中有被封的牌",
+   "wetink": "缓存牌锁定中",
+   "blocked": "这张换不了"
+  },
   "hand_tab": "手 牌 区",
   "cache_tab": "缓 存 区",
   "sort_label": "理牌",
