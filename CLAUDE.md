@@ -244,8 +244,11 @@ godot --headless --path . --import                                         # 新
   `fail.html` = 结算两屏,由 `view/run_end.gd` 实现;`home.html` = 首页,由 `view/home.gd` 实现)。
   **`resources/godot-handoff/` 的实现手册是舞台卡的权威**(分层顺序、9-slice、主题色梯度都在里面);
   **`resources/assets/` 是设计稿 html 引用的原始素材**(frame-glass4 / 各色边框 / 四张 A 卡面,
-  2026-08-05 用户补进仓库)。**但玻璃卡的 PNG 抠图是坏的、不能直接贴**(三条实测证据在
-  `assets/frames/README.md`),舞台卡按手册程序化画。
+  2026-08-05 用户补进仓库)。**首页大卡的玻璃壳贴素材**(`assets/frames/glass.png`,
+  2026-08-12 用户拍板换素材;当年「抠图坏、不能贴」是放大镜下的误判,反转经过见
+  [LESSONS.md](LESSONS.md) 判据 5 与 `assets/frames/README.md`);
+  **其余玻璃板(顶栏/商店/图鉴页)仍程序化画,`glassface.png` 这个文件名永远别放**——
+  放了会让**所有** `draw_card` 调用点被贴图接管,而素材九宫格在小板尺寸下必坏。
   另注:**设计稿 html 引用的图片不会跟着 html 过来**,缺素材要主动问用户要。
 - **我出**:其余全部程序化渲染。
 - `assets/reference/` 是用户自己用 Claude Design 做的规格 + 参考图,**是美术的权威来源**,

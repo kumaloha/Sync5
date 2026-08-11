@@ -83,16 +83,19 @@ func _ready() -> void:
 	# above the battle scene's own z_index users — the hand-frame Walker sits
 	# at 20 and would otherwise walk across the front page
 	z_index = 80
-	_tail = TailLayer.new()
-	_tail.home = self
-	_tail.position = Vector2.ZERO
-	_tail.size = Vector2(W, H)
-	_tail.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	# 渐隐从霓虹轨底边起算, 和镜像轴对齐。带高按卡高的 6%——再长就会把整排页签
-	# 圈进去、读成"第二块板"(用户两次都指出过)。
-	_tail.material = Widgets.StageCard.mirror_material(
-		CARD.end.y - CARD_INSET, CARD.size.y * Widgets.StageCard.TAIL_RATIO, 0.62)
-	add_child(_tail)
+	# 玻璃壳走素材时(assets/frames/glass.png,2026-08-12 用户拍板换素材)
+	# 倒影已经烘在图里(y 1197–1355 那段),再挂镜像层就是双影 —— 跳过。
+	if Widgets.StageCard.glass_tex(true) == null:
+		_tail = TailLayer.new()
+		_tail.home = self
+		_tail.position = Vector2.ZERO
+		_tail.size = Vector2(W, H)
+		_tail.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		# 渐隐从霓虹轨底边起算, 和镜像轴对齐。带高按卡高的 6%——再长就会把整排页签
+		# 圈进去、读成"第二块板"(用户两次都指出过)。
+		_tail.material = Widgets.StageCard.mirror_material(
+			CARD.end.y - CARD_INSET, CARD.size.y * Widgets.StageCard.TAIL_RATIO, 0.62)
+		add_child(_tail)
 	set_process(true)
 
 
