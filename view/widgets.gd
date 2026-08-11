@@ -751,11 +751,13 @@ class BlindCard:
 		var command := String(copy.get("command", face.cn_name))
 		var live_status := status_text != "" and not preview
 		var span := status_text if live_status else String(copy.get("signal", ""))
-		draw_string(zh, Vector2(fr2.position.x + 6.0 * s, fr2.position.y + 15.0 * s),
+		# 2026-08-11 文案重写成完整句后变长 —— 缩字到底仍装不下 13 字, 改两行:
+		# command 用 multiline 最多两行(10s), 短码/状态行沉底。裁断句子比挤一点更伤。
+		draw_multiline_string(zh, Vector2(fr2.position.x + 6.0 * s, fr2.position.y + 13.0 * s),
 			command, HORIZONTAL_ALIGNMENT_LEFT, fr2.size.x - 10.0 * s,
-			int(11.0 * s), Color(HOT_INK.r, HOT_INK.g, HOT_INK.b, dim))
+			int(10.0 * s), 2, Color(HOT_INK.r, HOT_INK.g, HOT_INK.b, dim))
 		draw_string(zh if live_status else med,
-			Vector2(fr2.position.x + 6.0 * s, fr2.position.y + 31.0 * s),
+			Vector2(fr2.position.x + 6.0 * s, fr2.position.y + fr2.size.y - 5.0 * s),
 			span, HORIZONTAL_ALIGNMENT_LEFT, fr2.size.x - 10.0 * s,
 			int((9.0 if live_status else 8.0) * s), Color(acc.r, acc.g, acc.b, dim))
 

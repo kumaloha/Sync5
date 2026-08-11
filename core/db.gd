@@ -487,7 +487,7 @@ static func validate_ui(d: Dictionary) -> String:
 	for k in d:
 		if String(k).begins_with("_"):
 			continue
-		if not ["stage", "hud", "shop", "hand", "banner", "blindcard"].has(k):
+		if not ["stage", "hud", "shop", "hand", "banner", "blindcard", "jokercard"].has(k):
 			return "unknown section '%s'" % k
 	return ""
 
