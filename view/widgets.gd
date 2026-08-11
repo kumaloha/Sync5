@@ -635,100 +635,129 @@ class BlindCard:
 		status_text = text
 		queue_redraw()
 
-	## 卡面照抄手牌的排版(用户 2026-08-05:「放一张卡牌」「不是我说的风格」——
-	## 之前用的是首页大玻璃卡那套, 摆在手牌旁边就是两种语言打架):
-	## 玻璃体 + 档位色霓虹边 + 115° sheen + 切角内框, 左上角标 / 中央大字 /
-	## 右下倒置角标。角标是盲注序号(牌的"点数"), 中央是档位(牌的"花色")。
-	## BOSS 脸出现时, 底部让给 ⚠ 条 —— 倒置角标收起, 墙的牌本来就该长得不一样。
+	## 2026-08-11 换代:照 assets/design/blind_card_ui.html(已批目录「Final Blind
+	## signal deck」)的解剖重写 —— 118×176 设计空间、25 头带(名+槽号)、机制指纹
+	## 信号箱(68×68 SVG 纹理)、43 结果脚(command + SIGNAL 短码/live 状态)。
+	## **压力盲注统一品红、boon 金**(目录页脚:「盲注统一粉红;轮次由编号与标题表达,
+	## 中央机制指纹负责记忆」)—— 这张牌从此不吃档位色;首页/商店的 StageCard 档位
+	## 四档递进不受影响。文案在 data/ui.json 的 blindcard 节(改文案 = 改 JSON)。
+	## 旧卡面(2026-08-05「照抄手牌排版」版)被本目录明确换代,git 历史可查。
+	const MAGENTA := Color("ff328d")
+	const HOT_INK := Color("f4fbff")
+	var _fp_cache := {}     # face id -> Texture2D / false(试过缺图)
+
+	func _fingerprint(fid: String) -> Texture2D:
+		if _fp_cache.get(fid) is Texture2D:
+			return _fp_cache[fid]
+		if _fp_cache.has(fid):
+			return null
+		var p := "res://assets/blinds/fp_%s.svg" % fid
+		_fp_cache[fid] = load(p) if ResourceLoader.exists(p) else false
+		return _fp_cache[fid] if _fp_cache[fid] is Texture2D else null
+
 	func _draw() -> void:
 		var w := size.x
 		var h := size.y
-		var s := w / 114.0                       # 以手牌宽度为单位, 尺寸整体跟着缩放
-		var acc := StageCard.accent_for(section_idx)
-		var is_wall := GameConfig.is_wall(section_idx)
+		var s := w / 118.0                      # 目录设计空间:118 × 176
 		var face = mod if mod != null else next_mod
 		var preview := mod == null and next_mod != null
-
-		# ---- 卡体: 和 PaperCard 逐层同构 ----
-		var sb := StyleBoxFlat.new()
-		sb.bg_color = StageTheme.GLASS_BODY
-		sb.set_corner_radius_all(12)
-		sb.set_border_width_all(2)
-		sb.border_color = Color(acc.r, acc.g, acc.b, 0.9)
-		sb.shadow_color = Color(acc.r, acc.g, acc.b, 0.42)
-		sb.shadow_size = 16
-		draw_style_box(sb, Rect2(0, 0, w, h))
-		draw_rect(Rect2(2, h * 0.42, w - 4, h * 0.56), Color(0.02, 0.01, 0.05, 0.30), true)
-		draw_texture_rect(PaperCard.sheen(), Rect2(2, 2, w - 4, h - 4), false)
-		draw_line(Vector2(6, 2.5), Vector2(w - 6, 2.5), Color(1, 1, 1, 0.42), 1.0)
-		var i := 6.0
-		var cut := 10.0
-		draw_polyline(PackedVector2Array([
-			Vector2(i + cut, i), Vector2(w - i, i), Vector2(w - i, h - i - cut),
-			Vector2(w - i - cut, h - i), Vector2(i, h - i), Vector2(i, i + cut),
-			Vector2(i + cut, i)]), Color(acc.r, acc.g, acc.b, 0.30), 1.0, true)
+		var acc := MAGENTA
+		var dim := 0.62 if preview else 1.0     # 预告态整体收敛
 
 		var zh := StageTheme.zh()
-		var num := StageTheme.num("Bold")
 		var med := StageTheme.num("Medium")
+		var bold := StageTheme.num("Bold")
 
-		# ---- 角标: 盲注序号, 牌的点数位 ----
-		var fs := int(24.0 * s)
-		var idx_txt := "%02d" % (section_idx + 1)
-		var corners := [[Vector2(13.0 * s, 11.0 * s), false]]
-		if face == null:
-			corners.append([Vector2(w - 13.0 * s, h - 11.0 * s), true])
-		for c in corners:
-			var at: Vector2 = c[0]
-			draw_set_transform(at, PI if c[1] else 0.0, Vector2.ONE)
-			PaperCard.neon_text(self, num, idx_txt, Vector2(0, fs * 0.84), fs,
-				acc, StageTheme.CARD_INK, 0.7, s)
-			draw_string(med, Vector2(1, fs * 0.84 + 12.0 * s),
-				"/%d" % GameConfig.SECTIONS_PER_RUN, HORIZONTAL_ALIGNMENT_LEFT, -1,
-				int(11.0 * s), Color(acc.r, acc.g, acc.b, 0.7))
-			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		# ---- 卡体:深底 + 1px 品红边 + 点阵纹 + 内衬细线 + 辉光 ----
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = Color("070510")
+		sb.set_corner_radius_all(int(9.0 * s))
+		sb.set_border_width_all(1)
+		sb.border_color = Color(acc.r, acc.g, acc.b, 0.95 * dim)
+		sb.shadow_color = Color(acc.r, acc.g, acc.b, 0.27 * dim)
+		sb.shadow_size = int(10.0 * s)
+		draw_style_box(sb, Rect2(0, 0, w, h))
+		var dot := Color(acc.r, acc.g, acc.b, 0.13 * dim)
+		var step := 14.0 * s
+		var dy := step * 0.5
+		while dy < h - 2.0:
+			var dx := step * 0.5
+			while dx < w - 2.0:
+				draw_circle(Vector2(dx, dy), 0.7 * s, dot)
+				dx += step
+			dy += step
+		draw_rect(Rect2(4.0 * s, 4.0 * s, w - 8.0 * s, h - 8.0 * s),
+			Color(1, 1, 1, 0.09), false, 1.0)
 
-		# ---- 中央: 档位, 牌的花色位 ----
-		var tier := GameConfig.blind_name(section_idx)
-		var tfs := int(30.0 * s)
-		var tw := zh.get_string_size(tier, HORIZONTAL_ALIGNMENT_LEFT, -1, tfs).x
-		var cy := h * 0.47
-		PaperCard.neon_text(self, zh, tier, Vector2((w - tw) * 0.5, cy), tfs,
-			acc, Color("f8fcff"), 0.85, s)
-		if is_wall:
-			draw_string(zh, Vector2(0, cy + 19.0 * s), "墙", HORIZONTAL_ALIGNMENT_CENTER,
-				w, int(14.0 * s), Color(acc.r, acc.g, acc.b, 0.9))
+		# ---- 头带 25s:左 = 脸名(白), 右 = 槽号 / 6s / NEXT ----
+		var head_h := 25.0 * s
+		var head_name: String = String(face.cn_name) if face != null else GameConfig.blind_name(section_idx)
+		draw_string(zh, Vector2(7.0 * s, head_h * 0.72), head_name,
+			HORIZONTAL_ALIGNMENT_LEFT, w - 14.0 * s, int(10.0 * s),
+			Color(HOT_INK.r, HOT_INK.g, HOT_INK.b, dim))
+		var slot_txt := "NEXT" if preview else \
+			("6s" if face != null and face.id == "rush" else "%02d" % (section_idx + 1))
+		var stw := med.get_string_size(slot_txt, HORIZONTAL_ALIGNMENT_LEFT, -1, int(8.0 * s)).x
+		draw_string(med, Vector2(w - 7.0 * s - stw, head_h * 0.70), slot_txt,
+			HORIZONTAL_ALIGNMENT_LEFT, -1, int(8.0 * s), Color(acc.r, acc.g, acc.b, dim))
+		draw_line(Vector2(0, head_h), Vector2(w, head_h), Color(acc.r, acc.g, acc.b, 0.8 * dim), 1.0)
 
-		draw_string(med, Vector2(0, h * 0.66), "GIG %d" % [GameConfig.gig_of(section_idx) + 1],
-			HORIZONTAL_ALIGNMENT_CENTER, w, int(12.0 * s),
-			Color(acc.r, acc.g, acc.b, 0.65))
+		# ---- 信号箱:边框 + 网格 + 68s 指纹;S4 有 boon 时让 20s 出来 ----
+		var foot_h := 43.0 * s
+		var boon_h := (20.0 * s) if (boon != null and not preview) else 0.0
+		var box := Rect2(6.0 * s, head_h + 5.0 * s,
+			w - 12.0 * s, h - head_h - foot_h - boon_h - 17.0 * s)
+		draw_rect(box, Color(acc.r, acc.g, acc.b, 0.35 * dim), false, 1.0)
+		var gcol := Color(acc.r, acc.g, acc.b, 0.08 * dim)
+		var gx := box.position.x + 19.0 * s
+		while gx < box.end.x:
+			draw_line(Vector2(gx, box.position.y), Vector2(gx, box.end.y), gcol, 1.0)
+			gx += 19.0 * s
+		var gy := box.position.y + 14.0 * s
+		while gy < box.end.y:
+			draw_line(Vector2(box.position.x, gy), Vector2(box.end.x, gy), gcol, 1.0)
+			gy += 14.0 * s
+		if face != null:
+			var fp := _fingerprint(String(face.id))
+			var fp_side := minf(68.0 * s, box.size.y - 8.0 * s)
+			if fp != null:
+				var fr := Rect2(box.position + (box.size - Vector2(fp_side, fp_side)) * 0.5,
+					Vector2(fp_side, fp_side))
+				draw_texture_rect(fp, fr, false, Color(1, 1, 1, dim))
+			else:
+				# 指纹缺图兜底:中央大字脸名(无素材环境的探针照跑)
+				draw_string(zh, Vector2(box.position.x, box.position.y + box.size.y * 0.58),
+					face.cn_name, HORIZONTAL_ALIGNMENT_CENTER, box.size.x,
+					int(22.0 * s), Color(acc.r, acc.g, acc.b, 0.9 * dim))
 
-		# ---- 底部: BOSS 脸(本段的亮, 下一面墙的预告收敛) ----
+		# ---- S4 金 boon 条(揭晓后) ----
+		if boon != null and not preview:
+			var bc := StageCard.boon_accent()
+			var br := Rect2(6.0 * s, box.end.y + 4.0 * s, w - 12.0 * s, 16.0 * s)
+			draw_style_box(StageTheme.box(Color(bc.r, bc.g, bc.b, 0.14),
+				Color(bc.r, bc.g, bc.b, 0.68), 1, int(5.0 * s)), br)
+			draw_string(zh, Vector2(br.position.x, br.position.y + 12.0 * s),
+				"✦ %s" % boon.cn_name, HORIZONTAL_ALIGNMENT_CENTER, br.size.x,
+				int(9.0 * s), bc)
+
+		# ---- 结果脚 43s:左竖线 + 渐变底;command(白) + SIGNAL 短码 / live 状态 ----
 		if face == null:
 			return
-		var fc: Color = Color("ffb3c2") if not preview else \
-			Color(StageTheme.RED.r, StageTheme.RED.g, StageTheme.RED.b, 0.72)
-		var band := Rect2(8.0 * s, h - 46.0 * s, w - 16.0 * s, 34.0 * s)
-		draw_style_box(StageTheme.box(Color(fc.r, fc.g, fc.b, 0.12),
-			Color(fc.r, fc.g, fc.b, 0.45), 1, int(8.0 * s)), band)
+		var fr2 := Rect2(7.0 * s, h - foot_h - 6.0 * s, w - 14.0 * s, foot_h)
+		draw_rect(fr2, Color(acc.r, acc.g, acc.b, 0.10 * dim), true)
+		draw_rect(Rect2(fr2.position, Vector2(2.0 * s, fr2.size.y)),
+			Color(acc.r, acc.g, acc.b, 0.9 * dim), true)
+		var copy: Dictionary = DB.ui().get("blindcard", {}).get(String(face.id), {})
+		var command := String(copy.get("command", face.cn_name))
 		var live_status := status_text != "" and not preview
+		var span := status_text if live_status else String(copy.get("signal", ""))
+		draw_string(zh, Vector2(fr2.position.x + 6.0 * s, fr2.position.y + 15.0 * s),
+			command, HORIZONTAL_ALIGNMENT_LEFT, fr2.size.x - 10.0 * s,
+			int(11.0 * s), Color(HOT_INK.r, HOT_INK.g, HOT_INK.b, dim))
 		draw_string(zh if live_status else med,
-			Vector2(band.position.x, band.position.y + 13.0 * s),
-			("⚠ %s" % face.cn_name) if live_status else ("NEXT ⚠" if preview else "⚠ BOSS"),
-			HORIZONTAL_ALIGNMENT_CENTER, band.size.x, int((11.0 if live_status else 10.0) * s),
-			Color(fc.r, fc.g, fc.b, 0.82))
-		draw_string(zh, Vector2(band.position.x, band.position.y + 29.0 * s),
-			status_text if live_status else face.cn_name,
-			HORIZONTAL_ALIGNMENT_CENTER, band.size.x,
-			int((10.0 if live_status else 14.0) * s), fc)
-		if boon != null:
-			var bc := StageCard.boon_accent()
-			var br := Rect2(12.0 * s, h - 62.0 * s, w - 24.0 * s, 18.0 * s)
-			draw_style_box(StageTheme.box(Color(bc.r, bc.g, bc.b, 0.14),
-				Color(bc.r, bc.g, bc.b, 0.68), 1, int(6.0 * s)), br)
-			draw_string(zh, Vector2(br.position.x, br.position.y + 13.0 * s),
-				"✦ %s" % boon.cn_name, HORIZONTAL_ALIGNMENT_CENTER, br.size.x,
-				int(10.0 * s), bc)
+			Vector2(fr2.position.x + 6.0 * s, fr2.position.y + 31.0 * s),
+			span, HORIZONTAL_ALIGNMENT_LEFT, fr2.size.x - 10.0 * s,
+			int((9.0 if live_status else 8.0) * s), Color(acc.r, acc.g, acc.b, dim))
 
 
 ## The blind board (盲注公示) — the home screen's stage card, sized for use
