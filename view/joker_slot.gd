@@ -229,7 +229,16 @@ func _display_window(win: Rect2, s: float, acc: Color) -> void:
 
 	var mid := win.position.y + win.size.y * 0.5
 	if _art != null:
-		draw_texture_rect(_art, win.grow(-4.0 * s), false)
+		# 保比例 cover 裁切(2026-08-11):拉伸填充会失真,且 1024×400 条图里
+		# 竖长主体两侧带透明空气 —— 按窗口纵横比取居中源区,空气裁掉、主体放大。
+		var dst := win.grow(-4.0 * s)
+		var tw := float(_art.get_width())
+		var th := float(_art.get_height())
+		var da := dst.size.x / maxf(dst.size.y, 0.001)
+		var sw := minf(tw, th * da)
+		var sh := minf(th, tw / da)
+		var src := Rect2((tw - sw) * 0.5, (th - sh) * 0.5, sw, sh)
+		draw_texture_rect_region(_art, dst, src)
 	elif joker.kind == "target":
 		# live EQ bars — the target slot is the loud one
 		var n := BARS
