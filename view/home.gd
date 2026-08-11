@@ -52,6 +52,11 @@ var section_idx := 0          # which blind the card is showing
 var tab := 0
 
 var _t := 0.0
+var _avatar_tex: Texture2D = null   # 职业头像(512×512 圆裁);档案栏 mock 期跟 DJ 走
+var _avatar_tried := false
+## manifest 的 avatar_crop([x,y,w,h] 归一化)——头像是四分之三身像,脸区窗口由美术线
+## 在 assets/characters/manifest.json 里给,运行时只读。圆盘取窗口内最大内切圆保纵横比。
+var _avatar_crop := Rect2(0.0, 0.0, 1.0, 1.0)
 var _drag_from := -1.0        # x where the current drag started, -1 = idle
 var _drag_dx := 0.0
 var _toast := ""
@@ -240,15 +245,43 @@ func _draw_player_bar() -> void:
 	r = r.grow(-bar_ins)
 	var cy := r.position.y + r.size.y * 0.5
 
-	# avatar disc
+	# avatar disc —— 2026-08-11 起贴职业头像(512×512 圆裁贴多边形 UV);
+	# 档案栏还是 mock(NEON PLAYER/LV),头像跟着 mock 的 DJ 走,选角接入后由所选主角驱动。
+	# 缺图退回字母盘 —— 无素材环境的截图探针照跑。
 	var c := Vector2(r.position.x + 56.0, cy)
 	draw_circle(c, 34.0, Color(0.055, 0.09, 0.16, 0.9))
-	draw_arc(c, 34.0, 0, TAU, 56, Color(StageTheme.CYAN.r, StageTheme.CYAN.g, StageTheme.CYAN.b, 0.8), 1.8, true)
 	var num := StageTheme.num("Bold")
 	var zh := StageTheme.zh()
-	var aw := num.get_string_size("DJ", HORIZONTAL_ALIGNMENT_LEFT, -1, 26).x
-	draw_string(num, c + Vector2(-aw * 0.5, 9.0), "DJ", HORIZONTAL_ALIGNMENT_LEFT, -1, 26,
-		Color("8ff5ee"))
+	if _avatar_tex == null and not _avatar_tried:
+		_avatar_tried = true
+		var ap := "res://assets/characters/dj/avatar.png"
+		if ResourceLoader.exists(ap):
+			_avatar_tex = load(ap)
+			var mf := FileAccess.open("res://assets/characters/manifest.json", FileAccess.READ)
+			if mf != null:
+				var md = JSON.parse_string(mf.get_as_text())
+				mf.close()
+				if md is Dictionary:
+					for ch in md.get("characters", []):
+						if String(ch.get("id", "")) == "dj" and ch.has("avatar_crop"):
+							var cr: Array = ch["avatar_crop"]
+							_avatar_crop = Rect2(float(cr[0]), float(cr[1]), float(cr[2]), float(cr[3]))
+	if _avatar_tex != null:
+		var ucx := _avatar_crop.position.x + _avatar_crop.size.x * 0.5
+		var ucy := _avatar_crop.position.y + _avatar_crop.size.y * 0.5
+		var ur := minf(_avatar_crop.size.x, _avatar_crop.size.y) * 0.5
+		var apts := PackedVector2Array()
+		var auvs := PackedVector2Array()
+		for i in range(40):
+			var aa := TAU * float(i) / 40.0
+			apts.append(c + Vector2(cos(aa), sin(aa)) * 33.0)
+			auvs.append(Vector2(ucx + cos(aa) * ur, ucy + sin(aa) * ur))
+		draw_colored_polygon(apts, Color.WHITE, auvs, _avatar_tex)
+	else:
+		var aw := num.get_string_size("DJ", HORIZONTAL_ALIGNMENT_LEFT, -1, 26).x
+		draw_string(num, c + Vector2(-aw * 0.5, 9.0), "DJ", HORIZONTAL_ALIGNMENT_LEFT, -1, 26,
+			Color("8ff5ee"))
+	draw_arc(c, 34.0, 0, TAU, 56, Color(StageTheme.CYAN.r, StageTheme.CYAN.g, StageTheme.CYAN.b, 0.8), 1.8, true)
 	var lv := "LV.%d" % int(PROFILE["level"])
 	var lw := num.get_string_size(lv, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x
 	var lb := Rect2(c.x - lw * 0.5 - 10.0, c.y + 27.0, lw + 20.0, 19.0)

@@ -21,6 +21,20 @@ const ANCHOR := Vector2(20.0, 46.0)     # walk point inside the 40×52 box
 const BOB_PERIOD := 1.1                  # dcbob
 const DOT_PERIOD := 1.4                  # dctwinkle
 
+## ── 2026-08-11 职业帧图接入(assets/characters/<id>/{walk,dance}.png)──
+## manifest 驱动的 8 帧 × 128×128 打包条(idx 顺序与 characters.json / manifest 三方对齐,
+## 见 assets/characters/manifest.json)。**贴图优先、程序化简笔兜底** —— 素材缺失不崩,
+## 无素材环境的探针照跑。步态/舞步已画进帧里:贴图模式下走路不再叠 bob(免得双重弹跳),
+## 舞蹈只保留水平摇摆。
+const IDS := ["dj", "magician", "boxer", "bartender", "seer", "drummer", "rapper", "tattooist"]
+const FRAME_PX := 128
+const FRAME_N := 8
+const WALK_FPS := 10.0
+const DANCE_FPS := 9.0
+## 帧画到 SVG 坐标系里的目标边长(单位 = SVG 格;×FIG_SCALE 后 ≈62px 屏高,
+## 与简笔人 40×52 的构图同一量级)。底边对齐 ANCHOR 的脚点。
+const SPRITE_UNITS := 46.0
+
 ## The eight-strong crew. Geometry is in SVG units; `origin` is the resolved
 ## transform-origin of the prop group (the spec gives it as a fill-box %).
 const CREW := [
@@ -95,6 +109,8 @@ var show_name := false   # only the crew contact sheet wants the name plate:
 var _t := 0.0
 var _ch: Dictionary = CREW[0]
 var _col := Color.WHITE
+var _walk_tex: Texture2D = null
+var _dance_tex: Texture2D = null
 
 
 func _ready() -> void:
@@ -105,7 +121,14 @@ func set_character(i: int) -> void:
 	idx = posmod(i, CREW.size())
 	_ch = CREW[idx]
 	_col = Color(String(_ch["color"]))
+	_walk_tex = _sheet("walk")
+	_dance_tex = _sheet("dance")
 	queue_redraw()
+
+
+func _sheet(kind: String) -> Texture2D:
+	var p := "res://assets/characters/%s/%s.png" % [IDS[idx], kind]
+	return load(p) if ResourceLoader.exists(p) else null
 
 
 func color() -> Color:
@@ -118,6 +141,24 @@ func _process(delta: float) -> void:
 
 
 func _draw() -> void:
+	# 帧图路径:跳舞优先用 dance 条,缺了退 walk 条,两条都缺才落回程序化简笔。
+	var tex: Texture2D = _dance_tex if (dancing and _dance_tex != null) else _walk_tex
+	if tex != null:
+		var sp := FIG_SCALE
+		var sp_extra := Vector2(sin(_t * 4.5) * 10.0, 0.0) if dancing else Vector2.ZERO
+		var sp_pivot: Vector2 = sp_extra + Vector2(-ANCHOR.x * sp * facing, -ANCHOR.y * sp)
+		draw_set_transform(sp_pivot, 0.0, Vector2(sp * facing, sp))
+		var fps := DANCE_FPS if dancing else WALK_FPS
+		var fi := int(floor(_t * fps)) % FRAME_N
+		var src := Rect2(fi * FRAME_PX, 0, FRAME_PX, FRAME_PX)
+		var dst := Rect2(Vector2(ANCHOR.x - SPRITE_UNITS * 0.5, ANCHOR.y - SPRITE_UNITS),
+			Vector2(SPRITE_UNITS, SPRITE_UNITS))
+		draw_texture_rect_region(tex, dst, src)
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		if show_name:
+			_name_plate()
+		return
+
 	var bob_u: float = fmod(_t, BOB_PERIOD) / BOB_PERIOD
 	var bob: float = -3.0 * sin(bob_u * PI)
 	var s := FIG_SCALE
@@ -193,12 +234,16 @@ func _draw() -> void:
 
 	if not show_name:
 		return
-	# name plate above the head — below the feet it would sit on the walk track.
-	# Drawn unscaled so the glyphs stay crisp.
+	_name_plate()
+
+
+## name plate above the head — below the feet it would sit on the walk track.
+## Drawn unscaled so the glyphs stay crisp. 帧图与简笔两条路径共用。
+func _name_plate() -> void:
 	var f := StageTheme.zh()
 	var label := String(_ch["name"])
 	var w := f.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x
-	var ly := (-ANCHOR.y - 9.0) * s   # clears the magician's top hat too
+	var ly := (-ANCHOR.y - 9.0) * FIG_SCALE   # clears the magician's top hat too
 	draw_string(f, Vector2(-w * 0.5, ly), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 12,
 		Color(_col.r, _col.g, _col.b, 0.9))
 

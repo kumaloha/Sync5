@@ -20,6 +20,10 @@ assets for implementation, not runtime screenshots.
   boons: 29 cards in total.
 - Pressure Blinds always use magenta. Positive finale boons use gold. Round
   identity comes from numbering and copy, not a different frame color.
+- ⚠ 修正注记(2026-08-11):上一行的「一律品红」只描述本目录这批审阅卡面;
+  **运行时**的舞台卡/盲注卡档位色维持已锁定拍板的四档递进(蓝→橙→红→粉,
+  `Widgets.StageCard.accent_for()` 唯一出处),boon 金色两边一致。
+  将来若把运行时也统一品红,先改拍板再改代码。
 - The reviewed in-run card budget is 118×176: compact header, 68×68 mechanic
   fingerprint, and a 43px action/result summary.
 - The interactive inspector contains the approved main mechanic, supporting
