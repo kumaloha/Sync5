@@ -15,6 +15,7 @@ var joker = null
 var slot_kind := "support"
 var tappable := false
 var _art: Texture2D = null
+var _art_src := Rect2()    # alpha 内容包围盒(裁掉条图两侧的透明空气)
 var _t := 0.0
 var _phase: Array = []
 ## 替换模式的提示: "" = 常态 / "replace" = 点我替换 / "cancel" = 点我取消。
@@ -72,10 +73,24 @@ func set_joker(j) -> void:
 	if _mirror != null:
 		_mirror.set_joker(j)
 	_art = null
+	_art_src = Rect2()
 	if j != null:
-		var path := "res://assets/jokers/joker_%s.png" % j.id
+		# 优先 1024² 的 source 原画(成卡语言贴的就是它, bbox 近方形、细节满);
+		# 顶层 1024×400 条图是给旧扁窗裁的缩样, 只作退路。
+		var path := "res://assets/jokers/source/joker_%s.png" % j.id
+		if not ResourceLoader.exists(path):
+			path = "res://assets/jokers/joker_%s.png" % j.id
 		if ResourceLoader.exists(path):
 			_art = load(path)
+			# 2026-08-11:1024×400 条图里竖长主体两侧是大片透明空气, 按纵横比 cover
+			# 裁不掉 —— 加载时算一次 alpha 内容包围盒, 绘制按它 contain, 主体才占满箱。
+			var img := (_art as Texture2D).get_image()
+			if img != null:
+				var used := img.get_used_rect()
+				if used.size.x > 0:
+					used = used.grow(int(maxf(4.0, float(used.size.x) * 0.05)))
+					_art_src = Rect2(used).intersection(
+						Rect2(0, 0, img.get_width(), img.get_height()))
 	queue_redraw()
 
 
@@ -112,6 +127,23 @@ func _accent() -> Color:
 	return StageTheme.CYAN
 
 
+## assets/jokers/manifest.json 的卡面字段(cn/code/trigger_zh/amount), 静态缓存一次。
+## 美术线的 manifest 是只读数据源, 不进 db.gd 校验管线(它有自己的 verify_joker_assets)。
+static var _mf: Dictionary = {}
+static func _card_meta(id: String) -> Dictionary:
+	if _mf.is_empty():
+		var f := FileAccess.open("res://assets/jokers/manifest.json", FileAccess.READ)
+		if f != null:
+			var d = JSON.parse_string(f.get_as_text())
+			f.close()
+			if d is Dictionary:
+				for e in d.get("cards", []):
+					_mf[String(e["id"])] = e
+		if _mf.is_empty():
+			_mf["__missing"] = true    # 试过且缺文件:别每帧重试
+	return _mf.get(id, {})
+
+
 func _draw() -> void:
 	var w := size.x
 	var h := size.y
@@ -122,50 +154,63 @@ func _draw() -> void:
 	var acc := _accent()
 	_glass(w, h, s, acc, 0.85)
 
-	var pad := 11.0 * s
-	var y := 9.0 * s
+	# ── 2026-08-11 换代:照用户批准的成卡语言(joker_card_renderer / cards/ 渲染)重排 ——
+	# 大中文名 + 右上 manifest 编码 / **大艺术箱**(65s 高, 图标是手机上识别的主体) /
+	# 数额章叠箱右上 / 底部大号中文触发词(trigger_zh)。英文 fx 只留给测试与 kit,
+	# 卡面不再显示(用户 2026-08-11:「图标太小、字的区域太大」)。数据源 = jokers manifest。
+	var meta := _card_meta(String(joker.id))
+	var pad := 8.0 * s
 
-	# header: CN name (the one the player actually reads) + kind icon box
-	draw_string(StageTheme.zh(), Vector2(pad, y + 13.0 * s), joker.cn_name,
-		HORIZONTAL_ALIGNMENT_LEFT, -1, int(16.0 * s), Color("eafffd"))
-	var ib := Rect2(w - pad - 13.0 * s, y + 1.0 * s, 13.0 * s, 13.0 * s)
-	draw_rect(ib, Color(acc.r, acc.g, acc.b, 0.4), false, 1.0)
-	draw_string(StageTheme.zh(), Vector2(ib.position.x, ib.position.y + 10.5 * s),
-		_icon_for(joker.kind), HORIZONTAL_ALIGNMENT_CENTER, ib.size.x, int(9.0 * s), acc)
+	# 头带:中文名大字 + 编码
+	draw_string(StageTheme.zh(), Vector2(pad + 2.0 * s, 20.0 * s), joker.cn_name,
+		HORIZONTAL_ALIGNMENT_LEFT, w * 0.62, int(17.0 * s), Color("eafffd"))
+	var code := String(meta.get("code", ""))
+	if code != "":
+		var cfs := int(9.0 * s)
+		var cw := StageTheme.num("Medium").get_string_size(code,
+			HORIZONTAL_ALIGNMENT_LEFT, -1, cfs).x
+		draw_string(StageTheme.num("Medium"), Vector2(w - pad - cw, 16.0 * s), code,
+			HORIZONTAL_ALIGNMENT_LEFT, -1, cfs, Color(acc.r, acc.g, acc.b, 0.85))
+	draw_line(Vector2(pad, 27.0 * s), Vector2(w - pad, 27.0 * s),
+		Color(acc.r, acc.g, acc.b, 0.35), 1.0)
 
-	# divider with three ticks
-	y += 22.0 * s
-	draw_line(Vector2(pad, y), Vector2(w - pad - 26.0 * s, y), Color(acc.r, acc.g, acc.b, 0.35), 1.0)
-	for i in range(3):
-		var tx := w - pad - 20.0 * s + float(i) * 6.0 * s
-		draw_rect(Rect2(tx, y - 1.5 * s, 4.0 * s, 3.0 * s),
-			Color(acc.r, acc.g, acc.b, 0.7 if i != 1 else 0.4), true)
-
-	# --- display window: grid background + EQ bars or glyph ---
-	# 50 tall (was 66): the freed rows go to the effect text below — 真人试玩
-	# 2026-08-05: the caption was the thing being squinted at, not the art
-	y += 5.0 * s
-	var win := Rect2(pad * 0.6, y, w - pad * 1.2, 50.0 * s)
+	# 大艺术箱:31s..141s, 近方(1.3:1)—— 素材原画多为竖长构图, 横箱永远装不满;
+	# 箱子贴近方形, 竖长图标才真正变大(用户 2026-08-11 二反馈后的定稿形状)。
+	var win := Rect2(pad * 0.75, 31.0 * s, w - pad * 1.5, 110.0 * s)
 	_display_window(win, s, acc)
 
-	# single amount chip, gold — it is the number the player shops by
-	y = win.position.y + win.size.y + 6.0 * s
-	_chips(w, y, s, acc)
+	# 数额章:黑底 acc 框, 叠箱右上角(跨头带线, 附图语言)
+	var amount := String(meta.get("amount", ""))
+	if amount != "":
+		var af := StageTheme.num("Bold")
+		var afs := int(14.0 * s)
+		var aw := af.get_string_size(amount, HORIZONTAL_ALIGNMENT_LEFT, -1, afs).x
+		var ar := Rect2(w - pad - aw - 10.0 * s, 23.0 * s, aw + 10.0 * s, 19.0 * s)
+		var absb := StyleBoxFlat.new()
+		absb.bg_color = Color(0.01, 0.05, 0.06, 0.97)
+		absb.set_corner_radius_all(int(3.0 * s))
+		absb.set_border_width_all(1)
+		absb.border_color = Color(acc.r, acc.g, acc.b, 0.95)
+		draw_style_box(absb, ar)
+		draw_string(af, Vector2(ar.position.x + 5.0 * s, ar.position.y + 14.0 * s),
+			amount, HORIZONTAL_ALIGNMENT_LEFT, -1, afs, acc)
 
 	_pick_overlay(w, h, s)
 
-	# caption — EN card text (≤7 words by design), two lines allowed, bright
-	var cap_font := StageTheme.num("Medium")
-	var cap_w := w - 10.0 * s
-	var cap_sz := int(13.0 * s)
-	while cap_sz > int(9.0 * s):
-		var sz := cap_font.get_multiline_string_size(joker.fx_text,
-			HORIZONTAL_ALIGNMENT_CENTER, cap_w, cap_sz)
-		if sz.y <= 36.0 * s:
-			break
-		cap_sz -= 1
-	draw_multiline_string(cap_font, Vector2(5.0 * s, y + 33.0 * s), joker.fx_text,
-		HORIZONTAL_ALIGNMENT_CENTER, cap_w, cap_sz, 2, Color("b7f3ec"))
+	# 底部触发词:左竖条 + 紧凑单行(字区只留一行 —— 「字的区域太大」的正解),
+	# 长文案自适应缩字不破行
+	var trig := String(meta.get("trigger_zh", joker.fx_text))
+	var tr := Rect2(pad, 145.0 * s, w - pad * 2.0, h - 151.0 * s)
+	draw_rect(Rect2(tr.position, Vector2(2.0 * s, tr.size.y)),
+		Color(acc.r, acc.g, acc.b, 0.85), true)
+	var zf := StageTheme.zh()
+	var tfs := int(13.0 * s)
+	while tfs > int(9.0 * s) and zf.get_string_size(trig,
+			HORIZONTAL_ALIGNMENT_LEFT, -1, tfs).x > tr.size.x - 12.0 * s:
+		tfs -= 1
+	draw_string(zf, Vector2(tr.position.x + 8.0 * s,
+		tr.position.y + tr.size.y * 0.5 + float(tfs) * 0.36),
+		trig, HORIZONTAL_ALIGNMENT_LEFT, tr.size.x - 10.0 * s, tfs, Color("f4fbff"))
 
 
 
@@ -229,16 +274,16 @@ func _display_window(win: Rect2, s: float, acc: Color) -> void:
 
 	var mid := win.position.y + win.size.y * 0.5
 	if _art != null:
-		# 保比例 cover 裁切(2026-08-11):拉伸填充会失真,且 1024×400 条图里
-		# 竖长主体两侧带透明空气 —— 按窗口纵横比取居中源区,空气裁掉、主体放大。
-		var dst := win.grow(-4.0 * s)
-		var tw := float(_art.get_width())
-		var th := float(_art.get_height())
-		var da := dst.size.x / maxf(dst.size.y, 0.001)
-		var sw := minf(tw, th * da)
-		var sh := minf(th, tw / da)
-		var src := Rect2((tw - sw) * 0.5, (th - sh) * 0.5, sw, sh)
-		draw_texture_rect_region(_art, dst, src)
+		# alpha 包围盒 + contain(2026-08-11 二修):cover 按纵横比裁不掉竖长主体
+		# 两侧的透明空气(荧光棒在 1024×400 里只占中间一条)——src 用 set_joker 时
+		# 算好的内容包围盒, dst 取箱内最大等比矩形, 主体完整且撑满箱。
+		var dst := win.grow(-3.0 * s)
+		var src := _art_src if _art_src.size.x > 0.0 \
+			else Rect2(0, 0, _art.get_width(), _art.get_height())
+		var sc := minf(dst.size.x / src.size.x, dst.size.y / src.size.y)
+		var dsz := src.size * sc
+		draw_texture_rect_region(_art,
+			Rect2(dst.position + (dst.size - dsz) * 0.5, dsz), src)
 	elif joker.kind == "target":
 		# live EQ bars — the target slot is the loud one
 		var n := BARS
