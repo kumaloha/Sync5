@@ -330,7 +330,9 @@ func _settle() -> void:
 	# 游戏和模拟器共用同一份编排, 因为「一拍怎么走完」曾经被写了六遍, 而五次
 	# 「规则在游戏里、不在模型里」的事故有三次直接出自那些副本。
 	# 这里只剩表现:Tape 打点 / 三段式结算动画 / popup。
-	var outcome := Beat.settle(run, phrase, {"late": acted_late})
+	# early 必须传:settle ctx 的 early_finish 只认这里的 flags(core/beat.gd),
+	# 漏传 = 速弹在真机恒假而 sim 侧为真 —— 模型/游戏分叉(C7 反向,TODO C10)。
+	var outcome := Beat.settle(run, phrase, {"late": acted_late, "early": _acted_early()})
 	var res: Dictionary = outcome["res"]
 	var gained_score := int(outcome["score"])
 	var gained_coins := int(outcome["coins"])
@@ -407,11 +409,15 @@ func early_settle() -> void:
 		_settle()
 
 
+## "Early finish" needs at least one action — an untouched phrase never counts,
+## or momentum would grow while the player idles (principle A4).
+## _settle 与 _advance 共用这一份判据(判定只许有一份真相)。
+func _acted_early() -> bool:
+	return last_action_time >= 0.0 and last_action_time <= GameConfig.EARLY_FINISH_TIME
+
+
 func _advance() -> void:
-	# "Early finish" needs at least one action — an untouched phrase never counts,
-	# or momentum would grow while the player idles (principle A4).
-	var early: bool = last_action_time >= 0.0 and last_action_time <= GameConfig.EARLY_FINISH_TIME
-	Beat.phrase_end(run, phrase, {"early": early})
+	Beat.phrase_end(run, phrase, {"early": _acted_early()})
 	var out := run.advance()
 	if bool(out["section_done"]):
 		state = St.END

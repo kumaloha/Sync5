@@ -160,7 +160,7 @@
    "kind": "support",
    "rarity": "common",
    "trigger_zh": "每次弃牌后永久",
-   "amount": "+3",
+   "amount": "+1",
    "art_subject": "唱针下旋转的黑胶纹路"
   },
   {
@@ -200,7 +200,7 @@
    "kind": "support",
    "rarity": "uncommon",
    "trigger_zh": "人头牌点数",
-   "amount": "15",
+   "amount": "20",
    "art_subject": "贵宾席上的 J、Q、K"
   },
   {
@@ -290,7 +290,7 @@
    "kind": "support",
    "rarity": "uncommon",
    "trigger_zh": "与上一拍相同牌型",
-   "amount": "+50%",
+   "amount": "+80%",
    "art_subject": "重复出现的乐句记号"
   },
   {
@@ -320,7 +320,7 @@
    "kind": "support",
    "rarity": "uncommon",
    "trigger_zh": "本节第一拍",
-   "amount": "+80%",
+   "amount": "+150%",
    "art_subject": "拉开大幕后射入第一束光"
   },
   {
@@ -390,7 +390,7 @@
    "kind": "support",
    "rarity": "uncommon",
    "trigger_zh": "低点数牌按此点数计算",
-   "amount": "10",
+   "amount": "15",
    "art_subject": "放大的低音谱号托起小牌"
   },
   {
@@ -400,7 +400,7 @@
    "kind": "support",
    "rarity": "common",
    "trigger_zh": "每张参与计分的红色牌",
-   "amount": "+6",
+   "amount": "+3",
    "art_subject": "红桃与方块沐浴暖光"
   },
   {
@@ -410,7 +410,7 @@
    "kind": "support",
    "rarity": "common",
    "trigger_zh": "每张参与计分的黑色牌",
-   "amount": "+6",
+   "amount": "+3",
    "art_subject": "黑桃与梅花浸在冷光中"
   },
   {

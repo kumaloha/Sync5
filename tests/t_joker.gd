@@ -107,10 +107,11 @@ func run(t) -> void:
 	vinyl.on_discard(2)
 	vinyl.on_discard(4)
 	var fm: int = int(Pattern.BASE_MULT[Pattern.Kind.FLUSH])
+	var vgrow: int = 6 * int(t._do_amount("vinyl", "additive"))    # 6 张弃牌 × 每张数额
 	t.eq(Settle.run(flush_res, [null, vinyl, null, null], {})["score"],
-		(int(flush_res["chips"]) + 18) * fm, "vinyl chips ride the pattern mult")
+		(int(flush_res["chips"]) + vgrow) * fm, "vinyl chips ride the pattern mult")
 	t.eq(Settle.run(flush_res, [Joker.by_id("mono"), vinyl, null, null], {})["score"],
-		int(round(float(int(flush_res["chips"]) + 18) * float(fm) * t._tmult("mono", "FLUSH"))),
+		int(round(float(int(flush_res["chips"]) + vgrow) * float(fm) * t._tmult("mono", "FLUSH"))),
 		"vinyl growth rides every multiplier")
 
 	# chorus: only on the section's last phrase
@@ -126,11 +127,12 @@ func run(t) -> void:
 	t.eq(Settle.run(flush_res, [null, mom, null, null], {})["score"],
 		int(round(base * 1.2)), "momentum +10% per early finish")
 
-	# vip: J/Q/K count as 15 via the additive channel
+	# vip: J/Q/K count as its face value via the additive channel(手里 J=11 与 K=13)
 	var vip_res := Pattern.evaluate_best([t._c(2, 0), t._c(5, 0), t._c(8, 0), t._c(11, 0), t._c(13, 0)])
+	var vval: int = int(t._do_amount("vip", "additive_face_value"))
 	t.eq(Settle.run(vip_res, [null, Joker.by_id("vip"), null, null], {})["score"],
-		(int(vip_res["chips"]) + 6) * int(Pattern.BASE_MULT[Pattern.Kind.FLUSH]),
-		"vip: J +4 and K +2, on the chips side")
+		(int(vip_res["chips"]) + (vval - 11) + (vval - 13)) * int(Pattern.BASE_MULT[Pattern.Kind.FLUSH]),
+		"vip lifts J and K to face value, on the chips side")
 
 	# glowstick: rented power, fades 6% per phrase
 	var glow := Joker.by_id("glowstick")

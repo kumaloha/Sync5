@@ -270,7 +270,7 @@
    "rarity": "common",
    "curve": "growth",
    "proof": "score",
-   "fx": "Every discard: +3 forever",
+   "fx": "Every discard: +1 forever",
    "counters": {
     "n": {
      "on_discard": "sum"
@@ -285,7 +285,7 @@
       ]
      },
      "do": {
-      "additive": 3,
+      "additive": 1,
       "per": "counter:n"
      }
     }
@@ -370,11 +370,11 @@
    "rarity": "uncommon",
    "curve": "fixed",
    "proof": "score",
-   "fx": "Face cards count as 15",
+   "fx": "Face cards count as 20",
    "effects": [
     {
      "do": {
-      "additive_face_value": 15
+      "additive_face_value": 20
      }
     }
    ]
@@ -568,14 +568,14 @@
    "rarity": "uncommon",
    "curve": "burst",
    "proof": "score",
-   "fx": "Same hand as last: +50%",
+   "fx": "Same hand as last: +80%",
    "effects": [
     {
      "when": {
       "same_as_prev": true
      },
      "do": {
-      "bonus_pct": 0.5
+      "bonus_pct": 0.8
      }
     }
    ]
@@ -623,7 +623,7 @@
      "do": {
       "bonus_pct": 0.05,
       "per": "coins:2",
-      "cap": 0.3
+      "cap": 0.15
      }
     }
    ]
@@ -666,14 +666,14 @@
    "rarity": "uncommon",
    "curve": "burst",
    "proof": "score",
-   "fx": "First phrase of section: +80%",
+   "fx": "First phrase of section: +150%",
    "effects": [
     {
      "when": {
       "first_phrase": true
      },
      "do": {
-      "bonus_pct": 0.8
+      "bonus_pct": 1.5
      }
     }
    ]
@@ -786,11 +786,11 @@
    "rarity": "uncommon",
    "curve": "fixed",
    "proof": "score",
-   "fx": "Low cards count as 10",
+   "fx": "Low cards count as 15",
    "effects": [
     {
      "do": {
-      "additive_low_value": 10
+      "additive_low_value": 15
      }
     }
    ]
@@ -803,11 +803,11 @@
    "rarity": "common",
    "curve": "fixed",
    "proof": "score",
-   "fx": "Red scoring cards: +6 chips each",
+   "fx": "Red scoring cards: +3 chips each",
    "effects": [
     {
      "do": {
-      "chips_per_card": 6,
+      "chips_per_card": 3,
       "card_filter": "red"
      }
     }
@@ -821,11 +821,11 @@
    "rarity": "common",
    "curve": "fixed",
    "proof": "score",
-   "fx": "Black scoring cards: +6 chips each",
+   "fx": "Black scoring cards: +3 chips each",
    "effects": [
     {
      "do": {
-      "chips_per_card": 6,
+      "chips_per_card": 3,
       "card_filter": "black"
      }
     }

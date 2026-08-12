@@ -71,3 +71,15 @@ func _bonus(joker_id: String) -> int:
 			if fx.get("do", {}).has("bonus"):
 				return int(fx["do"]["bonus"])
 	return 0
+
+
+## 任意 do 通道的数额(additive / additive_face_value / chips_per_card …)——
+## 同上理由(2026-08-12 v3 改基牌重定价又红了 3 条手抄断言, 补这个通用口)。
+func _do_amount(joker_id: String, key: String) -> float:
+	for e in DB.jokers():
+		if String(e["id"]) != joker_id:
+			continue
+		for fx in e.get("effects", []):
+			if fx.get("do", {}).has(key):
+				return float(fx["do"][key])
+	return 0.0
