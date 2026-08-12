@@ -16,7 +16,7 @@
 - Edit target: `assets/app_icon/sync5-game-icon-master-v2.png`
 - Create: `assets/app_icon/sync5-game-icon-master-v3.png`
 
-- [ ] **Step 1: Generate one square revision**
+- [x] **Step 1: Generate one square revision**
 
 Use the built-in image-generation tool with the exact prompt below:
 
@@ -37,7 +37,7 @@ Constraints: change the background presentation and safe-area scale while preser
 Avoid: pure-black corners, black outer margin, floating logo presentation, baked rounded-square border or mask, transparent corners, waveform, pulse line, equalizer, music note, oversized record, words, letters, numbers, corner ranks, characters, UI, scenery, watermark, signature
 ```
 
-- [ ] **Step 2: Save the generated PNG in the project**
+- [x] **Step 2: Save the generated PNG in the project**
 
 Copy the selected built-in output to:
 
@@ -53,7 +53,7 @@ Keep v1 and v2 unchanged for comparison.
 - Create temporarily: `/tmp/sync5-game-icon-ios-preview-v3.html`
 - Create: `assets/app_icon/sync5-game-icon-ios-preview-v3.png`
 
-- [ ] **Step 1: Create the deterministic preview wrapper**
+- [x] **Step 1: Create the deterministic preview wrapper**
 
 Create `/tmp/sync5-game-icon-ios-preview-v3.html` with this content, replacing
 the image path only if the worktree location changes:
@@ -86,7 +86,7 @@ the image path only if the worktree location changes:
 </html>
 ```
 
-- [ ] **Step 2: Render the rounded preview**
+- [x] **Step 2: Render the rounded preview**
 
 Run:
 
@@ -103,7 +103,7 @@ approximation of the iOS system mask.
 - Verify: `assets/app_icon/sync5-game-icon-master-v3.png`
 - Verify: `assets/app_icon/sync5-game-icon-ios-preview-v3.png`
 
-- [ ] **Step 1: Verify file properties**
+- [x] **Step 1: Verify file properties**
 
 Confirm both images are readable 1024×1024 PNG files. Confirm the upload master
 uses sRGB and has no alpha channel; confirm the preview has an alpha channel.
@@ -115,27 +115,27 @@ master: PNG image data, 1024 x 1024, RGB, no alpha, sRGB
 preview: PNG image data, 1024 x 1024, RGBA
 ```
 
-- [ ] **Step 2: Review the full-size master**
+- [x] **Step 2: Review the full-size master**
 
 Check that the gradient reaches every edge and corner, the image reads as a
 complete colored tile, the two cards remain primary, and the record remains
 secondary.
 
-- [ ] **Step 3: Review the rounded preview**
+- [x] **Step 3: Review the rounded preview**
 
 Check that the rounded preview visibly reads as an iOS app icon and that the mask
 does not crop the cards, suits, or record.
 
-- [ ] **Step 4: Review launcher-scale readability**
+- [x] **Step 4: Review launcher-scale readability**
 
 Inspect a 64×64 rendering of the rounded preview. Two card rectangles plus the
 spade and heart must remain recognizable before the record.
 
-- [ ] **Step 5: Iterate only if a requirement fails**
+- [x] **Step 5: Iterate only if a requirement fails**
 
 If validation fails, make one targeted generation edit addressing the failed requirement, replace only the unapproved master, and repeat all validation steps.
 
-- [ ] **Step 6: Report the artifacts**
+- [x] **Step 6: Report the artifacts**
 
 Return the rounded preview inline and link both saved paths. State clearly that
 the square opaque master is the App Store/Xcode source and the rounded image is
