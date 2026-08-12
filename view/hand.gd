@@ -60,6 +60,11 @@ var discard_key: Widgets.DJKey
 
 
 func _ready() -> void:
+	# 兜底落区的前提:Hand 自己得有真实矩形(以前是零矩形控件,拖放的祖先链
+	# 在卡缝处根本走不到它)。PASS = 参与拖放目标查找,但不吞别人的点击。
+	position = Vector2.ZERO
+	size = Vector2(720, 1280)
+	mouse_filter = Control.MOUSE_FILTER_PASS
 	var htabp := PanelContainer.new()
 	htabp.add_theme_stylebox_override("panel", StageTheme.box(Color("1c2350"), Color(0.63, 0.71, 1.0, 0.35), 1, 14))
 	var htab := StageTheme.label(String(_cfg["hand_tab"]), StageTheme.zh(), 16, Color("dfe6ff"), HORIZONTAL_ALIGNMENT_CENTER)
@@ -177,6 +182,55 @@ func _on_cache_card_tap(i: int) -> void:
 		sel_cache.erase(i)
 	card_picked.emit("cache", i, on)
 	selection_changed.emit()
+
+
+## 整区兜底落点(2026-08-12 用户:「挪牌必须放到很准才能挪成功」):
+## 卡面矩形没接住的拖放会沿祖先链走到 Hand 自己 —— 按行带 + 最近槽位吸附。
+## 精确落在卡上仍走卡自己的 drop(子节点优先),这里只接"差一点"的。
+const DROP_SLACK := 46.0     # 行带上下各放宽这么多像素
+
+func _row_hit(pos: Vector2) -> Dictionary:
+	# 返回 {"zone": "hand"/"cache", "i": 槽位} 或空
+	if absf(pos.y - (HAND_CARD_Y + CARD_H * 0.5)) < CARD_H * 0.5 + DROP_SLACK:
+		var i := int(roundf((pos.x - HAND_X0 - CARD_W * 0.5) / (CARD_W + GAP)))
+		return {"zone": "hand", "i": clampi(i, 0, hand_cards.size() - 1)}
+	if absf(pos.y - (CACHE_Y + CARD_H * 0.5)) < CARD_H * 0.5 + DROP_SLACK:
+		var x := pos.x - cache_holder.position.x
+		var i2 := int(roundf((x - CARD_W * 0.5) / (CARD_W + GAP)))
+		if _last_cache.is_empty():
+			return {}
+		return {"zone": "cache", "i": clampi(i2, 0, _last_cache.size() - 1)}
+	return {}
+
+
+func _can_drop_data(pos: Vector2, data: Variant) -> bool:
+	if not _decide or not _can_swap or not (data is Dictionary):
+		return false
+	if bool(data.get("swap_blocked", false)):
+		return false
+	var hit := _row_hit(pos)
+	if hit.is_empty():
+		return false
+	var src := String(data.get("zone", ""))
+	# 只接跨区对调:手牌 ↔ 缓存(同区落回 = 无操作,不接,免得吞手势)
+	if src == "cache" and hit["zone"] == "hand":
+		return not _swap_blocked_hand.has(hand_cards[hit["i"]].card)
+	if src == "hand" and hit["zone"] == "cache":
+		var i: int = hit["i"]
+		return i < _last_cache.size() and not _swap_blocked_cache.has(_last_cache[i])
+	return false
+
+
+func _drop_data(pos: Vector2, data: Variant) -> void:
+	var hit := _row_hit(pos)
+	if hit.is_empty():
+		return
+	sel_hand.clear()
+	sel_cache.clear()
+	if String(data.get("zone", "")) == "cache":
+		swap_requested.emit(hit["i"], int(data.get("index", -1)))
+	else:
+		swap_requested.emit(int(data.get("index", -1)), hit["i"])
 
 
 func _on_hand_drop(data: Dictionary, i: int) -> void:
