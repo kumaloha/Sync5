@@ -229,7 +229,9 @@ func _draw_filter() -> void:
 func _tex(id: String) -> Array:      # [Texture2D, Rect2 bbox] 或空数组
 	if _art.has(id):
 		return _art[id] if _art[id] is Array else []
-	var p := "res://assets/jokers/source/joker_%s.png" % id
+	var p := "res://assets/jokers/art512/joker_%s.png" % id
+	if not ResourceLoader.exists(p):
+		p = "res://assets/jokers/source/joker_%s.png" % id
 	if not ResourceLoader.exists(p):
 		_art[id] = false
 		return []

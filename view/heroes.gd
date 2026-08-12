@@ -81,7 +81,9 @@ func _portrait(i: int) -> Texture2D:
 		return _portraits[i]
 	if _portraits[i] != null:
 		return null
-	var p := "res://assets/characters/%s/portrait.png" % Walker.IDS[i]
+	var p := "res://assets/characters/%s/portrait768.png" % Walker.IDS[i]
+	if not ResourceLoader.exists(p):
+		p = "res://assets/characters/%s/portrait.png" % Walker.IDS[i]
 	_portraits[i] = load(p) if ResourceLoader.exists(p) else false
 	return _portraits[i] if _portraits[i] is Texture2D else null
 

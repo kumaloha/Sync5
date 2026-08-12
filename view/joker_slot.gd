@@ -75,9 +75,11 @@ func set_joker(j) -> void:
 	_art = null
 	_art_src = Rect2()
 	if j != null:
-		# 优先 1024² 的 source 原画(成卡语言贴的就是它, bbox 近方形、细节满);
-		# 顶层 1024×400 条图是给旧扁窗裁的缩样, 只作退路。
-		var path := "res://assets/jokers/source/joker_%s.png" % j.id
+		# 优先 512² 瘦图(webslim 产物 —— iOS 浏览器内存红线杀的止血,槽位显示
+		# ≤200px 足够);缺了退 1024² source 原画,再退 1024×400 条图。
+		var path := "res://assets/jokers/art512/joker_%s.png" % j.id
+		if not ResourceLoader.exists(path):
+			path = "res://assets/jokers/source/joker_%s.png" % j.id
 		if not ResourceLoader.exists(path):
 			path = "res://assets/jokers/joker_%s.png" % j.id
 		if ResourceLoader.exists(path):
