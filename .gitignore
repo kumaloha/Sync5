@@ -19,6 +19,7 @@ _shot_*.png.import
 .omc/
 .omx/
 .superpowers/
+.worktrees/
 
 # ── 系统垃圾 ──────────────────────────────────────────────────────────
 .DS_Store
