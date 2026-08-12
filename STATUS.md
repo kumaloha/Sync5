@@ -170,9 +170,30 @@ cards       牌与牌型            telemetry 打点
   (先 --import;模板 4.6.2 已装机)。本地试玩:`python3 tools/webserve.py`(**HTTPS**,自签证书自动生成),
   手机同 WiFi 开 `https://<Mac IP>:8765`,首次点"继续访问"即可(Safari:显示详细信息→
   访问此网站;Chrome:高级→继续前往);换 WiFi 后删 `build/cert/` 重跑。包 147MB(pck 116MB;瘦身后账:立绘转 WebP)。
-- **Android**:SDK/JDK 已装,导出模板在 tpz 里 —— 差 keystore/预设/出包(TapTap 线,
-  试玩版免版号路线已调研,见 08-12 对话与 TODO)。
+- **Android**:**裸包已通**(08-12 晚):`godot --headless --path . --export-debug
+  "Android" build/sync5-dev.apk` → 115MB,arm64-v8a、minSdk 24 / targetSdk 35、
+  **零权限**、竖屏。调试签名 + 占位包名 `com.sync5.dev`(上传 TapTap 前要换正式包名 +
+  发布 keystore,见 TODO)。工具链四处修正已留注释(editor_settings 两处路径、
+  project.godot 的 `handheld/orientation` 与 `import_etc2_astc`)。
+  **TapTap 路线定案**:[design/taptap.md](design/taptap.md) —— 离线+无内购走
+  「正式上线(试玩版)」,免版号/软著/ICP;硬门槛 = 防沉迷 SDK(要包 Godot Android
+  插件)+ 隐私政策页。
 - **新工具**:`tools/probbook.py`(概率账本)· `tools/art/fontsubset.sh`(Web 中文字体子集,
   文案加新字要重跑)· `tools/art/glassprobe.gd` / `glassfilm.gd` / `blind_fp_extract.py`。
-- **观察点(下轮 Tape 回答)**:① 回响 +240 能不能把真人"保型"触发率从 11% 抬向 0.35;
-  ② 锁定时机体感(lock_offset 已归零);③ 阶梯 ×13 实战回评。
+- **数值 v3 已落地**(08-12 晚,`design/numbers.md` §8):宪法修订(玩家两条成长线
+  入纲:彩票 = 不存在买得到的 Δp;规则牌 = 概率放大器按 Δp×流派价值)→ 未过刀族
+  全部过刀:8 张动(开场+150%/复读+80%/贵宾20/低音谱15 ↑;铁粉 cap15%/暖冷色+3/
+  黑胶+1 ↓)、4 张带内不动、coins 族暂缓(S9)、规则牌封锁(真人持有 0 拍)。
+  锚 = 12 局 168 拍真人反事实重放 + 稀有度地板线 12.5 分/拍·◆。
+  过门:948/0 · kit 9/9 · pair ✓ · sim 全队列漂移 ≤±0.5pt。
+- **probbook 两态仪器**(08-12 晚):真人列拆「持有/未持有规则牌」+ 规则牌 Δp 牌型
+  频率表;**修了 held 追踪 bug**(repl 是 in/out 键,旧版换进不计换出不删)——
+  回响真人 11%→**33%**、彩虹 25%→**40%**(样本仍薄)。C8 已裁定:全员移半可控
+  (重定价待 Δp 数据)、彩虹留彩票(`all_suits` 不认万能牌,代码级证据)。
+- **速弹真机死条件已修**(C10):`_settle` 补传 early、判据收进 `_acted_early()` 一份
+  —— 之前「模型里活、游戏里死」(C7 反向)。遗留:早锁无 UI 反馈(M5),真人早锁率
+  仅 8%。
+- **观察点(下轮 Tape 回答)**:① 回响触发率(仪器修正后读 33%@n15,混着修正不算
+  激励生效,继续攒)② 锁定体感 ③ 阶梯 ×13 ④ 彩虹 p 40%@n15(n≥30 坐实则 180 下调)
+  ⑤ **规则牌 12 局零购买** —— 概率成长线载体无人用,建议试玩时买一张
+  ⑥ v3 砍的三张(铁粉/暖冷色/黑胶)的体感,黑胶 +1 太寒酸的备选 = 「每 2 弃 +3」。

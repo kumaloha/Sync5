@@ -15,8 +15,13 @@ window/size/viewport_width=720
 window/size/viewport_height=1280
 window/stretch/mode="canvas_items"
 window/stretch/aspect="keep"
+; Android 不设这条会默认横屏(桌面/Web 不受影响)
+window/handheld/orientation=1
 
 [rendering]
 
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
+; Android 导出的硬性要求;贴图全 lossless 所以实际不产生压缩纹理,
+; 但不开这个开关 can_export 直接 false 且错误消息为空(Web 预设注释里那个坑)
+textures/vram_compression/import_etc2_astc=true
