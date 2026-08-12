@@ -152,14 +152,14 @@
    "rarity": "common",
    "curve": "burst",
    "proof": "score",
-   "fx": "Same hand as last phrase: +80",
+   "fx": "Same hand as last phrase: +160",
    "effects": [
     {
      "when": {
       "same_as_prev": true
      },
      "do": {
-      "bonus": 80
+      "bonus": 160.0
      }
     }
    ]
@@ -172,14 +172,14 @@
    "rarity": "common",
    "curve": "burst",
    "proof": "score",
-   "fx": "Act in final 2 seconds: +70",
+   "fx": "Act in final 2 seconds: +80",
    "effects": [
     {
      "when": {
       "acted_late": true
      },
      "do": {
-      "bonus": 70
+      "bonus": 80.0
      }
     }
    ]
@@ -192,14 +192,14 @@
    "rarity": "common",
    "curve": "burst",
    "proof": "score",
-   "fx": "+20 per discard this phrase",
+   "fx": "+25 per discard this phrase",
    "effects": [
     {
      "when": {
       "discards_gte": 1
      },
      "do": {
-      "bonus": 20,
+      "bonus": 25.0,
       "per": "discard"
      }
     }
@@ -233,14 +233,14 @@
    "rarity": "common",
    "curve": "burst",
    "proof": "score",
-   "fx": "Cache all one suit: +120",
+   "fx": "Cache all one suit: +140",
    "effects": [
     {
      "when": {
       "cache_mono_suit": true
      },
      "do": {
-      "bonus": 120
+      "bonus": 140.0
      }
     }
    ]
@@ -253,11 +253,11 @@
    "rarity": "common",
    "curve": "fixed",
    "proof": "score",
-   "fx": "+80",
+   "fx": "+60",
    "effects": [
     {
      "do": {
-      "bonus": 80
+      "bonus": 60.0
      }
     }
    ]
@@ -548,14 +548,14 @@
    "rarity": "common",
    "curve": "burst",
    "proof": "score",
-   "fx": "Different hand than last phrase: +50",
+   "fx": "Different hand than last phrase: +65",
    "effects": [
     {
      "when": {
       "diff_from_prev": true
      },
      "do": {
-      "bonus": 50
+      "bonus": 65.0
      }
     }
    ]
@@ -588,7 +588,7 @@
    "rarity": "common",
    "curve": "burst",
    "proof": "score",
-   "fx": "Five-card hands: +150",
+   "fx": "Five-card hands: +240",
    "effects": [
     {
      "when": {
@@ -601,7 +601,7 @@
       ]
      },
      "do": {
-      "bonus": 150
+      "bonus": 240.0
      }
     }
    ]
@@ -706,14 +706,14 @@
    "rarity": "common",
    "curve": "burst",
    "proof": "score",
-   "fx": "All four suits in hand: +150",
+   "fx": "All four suits in hand: +180",
    "effects": [
     {
      "when": {
       "all_suits": true
      },
      "do": {
-      "bonus": 150
+      "bonus": 180.0
      }
     }
    ]
@@ -726,14 +726,14 @@
    "rarity": "common",
    "curve": "burst",
    "proof": "score",
-   "fx": "No pair in hand: +60",
+   "fx": "No pair in hand: +130",
    "effects": [
     {
      "when": {
       "no_pair": true
      },
      "do": {
-      "bonus": 60
+      "bonus": 130.0
      }
     }
    ]
@@ -746,14 +746,14 @@
    "rarity": "common",
    "curve": "burst",
    "proof": "solver",
-   "fx": "Cache all face cards: +150",
+   "fx": "Cache all face cards: +200",
    "effects": [
     {
      "when": {
       "cache_all_faces": true
      },
      "do": {
-      "bonus": 150
+      "bonus": 200.0
      }
     }
    ]
@@ -766,14 +766,14 @@
    "rarity": "common",
    "curve": "burst",
    "proof": "solver",
-   "fx": "Cache forms a run: +150",
+   "fx": "Cache forms a run: +200",
    "effects": [
     {
      "when": {
       "cache_run": true
      },
      "do": {
-      "bonus": 150
+      "bonus": 200.0
      }
     }
    ]

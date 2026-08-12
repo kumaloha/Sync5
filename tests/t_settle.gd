@@ -26,13 +26,14 @@ func run(t) -> void:
 	# encore support: +80 base on repeating previous kind
 	var encore := Joker.by_id("encore")
 	var r3 := Settle.run(flush_res, [null, encore, null, null], {"prev_kind": Pattern.Kind.FLUSH})
-	t.eq(r3["score"], base + 80, "encore +80 on repeat")
+	t.eq(r3["score"], base + t._bonus("encore"), "encore bonus on repeat")
 	var r4 := Settle.run(flush_res, [null, encore, null, null], {"prev_kind": Pattern.Kind.PAIR})
 	t.eq(r4["score"], base, "encore silent when kind differs")
 
 	# flat bonuses land AFTER the multiplier (they must expire, 2026-08)
 	var r5 := Settle.run(flush_res, [mono, encore, null, null], {"prev_kind": Pattern.Kind.FLUSH})
-	t.eq(r5["score"], int(round(float(base) * mf)) + 80, "flat bonus lands after the target mult")
+	t.eq(r5["score"], int(round(float(base) * mf)) + t._bonus("encore"),
+		"flat bonus lands after the target mult")
 
 	# chorus pct and mono mult stack multiplicatively
 	var chorus := Joker.by_id("chorus")
@@ -44,7 +45,7 @@ func run(t) -> void:
 	# so the shown 基础分 × 乘数 = 分数 stays a true equation
 	var rm := Settle.run(flush_res, [mono, encore, null, null], {"prev_kind": Pattern.Kind.FLUSH})
 	t.eq(rm["base"], int(flush_res["chips"]), "reported base = chips, flat bonuses stay out")
-	t.eq(rm["bonus"], 80, "settle reports the flat bonus for the show")
+	t.eq(rm["bonus"], t._bonus("encore"), "settle reports the flat bonus for the show")
 	t.check(absf(float(rm["mult"]) - float(Pattern.BASE_MULT[Pattern.Kind.FLUSH]) * mf) < 0.001,
 		"reported mult carries the pattern mult and the target mult")
 

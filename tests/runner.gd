@@ -59,3 +59,15 @@ func _tmult(joker_id: String, kind_name: String) -> float:
 				if String(kn) == kind_name:
 					return float(fx["do"]["mult"])
 	return 1.0
+
+
+## support 的 bonus 数额 —— 同 `_tmult` 的理由(2026-08-12 bonus 族重定价
+## 一次红了 9 条手抄断言, 全部改推导)。
+func _bonus(joker_id: String) -> int:
+	for e in DB.jokers():
+		if String(e["id"]) != joker_id:
+			continue
+		for fx in e.get("effects", []):
+			if fx.get("do", {}).has("bonus"):
+				return int(fx["do"]["bonus"])
+	return 0

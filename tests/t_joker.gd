@@ -74,9 +74,9 @@ func run(t) -> void:
 
 	# finale / turnover / tipjar
 	t.eq(Settle.run(flush_res, [null, Joker.by_id("finale"), null, null], {"acted_late": true})["score"],
-		base + 70, "finale +70 on a late action")
+		base + t._bonus("finale"), "finale bonus on a late action")
 	t.eq(Settle.run(flush_res, [null, Joker.by_id("turnover"), null, null], {"discards": 3})["score"],
-		base + 60, "turnover +20 per discard")
+		base + 3 * t._bonus("turnover"), "turnover bonus per discard")
 	t.eq(Settle.run(flush_res, [null, Joker.by_id("tipjar"), null, null], {"discards": 0})["coins"],
 		4 + 2, "tipjar +2 coins on zero discards")
 	t.eq(Settle.run(flush_res, [null, Joker.by_id("tipjar"), null, null], {"discards": 1})["coins"],
@@ -87,17 +87,18 @@ func run(t) -> void:
 	var mixed := [t._c(3, 1), t._c(9, 2), t._c(12, 1)]
 	var with_wild := [t._c(3, 1), Card.new(Card.JOKER_RANK, Card.JOKER_BIG), t._c(12, 1)]
 	t.eq(Settle.run(flush_res, [null, Joker.by_id("chord"), null, null], {"cache_cards": same_suit})["score"],
-		base + 120, "chord +120 on a one-suit cache")
+		base + t._bonus("chord"), "chord bonus on a one-suit cache")
 	t.eq(Settle.run(flush_res, [null, Joker.by_id("chord"), null, null], {"cache_cards": mixed})["score"],
 		base, "chord silent on a mixed cache")
 	t.eq(Settle.run(flush_res, [null, Joker.by_id("chord"), null, null], {"cache_cards": with_wild})["score"],
-		base + 120, "a wild in the cache matches any suit")
+		base + t._bonus("chord"), "a wild in the cache matches any suit")
 
 	# neonsign: unconditional, flat — does NOT ride the multiplier
 	t.eq(Settle.run(flush_res, [null, Joker.by_id("neonsign"), null, null], {})["score"],
-		base + 80, "neonsign always +80")
+		base + t._bonus("neonsign"), "neonsign always adds its flat bonus")
 	t.eq(Settle.run(flush_res, [Joker.by_id("mono"), Joker.by_id("neonsign"), null, null], {})["score"],
-		int(round(float(base) * t._tmult("mono", "FLUSH"))) + 80, "neonsign stays flat under a target")
+		int(round(float(base) * t._tmult("mono", "FLUSH"))) + t._bonus("neonsign"),
+		"neonsign stays flat under a target")
 
 	# vinyl: permanent growth per discarded card, and it RIDES the multiplier —
 	# the draft-early sleeper (user rule)
