@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://ia2uitqc6dny"
-path="res://.godot/imported/sync5-game-icon-master-v4.png-0a1ff2a4f7a60dd5134e6ef9fafd8d85.ctex"
+path="res://.godot/imported/sync5-game-icon-master.png-a39d4975289bd15a766f3967c89dd75e.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/app_icon/sync5-game-icon-master-v4.png"
-dest_files=["res://.godot/imported/sync5-game-icon-master-v4.png-0a1ff2a4f7a60dd5134e6ef9fafd8d85.ctex"]
+source_file="res://assets/app_icon/v4/sync5-game-icon-master.png"
+dest_files=["res://.godot/imported/sync5-game-icon-master.png-a39d4975289bd15a766f3967c89dd75e.ctex"]
 
 [params]
 

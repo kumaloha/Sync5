@@ -74,9 +74,9 @@ record looked like three adjacent assets rather than one designed mark.
 
 Generate two review artifacts:
 
-- `sync5-game-icon-master-v4.png`: opaque 1024×1024 sRGB upload master with a
+- `assets/app_icon/v4/sync5-game-icon-master.png`: opaque 1024×1024 sRGB upload master with a
   square, unmasked, full-bleed background.
-- `sync5-game-icon-ios-preview-v4.png`: the same artwork shown through an iOS
+- `assets/app_icon/v4/sync5-game-icon-ios-preview.png`: the same artwork shown through an iOS
   rounded-square mask for visual approval only; this preview is not uploaded to
   App Store Connect.
 

@@ -14,7 +14,7 @@
 
 **Files:**
 - Edit target: `assets/app_icon/sync5-game-icon-master-v3.png`
-- Create: `assets/app_icon/sync5-game-icon-master-v4.png`
+- Create: `assets/app_icon/v4/sync5-game-icon-master.png`
 
 - [x] **Step 1: Generate one precise-object revision**
 
@@ -44,7 +44,7 @@ Avoid: any separate circular record protruding outside a card, third object, hea
 Save the selected output as:
 
 ```text
-assets/app_icon/sync5-game-icon-master-v4.png
+assets/app_icon/v4/sync5-game-icon-master.png
 ```
 
 Keep v1 through v3 unchanged for comparison.
@@ -53,7 +53,7 @@ Keep v1 through v3 unchanged for comparison.
 
 **Files:**
 - Create temporarily: `/tmp/sync5-game-icon-ios-preview-v4.html`
-- Create: `assets/app_icon/sync5-game-icon-ios-preview-v4.png`
+- Create: `assets/app_icon/v4/sync5-game-icon-ios-preview.png`
 
 - [x] **Step 1: Create the deterministic preview wrapper**
 
@@ -82,7 +82,7 @@ Create `/tmp/sync5-game-icon-ios-preview-v4.html` with this content:
   </style>
 </head>
 <body>
-  <img src="file:///Users/kuma/Projects/Sync5/.worktrees/sync5-game-icon/assets/app_icon/sync5-game-icon-master-v4.png">
+  <img src="file:///Users/kuma/Projects/Sync5/.worktrees/sync5-game-icon/assets/app_icon/v4/sync5-game-icon-master.png">
 </body>
 </html>
 ```
@@ -92,7 +92,7 @@ Create `/tmp/sync5-game-icon-ios-preview-v4.html` with this content:
 Run:
 
 ```text
-"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new --hide-scrollbars --allow-file-access-from-files --default-background-color=00000000 --force-device-scale-factor=1 --window-size=1024,1024 --screenshot=assets/app_icon/sync5-game-icon-ios-preview-v4.png file:///tmp/sync5-game-icon-ios-preview-v4.html
+"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new --hide-scrollbars --allow-file-access-from-files --default-background-color=00000000 --force-device-scale-factor=1 --window-size=1024,1024 --screenshot=assets/app_icon/v4/sync5-game-icon-ios-preview.png file:///tmp/sync5-game-icon-ios-preview-v4.html
 ```
 
 Expected result: a 1024x1024 RGBA PNG with transparent corners, used only to preview the iOS system mask.
@@ -100,9 +100,9 @@ Expected result: a 1024x1024 RGBA PNG with transparent corners, used only to pre
 ### Task 3: Validate the deliverables
 
 **Files:**
-- Verify: `assets/app_icon/sync5-game-icon-master-v4.png`
-- Verify: `assets/app_icon/sync5-game-icon-ios-preview-v4.png`
-- Update after import: `assets/app_icon/sync5-game-icon-master-v4.png.import`
+- Verify: `assets/app_icon/v4/sync5-game-icon-master.png`
+- Verify: `assets/app_icon/v4/sync5-game-icon-ios-preview.png`
+- Update after import: `assets/app_icon/v4/sync5-game-icon-master.png.import`
 
 - [x] **Step 1: Verify file properties**
 
