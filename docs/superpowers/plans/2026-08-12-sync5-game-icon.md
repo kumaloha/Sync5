@@ -15,7 +15,7 @@
 **Files:**
 - Create: `assets/app_icon/sync5-game-icon-master.png`
 
-- [ ] **Step 1: Generate one square master**
+- [x] **Step 1: Generate one square master**
 
 Use the built-in image-generation tool with the exact prompt below:
 
@@ -35,7 +35,7 @@ Constraints: exactly one card and one record fused into a single emblem; black b
 Avoid: words, letters, numbers, playing-card suits, characters, faces, UI, badges, extra objects, scenery, border frames, busy micro-detail, washed-out glow, pale background, watermark, signature
 ```
 
-- [ ] **Step 2: Save the generated PNG in the project**
+- [x] **Step 2: Save the generated PNG in the project**
 
 Copy the selected built-in output to:
 
@@ -50,7 +50,7 @@ Do not overwrite another asset with a different name.
 **Files:**
 - Verify: `assets/app_icon/sync5-game-icon-master.png`
 
-- [ ] **Step 1: Verify file properties**
+- [x] **Step 1: Verify file properties**
 
 Confirm the image is a readable PNG with dimensions exactly 1024×1024.
 
@@ -60,18 +60,18 @@ Expected result:
 PNG image data, 1024 x 1024
 ```
 
-- [ ] **Step 2: Review the full-size image**
+- [x] **Step 2: Review the full-size image**
 
 Check that the result contains one fused card-and-record emblem, no text or watermark, a near-black background, the approved cyan/magenta/violet palette, and safe padding on all sides.
 
-- [ ] **Step 3: Review launcher-scale readability**
+- [x] **Step 3: Review launcher-scale readability**
 
 Inspect a 64×64 rendering. The card outline and record circle must remain separately recognizable, while the waveform remains a secondary accent.
 
-- [ ] **Step 4: Iterate only if a requirement fails**
+- [x] **Step 4: Iterate only if a requirement fails**
 
 If validation fails, make one targeted generation edit addressing the failed requirement, replace only the unapproved master, and repeat all three validation steps.
 
-- [ ] **Step 5: Report the artifact**
+- [x] **Step 5: Report the artifact**
 
 Return the final image inline and link the saved master path. State that platform-specific Android or iOS derivatives are outside this master-generation step.
