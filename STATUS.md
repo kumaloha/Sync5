@@ -167,9 +167,9 @@ cards       牌与牌型            telemetry 打点
 - **美术**:全部接线(主角八人立绘/行走/舞步、小丑牌 source 原画直出、盲注指纹卡、
   首页玻璃素材壳+顶栏膜);previews/cards 两目录已退役不进包。
 - **Web 版**:`godot --headless --path . --export-release Web build/web/index.html`
-  (先 --import;模板 4.6.2 已装机)。本地试玩:`cd build/web && python3 -m http.server 8765
-  --bind 0.0.0.0`,手机同 WiFi 开 `http://<Mac IP>:8765`(**要 Safari 或明确 http://**,
-  Chrome iOS 会强升 https)。包 147MB(pck 116MB;瘦身后账:立绘转 WebP)。
+  (先 --import;模板 4.6.2 已装机)。本地试玩:`python3 tools/webserve.py`(**HTTPS**,自签证书自动生成),
+  手机同 WiFi 开 `https://<Mac IP>:8765`,首次点"继续访问"即可(Safari:显示详细信息→
+  访问此网站;Chrome:高级→继续前往);换 WiFi 后删 `build/cert/` 重跑。包 147MB(pck 116MB;瘦身后账:立绘转 WebP)。
 - **Android**:SDK/JDK 已装,导出模板在 tpz 里 —— 差 keystore/预设/出包(TapTap 线,
   试玩版免版号路线已调研,见 08-12 对话与 TODO)。
 - **新工具**:`tools/probbook.py`(概率账本)· `tools/art/fontsubset.sh`(Web 中文字体子集,
