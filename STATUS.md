@@ -4,7 +4,7 @@
 > 待办看 [TODO.md](TODO.md) · 变更史看 [CHANGELOG.md](CHANGELOG.md) · 经验看 [LESSONS.md](LESSONS.md)
 > 规则与美术的**原则**在 [CLAUDE.md](CLAUDE.md) · 设计规格在 `design/`
 >
-> **最后更新:2026-08-09**
+> **最后更新:2026-08-12**(08-09 之后的增量见文末「增量快照」节,数字冲突以那节为准)
 
 ---
 
@@ -19,7 +19,7 @@ Lumines 的节奏推进 + Balatro 的构筑。一局 4 段 × 6 拍 × 8 秒 ≈
 
 | 项 | 状态 | 命令 |
 |---|---|---|
-| 单元测试 | **664 passed / 0 failed** | `godot --headless --path . --script res://tests/runner.gd` |
+| 单元测试 | **948 passed / 0 failed**(2026-08-12) | `godot --headless --path . --script res://tests/runner.gd` |
 | 小丑牌覆盖门 | **23/23 量到**(score 16 · solver 4 · coin 金币臂 3),262s | `godot --headless --path . --script res://tools/kit.gd`(单卡:`SYNC5_KIT_ID=<id>`,十几秒) |
 | 内容门 | **全过,910s** | `./tools/gate.sh` |
 | 求解器一致性 | **三关配对差 +0.0** | `godot --headless --path . --script res://tools/pair.gd` |
@@ -117,7 +117,7 @@ tools/bot.gd                   玩家策略(完美玩家 / 规则 bot)
 
 ---
 
-## 真人数据:**零**
+## 真人数据:**有了**(2026-08-12 起,详见下方增量快照;本节以下为 08-09 旧文)
 
 磁盘上 1067 局 Tape 日志**全部是探针产物**(时长 >60s 的只有 1 局,而真人一局 ≈ 294s)。
 
@@ -151,3 +151,28 @@ cards       牌与牌型            telemetry 打点
 1. **目标分表是占位** —— 别当待修的 bug,它是整套重新设计的产物。
 2. **模型绝对值不可信,只信相对排序** —— 通关率低估 8.4 个百分点,主因未完全定位。
 3. **真人数据为零** —— 所有「等真人 Tape」的事项都卡在这里,而这一条只有用户能解。
+
+
+---
+
+## 增量快照(2026-08-10 ~ 08-12,与上文冲突时以本节为准)
+
+- **roster**:小丑牌 **39 张现役 / 60 张已定稿**(Target 7 + Support 32;19 张待引擎波次);
+  盲注 **24 压力 + 赶场 + 4 boon** 全实装,`gate.sh` 上次全量绿在盲注批(08-11)。
+- **真人数据**:**不再是零** —— 2013 份 Tape 里分拣出 **11 局合格真人局**
+  (分拣判据与账本见 `tools/probbook.py`),已用于 Target 重锚与 bonus 族定价。
+- **数值制度**:定价宪法 `design/numbers.md`(三轴模型+六步 SOP)+ 概率账本
+  `design/probbook.md`(设计/仪器/真人三列,`python3 tools/probbook.py <sim日志>` 重刷)。
+  bonus 族已按 v2 落地(支配序:会玩>保底>赌狗);**复审名单:快闪/伴唱/排练**(结构死卡)。
+- **美术**:全部接线(主角八人立绘/行走/舞步、小丑牌 source 原画直出、盲注指纹卡、
+  首页玻璃素材壳+顶栏膜);previews/cards 两目录已退役不进包。
+- **Web 版**:`godot --headless --path . --export-release Web build/web/index.html`
+  (先 --import;模板 4.6.2 已装机)。本地试玩:`cd build/web && python3 -m http.server 8765
+  --bind 0.0.0.0`,手机同 WiFi 开 `http://<Mac IP>:8765`(**要 Safari 或明确 http://**,
+  Chrome iOS 会强升 https)。包 147MB(pck 116MB;瘦身后账:立绘转 WebP)。
+- **Android**:SDK/JDK 已装,导出模板在 tpz 里 —— 差 keystore/预设/出包(TapTap 线,
+  试玩版免版号路线已调研,见 08-12 对话与 TODO)。
+- **新工具**:`tools/probbook.py`(概率账本)· `tools/art/fontsubset.sh`(Web 中文字体子集,
+  文案加新字要重跑)· `tools/art/glassprobe.gd` / `glassfilm.gd` / `blind_fp_extract.py`。
+- **观察点(下轮 Tape 回答)**:① 回响 +240 能不能把真人"保型"触发率从 11% 抬向 0.35;
+  ② 锁定时机体感(lock_offset 已归零);③ 阶梯 ×13 实战回评。
