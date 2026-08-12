@@ -16,7 +16,7 @@
 - Reference: `assets/app_icon/sync5-game-icon-master.png`
 - Create: `assets/app_icon/sync5-game-icon-master-v2.png`
 
-- [ ] **Step 1: Generate one square revision**
+- [x] **Step 1: Generate one square revision**
 
 Use the built-in image-generation tool with the exact prompt below:
 
@@ -37,7 +37,7 @@ Constraints: playing cards must be the first-read subject; both the spade and he
 Avoid: waveform, pulse line, equalizer, music note, oversized record, folder silhouette, words, letters, numbers, corner ranks, characters, faces, UI, badges, extra objects, scenery, border frames, busy micro-detail, washed-out glow, watermark, signature
 ```
 
-- [ ] **Step 2: Save the generated PNG in the project**
+- [x] **Step 2: Save the generated PNG in the project**
 
 Copy the selected built-in output to:
 
@@ -52,7 +52,7 @@ Keep the first master unchanged for comparison.
 **Files:**
 - Verify: `assets/app_icon/sync5-game-icon-master-v2.png`
 
-- [ ] **Step 1: Verify file properties**
+- [x] **Step 1: Verify file properties**
 
 Confirm the image is a readable PNG with dimensions exactly 1024×1024.
 
@@ -62,18 +62,18 @@ Expected result:
 PNG image data, 1024 x 1024
 ```
 
-- [ ] **Step 2: Review the full-size image**
+- [x] **Step 2: Review the full-size image**
 
 Check that the two pale suit cards are the first-read subject, the smaller record stays secondary, no waveform or music note appears, no text or watermark appears, and the approved black/cyan/magenta/violet presentation and safe padding remain intact.
 
-- [ ] **Step 3: Review launcher-scale readability**
+- [x] **Step 3: Review launcher-scale readability**
 
 Inspect a 64×64 rendering. Two card rectangles plus the spade and heart must remain recognizable before the record.
 
-- [ ] **Step 4: Iterate only if a requirement fails**
+- [x] **Step 4: Iterate only if a requirement fails**
 
 If validation fails, make one targeted generation edit addressing the failed requirement, replace only the unapproved master, and repeat all three validation steps.
 
-- [ ] **Step 5: Report the artifact**
+- [x] **Step 5: Report the artifact**
 
 Return the final image inline and link the saved master path. State that platform-specific Android or iOS derivatives are outside this master-generation step.
