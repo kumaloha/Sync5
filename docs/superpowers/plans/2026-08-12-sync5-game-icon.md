@@ -16,7 +16,7 @@
 - Edit target: `assets/app_icon/sync5-game-icon-master-v3.png`
 - Create: `assets/app_icon/sync5-game-icon-master-v4.png`
 
-- [ ] **Step 1: Generate one precise-object revision**
+- [x] **Step 1: Generate one precise-object revision**
 
 Use the built-in image-generation tool with this exact prompt:
 
@@ -39,7 +39,7 @@ Constraints: preserve the full-bleed colored App Store tile presentation; make t
 Avoid: any separate circular record protruding outside a card, third object, heart suit, floor reflection, contact reflection, waveform, pulse line, equalizer, music note, words, letters, numbers, corner ranks, characters, UI, baked rounded-square border or mask, transparent corners, watermark, signature
 ```
 
-- [ ] **Step 2: Save the generated PNG**
+- [x] **Step 2: Save the generated PNG**
 
 Save the selected output as:
 
@@ -55,7 +55,7 @@ Keep v1 through v3 unchanged for comparison.
 - Create temporarily: `/tmp/sync5-game-icon-ios-preview-v4.html`
 - Create: `assets/app_icon/sync5-game-icon-ios-preview-v4.png`
 
-- [ ] **Step 1: Create the deterministic preview wrapper**
+- [x] **Step 1: Create the deterministic preview wrapper**
 
 Create `/tmp/sync5-game-icon-ios-preview-v4.html` with this content:
 
@@ -87,7 +87,7 @@ Create `/tmp/sync5-game-icon-ios-preview-v4.html` with this content:
 </html>
 ```
 
-- [ ] **Step 2: Render the rounded preview**
+- [x] **Step 2: Render the rounded preview**
 
 Run:
 
@@ -104,7 +104,7 @@ Expected result: a 1024x1024 RGBA PNG with transparent corners, used only to pre
 - Verify: `assets/app_icon/sync5-game-icon-ios-preview-v4.png`
 - Update after import: `assets/app_icon/sync5-game-icon-master-v4.png.import`
 
-- [ ] **Step 1: Verify file properties**
+- [x] **Step 1: Verify file properties**
 
 Confirm both images are readable 1024x1024 PNG files. The upload master must use sRGB, RGB color, and no alpha; the preview must use RGBA with alpha.
 
@@ -115,19 +115,19 @@ master: PNG image data, 1024 x 1024, RGB, no alpha, sRGB
 preview: PNG image data, 1024 x 1024, RGBA
 ```
 
-- [ ] **Step 2: Inspect the full-size master and rounded preview**
+- [x] **Step 2: Inspect the full-size master and rounded preview**
 
 Check that the emblem contains exactly two overlapping card rectangles, that all vinyl geometry stays within the rear card, that no independent record or floor reflection remains, and that the mask crops no essential detail.
 
-- [ ] **Step 3: Inspect launcher-scale readability**
+- [x] **Step 3: Inspect launcher-scale readability**
 
 Render the rounded preview at 64x64. The cyan spade and both card silhouettes must remain immediately readable; the rear card's circular sheen should suggest vinyl without replacing its rectangular silhouette.
 
-- [ ] **Step 4: Record the visual verdict**
+- [x] **Step 4: Record the visual verdict**
 
 Apply the visual-verdict rubric and persist the result to `.omx/state/app-icon/ralph-progress.json`. A score of at least 90/100 is required. If it fails, make one targeted edit addressing only the failed criterion and repeat Tasks 2 and 3.
 
-- [ ] **Step 5: Import and run project tests**
+- [x] **Step 5: Import and run project tests**
 
 Run:
 
@@ -138,6 +138,6 @@ godot --headless --path . --log-file /tmp/sync5-icon-v4-tests.log --script res:/
 
 Expected result: the icon imports successfully and the test runner reports `948 passed, 0 failed`.
 
-- [ ] **Step 6: Report the artifacts**
+- [x] **Step 6: Report the artifacts**
 
 Return the rounded preview inline and link both saved paths. State clearly that the opaque square master is the App Store/Xcode source and the rounded image is a visual review preview only.
