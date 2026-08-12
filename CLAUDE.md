@@ -171,6 +171,10 @@ godot --headless --path . --import                                         # 新
 
 - **小丑牌与主角的平衡数值各在一张表里**:`data/jokers.json` 与
   `core/character.gd::roster()`。改平衡只动那里,别散到代码各处。
+- **⚑ 定价先过宪法**(2026-08-12 用户立规):任何数额/倍率改动走
+  [`design/numbers.md`](design/numbers.md) 的三轴框架与六步 SOP;
+  概率的三列记录(设计/仪器/真人)在 [`design/probbook.md`](design/probbook.md),
+  由 `python3 tools/probbook.py` 重刷 —— **账本是仪器读数,手改无效**。
 - ⚠ **发挥系数(完美玩家尺度 → 真人)不许拍初值** —— 等用户自己的 Tape
   (2026-08-07 用户:「我后面会完整玩很久,你到时候用我的系数」)。
   **不要用机器人数据代算,也不要糊一个初值上去。**
