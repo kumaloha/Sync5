@@ -152,14 +152,14 @@
    "rarity": "common",
    "curve": "burst",
    "proof": "score",
-   "fx": "Same hand as last phrase: +160",
+   "fx": "Same hand as last phrase: +240",
    "effects": [
     {
      "when": {
       "same_as_prev": true
      },
      "do": {
-      "bonus": 160.0
+      "bonus": 240.0
      }
     }
    ]
@@ -172,14 +172,14 @@
    "rarity": "common",
    "curve": "burst",
    "proof": "score",
-   "fx": "Act in final 2 seconds: +80",
+   "fx": "Act in final 2 seconds: +100",
    "effects": [
     {
      "when": {
       "acted_late": true
      },
      "do": {
-      "bonus": 80.0
+      "bonus": 100.0
      }
     }
    ]
@@ -192,14 +192,14 @@
    "rarity": "common",
    "curve": "burst",
    "proof": "score",
-   "fx": "+25 per discard this phrase",
+   "fx": "+30 per discard this phrase",
    "effects": [
     {
      "when": {
       "discards_gte": 1
      },
      "do": {
-      "bonus": 25.0,
+      "bonus": 30.0,
       "per": "discard"
      }
     }
@@ -253,11 +253,11 @@
    "rarity": "common",
    "curve": "fixed",
    "proof": "score",
-   "fx": "+60",
+   "fx": "+50",
    "effects": [
     {
      "do": {
-      "bonus": 60.0
+      "bonus": 50.0
      }
     }
    ]
@@ -548,14 +548,14 @@
    "rarity": "common",
    "curve": "burst",
    "proof": "score",
-   "fx": "Different hand than last phrase: +65",
+   "fx": "Different hand than last phrase: +85",
    "effects": [
     {
      "when": {
       "diff_from_prev": true
      },
      "do": {
-      "bonus": 65.0
+      "bonus": 85.0
      }
     }
    ]
@@ -588,7 +588,7 @@
    "rarity": "common",
    "curve": "burst",
    "proof": "score",
-   "fx": "Five-card hands: +240",
+   "fx": "Five-card hands: +320",
    "effects": [
     {
      "when": {
@@ -601,7 +601,7 @@
       ]
      },
      "do": {
-      "bonus": 240.0
+      "bonus": 320.0
      }
     }
    ]
@@ -726,14 +726,14 @@
    "rarity": "common",
    "curve": "burst",
    "proof": "score",
-   "fx": "No pair in hand: +130",
+   "fx": "No pair in hand: +190",
    "effects": [
     {
      "when": {
       "no_pair": true
      },
      "do": {
-      "bonus": 130.0
+      "bonus": 190.0
      }
     }
    ]

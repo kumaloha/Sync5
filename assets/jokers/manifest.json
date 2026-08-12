@@ -100,7 +100,7 @@
    "kind": "support",
    "rarity": "common",
    "trigger_zh": "与上一拍相同牌型",
-   "amount": "+160",
+   "amount": "+240",
    "art_subject": "返场呼喊形成回声的观众席"
   },
   {
@@ -110,7 +110,7 @@
    "kind": "support",
    "rarity": "common",
    "trigger_zh": "最后两秒行动",
-   "amount": "+80",
+   "amount": "+100",
    "art_subject": "最后一秒爆开的谢幕烟花"
   },
   {
@@ -120,7 +120,7 @@
    "kind": "support",
    "rarity": "common",
    "trigger_zh": "本拍每次弃牌",
-   "amount": "+25",
+   "amount": "+30",
    "art_subject": "飞速换牌的一双手"
   },
   {
@@ -150,7 +150,7 @@
    "kind": "support",
    "rarity": "common",
    "trigger_zh": "始终生效",
-   "amount": "+60",
+   "amount": "+50",
    "art_subject": "一块纯粹的霓虹招牌"
   },
   {
@@ -280,7 +280,7 @@
    "kind": "support",
    "rarity": "common",
    "trigger_zh": "与上一拍不同牌型",
-   "amount": "+65",
+   "amount": "+85",
    "art_subject": "同一旋律的两种写法"
   },
   {
@@ -300,7 +300,7 @@
    "kind": "support",
    "rarity": "common",
    "trigger_zh": "五张牌组成的牌型",
-   "amount": "+240",
+   "amount": "+320",
    "art_subject": "五人全员站在谢幕线上"
   },
   {
@@ -350,7 +350,7 @@
    "kind": "support",
    "rarity": "common",
    "trigger_zh": "手牌没有对子",
-   "amount": "+130",
+   "amount": "+190",
    "art_subject": "五张互不相认的牌"
   },
   {
