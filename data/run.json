@@ -30,6 +30,7 @@
  "final_act_window": 1.0,
  "early_finish_time": 3.5,
  "early_discard_window": 4.0,
+ "early_lock_min": 2.0,
  "hand_size": 5,
  "cache_cap": 3,
  "_comment_beat_budget": "手速预算(design/solver_roadmap.md) = 真人一拍物理上做得完几个动作。**不由 core/phrase.gd 强制** —— 真人只被 8 秒限制, 硬加计数器会改变游戏。它是求解器与模拟器**共用的常数**: 数学 D 在预算内求最优、sim 的完美玩家队列同预算、真人物理上受同样限制, 三方对齐才谈得上一致。初值 = 用户实测(鼠标口径, 用户注明「电脑操作手机游戏比较麻烦」, 真机触屏应更快), 待 Tape 毫秒时间戳量化。",

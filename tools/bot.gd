@@ -154,6 +154,12 @@ func _card_ev(id: String, st: Dictionary, slots: Array, phrases_left: int) -> fl
 		# ---- 2026-08-13 引擎波次·子波1(design/jokers_atlas.md §2.9/2.12/2.13/2.15)----
 		# ---- 2026-08-13 子波 2:计时族。触发率来自 `ev.timing` 的同一张偏置表 ——
 		# **打法先验与估值先验必须同源**, 否则 bot 会买一张它自己不会去打的卡。----
+		# ---- 2026-08-13 子波 3:商店成长族。成长挂**付费动作**(A4✓), 所以价值
+		# = 一局预期发生几次 × 每次数额 × 到那时还剩多少拍(growth 的老口径)。----
+		"digger", "collector":
+			return _amt(id) * float(p["events"]) * (future * gh) * mult_mean
+		"rebrand":
+			return _amt(id) * float(p["events"]) * (future * gh) * score_mean
 		"curtain":          # 压哨 pct:比例 × 均分
 			return float(p["fixed_rate"]) * _amt(id) * score_mean
 		"stopwatch":        # 每剩 1 秒 pct:期望秒数 × 每秒比例 × 均分
@@ -364,6 +370,10 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 			hyst = 0.6
 		if gain * horizon > lam * float(tprice) * hyst:
 			coins -= tprice
+			# 与游戏侧同序:先发事件(收藏家/转型), 再装卡 —— 新旗不给自己记一次。
+			Joker.notify_shop(slots, "buy")
+			if slots[0] != null:
+				Joker.notify_shop(slots, "target_swap")
 			slots[0] = tj
 			tj.on_acquire(deck)
 			coins = Economy.cap_held(coins, slots)     # 装卡后修剪(同编排器)
@@ -441,6 +451,7 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 		if best != null:
 			if empty_slot >= 0:
 				coins -= best_cost
+				Joker.notify_shop(slots, "buy")            # 收藏家(装卡前, 同编排器)
 				slots[empty_slot] = best
 				best.on_acquire(deck)
 				coins = Economy.cap_held(coins, slots)     # 装卡后修剪(同编排器)
@@ -455,6 +466,7 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 						weak_k = k2
 				coins = Economy.grant(coins, Economy.sell_value(slots[weak_k]), slots) \
 					- Economy.shelf_price(best, slots)
+				Joker.notify_shop(slots, "buy")            # 替换也是一次购买(同编排器)
 				slots[weak_k] = best
 				best.on_acquire(deck)
 				coins = Economy.cap_held(coins, slots)     # 装卡后修剪(同编排器)
@@ -475,6 +487,7 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 		# (2026-08-06: leaving the shop pays nothing — the skip reward is gone)
 		if attempt == 0 and buys == 0 and coins >= Economy.reroll_cost(0) + 6:
 			coins -= Economy.reroll_cost(0)
+			Joker.notify_shop(slots, "reroll")             # 淘碟(同编排器)
 			# ⚠ 刷新后的货架沿用既有行为:只重掷、不重放两个「必定出」补丁 ——
 			# 游戏侧 redeal 会重放, 这是 bot 的既有保真缺口, 记档不扩大(证物只数首发)。
 			offer = _weighted_pick(candidates, Joker.slots_shelf_size(slots))

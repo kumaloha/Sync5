@@ -1196,6 +1196,94 @@
      }
     }
    ]
+  },
+  {
+   "id": "digger",
+   "name": "Crate Digger",
+   "cn": "淘碟",
+   "kind": "support",
+   "rarity": "uncommon",
+   "curve": "growth",
+   "proof": "shop",
+   "fx": "Each shop reroll: +12 forever",
+   "counters": {
+    "n": {
+     "on_reroll": 1
+    }
+   },
+   "effects": [
+    {
+     "when": {
+      "counter_gte": [
+       "n",
+       1
+      ]
+     },
+     "do": {
+      "additive": 12,
+      "per": "counter:n"
+     }
+    }
+   ]
+  },
+  {
+   "id": "collector",
+   "name": "Collector",
+   "cn": "收藏家",
+   "kind": "support",
+   "rarity": "uncommon",
+   "curve": "growth",
+   "proof": "shop",
+   "fx": "Each card bought: +15 forever",
+   "counters": {
+    "n": {
+     "on_buy": 1
+    }
+   },
+   "effects": [
+    {
+     "when": {
+      "counter_gte": [
+       "n",
+       1
+      ]
+     },
+     "do": {
+      "additive": 15,
+      "per": "counter:n",
+      "cap": 30
+     }
+    }
+   ]
+  },
+  {
+   "id": "rebrand",
+   "name": "Reinvention",
+   "cn": "转型",
+   "kind": "support",
+   "rarity": "uncommon",
+   "curve": "growth",
+   "proof": "shop",
+   "fx": "Each Target change: +40% forever",
+   "counters": {
+    "n": {
+     "on_target_swap": 1
+    }
+   },
+   "effects": [
+    {
+     "when": {
+      "counter_gte": [
+       "n",
+       1
+      ]
+     },
+     "do": {
+      "bonus_pct": 0.4,
+      "per": "counter:n"
+     }
+    }
+   ]
   }
  ]
 }

@@ -1,104 +1,322 @@
 {
  "_comment": "UI 布局与文案(design/tech.md)。stage=全局几何;hud/shop/hand/banner 各组件自读一节。blindcard=盲注卡目录文案(assets/design/blind_card_ui.html 的 command/signal,2026-08-11 接入)。",
  "blindcard": {
-  "norepeat": { "command": "重复上一拍的牌型,得分减半", "signal": "REPEAT ×50%" },
-  "lostpage": { "command": "每拍结束失去一张缓存牌(提前标记)", "signal": "CACHE −1" },
-  "smallstage": { "command": "缓存只有两格", "signal": "CACHE 2" },
-  "facedown": { "command": "J/Q/K 盖面发牌,结算才翻开", "signal": "JQK HIDE" },
-  "lastcall": { "command": "最后 2 秒不能弃牌", "signal": "CLOSE −2s" },
-  "lockup": { "command": "最后 2 秒不能交换", "signal": "LOCK −2s" },
-  "onetake": { "command": "每拍只能弃一次,张数不限", "signal": "ONE TAKE" },
-  "oneswap": { "command": "每拍只能交换一次", "signal": "ONE SWAP" },
-  "setlist": { "command": "第一拍的牌型定调,其他牌型减半", "signal": "OTHERS ×50%" },
-  "blindspot": { "command": "弃牌补入的牌盖面,结算才翻开", "signal": "REFILL HIDE" },
-  "throttle": { "command": "每拍最多三次操作", "signal": "ACTION 3" },
-  "request": { "command": "没完成本拍点歌,得分 −10%", "signal": "MISS −10%" },
-  "redlight": { "command": "红牌不能换进缓存", "signal": "RED BLOCK" },
-  "lowend": { "command": "弃牌只会补到 2 至 9", "signal": "RANK 2—9" },
-  "wetink": { "command": "新进缓存的牌,下一拍才能取出", "signal": "LOCK 1" },
-  "handseal": { "command": "开拍最低的那张手牌不能弃", "signal": "LOW LOCK" },
-  "rerun": { "command": "重复上一拍的牌型,得分归零", "signal": "REPEAT 0" },
-  "raisedbar": { "command": "本段目标分提高 50%", "signal": "TARGET +50%" },
-  "trilogy": { "command": "打出三种牌型,缺一种目标 +25%", "signal": "VARIETY 3" },
-  "blackout": { "command": "人头牌和补牌全部盖面", "signal": "FULL HIDE" },
-  "doubleseal": { "command": "最低手牌不能弃,最旧缓存不能换", "signal": "DOUBLE LOCK" },
-  "patchin": { "command": "小丑牌只剩半效,打出开拍缓存牌恢复", "signal": "POWER ×50%" },
-  "ration": { "command": "整段只有 12 次弃牌额度", "signal": "DISCARD 12" },
-  "switchtrack": { "command": "第一个动作定轨,另一类操作关闭", "signal": "ONE TRACK" },
-  "rush": { "command": "每拍只有 6 秒", "signal": "CLOCK 6s" },
-  "doubleset": { "command": "结算完再按一半分数加算一次", "signal": "REPLAY ×50%" },
-  "spotlight": { "command": "每拍多发一张牌,自动取最佳五张", "signal": "HAND +1" },
-  "afterglow": { "command": "上一拍得分的 10% 计入本拍", "signal": "CARRY 10%" },
-  "encore": { "command": "第一批弃掉的牌仍参与选牌", "signal": "GHOST HAND" }
+  "norepeat": {
+   "command": "重复上一拍的牌型,得分减半",
+   "signal": "REPEAT ×50%"
+  },
+  "lostpage": {
+   "command": "每拍结束失去一张缓存牌(提前标记)",
+   "signal": "CACHE −1"
+  },
+  "smallstage": {
+   "command": "缓存只有两格",
+   "signal": "CACHE 2"
+  },
+  "facedown": {
+   "command": "J/Q/K 盖面发牌,结算才翻开",
+   "signal": "JQK HIDE"
+  },
+  "lastcall": {
+   "command": "最后 2 秒不能弃牌",
+   "signal": "CLOSE −2s"
+  },
+  "lockup": {
+   "command": "最后 2 秒不能交换",
+   "signal": "LOCK −2s"
+  },
+  "onetake": {
+   "command": "每拍只能弃一次,张数不限",
+   "signal": "ONE TAKE"
+  },
+  "oneswap": {
+   "command": "每拍只能交换一次",
+   "signal": "ONE SWAP"
+  },
+  "setlist": {
+   "command": "第一拍的牌型定调,其他牌型减半",
+   "signal": "OTHERS ×50%"
+  },
+  "blindspot": {
+   "command": "弃牌补入的牌盖面,结算才翻开",
+   "signal": "REFILL HIDE"
+  },
+  "throttle": {
+   "command": "每拍最多三次操作",
+   "signal": "ACTION 3"
+  },
+  "request": {
+   "command": "没完成本拍点歌,得分 −10%",
+   "signal": "MISS −10%"
+  },
+  "redlight": {
+   "command": "红牌不能换进缓存",
+   "signal": "RED BLOCK"
+  },
+  "lowend": {
+   "command": "弃牌只会补到 2 至 9",
+   "signal": "RANK 2—9"
+  },
+  "wetink": {
+   "command": "新进缓存的牌,下一拍才能取出",
+   "signal": "LOCK 1"
+  },
+  "handseal": {
+   "command": "开拍最低的那张手牌不能弃",
+   "signal": "LOW LOCK"
+  },
+  "rerun": {
+   "command": "重复上一拍的牌型,得分归零",
+   "signal": "REPEAT 0"
+  },
+  "raisedbar": {
+   "command": "本段目标分提高 50%",
+   "signal": "TARGET +50%"
+  },
+  "trilogy": {
+   "command": "打出三种牌型,缺一种目标 +25%",
+   "signal": "VARIETY 3"
+  },
+  "blackout": {
+   "command": "人头牌和补牌全部盖面",
+   "signal": "FULL HIDE"
+  },
+  "doubleseal": {
+   "command": "最低手牌不能弃,最旧缓存不能换",
+   "signal": "DOUBLE LOCK"
+  },
+  "patchin": {
+   "command": "小丑牌只剩半效,打出开拍缓存牌恢复",
+   "signal": "POWER ×50%"
+  },
+  "ration": {
+   "command": "整段只有 12 次弃牌额度",
+   "signal": "DISCARD 12"
+  },
+  "switchtrack": {
+   "command": "第一个动作定轨,另一类操作关闭",
+   "signal": "ONE TRACK"
+  },
+  "rush": {
+   "command": "每拍只有 6 秒",
+   "signal": "CLOCK 6s"
+  },
+  "doubleset": {
+   "command": "结算完再按一半分数加算一次",
+   "signal": "REPLAY ×50%"
+  },
+  "spotlight": {
+   "command": "每拍多发一张牌,自动取最佳五张",
+   "signal": "HAND +1"
+  },
+  "afterglow": {
+   "command": "上一拍得分的 10% 计入本拍",
+   "signal": "CARRY 10%"
+  },
+  "encore": {
+   "command": "第一批弃掉的牌仍参与选牌",
+   "signal": "GHOST HAND"
+  }
  },
  "jokercard": {
-  "twin": { "trigger": "打出对子或两对" },
-  "stair": { "trigger": "打出顺子或同花顺" },
-  "mono": { "trigger": "打出同花或同花顺" },
-  "triplet": { "trigger": "打出三条、葫芦或四条" },
-  "lonewolf": { "trigger": "整拍零弃牌:+3◆,商店必出 Target" },
-  "kaleido": { "trigger": "成牌且与上一拍不同" },
-  "shredder": { "trigger": "提前收工(6 秒前完成)" },
-  "wrecker": { "trigger": "本拍弃满 3 张" },
-  "encore": { "trigger": "和上一拍打出相同牌型" },
-  "finale": { "trigger": "最后 2 秒内有操作" },
-  "turnover": { "trigger": "本拍每弃 1 张" },
-  "tipjar": { "trigger": "整拍零弃牌" },
-  "chord": { "trigger": "缓存三张同花色" },
-  "neonsign": { "trigger": "无条件,固定加分" },
-  "vinyl": { "trigger": "每弃 1 张,永久累加" },
-  "chorus": { "trigger": "每段的最后一拍" },
-  "interest": { "trigger": "结算时每持有 4◆(上限 5)" },
-  "momentum": { "trigger": "每次提前收工,永久累加" },
-  "vip": { "trigger": "J/Q/K 点数一律按 20 计" },
-  "glowstick": { "trigger": "+60% 起步,每拍递减 6%" },
-  "shortcut": { "trigger": "顺子允许跳过一个点数" },
-  "fourfingers": { "trigger": "四张连号也算顺子" },
-  "twotone": { "trigger": "颜色相同就算同花" },
-  "bassline": { "trigger": "每累计弃 12 张,永久累加" },
-  "mirror": { "trigger": "以一半效果复制你的 Target" },
-  "wildcard": { "trigger": "两张万能牌加入牌库" },
-  "variation": { "trigger": "成牌且与上一拍不同" },
-  "reprise": { "trigger": "和上一拍打出相同牌型" },
-  "fullcast": { "trigger": "打出五张成牌(顺/同花/葫芦)" },
-  "superfan": { "trigger": "每持有 2◆(最多 +15%)" },
-  "opener": { "trigger": "每段的第一拍" },
-  "rainbow": { "trigger": "成牌集齐四种花色" },
-  "nopair": { "trigger": "成牌五张点数互不相同" },
-  "rehearsal": { "trigger": "缓存三张点数连续" },
-  "duo": { "trigger": "成牌里含有对子(含两对/葫芦)" },
-  "duet": { "trigger": "成牌里含有对子(含两对/葫芦)" },
-  "triad": { "trigger": "成牌为三条或更好(含葫芦/四条)" },
-  "triplebill": { "trigger": "成牌为三条或更好(含葫芦/四条)" },
-  "backer": { "trigger": "每持有 2◆,加基础分" },
-  "bench": { "trigger": "缓存区最高点数计入基础分" },
-  "boxseats": { "trigger": "缓存区每张人头牌" },
-  "trim": { "trigger": "所有 2 和 3 永久离开牌库" },
-  "trio": { "trigger": "缓存三张点数相同" },
-  "bassclef": { "trigger": "2 至 5 的小牌按 15 点计" },
-  "warmtone": { "trigger": "每张计分的红牌" },
-  "cooltone": { "trigger": "每张计分的黑牌" },
-  "undertone": { "trigger": "每张计分的 5 点以下小牌" },
-  "curtain": { "trigger": "最后 1 秒内有操作" },
-  "stopwatch": { "trigger": "结算时每剩 1 秒" },
-  "freeze": { "trigger": "提前收工:下一拍加成" },
-  "earlyout": { "trigger": "全部弃牌都在前 4 秒完成" },
-  "crescendo": { "trigger": "得分超过上一拍" },
-  "segue": { "trigger": "每张换入且参与成牌的牌" },
-  "stilllife": { "trigger": "整拍零交换" },
-  "declutter": { "trigger": "一次弃光整手五张" },
-  "stageexit": { "trigger": "每弃 1 张人头牌" },
-  "doggybag": { "trigger": "得分达到目标的两倍" },
-  "royalty": { "trigger": "牌型自带的金币翻倍" },
-  "digger": { "trigger": "每次刷新商店,永久累加" },
-  "collector": { "trigger": "每买 1 张牌,永久累加" },
-  "doublebill": { "trigger": "商店出 4 张,可买 2 张" },
-  "sponsor": { "trigger": "商店所有卡便宜 1◆" },
-  "jukebox": { "trigger": "商店必有一张规则牌" },
-  "skint": { "trigger": "金币上限 5,换成牌加成" },
-  "rebrand": { "trigger": "每次更换 Target,永久累加" },
-  "trim": { "trigger": "牌库移除所有 2 和 3" },
-  "xray": { "trigger": "弃牌前先看到将补的牌" }
+  "twin": {
+   "trigger": "打出对子或两对"
+  },
+  "stair": {
+   "trigger": "打出顺子或同花顺"
+  },
+  "mono": {
+   "trigger": "打出同花或同花顺"
+  },
+  "triplet": {
+   "trigger": "打出三条、葫芦或四条"
+  },
+  "lonewolf": {
+   "trigger": "整拍零弃牌:+3◆,商店必出 Target"
+  },
+  "kaleido": {
+   "trigger": "成牌且与上一拍不同"
+  },
+  "shredder": {
+   "trigger": "提前收工(6 秒前完成)"
+  },
+  "wrecker": {
+   "trigger": "本拍弃满 3 张"
+  },
+  "encore": {
+   "trigger": "和上一拍打出相同牌型"
+  },
+  "finale": {
+   "trigger": "最后 2 秒内有操作"
+  },
+  "turnover": {
+   "trigger": "本拍每弃 1 张"
+  },
+  "tipjar": {
+   "trigger": "整拍零弃牌"
+  },
+  "chord": {
+   "trigger": "缓存三张同花色"
+  },
+  "neonsign": {
+   "trigger": "无条件,固定加分"
+  },
+  "vinyl": {
+   "trigger": "每弃 1 张,永久累加"
+  },
+  "chorus": {
+   "trigger": "每段的最后一拍"
+  },
+  "interest": {
+   "trigger": "结算时每持有 4◆(上限 5)"
+  },
+  "momentum": {
+   "trigger": "每次提前收工,永久累加"
+  },
+  "vip": {
+   "trigger": "J/Q/K 点数一律按 20 计"
+  },
+  "glowstick": {
+   "trigger": "+60% 起步,每拍递减 6%"
+  },
+  "shortcut": {
+   "trigger": "顺子允许跳过一个点数"
+  },
+  "fourfingers": {
+   "trigger": "四张连号也算顺子"
+  },
+  "twotone": {
+   "trigger": "颜色相同就算同花"
+  },
+  "bassline": {
+   "trigger": "每累计弃 12 张,永久累加"
+  },
+  "mirror": {
+   "trigger": "以一半效果复制你的 Target"
+  },
+  "wildcard": {
+   "trigger": "两张万能牌加入牌库"
+  },
+  "variation": {
+   "trigger": "成牌且与上一拍不同"
+  },
+  "reprise": {
+   "trigger": "和上一拍打出相同牌型"
+  },
+  "fullcast": {
+   "trigger": "打出五张成牌(顺/同花/葫芦)"
+  },
+  "superfan": {
+   "trigger": "每持有 2◆(最多 +15%)"
+  },
+  "opener": {
+   "trigger": "每段的第一拍"
+  },
+  "rainbow": {
+   "trigger": "成牌集齐四种花色"
+  },
+  "nopair": {
+   "trigger": "成牌五张点数互不相同"
+  },
+  "rehearsal": {
+   "trigger": "缓存三张点数连续"
+  },
+  "duo": {
+   "trigger": "成牌里含有对子(含两对/葫芦)"
+  },
+  "duet": {
+   "trigger": "成牌里含有对子(含两对/葫芦)"
+  },
+  "triad": {
+   "trigger": "成牌为三条或更好(含葫芦/四条)"
+  },
+  "triplebill": {
+   "trigger": "成牌为三条或更好(含葫芦/四条)"
+  },
+  "backer": {
+   "trigger": "每持有 2◆,加基础分"
+  },
+  "bench": {
+   "trigger": "缓存区最高点数计入基础分"
+  },
+  "boxseats": {
+   "trigger": "缓存区每张人头牌"
+  },
+  "trim": {
+   "trigger": "牌库移除所有 2 和 3"
+  },
+  "trio": {
+   "trigger": "缓存三张点数相同"
+  },
+  "bassclef": {
+   "trigger": "2 至 5 的小牌按 15 点计"
+  },
+  "warmtone": {
+   "trigger": "每张计分的红牌"
+  },
+  "cooltone": {
+   "trigger": "每张计分的黑牌"
+  },
+  "undertone": {
+   "trigger": "每张计分的 5 点以下小牌"
+  },
+  "curtain": {
+   "trigger": "最后 1 秒内有操作"
+  },
+  "stopwatch": {
+   "trigger": "结算时每剩 1 秒"
+  },
+  "freeze": {
+   "trigger": "提前收工:下一拍加成"
+  },
+  "earlyout": {
+   "trigger": "全部弃牌都在前 4 秒完成"
+  },
+  "crescendo": {
+   "trigger": "得分超过上一拍"
+  },
+  "segue": {
+   "trigger": "每张换入且参与成牌的牌"
+  },
+  "stilllife": {
+   "trigger": "整拍零交换"
+  },
+  "declutter": {
+   "trigger": "一次弃光整手五张"
+  },
+  "stageexit": {
+   "trigger": "每弃 1 张人头牌"
+  },
+  "doggybag": {
+   "trigger": "得分达到目标的两倍"
+  },
+  "royalty": {
+   "trigger": "牌型自带的金币翻倍"
+  },
+  "digger": {
+   "trigger": "每次刷新商店,永久累加"
+  },
+  "collector": {
+   "trigger": "每买 1 张牌,永久累加(上限 +30)"
+  },
+  "doublebill": {
+   "trigger": "商店出 4 张,可买 2 张"
+  },
+  "sponsor": {
+   "trigger": "商店所有卡便宜 1◆"
+  },
+  "jukebox": {
+   "trigger": "商店必有一张规则牌"
+  },
+  "skint": {
+   "trigger": "金币上限 5,换成牌加成"
+  },
+  "rebrand": {
+   "trigger": "每次更换 Target,永久累加"
+  },
+  "xray": {
+   "trigger": "弃牌前先看到将补的牌"
+  }
  },
  "stage": {
   "margin": 26,

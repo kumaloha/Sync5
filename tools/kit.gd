@@ -145,10 +145,23 @@ const WITNESS := {
 ## 少装一张卡, 效应同量级:联票 buys 差恰好 +0.0, 赞助花费 −5.9◆ z=−15 证明折扣
 ## 明明活着而均价只动 0.2)。教训 = 行为量会被槽位效应吃掉, **货架证物必须选
 ## 零基线的机械读数** —— 基准恒 0, 混杂无处藏身, 与 rule_offer 一次过 z=61 同理。
+## ⚠ 第四种证物 `counter`(2026-08-13 子波 3):**商店事件驱动的成长卡**
+## (淘碟/收藏家/转型)。它们不改货架、不产钱, 改的是自己的计数器 ——
+## 而现有四条通路**没有一条**量得到:
+##   · score 通路**关商店**(文件头:抽卡运气会混进配对)→ 商店事件根本不发生;
+##   · coin 通路量金币与花费, 不量分数;
+##   · shop 通路原有的三种证物都是**货架**读数, 而这三张不碰货架。
+## 证物 = **一局结束时那张卡的计数器终值**:零基线(没有这张卡就没有这个计数器),
+## 机械读数(商店真的发生过就必然涨), 与 shelf 三件套同一条判据。
+## ⚠ 我第一版把它们声明成 `score` 通路并断言「开商店的臂量得到」——
+## 实测三张全部触发 0%。**引用一条纪律前先确认它说的是什么。**
 const SHOP_WITNESS := {
 	"doublebill": "multi_shops",
 	"sponsor": "discount",
 	"jukebox": "rule_offer",
+	"digger": "counter",
+	"collector": "counter",
+	"rebrand": "counter",
 }
 
 var _rng := RandomNumberGenerator.new()
@@ -398,27 +411,44 @@ func _run_shop(cfg: Dictionary, ids: Array, n: int) -> void:
 		% [Stat.mean(_rec_series(base, "buys")), Stat.mean(_rec_series(base, "multi_shops")),
 		Stat.mean(_rec_series(base, "discount")), Stat.mean(_rule_rate_series(base)) * 100.0])
 	for jid in ids:
-		var arm := _play(cfg, _install([jid]), true, false, n)
+		# 前置环境(COHORT_PATCH):**两臂都用改造后的队列**, 否则基准与实验臂跑在
+		# 不同世界里, 配对就白配了 —— 所以基准也要跟着重跑一遍。
+		var jcfg := _cohort_for(jid)
+		var jbase := base
+		if jcfg != cfg:
+			jbase = _play(jcfg, [], true, false, n)
+			print("    ⚙ %s 用改造队列(%s):基准重跑, 每局成交 %.2f 张"
+				% [jid, str(COHORT_PATCH[jid]), Stat.mean(_rec_series(jbase, "buys"))])
+		var arm := _play(jcfg, _install([jid]), true, false, n)
 		match String(SHOP_WITNESS.get(jid, "")):
 			"multi_shops":
-				_judge("%s: 双购店数" % jid, _rec_series(base, "multi_shops"),
-					_rec_series(arm, "multi_shops"), Stat.mean(_rec_series(base, "multi_shops")),
+				_judge("%s: 双购店数" % jid, _rec_series(jbase, "multi_shops"),
+					_rec_series(arm, "multi_shops"), Stat.mean(_rec_series(jbase, "multi_shops")),
 					"货架证物=双购店(基准≈0)", true, true)
 			"discount":
-				_judge("%s: 实收折扣◆" % jid, _rec_series(base, "discount"),
-					_rec_series(arm, "discount"), Stat.mean(_rec_series(base, "discount")),
+				_judge("%s: 实收折扣◆" % jid, _rec_series(jbase, "discount"),
+					_rec_series(arm, "discount"), Stat.mean(_rec_series(jbase, "discount")),
 					"货架证物=折扣(基准≈0)", true, true)
 			"rule_offer":
-				_judge("%s: 含规则牌店率" % jid, _rule_rate_series(base),
-					_rule_rate_series(arm), Stat.mean(_rule_rate_series(base)),
+				_judge("%s: 含规则牌店率" % jid, _rule_rate_series(jbase),
+					_rule_rate_series(arm), Stat.mean(_rule_rate_series(jbase)),
 					"货架证物=首发成分", true, true)
+			"counter":
+				# 商店事件驱动的成长:证物 = 一局末的计数器终值(基准恒 0)。
+				# ⚠ 分差也报(参考):成长卡的分数效应本来就该被量到, 但它受
+				# 「bot 会不会一直留着这张卡」影响, 所以硬判据放在机械读数上。
+				_judge("%s: 计数器终值" % jid, _rec_series(jbase, "counter"),
+					_rec_series(arm, "counter"), Stat.mean(_rec_series(jbase, "counter")),
+					"成长证物=商店事件计数(基准恒0)", true, true)
+				_judge("%s: 总分(参考)" % jid, jbase["score"], arm["score"],
+					Stat.mean(jbase["score"]), "", false)
 			_:
 				_fail.append("%s: shop 通路缺 SHOP_WITNESS 声明" % jid)
 				continue
-		_judge("%s: 商店花费(参考)" % jid, base["spend"], arm["spend"],
-			Stat.mean(base["spend"]), "", false)
-		_judge("%s: 总分(参考)" % jid, base["score"], arm["score"],
-			Stat.mean(base["score"]), "", false)
+		_judge("%s: 商店花费(参考)" % jid, jbase["spend"], arm["spend"],
+			Stat.mean(jbase["spend"]), "", false)
+		_judge("%s: 总分(参考)" % jid, jbase["score"], arm["score"],
+			Stat.mean(jbase["score"]), "", false)
 
 
 func _rec_series(d: Dictionary, key: String) -> Array:
@@ -570,6 +600,35 @@ func _cohort() -> Dictionary:
 	return {}
 
 
+## **前置环境**(2026-08-13 子波 3;`PREREQ` 的推广)。
+##
+## `PREREQ` 解决的是「这张卡需要**另一张卡**在场」;这里解决的是
+## 「这张卡需要**队列本身**允许某件事发生」。
+## 实例:转型(rebrand)的成长挂在换旗上, 而默认队列 `cfg.target` 是**强制固定** Target 的
+## —— bot 侧有一条门「强制 target 的队列不许换旗(除非 cfg.pivot)」, 那是
+## 「实验者的随机分配是整条 pipeline 唯一干净的因果通道」这条设计决定的必然结果。
+## 于是换旗在这条队列里**物理上不发生**, 证物恒 0, 而那不是卡的接线问题。
+## ⚠ **不是放水**:两条臂用**同一个**改造后的队列, 配对性完全保留 ——
+## 改的只是「这个实验在什么环境里做」, 不是判据。
+## ⚠ 补丁要打到**换旗真的会发生**的那个队列上, 不是「打开开关」就行:
+## 默认队列的 Target 是 `twin`, 而它的 `counterfactual_tv = 2.6` **是全表最高** ——
+## bot 换任何旗都是负收益, 所以光加 `pivot: true` 之后它照旧一次不换(实测计数器仍 0)。
+## `wolfpivot` 的形状才对:独狼(1.7)起手弱 + pivot 开 → 换旗是它的既定弧线。
+const COHORT_PATCH := {
+	"rebrand": {"name": "kit:wolfpivot", "target": "lonewolf", "pivot": true},
+}
+
+
+func _cohort_for(jid: String) -> Dictionary:
+	var c := _cohort()
+	if not COHORT_PATCH.has(jid):
+		return c
+	var patched := c.duplicate(true)
+	for k in COHORT_PATCH[jid]:
+		patched[k] = COHORT_PATCH[jid][k]
+	return patched
+
+
 ## 一条臂:打 n 局不死局, 每局把 `install` 里的卡钉在指定槽位上。
 ## 返回 {score, coins, spend, trig, pres, runs}(前三项逐局一个数, 供配对检验)。
 ##
@@ -663,6 +722,13 @@ func _play(cfg: Dictionary, install: Array, shop: bool, perfect: bool, n: int) -
 		rec["rule_shops"] = float(rep.rule_shops_n - r0)
 		rec["multi_shops"] = float(rep.multi_shops_n - m0)
 		rec["discount"] = float(rep.discount_coins - d0)
+		# 被钉的那张卡的计数器终值(商店成长族的证物)。⚠ 取**这一局那个实例**的 state:
+		# `pinned` 每局新建, 所以它就是「这一局涨到多少」;基准臂没有这张卡 → 恒 0。
+		var cend := 0.0
+		for slot in pinned:
+			for cname in pinned[slot].state:
+				cend = maxf(cend, float(pinned[slot].state[cname]))
+		rec["counter"] = cend
 		scores.append(res_run["total"])
 		coins.append(float(res_run["coins"]))
 		spend.append(float(GameConfig.STARTING_COINS) + float(rec["income"])

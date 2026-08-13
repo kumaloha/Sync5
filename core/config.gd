@@ -32,6 +32,11 @@ static var FINAL_ACT_WINDOW: float = float(_run["final_act_window"])
 ## 早锁问「你是不是不动了」, 早弃问「你的弃牌是不是都做完了」, 概念不同, 调一条不该连带另一条。
 ## ⚠ 卡面写死了秒数("in first 4 seconds"), 所以改这个值要连卡面一起改(同数额章的纪律)。
 static var EARLY_DISCARD_WINDOW: float = float(_run["early_discard_window"])
+## 「点唱片提前收工」的最小时间(2026-08-13 用户拍板加的主动锁定)。
+## ⚠ 存在的理由是**防手滑**:开局第一下就点到唱片会直接结束这一拍。
+## 2 秒这个值来自 design/jokers.md 里 Punk 主角的原始设计(「2 秒后可以提前锁定」)——
+## 那条设计早就写着, 只是从未实装。
+static var EARLY_LOCK_MIN: float = float(_run["early_lock_min"])
 static var EARLY_FINISH_TIME: float = float(_run["early_finish_time"])
 
 # --- Card flow ---

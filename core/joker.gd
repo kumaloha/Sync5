@@ -161,6 +161,23 @@ func on_swap() -> void:
 	pass
 
 
+## 商店里发生了一件有代价的事:`kind` = "reroll" | "buy" | "target_swap"。
+## 淘碟/收藏家/转型的成长挂在这里(见 `Fx.on_shop_event` 的 D1 理由)。
+func on_shop_event(kind: String) -> void:
+	Fx.on_shop_event(_counters, state, kind)
+
+
+## ⚑ **所有商店事件都走这一个静态口。**
+## 调用点天然分散(游戏侧编排器 3 处 + bot 侧 3 处 —— 铁律「经济动作只发生在编排器」
+## 决定了它没法收成一处), 所以退一步:**让调用形式统一到一行**,
+## `grep -n 'notify_shop' ` 就能一眼数清两侧是否对齐。
+## ⚠ 漏一侧就是「规则在游戏里、不在模型里」的第六次 —— 这个形状本项目栽过五次。
+static func notify_shop(slots: Array, kind: String) -> void:
+	for j in slots:
+		if j != null:
+			j.on_shop_event(kind)
+
+
 ## Phrase boundary. x: {early_finish: bool}
 func on_phrase_end(x: Dictionary) -> void:
 	Fx.on_phrase_end(_counters, state, x)

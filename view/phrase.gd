@@ -169,6 +169,10 @@ func choose_character(i: int) -> void:
 	_picker = null
 	run.character = Character.roster()[i]
 	orbit.set_character(i)
+	# 点唱片 = 提前收工(2026-08-13 用户拍板)。⚠ 连在这里而不是 _ready:
+	# `vinyl` 是 StageLayout 建的, 选角之后才拿到引用(同 orbit)。
+	if not vinyl.tapped.is_connected(_on_vinyl_tapped):
+		vinyl.tapped.connect(_on_vinyl_tapped)
 	run.roll_faces()
 	# 打点从这里开流 —— 主角与四面墙都定了, 这一局的初始条件已经完整
 	Tape.begin({
@@ -325,6 +329,8 @@ func _process(delta: float) -> void:
 				_refresh()
 			var warn := elapsed >= cur_warning
 			orbit.set_progress(elapsed / cur_lock, warn, cur_lock - elapsed)
+			# 可以收工时唱片亮金环 + 中心显示能省下几秒(时钟只在这里读)
+			vinyl.set_armed(_can_early_lock(), maxf(0.0, cur_lock - elapsed))
 			# final-seconds heartbeat: eq curtain reddens/speeds, each countdown
 			# second kicks the wave and spins the record up toward the drop
 			eq.urgency = clampf((elapsed - cur_warning) / maxf(cur_lock - cur_warning, 0.1), 0.0, 1.0) if warn else 0.0
@@ -356,7 +362,13 @@ func _settle() -> void:
 	# 否则「整拍不操作」会拿到满额剩余秒数, 秒表就成了「什么都不做最赚」的挂机卡(A4)。
 	var outcome := Beat.settle(run, phrase, {
 		"late": acted_late, "early": _acted_early(), "final": acted_final,
-		"secs_left": maxf(0.0, cur_lock - last_action_time) if last_action_time >= 0.0 else 0.0,
+		# ⚠⚠ **按「结算这一刻」算剩余, 不是按「最后动手那一刻」**(2026-08-13 修)。
+		# 子波 2 的第一版写的是 `cur_lock - last_action_time` —— 那算的是
+		# 「最后动手时还剩多少」, 于是「2 秒动完手然后干等到底」也能拿满额剩余,
+		# **秒表变成了奖励干等**。卡面写的是 "at settle", 结算时刻的剩余才是它。
+		# 主动锁定(点唱片)时 elapsed 就是锁定时刻 → 真实剩余;
+		# 自然走完时 elapsed >= cur_lock → 剩 0。一个式子同时对两条路径成立。
+		"secs_left": maxf(0.0, cur_lock - elapsed),
 		"early_discards": last_discard_time >= 0.0 \
 			and last_discard_time <= GameConfig.EARLY_DISCARD_WINDOW,
 	})
@@ -430,10 +442,30 @@ func _on_settle_burst() -> void:
 		float(from), float(to), 0.5).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 
 
-## Framework hook for the future early-lock plan: settle right now.
+## 提前收工:立刻结算这一拍。**2026-08-13 起真的有调用方了** ——
+## 点唱片(`_on_vinyl_tapped`), 用户拍板的交互。
+## ⚠ 这个函数在此之前是**孤立的钩子**(零调用方), 而四张时机卡
+## (速弹/惯性/定格/秒表)全建在它上面 —— 于是「早锁」的真实语义一直是
+## 「早点动完手然后干等」, 真人早锁率 8% / bot 78% 的差距根因就在这里:
+## 干等 4.5 秒的代价对真人是真的, 对不感知时间的 bot 是零。
 func early_settle() -> void:
 	if state == St.DECISION:
 		_settle()
+
+
+## 能不能收工:必须在决策态、过了防手滑的下限、且**动过至少一次手**。
+## ⚠ 最后一条与 `_acted_early()` 同源(A4:不许挂机)—— 一拍不动就点收工
+## 拿不到早锁加成, 那就别让它看起来可点。
+func _can_early_lock() -> bool:
+	return state == St.DECISION and elapsed >= GameConfig.EARLY_LOCK_MIN \
+		and last_action_time >= 0.0
+
+
+func _on_vinyl_tapped() -> void:
+	if not _can_early_lock():
+		return
+	Tape.on("lock", {"at": elapsed, "left": maxf(0.0, cur_lock - elapsed)})
+	early_settle()
 
 
 ## "Early finish" needs at least one action — an untouched phrase never counts,
@@ -582,7 +614,13 @@ func _on_shop_bought(j, price: int) -> void:
 	phrase.coins -= price
 	Tape.on("buy", {"id": String(j.id), "kind": String(j.kind),
 		"price": price, "coins": phrase.coins})
+	# 收藏家:每买一张。⚠ **在装卡之前发** —— 否则刚买的这张会给自己记一次,
+	# 「每买 1 张 +15」就凭空多了第一次(转型同理:换旗不该给新旗自己记一次)。
+	Joker.notify_shop(run.joker_slots, "buy")
 	if j.kind == "target":
+		var swapping: bool = run.joker_slots[0] != null
+		if swapping:
+			Joker.notify_shop(run.joker_slots, "target_swap")   # 转型:换旗有代价(丢掉旧旗)
 		run.joker_slots[0] = j
 		j.on_acquire(run.deck)          # 百搭 shuffles 大小王 in at this moment
 		joker_views[0].set_joker(j)
@@ -638,6 +676,7 @@ func _on_shop_reroll(cost: int) -> void:
 	if state != St.DRAFT or replace.pick != null:
 		return
 	phrase.coins -= cost
+	Joker.notify_shop(run.joker_slots, "reroll")     # 淘碟:刷新是付费动作(A4✓)
 	Tape.on("rerl", {"k": shop.reroll_count(), "cost": cost, "coins": phrase.coins})
 	shop.redeal(run.joker_slots, phrase.coins, run.section_idx)
 
@@ -666,6 +705,8 @@ func _on_slot_tapped(k: int) -> void:
 		"price": price, "back": refund, "coins": phrase.coins})
 	if refund > 0:
 		fx.float_text("+%d ◆" % refund, joker_views[k].get_global_position() + Vector2(30, 40), StageTheme.GOLD)
+	# 收藏家:替换流也是一次购买(同买入路径, 在装卡前发 —— 新卡不给自己记)
+	Joker.notify_shop(run.joker_slots, "buy")
 	run.joker_slots[k] = new_j
 	new_j.on_acquire(run.deck)
 	# ⚠ 修剪必须在**装卡之后** —— 装之前读的是旧槽位, 新卡自带的上限根本不在里面。

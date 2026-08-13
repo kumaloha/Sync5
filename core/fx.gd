@@ -314,6 +314,20 @@ static func on_discard(counters: Dictionary, state: Dictionary, n: int) -> void:
 			state[cname] = float(state.get(cname, 0.0)) + float(n)
 
 
+## 商店事件喂计数器(2026-08-13 子波 3)。`kind` = "reroll" | "buy" | "target_swap"。
+##
+## ⚠ **为什么值得开第七个钩子**(D1 门要硬理由):A4 要求成长只挂**有代价的动作**,
+## 而商店动作(刷新付钱 / 买卡付钱 / 换旗弃掉旧旗)是**唯一一整片没有钩子覆盖的
+## 动作空间** —— 既有六个钩子全在对局内。三张已定稿的卡(淘碟/收藏家/转型)都要它,
+## 且它们的代价天然真实(钱), 不需要额外设计一个人造成本。
+static func on_shop_event(counters: Dictionary, state: Dictionary, kind: String) -> void:
+	var key := "on_" + kind
+	for cname in counters:
+		var spec: Dictionary = counters[cname]
+		if spec.has(key):
+			state[cname] = float(state.get(cname, 0.0)) + float(spec[key])
+
+
 static func on_phrase_end(counters: Dictionary, state: Dictionary, x: Dictionary) -> void:
 	for cname in counters:
 		var spec: Dictionary = counters[cname]

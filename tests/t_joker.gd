@@ -5,7 +5,7 @@ func run(t) -> void:
 	# roster shape (2026-08-12 流派批: 删 popup/backup, 加族内件×4 + backer/bench/boxseats + trim;
 	# 缘由与增删改清单见 design/archetypes.md §5)
 	var pool := Joker.pool()
-	t.eq(pool.size(), 57, "pool holds 57 jokers (子波1 +6 / 子波2 计时族 +3)")
+	t.eq(pool.size(), 60, "pool holds 60 jokers —— 正是用户拍板的 roster 目标数(子波3 +3)")
 	var targets := 0
 	var rarities := {"common": 0, "uncommon": 0, "rare": 0}
 	for j in pool:
@@ -21,7 +21,7 @@ func run(t) -> void:
 	t.eq(targets, 7, "seven targets (wrecker 待 bot 弃牌策略后 +1)")
 	# 概率线基建(archetypes.md §3.8): fourfingers/twotone 降罕见 —— 规则牌从 5% 池权重解放
 	t.eq(rarities["common"], 22, "twenty-two common supports")
-	t.eq(rarities["uncommon"], 20, "twenty uncommon supports")
+	t.eq(rarities["uncommon"], 23, "twenty-three uncommon supports")
 	t.eq(rarities["rare"], 8, "eight rare supports")
 	t.eq(String(Joker.by_id("fourfingers").rarity), "uncommon", "fourfingers is uncommon now")
 	t.eq(String(Joker.by_id("twotone").rarity), "uncommon", "twotone is uncommon now")
@@ -299,3 +299,38 @@ func run(t) -> void:
 		"early purge pays when every discard landed early")
 	t.eq(Settle.run(flush_res, [null, Joker.by_id("earlyout"), null, null], {})["score"],
 		base, "early purge silent on an untouched phrase (no discards is not 'early')")
+
+	# ---- 2026-08-13 子波 3:商店成长族(第七个钩子 on_shop_event)----
+	# 三张都挂**付费动作**(A4✓):刷新付钱 / 买卡付钱 / 换旗丢掉旧旗。
+	var dig := Joker.by_id("digger")
+	var col := Joker.by_id("collector")
+	var reb := Joker.by_id("rebrand")
+	t.eq(Settle.run(flush_res, [null, dig, null, null], {})["score"], base,
+		"crate digger starts silent (growth cards are dead weight at first — B3)")
+	# 事件要**认门别**:刷新只喂淘碟, 买只喂收藏家 —— 串了就是「一个动作喂两张卡」
+	dig.on_shop_event("buy")
+	t.eq(Settle.run(flush_res, [null, dig, null, null], {})["score"], base,
+		"a purchase does not feed the reroll counter")
+	dig.on_shop_event("reroll")
+	dig.on_shop_event("reroll")
+	var dgrow: int = 2 * int(t._do_amount("digger", "additive"))
+	t.eq(Settle.run(flush_res, [null, dig, null, null], {})["score"],
+		(int(flush_res["chips"]) + dgrow) * int(Pattern.BASE_MULT[Pattern.Kind.FLUSH]),
+		"two rerolls grow the digger, and it rides the mult (additive channel)")
+	col.on_shop_event("reroll")
+	t.eq(Settle.run(flush_res, [null, col, null, null], {})["score"], base,
+		"a reroll does not feed the buy counter")
+	col.on_shop_event("buy")
+	t.eq(Settle.run(flush_res, [null, col, null, null], {})["score"],
+		(int(flush_res["chips"]) + int(t._do_amount("collector", "additive")))
+		* int(Pattern.BASE_MULT[Pattern.Kind.FLUSH]), "collector grows per purchase")
+	reb.on_shop_event("target_swap")
+	t.eq(Settle.run(flush_res, [null, reb, null, null], {})["score"],
+		int(round(base * (1.0 + t._do_amount("rebrand", "bonus_pct")))),
+		"reinvention grows per target change (pct channel)")
+	# 静态口:一次调用喂满整排槽位 —— 两侧编排器都只写这一行
+	var shelf_slots: Array = [null, Joker.by_id("digger"), Joker.by_id("collector"), null]
+	Joker.notify_shop(shelf_slots, "reroll")
+	t.check(float(shelf_slots[1].state.get("n", 0.0)) == 1.0
+		and float(shelf_slots[2].state.get("n", 0.0)) == 0.0,
+		"notify_shop feeds every slot but only the matching counters")

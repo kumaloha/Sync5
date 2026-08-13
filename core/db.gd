@@ -32,7 +32,7 @@ static var _err := ""
 const _RUN_KEYS := ["phrases_per_section", "phrases_per_shop", "sections_per_gig",
 	"gigs_per_run", "blind_names", "gig_names", "section_targets", "gig_clocks",
 	"warning_offset", "lock_offset", "late_act_window", "final_act_window",
-	"early_finish_time", "early_discard_window",
+	"early_finish_time", "early_discard_window", "early_lock_min",
 	"hand_size", "cache_cap", "beat_budget", "death_spec"]
 const _ECO_KEYS := ["starting_coins", "discard_cost", "section_clear_reward",
 	"draft_rarity_weights", "joker_prices", "joker_price_overrides",
@@ -374,7 +374,10 @@ const _DO_KEYS := ["mult", "mult_add", "additive", "bonus", "bonus_pct",
 ## 计数器 spec 的合法键(2026-08-13 补, 与 per/acquire/shelf 同一条纪律:
 ## 拼错的计数器键会让成长/衰减/脉冲**静默不走**)。
 const _COUNTER_KEYS := ["init", "decay_per_phrase", "floor", "on_discard",
-	"on_early_finish", "pulse_on_early_finish"]
+	"on_early_finish", "pulse_on_early_finish",
+	# 商店事件(子波 3):`Fx.on_shop_event` 的 kind 加前缀 `on_` —— 三者必须与
+	# `Joker.notify_shop` 的调用方一致, 拼错会让成长**静默不涨**。
+	"on_reroll", "on_buy", "on_target_swap"]
 
 ## 持有期恒生效的经济/规则参数(穷开心 skint 的 coin_cap)。
 ## 与 shelf(货架影响)、acquire(一次性)三分天下, 键都要锁。

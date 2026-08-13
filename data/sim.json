@@ -287,6 +287,15 @@
    },
    "earlyout": {
     "fixed_rate": 0.7
+   },
+   "digger": {
+    "events": 0.6
+   },
+   "collector": {
+    "events": 2.0
+   },
+   "rebrand": {
+    "events": 0.4
    }
   },
   "timing": {
