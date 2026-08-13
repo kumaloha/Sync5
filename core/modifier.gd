@@ -260,6 +260,11 @@ static func required_kinds(mod_id: String) -> int:
 	return int(_param(mod_id, "required_kinds", 0.0))
 
 
+## 曲目税的罚档(裁决 #8):每缺一种, 目标乘 (1 + penalty)。数值在 faces.json。
+static func variety_penalty(mod_id: String) -> float:
+	return _param(mod_id, "variety_penalty", 0.0)
+
+
 static func restores_with_initial_cache(mod_id: String) -> bool:
 	return _param(mod_id, "restore_with_initial_cache", 0.0) > 0.0
 

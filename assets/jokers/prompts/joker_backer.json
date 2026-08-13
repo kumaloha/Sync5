@@ -1,0 +1,9 @@
+{
+  "id": "backer",
+  "prompt": "Use case: stylized-concept. Asset type: Sync5 game Joker central totem for a compact 145×50 runtime window. Input images: high-level references only for hard-edged black-glass material, crisp cyan neon rim, restrained magenta accent, and compact symbolic silhouette; do not copy reference subjects, text, frames, or composition. Primary request: Create ‘后台 / Backer’: one dark angular gloved hand emerges from one short folded theater-curtain edge and extends one blank cheque-like black-glass slab toward the viewer; a single faceted diamond token is mounted prominently on the slab. The recognition shape is hand plus slab plus one diamond. No person, face, currency symbol, digits, letters, signature line, or writing. Style/medium: original high-contrast hard-edged 2D cyberpunk nightclub illustration, black glass and dark metal, crisp cyan rim, one tiny magenta hotspot, Common cyan secondary. Composition: one compact centered emblem with a slightly horizontal but sturdy silhouette, whole subject visible, large shapes, generous but not excessive padding, readable after conversion to a 145×50 window. Background: perfectly flat solid #00ff00 chroma-key, uniform, no texture, gradient, floor, shadow, reflection, or lighting variation; no #00ff00 in subject. Constraints: no card frame, title, words, random glyphs, logo, watermark, narrative scene, cropped hand or slab, or tiny details. Avoid photorealism and painterly haze.",
+  "revision": 1,
+  "source_sha256": "de2312ab79b124e0d891e3741faa9de6a07d38b24d7e9db0482c1d08f519dd88",
+  "tool_mode": "built-in",
+  "reference": "assets/reference/ref_joker_holo_synth.png",
+  "raw_codex_path": "/Users/kuma/.codex/generated_images/019fe632-fdfa-76f2-850c-53239465ebcd/exec-d264d795-ea31-42ea-8c09-20253ebbf19e.png"
+}

@@ -31,9 +31,11 @@
 |---|---|
 | [**gates**](gates.md) | **那道门的规格** —— `gate.sh` 怎么造对照臂、覆盖自证契约、可加性检验 |
 | [**capability**](capability.md) | **模型能看见什么、打得多好** —— 七类规则分类 · 三层精度 · 三个缺口 |
-| `research_balatro_jokers` · `research_balatro_bosses` · `research_pacing_retention` | **调研:原作是怎么做的** |
+| [**numbers**](numbers.md) · [**probbook**](probbook.md) | **定价宪法**(三轴+六步 SOP)与概率账本(仪器读数,手改无效) |
+| [**jokers_atlas**](jokers_atlas.md) · [**archetypes**](archetypes.md) | **候选池**:小丑牌 60 张口径(卡片层)· 流派图谱(流派层,2026-08-12) |
+| `research_balatro_jokers` · `research_balatro_builds` · `research_balatro_bosses` · `research_pacing_retention` | **调研:原作是怎么做的**(卡普查 / 流派目录 / Boss / 节奏留存) |
 
-⚠ 三篇 `research_*` **刻意保持独立** —— 它们是**外部事实**,不是我们的决定。
+⚠ 四篇 `research_*` **刻意保持独立** —— 它们是**外部事实**,不是我们的决定。
 混进设计篇会让「调研结论」和「我们的选择」分不开。
 
 ---

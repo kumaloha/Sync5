@@ -137,12 +137,15 @@ static func play(o: Opts, bot: Bot) -> Dictionary:
 			o.on_section.call(run, section, sec_score, coins)
 		# 判生死 —— ⚠ 必须走 `Run.section_target_for`, 那是**两处判生死唯一的一份实现**。
 		# `sim.gd` 曾在这里直接读表、漏乘 target_mult, 于是 raisedbar 在模型里整个是空气。
+		# 曲目税(裁决 #8)同理:`variety_mult` 也是单一真相, 漏乘 = trilogy 在模型里放水
+		# (旧硬门时代这里根本没查种数 —— 半个「游戏里活、模型里死」, 2026-08-13 修平)。
 		if o.mortal:
-			var tgt := Run.section_target_for(o.targets, section, mod)
+			var tgt := int(round(float(Run.section_target_for(o.targets, section, mod))
+				* Run.variety_mult(mod, run.section_kinds.size())))
 			if sec_score < tgt:
 				died_at = section
 				break
-		coins += GameConfig.SECTION_CLEAR_REWARD
+		coins = Economy.grant(coins, GameConfig.SECTION_CLEAR_REWARD, run.joker_slots)
 		# ⚠⚠ **末段没有段末商店** —— 游戏里 `view/phrase.gd` 在 `finale` 那一支直接
 		# 走结算成功屏并 return, 根本不开商店。这里原本无条件开, 于是**模型比游戏多一次
 		# 商店**(8 vs 7)。2026-08-09 用 Tape 的 `shop` 事件实测:**37/37 完整局都是

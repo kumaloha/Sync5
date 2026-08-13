@@ -44,6 +44,25 @@ func enable_wilds() -> void:
 	draw_pile.append(Card.new(Card.JOKER_RANK, Card.JOKER_LITTLE))
 	shuffle()
 
+
+## 修剪(trim):2 和 3 永久离开牌库 —— 牌库手术类规则牌,概率线最硬的 Δp
+## (enable_wilds 是加牌先例,这是减牌先例)。
+## ⚠ 手牌/缓存里已经握着的 2/3 不当场没收(玩家看得见的牌不许凭空消失),
+## 它们被弃掉时经由 discard() 的过滤离场 —— 牌库在几拍内收敛到 44 张。
+var trim_low := false
+const TRIM_RANK_MAX := 3
+
+func trim_low_ranks() -> void:
+	if trim_low:
+		return
+	trim_low = true
+	for i in range(draw_pile.size() - 1, -1, -1):
+		if not draw_pile[i].is_wild() and draw_pile[i].rank <= TRIM_RANK_MAX:
+			draw_pile.remove_at(i)
+	for i in range(discard_pile.size() - 1, -1, -1):
+		if not discard_pile[i].is_wild() and discard_pile[i].rank <= TRIM_RANK_MAX:
+			discard_pile.remove_at(i)
+
 func shuffle() -> void:
 	for i in range(draw_pile.size() - 1, 0, -1):
 		var j := _rng.randi_range(0, i)
@@ -97,8 +116,12 @@ func pick_index(n: int) -> int:
 
 
 func discard(card: Card) -> void:
-	if card != null:
-		discard_pile.append(card)
+	if card == null:
+		return
+	# trim 生效后,弃掉的 2/3 不回弃牌堆 —— 永久离场(见 trim_low_ranks 注释)。
+	if trim_low and not card.is_wild() and card.rank <= TRIM_RANK_MAX:
+		return
+	discard_pile.append(card)
 
 func _reshuffle_discard() -> void:
 	draw_pile = discard_pile.duplicate()
@@ -145,5 +168,6 @@ func fork(seed_value: int) -> Deck:
 	d.draw_pile = draw_pile.duplicate()
 	d.discard_pile = discard_pile.duplicate()
 	d.wilds_enabled = wilds_enabled
+	d.trim_low = trim_low
 	d.rules = rules.duplicate(true)
 	return d

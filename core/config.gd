@@ -25,6 +25,13 @@ static var SECTION_TARGETS: Array = _ints(_run["section_targets"])
 # --- Phrase timing (seconds) ---
 static var RESOLVE_FEEDBACK := 0.25
 static var LATE_ACT_WINDOW: float = float(_run["late_act_window"])
+## 谢幕(curtain)的压哨窗口 —— 尾声(finale)那 2 秒之内更窄的一档。
+## 与 `late_act_window` 同族配置, 不写死:两张卡的窗口宽度是可调的平衡旋钮。
+static var FINAL_ACT_WINDOW: float = float(_run["final_act_window"])
+## 早弃(earlyout)的「前段」线。⚠ **与 `early_finish_time`(早锁线)是两条独立的旋钮** ——
+## 早锁问「你是不是不动了」, 早弃问「你的弃牌是不是都做完了」, 概念不同, 调一条不该连带另一条。
+## ⚠ 卡面写死了秒数("in first 4 seconds"), 所以改这个值要连卡面一起改(同数额章的纪律)。
+static var EARLY_DISCARD_WINDOW: float = float(_run["early_discard_window"])
 static var EARLY_FINISH_TIME: float = float(_run["early_finish_time"])
 
 # --- Card flow ---

@@ -34,6 +34,10 @@ var joker_views: Array = []
 var cur_modifier := ""        # this section's boss face ("" = none)
 var acted_late := false        # any discard/swap/sort inside the final 2 seconds
 var last_action_time := -1.0   # elapsed at the last action; -1 = untouched phrase
+# ---- 2026-08-13 子波 2 的时钟观测(谢幕/秒表/早弃)。**时钟只在 view 侧读** ——
+# core/ 不含时钟是铁律, 所以这三个量与 late/early 走同一条路:结算时装进 flags。
+var acted_final := false       # 最后 FINAL_ACT_WINDOW 秒内动过手(谢幕, 比尾声更窄)
+var last_discard_time := -1.0  # 最后一次**弃牌**的 elapsed;-1 = 本拍没弃过
 var _last_warn_digit := -1     # countdown heartbeat edge detector (final 3s)
 var _discard_gate_open := true # edge-cached so the keys redraw exactly once on close
 var _swap_gate_open := true
@@ -87,6 +91,7 @@ func _notification(what: int) -> void:
 func _open_home() -> void:
 	set_process(false)
 	state = St.FRONT
+	_front_latch = false        # 回到前端 = 新的选角会话(V3 闩锁复位)
 	if _picker != null and is_instance_valid(_picker):
 		_picker.queue_free()
 		_picker = null
@@ -98,6 +103,10 @@ func _open_home() -> void:
 
 
 func _on_home_start() -> void:
+	# 一次性闩锁(外部审查 V3):queue_free 延迟生效 + 手机多点触控 —— start 双击
+	# 会无条件叠出第二层 PickWalker,孤儿层的 picked 还连着 choose_character。
+	if _picker != null:
+		return
 	_close_menu()
 	if _home != null and is_instance_valid(_home):
 		_home.queue_free()
@@ -139,10 +148,18 @@ func _open_picker() -> void:
 	add_child(_picker)
 
 
+## 闩锁的另一半(V3):两层选角或双击同一立绘会让 picked 双发 —— 二次开局
+## = Tape 重开 + 重进关。同一个前端会话只放行一次;回到前端(_open_home)复位。
+var _front_latch := false
+
+
 ## Also the entry point for tools and tests that need to skip the front-end;
 ## it tears down BOTH the home screen and the picker, so a probe can jump
 ## straight into a run with one call.
 func choose_character(i: int) -> void:
+	if _front_latch:
+		return
+	_front_latch = true
 	_close_menu()
 	if _home != null and is_instance_valid(_home):
 		_home.queue_free()
@@ -272,7 +289,9 @@ func _start_phrase() -> void:
 	state = St.DECISION
 	elapsed = 0.0
 	acted_late = false
+	acted_final = false
 	last_action_time = -1.0
+	last_discard_time = -1.0
 	_last_warn_digit = -1
 	cur_duration = run.phrase_duration()
 	cur_warning = GameConfig.warning_time(cur_duration)
@@ -332,7 +351,15 @@ func _settle() -> void:
 	# 这里只剩表现:Tape 打点 / 三段式结算动画 / popup。
 	# early 必须传:settle ctx 的 early_finish 只认这里的 flags(core/beat.gd),
 	# 漏传 = 速弹在真机恒假而 sim 侧为真 —— 模型/游戏分叉(C7 反向,TODO C10)。
-	var outcome := Beat.settle(run, phrase, {"late": acted_late, "early": _acted_early()})
+	# 时钟观测一律经 flags 交给 core(core/ 不含时钟 —— 铁律)。
+	# `secs_left` = 锁定时刻减最后一次动手的时刻:**没动过手的一拍记 0**,
+	# 否则「整拍不操作」会拿到满额剩余秒数, 秒表就成了「什么都不做最赚」的挂机卡(A4)。
+	var outcome := Beat.settle(run, phrase, {
+		"late": acted_late, "early": _acted_early(), "final": acted_final,
+		"secs_left": maxf(0.0, cur_lock - last_action_time) if last_action_time >= 0.0 else 0.0,
+		"early_discards": last_discard_time >= 0.0 \
+			and last_discard_time <= GameConfig.EARLY_DISCARD_WINDOW,
+	})
 	var res: Dictionary = outcome["res"]
 	var gained_score := int(outcome["score"])
 	var gained_coins := int(outcome["coins"])
@@ -430,7 +457,9 @@ func _advance() -> void:
 				"beats": run.phrase_index})
 			run_end.show_fail(run.section_score, run.target())
 			return
-		phrase.coins += GameConfig.SECTION_CLEAR_REWARD    # clear wage, shown as the panel chip
+		# clear wage, shown as the panel chip(走 grant —— 金币上限的四个入账口之一)
+		phrase.coins = Economy.grant(phrase.coins, GameConfig.SECTION_CLEAR_REWARD,
+			run.joker_slots)
 		if bool(out["finale"]):
 			Tape.close({"ok": true, "sec": run.section_idx,
 				"score": run.section_score, "target": run.target(),
@@ -521,6 +550,7 @@ func _reset_run(keep_character: bool) -> void:
 
 func _open_draft() -> void:
 	state = St.DRAFT
+	_shop_buys = 0        # 联票的续买配额按「一次进店」计
 	# a mid-section shop opens with the blind's counter part-way through; a
 	# section-end one opens at phrase 0 of the blind being entered
 	var mid: bool = run.phrase_in_section > 0 \
@@ -537,6 +567,10 @@ func _open_draft() -> void:
 		"offer": shop.offers(), "slots": Tape.slots(run.joker_slots),
 		"left": run.phrases_left() if mid else -1,
 		"need": run.deficit() if mid else -1})
+
+
+## 一次进店已成交几张(联票 buy_limit 的计数;每次 _open_draft 归零)。
+var _shop_buys := 0
 
 
 ## Shop signals — the board picked; money and slots change ONLY here.
@@ -562,6 +596,16 @@ func _on_shop_bought(j, price: int) -> void:
 				joker_views[k].set_joker(j)
 				fx.pop(joker_views[k])
 				break
+	# 刚装的卡若自带金币上限(穷开心), 存量当场修剪 —— 卡面「上限 5」对已经很富的
+	# 玩家也必须为真(D2:卡面不许说谎), 而修剪只许发生在编排器手里。
+	phrase.coins = Economy.cap_held(phrase.coins, run.joker_slots)
+	# 联票:限额未满就留在店里续买(同一货架摘牌重估, 不重掷)。
+	# 限额从槽位实时读 —— 本次买的若是联票, 当店立刻多出一次成交。
+	# ⚠ 走替换流(满槽)的成交不回商店:那条流程以 _start_phrase 收尾, 视为用掉全部余额。
+	_shop_buys += 1
+	if _shop_buys < Joker.slots_buy_limit(run.joker_slots):
+		shop.sold(j, run.joker_slots, phrase.coins)
+		return
 	shop.close()
 	_start_phrase()
 
@@ -572,11 +616,12 @@ func _on_shop_replace(j) -> void:
 		return
 	# 进入替换态。**「看了但没换」原本零痕迹** —— 后 3 次商店 100% 是替换场景,
 	# 而只记成交和差钱, 分不出「换不起」还是「不值得换」。
-	Tape.on("repl_open", {"id": String(j.id), "price": Economy.joker_price(j),
+	Tape.on("repl_open", {"id": String(j.id), "price": Economy.shelf_price(j, run.joker_slots),
 		"coins": phrase.coins, "slots": Tape.slots(run.joker_slots)})
 	shop.close()
 	# UI 那摊(提示条带价、新卡钉出来、四个槽开始接手势)在 view/replace.gd
-	replace.enter(j)
+	# 价从编排器传进去 —— 赞助的折扣价要和成交价同源(replace.gd 不认识槽位)
+	replace.enter(j, Economy.shelf_price(j, run.joker_slots))
 
 
 ## 「继续 ▸」= 不买就走。2026-08-06 起**没有奖励**(用户拿掉了跳过机制),
@@ -608,13 +653,14 @@ func _on_slot_tapped(k: int) -> void:
 		shop.show_board()
 		return
 	var old = run.joker_slots[k]
-	var price := Economy.joker_price(new_j)
+	var price := Economy.shelf_price(new_j, run.joker_slots)
 	var refund := Economy.sell_value(old)
 	if phrase.coins + refund < price:
 		fx.float_text("◆ 不足", joker_views[k].get_global_position() + Vector2(30, 40), Color("ff5f7e"))
 		Tape.on("deny", {"why": "replace"})
 		return
-	phrase.coins += refund - price
+	# 回收进账走 grant, 付款直接扣;换进的卡若自带上限, 装完再修剪存量(cap_held)
+	phrase.coins = Economy.grant(phrase.coins, refund, run.joker_slots) - price
 	Tape.on("repl", {"in": String(new_j.id),
 		"out": "" if old == null else String(old.id), "slot": k,
 		"price": price, "back": refund, "coins": phrase.coins})
@@ -622,6 +668,8 @@ func _on_slot_tapped(k: int) -> void:
 		fx.float_text("+%d ◆" % refund, joker_views[k].get_global_position() + Vector2(30, 40), StageTheme.GOLD)
 	run.joker_slots[k] = new_j
 	new_j.on_acquire(run.deck)
+	# ⚠ 修剪必须在**装卡之后** —— 装之前读的是旧槽位, 新卡自带的上限根本不在里面。
+	phrase.coins = Economy.cap_held(phrase.coins, run.joker_slots)
 	joker_views[k].set_joker(new_j)
 	fx.pop(joker_views[k])
 	replace.exit()
@@ -726,7 +774,19 @@ func _action_feedback() -> void:
 		last_action_time = elapsed
 		if elapsed >= cur_duration - GameConfig.LATE_ACT_WINDOW:
 			acted_late = true
+		# 谢幕:比尾声更窄的一档(默认最后 1 秒)。⚠ 两者是**包含关系**不是互斥 ——
+		# 压到最后一秒的操作同时点亮尾声与谢幕, 那是有意的(窄窗口的溢价叠在宽窗口上)。
+		if elapsed >= cur_duration - GameConfig.FINAL_ACT_WINDOW:
+			acted_final = true
 	wave.on_action()
+
+
+## 弃牌专属的时刻(早弃 earlyout 读它)。⚠ 与 `_action_feedback` 分开:
+## 那个记的是「任何动作」, 而早弃问的是「**弃牌**都赶在前面了吗」——
+## 交换/理牌不该弄脏这个读数。
+func _note_discard_time() -> void:
+	if state == St.DECISION:
+		last_discard_time = elapsed
 
 
 ## 弃牌是**原位补牌**, 补进来的是什么必须记下来 —— 那是随机的, 事后推不出来。
@@ -744,7 +804,10 @@ func _refilled(sel_h: Array, sel_c: Array) -> Array:
 
 
 ## A paid discard went through — feed the growth counters (vinyl, bassline).
+## ⚑ **所有成功弃牌的共同出口**(跨区多选 / 单张直弃 / 拖到弃牌键三条路都过这里),
+## 所以弃牌时刻记在这一处就够了 —— 记在三个调用点上必然漏一个。
 func _notify_discard(n: int) -> void:
+	_note_discard_time()
 	for j in run.joker_slots:
 		if j != null:
 			j.on_discard(n)

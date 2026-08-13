@@ -14,6 +14,11 @@ var hand: Array[Card] = []
 var cache: Array               # Array[Card], external run-owned reference
 var coins: int
 var discards_used: int = 0     # cards discarded this phrase (analytics)
+# ---- 2026-08-13 引擎波次·子波1 的动作内容记账(设计规格 = design/jokers_atlas.md) ----
+var discard_batch_max: int = 0   # 单批弃牌张数峰值(断舍离 declutter)
+var faces_discarded: int = 0     # 本拍弃掉的人头牌数(让位 stageexit)
+var swapped_in: Dictionary = {}  # 本拍经交换进入手牌的 Card 集合(串场 segue;对象身份)
+var _initial_hand: Dictionary = {}   # 开拍时手牌快照 —— 试探性换回(bot)不算「换入」
 var discard_actions_used: int = 0
 var swap_actions_used: int = 0
 var action_count: int = 0
@@ -79,6 +84,13 @@ func start() -> void:
 			break
 		cache.append(cc)
 	discards_used = 0
+	discard_batch_max = 0
+	faces_discarded = 0
+	swapped_in.clear()
+	_initial_hand.clear()
+	for hc in hand:
+		if hc != null:
+			_initial_hand[hc] = true
 	discard_actions_used = 0
 	swap_actions_used = 0
 	action_count = 0
@@ -155,6 +167,13 @@ func discard_selected(hand_indices: Array, cache_indices: Array = []) -> bool:
 		return false
 	coins -= Economy.discard_cost(total)
 	discards_used += total
+	discard_batch_max = maxi(discard_batch_max, total)
+	for fi in hand_indices:
+		if hand[fi] != null and hand[fi].rank >= 11 and hand[fi].rank <= 13:
+			faces_discarded += 1
+	for fi in cache_indices:
+		if cache[fi] != null and cache[fi].rank >= 11 and cache[fi].rank <= 13:
+			faces_discarded += 1
 	# ⚠ A discarded card must leave `hidden` too — the dictionary is keyed by
 	# object, and the deck recycles those same Card objects on reshuffle, so a
 	# stale key would make a future draw arrive mysteriously face down.
@@ -185,7 +204,14 @@ func discard_selected(hand_indices: Array, cache_indices: Array = []) -> bool:
 	return true
 
 ## Swap a hand card with a cache card (free; time is the cost).
-func swap_with_cache(hand_index: int, cache_index: int) -> bool:
+##
+## `probe = true` = **假想交换**:牌真的对调(调用方要拿它算 EV), 但**不计入动作数**。
+## ⚠ 存在的理由:规则 bot 每拍要试探 15 次(换过去→算→换回来), 每次都是真调用 ——
+## 于是「本拍零交换」这个条件在模型里**永不成立**(静物 stilllife 的 kit 触发率 0%)。
+## 这与 `Deck.peek_many` 那条注释是同一个病:**求解的过程不许污染被求解的对象**。
+## 留下来的那一次由调用方调 `commit_probe_swap()` 补记 —— 显式, 因为「玩家真的动了手」
+## 和「模型算了一下」必须可区分。
+func swap_with_cache(hand_index: int, cache_index: int, probe: bool = false) -> bool:
 	if not can_swap_action() or hand_index < 0 or hand_index >= hand.size():
 		return false
 	if cache_index < 0 or cache_index >= cache.size():
@@ -197,15 +223,36 @@ func swap_with_cache(hand_index: int, cache_index: int) -> bool:
 	var tmp: Card = hand[hand_index]
 	hand[hand_index] = cache[cache_index]
 	cache[cache_index] = tmp
+	# 串场的记账:换入的进集合、换出的出集合 —— bot 的试探换回于是自然抵消,
+	# 计数时再叠一层「不在初始手牌」的过滤(见 swapped_scoring_count)。
+	swapped_in[hand[hand_index]] = true
+	swapped_in.erase(tmp)
 	_forget_cache_age(hand[hand_index])
 	_remember_cache_age(tmp)
 	if SectionMod.cache_lock_phrases(mod) > 0:
 		locked_cache_cards[tmp] = true
+	if not probe:
+		commit_probe_swap()
+	return true
+
+
+## 把一次交换记成玩家动作(计数 + 动作轨)。`swap_with_cache` 正常路径自动调它;
+## 试探路径(probe)由调用方在**决定留下**时显式调。
+func commit_probe_swap() -> void:
 	swap_actions_used += 1
 	action_count += 1
 	if action_track == "":
 		action_track = "swap"
-	return true
+
+
+## 参与成牌的「换入牌」张数(串场 segue)。换入 = 经交换进手 **且** 不是开拍原手牌
+## —— 后一半挡掉 bot 试探性换回把原牌记成换入的伪影。
+func swapped_scoring_count(resolved: Array) -> int:
+	var n := 0
+	for c in resolved:
+		if c != null and swapped_in.has(c) and not _initial_hand.has(c):
+			n += 1
+	return n
 
 
 func can_swap_action() -> bool:

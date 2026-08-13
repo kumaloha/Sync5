@@ -84,6 +84,26 @@ static func _when_ok(w: Dictionary, state: Dictionary, ctx: Dictionary) -> bool:
 			"early_finish":
 				if not bool(ctx.get("early_finish", false)):
 					return false
+			"acted_final":
+				if not bool(ctx.get("acted_final", false)):
+					return false
+			"early_discards":
+				# 早弃:本拍**弃过牌**且最后一次弃牌在早锁线之前。
+				# ⚠ 没弃过牌不算 —— 否则「整拍不动手」白拿, 那是挂机(A4)。
+				if not bool(ctx.get("early_discards", false)):
+					return false
+			"swaps_eq":
+				if int(ctx.get("swaps", 0)) != int(v):
+					return false
+			"discard_batch_gte":
+				if int(ctx.get("discard_batch_max", 0)) < int(v):
+					return false
+			"section_doubled":
+				# 打包 doggybag:结算开始时段分已 ≥ 2×目标(悲观口径 —— 本拍自身的分
+				# 在链上还没定, 循环依赖;翻倍后的每一拍持续付, 奖励「超标后继续打」)。
+				var sd_target := int(ctx.get("section_target", 0))
+				if sd_target <= 0 or int(ctx.get("section_score", 0)) < sd_target * 2:
+					return false
 			"all_suits":
 				var seen_suits := {}
 				for c in ctx.get("scoring_cards", []):
@@ -139,6 +159,20 @@ static func _count(d: Dictionary, state: Dictionary, ctx: Dictionary) -> float:
 	var c := 1.0
 	if per == "discard":
 		c = float(int(ctx.discards))
+	elif per == "cache_face":
+		# 缓存区人头牌张数(包厢 Box Seats,Baron 的缓存直译;J/Q/K = 11..13)。
+		var nf := 0
+		for cc in ctx.get("cache_cards", []):
+			if not cc.is_wild() and cc.rank >= 11 and cc.rank <= 13:
+				nf += 1
+		c = float(nf)
+	elif per == "second_left":
+		# 秒表:锁定时**每剩一秒**。整秒向下取(玩家读的是秒表上的整数)。
+		c = floorf(maxf(0.0, float(ctx.get("seconds_left", 0.0))))
+	elif per == "face_discard":
+		c = float(int(ctx.get("faces_discarded", 0)))
+	elif per == "swapped_scoring":
+		c = float(int(ctx.get("swapped_scoring", 0)))
 	elif per.begins_with("counter:"):
 		c = float(state.get(per.substr(8), 0.0))
 	elif per.begins_with("coins:"):
@@ -179,6 +213,23 @@ static func _do(d: Dictionary, state: Dictionary, ctx: Dictionary) -> String:
 		if lboost > 0:
 			ctx.additive += lboost
 			return "+%d" % lboost
+		return ""
+	# 牌型金币的倍增器(分成 royalty)。乘的是**牌型自带的金币**, 不乘其他卡给的
+	# coins_bonus —— 结算式:coins = round(牌型金币 × factor) + Σcoins_bonus(Settle 收口)。
+	if d.has("coins_factor"):
+		ctx.coins_factor = float(ctx.get("coins_factor", 1.0)) * float(d["coins_factor"])
+		return "◆×%d" % int(d["coins_factor"])
+	# 缓存区点数最高的一张按点数计 chips(替补 Bench,Splash 的缓存直译)。
+	# 走 additive 通道吃全部倍率;值是倍数(1 = 原点数),留给调价用。
+	if d.has("additive_cache_top"):
+		var ctop := 0
+		for c in ctx.get("cache_cards", []):
+			if not c.is_wild():
+				ctop = maxi(ctop, int(c.rank))
+		ctop *= int(d["additive_cache_top"])
+		if ctop > 0:
+			ctx.additive += ctop
+			return "+%d" % ctop
 		return ""
 	# 记分牌逐张过滤加 chips(走 additive 通道,吃全部倍率 —— B1:早抽才值钱)。
 	# 一个操作码解锁整个牌面族(红/黑/低段), filter 值由 db.gd 校验。
@@ -268,6 +319,10 @@ static func on_phrase_end(counters: Dictionary, state: Dictionary, x: Dictionary
 		var spec: Dictionary = counters[cname]
 		if spec.has("on_early_finish") and bool(x.get("early_finish", false)):
 			state[cname] = float(state.get(cname, 0.0)) + float(spec["on_early_finish"])
+		# 脉冲计数器(定格 freeze):早锁 → 下一拍置 1, 否则归 0 —— 只活一拍,
+		# 与 on_early_finish 的「永久累加」(惯性)是同一事件的两种时间形状。
+		if spec.has("pulse_on_early_finish"):
+			state[cname] = 1.0 if bool(x.get("early_finish", false)) else 0.0
 		if spec.has("decay_per_phrase"):
 			state[cname] = maxf(float(spec.get("floor", 0.0)),
 				float(state.get(cname, 0.0)) - float(spec["decay_per_phrase"]))

@@ -228,7 +228,7 @@
    "cn": "四指",
    "code": "S-14",
    "kind": "support",
-   "rarity": "rare",
+   "rarity": "uncommon",
    "trigger_zh": "四张牌也算顺子",
    "amount": "RULE",
    "art_subject": "一只清楚可数的四指手套"
@@ -238,7 +238,7 @@
    "cn": "双色调",
    "code": "S-15",
    "kind": "support",
-   "rarity": "rare",
+   "rarity": "uncommon",
    "trigger_zh": "同色即可组成同花",
    "amount": "RULE",
    "art_subject": "半红半黑的双色舞台灯"
@@ -612,6 +612,86 @@
    "trigger_zh": "预览下一张补牌",
    "amount": "INFO",
    "art_subject": "荧光透视屏显出下一张牌轮廓"
+  },
+  {
+   "id": "duo",
+   "cn": "对唱",
+   "code": "S-53",
+   "kind": "support",
+   "rarity": "common",
+   "trigger_zh": "成牌里含有对子",
+   "amount": "+10",
+   "art_subject": "面对面共用一支麦克风的两张牌"
+  },
+  {
+   "id": "duet",
+   "cn": "二重唱",
+   "code": "S-54",
+   "kind": "support",
+   "rarity": "uncommon",
+   "trigger_zh": "成牌里含有对子",
+   "amount": "+25%",
+   "art_subject": "交缠上升的两条声线光带"
+  },
+  {
+   "id": "triad",
+   "cn": "三和弦",
+   "code": "S-55",
+   "kind": "support",
+   "rarity": "common",
+   "trigger_zh": "成牌为三条或更好",
+   "amount": "+25",
+   "art_subject": "三根琴弦上按出的一个和弦指型"
+  },
+  {
+   "id": "triplebill",
+   "cn": "三重",
+   "code": "S-56",
+   "kind": "support",
+   "rarity": "uncommon",
+   "trigger_zh": "成牌为三条或更好",
+   "amount": "+60%",
+   "art_subject": "一张海报上并列三场演出的三行大字"
+  },
+  {
+   "id": "backer",
+   "cn": "后台",
+   "code": "S-57",
+   "kind": "support",
+   "rarity": "common",
+   "trigger_zh": "每持有 2◆",
+   "amount": "+1",
+   "art_subject": "后台递出支票的神秘赞助人剪影"
+  },
+  {
+   "id": "bench",
+   "cn": "替补",
+   "code": "S-58",
+   "kind": "support",
+   "rarity": "uncommon",
+   "trigger_zh": "缓存最高点数计入基础分",
+   "amount": "+点数",
+   "art_subject": "候场席上待命亮起的一张高牌"
+  },
+  {
+   "id": "boxseats",
+   "cn": "包厢",
+   "code": "S-59",
+   "kind": "support",
+   "rarity": "rare",
+   "trigger_zh": "缓存每张人头牌",
+   "amount": "×1.2",
+   "art_subject": "包厢里俯瞰舞台的三张人头牌"
+  },
+  {
+   "id": "jukebox",
+   "cn": "点唱机",
+   "code": "S-60",
+   "kind": "support",
+   "rarity": "rare",
+   "trigger_zh": "商店必有一张规则牌",
+   "amount": "RULE",
+   "art_subject": "自动换碟的霓虹点唱机"
   }
  ]
 }

@@ -23,3 +23,29 @@ func run(t) -> void:
 	t.eq(Economy.sell_value(Joker.by_id("neonsign")), 2, "common sells for 2")
 	t.eq(Economy.reroll_cost(0), 3, "first reroll costs 3")
 	t.eq(Economy.reroll_cost(2), 5, "third reroll costs 5")
+
+	# ---- 金币上限(穷开心 skint 的 hold.coin_cap;2026-08-13 引擎波次·子波1)----
+	# 上限收口在 Economy 的两个口:grant 卡住收入、cap_held 修剪存量。
+	# ⚠ 契约:入账点有四处(结算/段工资×2/替换回收), 漏一处 = 上限对那条收入无效
+	# 且不报错 —— 与「乘法只写一处」同一条纪律。
+	var skint_slots: Array = [null, Joker.by_id("skint"), null, null]
+	var plain_slots: Array = [null, Joker.by_id("neonsign"), null, null]
+	var cap: int = Joker.slots_coin_cap(skint_slots)
+	t.check(cap > 0 and cap < 999999, "skint declares a coin cap")
+	t.eq(Joker.slots_coin_cap(plain_slots), 999999, "no cap without the card")
+	t.eq(Economy.grant(0, 3, plain_slots), 3, "income is untouched without a cap")
+	t.eq(Economy.grant(cap - 1, 3, skint_slots), cap, "income stops at the cap")
+	t.eq(Economy.grant(cap + 7, 3, skint_slots), cap + 7,
+		"income above the cap is refused, never deducted (grant is not a confiscation)")
+	t.eq(Economy.grant(5, -2, plain_slots), 3, "spending is never clamped")
+	t.eq(Economy.cap_held(cap + 20, skint_slots), cap,
+		"installing the card trims the hoard — 卡面「上限 5」对已经很富的玩家也必须为真")
+	t.eq(Economy.cap_held(2, skint_slots), 2, "cap_held never adds coins")
+	# 结算入账走 grant:装着穷开心时, 牌型金币吃不进上限之上
+	var cap_run := Run.new()
+	cap_run.reset(931)
+	cap_run.joker_slots[1] = Joker.by_id("skint")
+	cap_run.coins = cap
+	var cap_p := Beat.begin(cap_run)
+	Beat.settle(cap_run, cap_p, {})
+	t.eq(cap_run.coins, cap, "settle income cannot push past the cap (core/beat.gd uses grant)")

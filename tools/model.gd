@@ -133,10 +133,15 @@ func _curate(p: Phrase, tid: String, budget: int) -> int:
 	for ci in range(p.cache.size()):
 		for hi in range(p.hand.size()):
 			var before: float = float(_bot._best_plan(p.hand, tid, 3, rules)["ev"])
-			p.swap_with_cache(hi, ci)
+			# probe 口径与 tools/bot.gd::_play_adaptive 同步(2026-08-13):
+			# 试探不是玩家动作, 否则「本拍零交换」类条件在模型里永不成立。
+			if not p.swap_with_cache(hi, ci, true):
+				continue
 			var after: float = float(_bot._best_plan(p.hand, tid, 3, rules)["ev"])
 			if after <= before:
-				p.swap_with_cache(hi, ci)
+				p.swap_with_cache(hi, ci, true)
+			else:
+				p.commit_probe_swap()
 	var used := 0
 	while used < budget:
 		var plan: Dictionary = _bot._best_plan(p.hand, tid, budget - used, rules)

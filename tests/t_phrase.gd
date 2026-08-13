@@ -381,3 +381,32 @@ func run(t) -> void:
 	var with_ghost := encore_phrase.lock_and_settle()
 	t.check(int(with_ghost["score"]) > int(without_ghost["score"]),
 		"the ghost participates in best-five scoring")
+
+	# ---- 动作内容记账(2026-08-13 引擎波次·子波1:断舍离/让位/串场的信号源)----
+	# 这三个量在 core/phrase.gd 里数, 由 core/beat.gd 拼进 ctx —— 拼装只此一处。
+	var act := Phrase.new(Deck.new(4242), [], 99)
+	act.start()
+	t.eq(act.discard_batch_max, 0, "a fresh phrase has no discard batch")
+	t.eq(act.faces_discarded, 0, "and no discarded faces")
+	# 手牌塞成已知内容:两张人头 + 三张小牌, 一次弃三张
+	act.hand[0] = t._c(13, 0)
+	act.hand[1] = t._c(12, 1)
+	act.hand[2] = t._c(3, 2)
+	act.deck.draw_pile = [t._c(5, 0), t._c(6, 1), t._c(7, 2), t._c(8, 3)]
+	t.check(act.discard_selected([0, 1, 2]), "batch discard lands")
+	t.eq(act.discard_batch_max, 3, "batch peak records the biggest single batch")
+	t.eq(act.faces_discarded, 2, "two face cards left the hand")
+	t.check(act.discard_selected([0]), "a later single discard still works")
+	t.eq(act.discard_batch_max, 3, "batch peak is a MAX, not the latest batch")
+	# 串场:换入的牌参与成牌才算 —— 而 bot 的「试探换回」不许留下痕迹
+	var sw := Phrase.new(Deck.new(4243), [], 99)
+	sw.cache = [t._c(9, 0), t._c(9, 1), t._c(9, 2)]
+	sw.start()
+	var original: Card = sw.hand[0]
+	t.check(sw.swap_with_cache(0, 0), "swap in a cache card")
+	var brought_in: Card = sw.hand[0]
+	t.eq(sw.swapped_scoring_count([brought_in]), 1, "a swapped-in scoring card counts")
+	t.eq(sw.swapped_scoring_count([original]), 0, "the card it replaced does not")
+	t.check(sw.swap_with_cache(0, 0), "swap it straight back (bot probes do this)")
+	t.eq(sw.swapped_scoring_count([original]), 0,
+		"a swap-and-revert leaves no phantom credit —— 试探不算换入")

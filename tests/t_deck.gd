@@ -38,5 +38,26 @@ func run(t) -> void:
 	t.eq(wilds, 2, "exactly two wild cards")
 	var big := Card.new(Card.JOKER_RANK, Card.JOKER_BIG)
 	t.check(big.is_wild() and big.is_big_joker(), "big joker flags")
+
+	# trim(修剪, 2026-08-12 流派批):2/3 永久离开牌库 —— 减牌手术, enable_wilds 的镜像。
+	# 手/缓存里已握的 2/3 不当场没收, 弃掉时经 discard() 过滤离场(玩家看得见的牌不凭空消失)。
+	var tr := Deck.new(9)
+	tr.trim_low_ranks()
+	t.eq(tr.total(), 44, "trim removes the eight 2s and 3s")
+	var lows := 0
+	while tr.remaining() > 0:
+		if tr.draw().rank <= Deck.TRIM_RANK_MAX:
+			lows += 1
+	t.eq(lows, 0, "no 2/3 left to draw after trim")
+	tr.discard(Card.new(2, 0))
+	t.eq(tr.total(), 0, "a held 2 discarded after trim leaves play for good")
+	tr.discard(Card.new(7, 0))
+	t.eq(tr.total(), 1, "other ranks still recycle through the discard pile")
+	var trf := Deck.new(11)
+	trf.trim_low_ranks()
+	t.check(trf.fork(1).trim_low, "fork carries the trim flag (solver sees the surgery)")
+	var td := Deck.new(13)
+	Joker.by_id("trim").on_acquire(td)
+	t.eq(td.total(), 44, "trim joker on_acquire performs the surgery")
 	t.eq(big.rank_label(), "★", "big joker glyph")
 	t.eq(Card.new(Card.JOKER_RANK, Card.JOKER_LITTLE).rank_label(), "☆", "little joker glyph")

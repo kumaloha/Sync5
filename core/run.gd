@@ -129,7 +129,8 @@ static func request_label(goal: String) -> String:
 ## does the same (The Wall 4×, Violet Vessel 6×) and never disguises pure
 ## amount as a rule. Everything else must change the problem, not the bar.
 func target() -> int:
-	return section_target_for(GameConfig.SECTION_TARGETS, section_idx, face())
+	return int(round(float(section_target_for(GameConfig.SECTION_TARGETS, section_idx, face()))
+		* variety_mult(face(), section_kinds.size())))
 
 
 ## 这一拍有多少秒 —— 关卡曲线钩子减去这张脸砍掉的时间。
@@ -160,6 +161,21 @@ static func section_target_for(table: Array, section: int, mod: String) -> int:
 	return int(round(float(base) * SectionMod.target_mult(mod)))
 
 
+## 曲目税(2026-08-13 裁决 #8, design/blinds_review.md §6):种数配额**不再是硬门**,
+## 改成「缺一种, 目标升一档」—— 硬门是处决不是税(墙的健康带是 30-60%, 检查表即死
+## 违反 bent-not-bricked 的手术原则), 且旧硬门只活在 advance() 的 cleared 里,
+## runloop 的判生死根本没查它 —— 又是半个「游戏里活、模型里死」。
+## **税是悲观实时的**:段首欠满额(0 种已覆盖 = 全额税), 每覆盖一种目标当场下降 ——
+## HUD/商店缺口/判生死读的是同一个数, 覆盖种类的进度肉眼可见。
+## ⚠ 判生死只有一份:游戏(`target()`)与探针(`RunLoop`)都必须乘这里, 别再各写。
+static func variety_mult(mod: String, kinds_made: int) -> float:
+	var quota := SectionMod.required_kinds(mod)
+	if quota <= 0:
+		return 1.0
+	var missing := maxi(0, quota - kinds_made)
+	return 1.0 + SectionMod.variety_penalty(mod) * float(missing)
+
+
 ## One phrase ended; step the counter and report where the run stands.
 ##
 ## `shop_break` = the mid-section shop (2026-08-06 用户拍板: 商店与盲注解耦).
@@ -170,12 +186,11 @@ static func section_target_for(table: Array, section: int, mod: String) -> int:
 func advance() -> Dictionary:
 	phrase_in_section += 1
 	var done := phrase_in_section >= GameConfig.PHRASES_PER_SECTION
-	var kinds_needed := SectionMod.required_kinds(face())
-	var requirements_met := kinds_needed <= 0 or section_kinds.size() >= kinds_needed
+	# 曲目的种数配额已并进 target()(variety_mult, 裁决 #8)—— cleared 只比分数,
+	# 不再有第二条判定;旧的 requirements_met 键随硬门一起删(零消费点)。
 	return {"section_done": done,
 		"shop_break": not done and phrase_in_section % GameConfig.PHRASES_PER_SHOP == 0,
-		"cleared": done and section_score >= target() and requirements_met,
-		"requirements_met": requirements_met,
+		"cleared": done and section_score >= target(),
 		"is_wall": GameConfig.is_wall(section_idx),
 		"finale": section_idx >= GameConfig.SECTIONS_PER_RUN - 1}
 

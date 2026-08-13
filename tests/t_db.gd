@@ -22,7 +22,7 @@ func run(t) -> void:
 	t.eq(Character.roster().size(), 8, "8 characters from data")
 	t.check(DB.validate_characters({"characters": [{"idx": 1, "cn": "x", "title": "t", "fx": "f"}]}) != "",
 		"non-dense idx detected")
-	t.eq(Joker.pool().size(), 39, "39 jokers from data (2026-08-10 批3第一二波 +16;wrecker/trio 是仪器债,见 jokers_atlas §5.4)")
+	t.eq(Joker.pool().size(), 57, "57 jokers from data (2026-08-13 子波1 +6 / 子波2 +3;wrecker/trio/declutter/doggybag 是仪器债)")
 	# 卡面文字随平衡改, 别抄死 —— 只锁「读得回来 + 符合 D2 的 ≤7 词」
 	t.check(Joker.by_id("twin").fx_text.length() > 0, "joker text roundtrip")
 	for oid in GameConfig.JOKER_PRICE_OVERRIDES:
@@ -50,8 +50,9 @@ func run(t) -> void:
 	t.check(DB.validate_jokers({"jokers": [bad_proof]}) != "",
 		"an unknown proof channel is rejected")
 	# 每张现役牌都声明了 —— 这条防的是「加了新牌忘了声明」在真实数据上溜过去
+	# ⚠ 清单从 DB._JOKER_PROOFS 推导, 不手抄(2026-08-12 加 shop 通路时这里红过一次)
 	for e in DB.jokers():
-		t.check(["score", "solver", "coin"].has(String(e.get("proof", ""))),
+		t.check(DB._JOKER_PROOFS.has(String(e.get("proof", ""))),
 			"joker '%s' declares a known proof channel" % e.get("id", "?"))
 	t.eq(int(DB.sim()["runs"]), 1000, "sim.json runs")
 	t.check(DB.ui().has("stage"), "ui.json has stage")

@@ -50,6 +50,17 @@ static func run(result: Dictionary, slots: Array, extra: Dictionary) -> Dictiona
 		"section_idx": extra.get("section_idx", -1),
 		"scoring_cards": result.get("resolved", []),
 		"target_factor": 1.0,
+		# ---- 2026-08-13 子波1 ----
+		"acted_final": extra.get("acted_final", false),
+		"seconds_left": extra.get("seconds_left", 0.0),
+		"early_discards": extra.get("early_discards", false),
+		"swaps": extra.get("swaps", 0),
+		"discard_batch_max": extra.get("discard_batch_max", 0),
+		"faces_discarded": extra.get("faces_discarded", 0),
+		"swapped_scoring": extra.get("swapped_scoring", 0),
+		"section_score": extra.get("section_score", 0),
+		"section_target": extra.get("section_target", 0),
+		"coins_factor": 1.0,
 	}
 	var mod := String(extra.get("mod", ""))
 	var patch_power := SectionMod.joker_power(mod)
@@ -124,7 +135,8 @@ static func run(result: Dictionary, slots: Array, extra: Dictionary) -> Dictiona
 	var qf := SectionMod.request_factor(mod)
 	if qf < 1.0 and not bool(extra.get("request_met", true)):
 		score = int(score * qf)
-	var coins := int(result.get("coins", 0)) + int(ctx.coins_bonus)
+	var coins := int(round(float(int(result.get("coins", 0)))
+		* float(ctx.get("coins_factor", 1.0)))) + int(ctx.coins_bonus)
 	return {
 		"score": score, "coins": coins, "popups": popups,
 		"base": eff_chips, "mult": total_mult, "bonus": int(ctx.bonus),

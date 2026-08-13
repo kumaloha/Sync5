@@ -112,17 +112,11 @@
    "opener": {
     "fixed_rate": 0.167
    },
-   "popup": {
-    "fixed_rate": 0.25
-   },
    "rainbow": {
     "fixed_rate": 0.25
    },
    "nopair": {
     "fixed_rate": 0.45
-   },
-   "backup": {
-    "fixed_rate": 0.15
    },
    "rehearsal": {
     "fixed_rate": 0.3
@@ -228,6 +222,103 @@
      ],
      0.1
     ]
+   },
+   "duo": {
+    "fixed_rate": 0.7
+   },
+   "duet": {
+    "fixed_rate": 0.7
+   },
+   "triad": {
+    "fixed_rate": 0.11
+   },
+   "triplebill": {
+    "fixed_rate": 0.11
+   },
+   "backer": {
+    "coin_steps": 8.0
+   },
+   "bench": {
+    "avg_top": 9.6
+   },
+   "boxseats": {
+    "avg_faces": 0.7
+   },
+   "trim": {
+    "on_target": [
+     "stair",
+     0.1,
+     7.0
+    ],
+    "off_target": 0.03
+   },
+   "sponsor": {
+    "saves": 2.0
+   },
+   "doublebill": {
+    "option_ev": 2.5
+   },
+   "jukebox": {
+    "search_ev": 1.5
+   },
+   "stilllife": {
+    "fixed_rate": 0.35
+   },
+   "stageexit": {
+    "fixed_rate": 0.45
+   },
+   "segue": {
+    "fixed_rate": 0.8
+   },
+   "freeze": {
+    "fixed_rate": 0.7
+   },
+   "skint": {
+    "hoard": 34.7
+   },
+   "royalty": {
+    "coins_per_beat": 2.2
+   },
+   "curtain": {
+    "fixed_rate": 0.44
+   },
+   "stopwatch": {
+    "avg_seconds": 2.1
+   },
+   "earlyout": {
+    "fixed_rate": 0.7
+   }
+  },
+  "timing": {
+   "_comment": "玩家打向自己的卡的偏置(tools/bot.gd::_timing_flags)。多张取最大值,早/晚两轴独立。⚠ 这是 **bot 的打法先验**,不是真人:真人早锁率实测仅 8%(bot 78%),定价一律锚 Tape。",
+   "base": {
+    "late": 0.25,
+    "early": 0.25
+   },
+   "seconds_left_early": 3.2,
+   "cards": {
+    "finale": {
+     "late": 0.7
+    },
+    "curtain": {
+     "late": 0.8,
+     "final_second": 0.55
+    },
+    "momentum": {
+     "early": 0.6
+    },
+    "freeze": {
+     "early": 0.6
+    },
+    "shredder": {
+     "early": 0.75
+    },
+    "stopwatch": {
+     "early": 0.65
+    },
+    "earlyout": {
+     "discards_before": 0.7
+    }
    }
   }
  },

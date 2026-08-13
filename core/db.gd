@@ -31,7 +31,8 @@ static var _err := ""
 
 const _RUN_KEYS := ["phrases_per_section", "phrases_per_shop", "sections_per_gig",
 	"gigs_per_run", "blind_names", "gig_names", "section_targets", "gig_clocks",
-	"warning_offset", "lock_offset", "late_act_window", "early_finish_time",
+	"warning_offset", "lock_offset", "late_act_window", "final_act_window",
+	"early_finish_time", "early_discard_window",
 	"hand_size", "cache_cap", "beat_budget", "death_spec"]
 const _ECO_KEYS := ["starting_coins", "discard_cost", "section_clear_reward",
 	"draft_rarity_weights", "joker_prices", "joker_price_overrides",
@@ -212,7 +213,7 @@ const _FACE_PARAMS_OTHER := ["time_penalty", "phrase_toll", "cache_evict",
 	"cache_cap_delta", "target_mult", "hide_refill", "hide_faces",
 	"discard_lock_last", "swap_lock_last", "discard_actions", "swap_actions",
 	"action_limit", "cache_block_red", "refill_rank_min", "refill_rank_max",
-	"cache_lock_phrases", "seal_lowest_start", "required_kinds",
+	"cache_lock_phrases", "seal_lowest_start", "required_kinds", "variety_penalty",
 	"seal_oldest_cache", "restore_with_initial_cache", "section_discard_budget",
 	"exclusive_action_tracks"]
 const _FACE_PARAMS := _FACE_PARAMS_SETTLE + _FACE_PARAMS_OTHER
@@ -362,14 +363,44 @@ const _PREDICATES := ["kind", "kind_in", "same_as_prev", "diff_from_prev",
 	"acted_late", "discards_eq", "discards_gte", "coins_gte", "base_gte",
 	"last_phrase", "cache_mono_suit", "top_rank_gte", "counter_gte",
 	"first_phrase", "section_eq", "early_finish", "all_suits", "no_pair",
-	"cache_all_faces", "cache_run", "cache_trio"]
+	"cache_all_faces", "cache_run", "cache_trio",
+	"swaps_eq", "discard_batch_gte", "section_doubled",
+	"acted_final", "early_discards"]
 const _DO_KEYS := ["mult", "mult_add", "additive", "bonus", "bonus_pct",
 	"coins", "per", "step", "cap", "mult_from_target_factor", "additive_face_value",
-	"additive_low_value", "chips_per_card", "card_filter"]
+	"additive_low_value", "additive_cache_top", "chips_per_card", "card_filter",
+	"coins_factor"]
+
+## 计数器 spec 的合法键(2026-08-13 补, 与 per/acquire/shelf 同一条纪律:
+## 拼错的计数器键会让成长/衰减/脉冲**静默不走**)。
+const _COUNTER_KEYS := ["init", "decay_per_phrase", "floor", "on_discard",
+	"on_early_finish", "pulse_on_early_finish"]
+
+## 持有期恒生效的经济/规则参数(穷开心 skint 的 coin_cap)。
+## 与 shelf(货架影响)、acquire(一次性)三分天下, 键都要锁。
+const _HOLD_KEYS := ["coin_cap"]
+
+## `per` 的合法值(计数来源)。⚠ 拼错 per 会让 `Fx._count` 静默返回 1.0 ——
+## 效果从「按 N 计数」退化成「恒 ×1」,不报错。和 card_filter 同一条纪律:值也要锁。
+const _PER_SOURCES := ["discard", "cache_face", "face_discard", "swapped_scoring",
+	"second_left"]
+
+## `acquire` 的合法键与 deck_rule 的合法值。曾经不校验 —— 拼错的 acquire 键
+## 会让规则牌**静默什么都不做**(joker.gd on_acquire 查不到就跳过),
+## 正是「规则在游戏里、不在模型里」栽过五次的那个形状,趁加 trim_low 一起锁死。
+const _ACQUIRE_KEYS := ["wilds", "deck_rule", "trim_low"]
+const _DECK_RULES := ["shortcut", "fourfingers", "twotone"]
 
 
 ## 小丑牌的覆盖自证通路。含义见 `validate_jokers` 里的注释与 design/jokers.md。
-const _JOKER_PROOFS := ["score", "solver", "coin"]
+## `shop` = 货架结构卡(联票/赞助/点唱机):不产分不产钱, 改的是**商店本身**,
+## 三条旧通路都量不到 —— 仪器是 kit 的商店行为臂(开商店配对 A/B, 证物按卡声明)。
+const _JOKER_PROOFS := ["score", "solver", "coin", "shop"]
+
+## shelf 的合法键(2026-08-12 补, 外部审查 V2 的 shelf 半边就此结案)。
+## 拼错 shelf 键 = 货架结构卡静默不生效, 与 acquire 白名单同一条纪律。
+const _SHELF_KEYS := ["target_weight_mult", "target_guaranteed", "shelf_slots",
+	"buy_limit", "price_delta", "rule_guaranteed"]
 
 ## ⚑ `curve` = 时间形状, support 配额表的记账单位(2026-08-10 用户定分类三题后必填)。
 ## 15→18 张时配额表静默过期, 病根是「这张卡属于哪类」可以被忘掉 ——
@@ -384,7 +415,7 @@ static func validate_jokers(d: Dictionary) -> String:
 	for e in d["jokers"]:
 		for k in e:
 			if not ["id", "name", "cn", "kind", "rarity", "proof", "fx", "effects",
-					"counters", "acquire", "shelf", "curve"].has(k) and not String(k).begins_with("_"):
+					"counters", "acquire", "shelf", "hold", "curve"].has(k) and not String(k).begins_with("_"):
 				return "joker unknown key '%s' (%s)" % [k, e.get("id", "?")]
 		# support 必填 curve(配额记账);target 不填 —— 它是 WHAT 不是 HOW, 不进配额表,
 		# 填了等于同一个口径写两处。
@@ -427,6 +458,26 @@ static func validate_jokers(d: Dictionary) -> String:
 					return "unknown do key '%s' (%s)" % [dk, e["id"]]
 				if dk == "card_filter" and not ["red", "black", "rank_lte_5"].has(String(fx["do"][dk])):
 					return "unknown card_filter '%s' (%s)" % [fx["do"][dk], e["id"]]
+				if dk == "per":
+					var pv := String(fx["do"][dk])
+					if not _PER_SOURCES.has(pv) and not pv.begins_with("counter:") \
+							and not pv.begins_with("coins:"):
+						return "unknown per source '%s' (%s)" % [pv, e["id"]]
+		for ak in e.get("acquire", {}):
+			if not _ACQUIRE_KEYS.has(String(ak)):
+				return "unknown acquire key '%s' (%s)" % [ak, e["id"]]
+			if String(ak) == "deck_rule" and not _DECK_RULES.has(String(e["acquire"][ak])):
+				return "unknown deck_rule '%s' (%s)" % [e["acquire"][ak], e["id"]]
+		for sk in e.get("shelf", {}):
+			if not _SHELF_KEYS.has(String(sk)):
+				return "unknown shelf key '%s' (%s)" % [sk, e["id"]]
+		for hk in e.get("hold", {}):
+			if not _HOLD_KEYS.has(String(hk)):
+				return "unknown hold key '%s' (%s)" % [hk, e["id"]]
+		for cname in e.get("counters", {}):
+			for ck in e["counters"][cname]:
+				if not _COUNTER_KEYS.has(String(ck)):
+					return "unknown counter key '%s' (%s)" % [ck, e["id"]]
 	return ""
 
 

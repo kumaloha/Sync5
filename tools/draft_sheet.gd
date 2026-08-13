@@ -4,8 +4,9 @@ extends SceneTree
 ##   godot --path . --script res://tools/draft_sheet.gd
 ## Captures _shot_draft.png (section-end board, one card unaffordable at 5 ◆),
 ## _shot_draft_mid.png (**mid-section** board: 还差 N 分 · 还剩 N 拍 —— the
-## 2026-08-06 decoupled shop) and _shot_draft_replace.png (full slots ->
-## the incoming card pinned, drag-or-tap onto a slot).
+## 2026-08-06 decoupled shop), _shot_draft_replace.png (full slots ->
+## the incoming card pinned, drag-or-tap onto a slot) and _shot_draft_four.png
+## (联票在手: 4 张窄版货架 —— 2026-08-12 shelf 三件套的布局验收态).
 
 var _scene: Node
 var _frames := 0
@@ -55,6 +56,18 @@ func _process(_delta: float) -> bool:
 		_scene.shop._on_pick(0)
 	elif _frames == 100:
 		Shot.save(self, "draft_replace")
+	elif _frames == 104:
+		# 联票态:货架 4 位窄版(card_w_4)+ 赞助在手的 -1◆ 价签, 一屏验两张
+		_scene.replace.exit()
+		_scene.shop.close()
+		_set_slot(1, "doublebill")
+		_set_slot(2, "sponsor")
+		_set_slot(3, "")     # by_id("") = null, 空出一格让「买入装槽」路径可走
+		_scene.phrase.coins = 9
+		_scene.run.phrase_in_section = 0
+		_scene._open_draft()
+	elif _frames == 130:
+		Shot.save(self, "draft_four")
 		quit()
 	return false
 

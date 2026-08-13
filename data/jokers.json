@@ -429,7 +429,7 @@
    "name": "Four Fingers",
    "cn": "四指",
    "kind": "support",
-   "rarity": "rare",
+   "rarity": "uncommon",
    "curve": "fixed",
    "proof": "solver",
    "fx": "Four-card straights count",
@@ -442,7 +442,7 @@
    "name": "Two-Tone",
    "cn": "双色调",
    "kind": "support",
-   "rarity": "rare",
+   "rarity": "uncommon",
    "curve": "fixed",
    "proof": "solver",
    "fx": "Flushes need only matching colors",
@@ -679,26 +679,6 @@
    ]
   },
   {
-   "id": "popup",
-   "name": "Pop-Up",
-   "cn": "快闪",
-   "kind": "support",
-   "rarity": "common",
-   "curve": "decay",
-   "proof": "score",
-   "fx": "Section one only: +200",
-   "effects": [
-    {
-     "when": {
-      "section_eq": 0
-     },
-     "do": {
-      "bonus": 200
-     }
-    }
-   ]
-  },
-  {
    "id": "rainbow",
    "name": "Rainbow",
    "cn": "彩虹",
@@ -734,26 +714,6 @@
      },
      "do": {
       "bonus": 190.0
-     }
-    }
-   ]
-  },
-  {
-   "id": "backup",
-   "name": "Backup",
-   "cn": "伴唱",
-   "kind": "support",
-   "rarity": "common",
-   "curve": "burst",
-   "proof": "solver",
-   "fx": "Cache all face cards: +200",
-   "effects": [
-    {
-     "when": {
-      "cache_all_faces": true
-     },
-     "do": {
-      "bonus": 200.0
      }
     }
    ]
@@ -845,6 +805,394 @@
      "do": {
       "chips_per_card": 9,
       "card_filter": "rank_lte_5"
+     }
+    }
+   ]
+  },
+  {
+   "id": "duo",
+   "name": "Duo",
+   "cn": "对唱",
+   "kind": "support",
+   "rarity": "common",
+   "curve": "burst",
+   "proof": "score",
+   "fx": "Hands with a pair: +10 chips",
+   "effects": [
+    {
+     "when": {
+      "kind_in": [
+       "PAIR",
+       "TWO_PAIR",
+       "THREE_KIND",
+       "FULL_HOUSE",
+       "FOUR_KIND"
+      ]
+     },
+     "do": {
+      "additive": 10
+     }
+    }
+   ]
+  },
+  {
+   "id": "duet",
+   "name": "Duet",
+   "cn": "二重唱",
+   "kind": "support",
+   "rarity": "uncommon",
+   "curve": "burst",
+   "proof": "score",
+   "fx": "Hands with a pair: +25%",
+   "effects": [
+    {
+     "when": {
+      "kind_in": [
+       "PAIR",
+       "TWO_PAIR",
+       "THREE_KIND",
+       "FULL_HOUSE",
+       "FOUR_KIND"
+      ]
+     },
+     "do": {
+      "bonus_pct": 0.25
+     }
+    }
+   ]
+  },
+  {
+   "id": "triad",
+   "name": "Triad",
+   "cn": "三和弦",
+   "kind": "support",
+   "rarity": "common",
+   "curve": "burst",
+   "proof": "score",
+   "fx": "Trips or better: +25 chips",
+   "effects": [
+    {
+     "when": {
+      "kind_in": [
+       "THREE_KIND",
+       "FULL_HOUSE",
+       "FOUR_KIND"
+      ]
+     },
+     "do": {
+      "additive": 25
+     }
+    }
+   ]
+  },
+  {
+   "id": "triplebill",
+   "name": "Triple Bill",
+   "cn": "三重",
+   "kind": "support",
+   "rarity": "uncommon",
+   "curve": "burst",
+   "proof": "score",
+   "fx": "Trips or better: +60%",
+   "effects": [
+    {
+     "when": {
+      "kind_in": [
+       "THREE_KIND",
+       "FULL_HOUSE",
+       "FOUR_KIND"
+      ]
+     },
+     "do": {
+      "bonus_pct": 0.6
+     }
+    }
+   ]
+  },
+  {
+   "id": "backer",
+   "name": "Backer",
+   "cn": "后台",
+   "kind": "support",
+   "rarity": "common",
+   "curve": "floating",
+   "proof": "score",
+   "fx": "+1 chip per 2 coins held",
+   "effects": [
+    {
+     "when": {
+      "coins_gte": 2
+     },
+     "do": {
+      "additive": 1,
+      "per": "coins:2"
+     }
+    }
+   ]
+  },
+  {
+   "id": "bench",
+   "name": "Bench",
+   "cn": "替补",
+   "kind": "support",
+   "rarity": "uncommon",
+   "curve": "floating",
+   "proof": "score",
+   "fx": "Top cache rank counts as chips",
+   "effects": [
+    {
+     "do": {
+      "additive_cache_top": 1
+     }
+    }
+   ]
+  },
+  {
+   "id": "boxseats",
+   "name": "Box Seats",
+   "cn": "包厢",
+   "kind": "support",
+   "rarity": "rare",
+   "curve": "floating",
+   "proof": "score",
+   "fx": "Each face in cache: ×1.2",
+   "effects": [
+    {
+     "do": {
+      "mult_add": 0.2,
+      "per": "cache_face"
+     }
+    }
+   ]
+  },
+  {
+   "id": "trim",
+   "name": "Trim",
+   "cn": "修剪",
+   "kind": "support",
+   "rarity": "rare",
+   "curve": "fixed",
+   "proof": "solver",
+   "fx": "Twos and threes leave deck",
+   "acquire": {
+    "trim_low": true
+   }
+  },
+  {
+   "id": "doublebill",
+   "name": "Double Bill",
+   "cn": "联票",
+   "kind": "support",
+   "rarity": "rare",
+   "curve": "fixed",
+   "proof": "shop",
+   "fx": "Shops offer 4; buy up to 2",
+   "shelf": {
+    "shelf_slots": 4,
+    "buy_limit": 2
+   }
+  },
+  {
+   "id": "sponsor",
+   "name": "Sponsor",
+   "cn": "赞助",
+   "kind": "support",
+   "rarity": "uncommon",
+   "curve": "fixed",
+   "proof": "shop",
+   "fx": "Shop cards cost 1 less",
+   "shelf": {
+    "price_delta": -1
+   }
+  },
+  {
+   "id": "jukebox",
+   "name": "Jukebox",
+   "cn": "点唱机",
+   "kind": "support",
+   "rarity": "rare",
+   "curve": "fixed",
+   "proof": "shop",
+   "fx": "Shops always offer a rule card",
+   "shelf": {
+    "rule_guaranteed": true
+   }
+  },
+  {
+   "id": "freeze",
+   "name": "Freeze Frame",
+   "cn": "定格",
+   "kind": "support",
+   "rarity": "uncommon",
+   "curve": "burst",
+   "proof": "score",
+   "fx": "After early finish: next phrase +30%",
+   "counters": {
+    "armed": {
+     "pulse_on_early_finish": 1
+    }
+   },
+   "effects": [
+    {
+     "when": {
+      "counter_gte": [
+       "armed",
+       1
+      ]
+     },
+     "do": {
+      "bonus_pct": 0.3
+     }
+    }
+   ]
+  },
+  {
+   "id": "stilllife",
+   "name": "Still Life",
+   "cn": "静物",
+   "kind": "support",
+   "rarity": "common",
+   "curve": "burst",
+   "proof": "score",
+   "fx": "Zero swaps this phrase: +60",
+   "effects": [
+    {
+     "when": {
+      "swaps_eq": 0
+     },
+     "do": {
+      "bonus": 60
+     }
+    }
+   ]
+  },
+  {
+   "id": "segue",
+   "name": "Segue",
+   "cn": "串场",
+   "kind": "support",
+   "rarity": "common",
+   "curve": "burst",
+   "proof": "score",
+   "fx": "Swapped cards that score: +40 each",
+   "effects": [
+    {
+     "do": {
+      "bonus": 40,
+      "per": "swapped_scoring"
+     }
+    }
+   ]
+  },
+  {
+   "id": "stageexit",
+   "name": "Stage Exit",
+   "cn": "让位",
+   "kind": "support",
+   "rarity": "common",
+   "curve": "burst",
+   "proof": "score",
+   "fx": "Each face card discarded: +30",
+   "effects": [
+    {
+     "do": {
+      "bonus": 30,
+      "per": "face_discard"
+     }
+    }
+   ]
+  },
+  {
+   "id": "royalty",
+   "name": "Royalties",
+   "cn": "分成",
+   "kind": "support",
+   "rarity": "uncommon",
+   "curve": "floating",
+   "proof": "coin",
+   "fx": "Hand coin rewards are doubled",
+   "effects": [
+    {
+     "do": {
+      "coins_factor": 2
+     }
+    }
+   ]
+  },
+  {
+   "id": "skint",
+   "name": "Broke & Happy",
+   "cn": "穷开心",
+   "kind": "support",
+   "rarity": "rare",
+   "curve": "fixed",
+   "proof": "score",
+   "fx": "Coins cap at five; hands x1.3",
+   "hold": {
+    "coin_cap": 5
+   },
+   "effects": [
+    {
+     "do": {
+      "mult_add": 0.3
+     }
+    }
+   ]
+  },
+  {
+   "id": "curtain",
+   "name": "Curtain Call",
+   "cn": "谢幕",
+   "kind": "support",
+   "rarity": "uncommon",
+   "curve": "burst",
+   "proof": "score",
+   "fx": "Act in the final second: +60%",
+   "effects": [
+    {
+     "when": {
+      "acted_final": true
+     },
+     "do": {
+      "bonus_pct": 0.6
+     }
+    }
+   ]
+  },
+  {
+   "id": "stopwatch",
+   "name": "Stopwatch",
+   "cn": "秒表",
+   "kind": "support",
+   "rarity": "uncommon",
+   "curve": "burst",
+   "proof": "score",
+   "fx": "+8% per second left at settle",
+   "effects": [
+    {
+     "do": {
+      "bonus_pct": 0.08,
+      "per": "second_left"
+     }
+    }
+   ]
+  },
+  {
+   "id": "earlyout",
+   "name": "Early Purge",
+   "cn": "早弃",
+   "kind": "support",
+   "rarity": "common",
+   "curve": "burst",
+   "proof": "score",
+   "fx": "All discards in first 4 seconds: +80",
+   "effects": [
+    {
+     "when": {
+      "early_discards": true
+     },
+     "do": {
+      "bonus": 80
      }
     }
    ]

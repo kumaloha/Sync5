@@ -2,9 +2,10 @@ extends RefCounted
 
 # --- v0.1 joker roster ---
 func run(t) -> void:
-	# roster shape (2026-08-10 批3首波): Target 6 + Support 22, 终态 60 见 design/jokers_atlas.md §5
+	# roster shape (2026-08-12 流派批: 删 popup/backup, 加族内件×4 + backer/bench/boxseats + trim;
+	# 缘由与增删改清单见 design/archetypes.md §5)
 	var pool := Joker.pool()
-	t.eq(pool.size(), 39, "pool holds 39 jokers")
+	t.eq(pool.size(), 57, "pool holds 57 jokers (子波1 +6 / 子波2 计时族 +3)")
 	var targets := 0
 	var rarities := {"common": 0, "uncommon": 0, "rare": 0}
 	for j in pool:
@@ -18,9 +19,14 @@ func run(t) -> void:
 		# principle D2: EN card text, ≤7 words
 		t.check(j.fx_text.split(" ").size() <= 7, "%s card text within 7 words" % j.id)
 	t.eq(targets, 7, "seven targets (wrecker 待 bot 弃牌策略后 +1)")
-	t.eq(rarities["common"], 17, "seventeen common supports")
-	t.eq(rarities["uncommon"], 10, "ten uncommon supports")
-	t.eq(rarities["rare"], 5, "five rare supports")
+	# 概率线基建(archetypes.md §3.8): fourfingers/twotone 降罕见 —— 规则牌从 5% 池权重解放
+	t.eq(rarities["common"], 22, "twenty-two common supports")
+	t.eq(rarities["uncommon"], 20, "twenty uncommon supports")
+	t.eq(rarities["rare"], 8, "eight rare supports")
+	t.eq(String(Joker.by_id("fourfingers").rarity), "uncommon", "fourfingers is uncommon now")
+	t.eq(String(Joker.by_id("twotone").rarity), "uncommon", "twotone is uncommon now")
+	t.check(Joker.by_id("popup") == null, "popup left the pool (结构死卡, archetypes.md §5)")
+	t.check(Joker.by_id("backup") == null, "backup left the pool (boxseats 上位替代)")
 	t.check(Joker.by_id("nope") == null, "by_id on unknown id -> null")
 
 	var flush_res := Pattern.evaluate_best([t._c(2, 0), t._c(5, 0), t._c(8, 0), t._c(11, 0), t._c(13, 0)])
@@ -172,3 +178,124 @@ func run(t) -> void:
 	# interest: cap at +5
 	t.eq(Settle.run(flush_res, [null, Joker.by_id("interest"), null, null], {"coins": 40})["coins"],
 		4 + 5, "interest caps at +5")
+
+	# ---- 2026-08-12 流派批(design/archetypes.md §3):族内件 + 缓存件 + 经济件 ----
+	# 族内件 contains 语义 = kind_in(顺/同花五张点数互异, 天然不含对):
+	# 葫芦必须**同时**吃到对子件和三条件 —— 原作葫芦流 Duo+Trio 双吃的直译, 结构契约。
+	var damt: int = int(t._do_amount("duo", "additive"))
+	var tamt: int = int(t._do_amount("triad", "additive"))
+	t.eq(Settle.run(fh_res, [null, Joker.by_id("duo"), Joker.by_id("triad"), null], {})["score"],
+		(int(fh_res["chips"]) + damt + tamt) * int(Pattern.BASE_MULT[Pattern.Kind.FULL_HOUSE]),
+		"duo+triad double-dip on a full house (contains semantics)")
+	t.eq(Settle.run(flush_res, [null, Joker.by_id("duo"), null, null], {})["score"],
+		base, "duo silent on a flush (no pair inside)")
+	t.eq(Settle.run(pair_res, [null, Joker.by_id("triad"), null, null], {})["score"],
+		int(pair_res["score"]), "triad silent on a bare pair")
+	var dpct: float = t._do_amount("duet", "bonus_pct")
+	t.eq(Settle.run(pair_res, [null, Joker.by_id("duet"), null, null], {})["score"],
+		int(round(float(pair_res["score"]) * (1.0 + dpct))), "duet rides the pct channel")
+
+	# backer(后台, Bull 直译):每 2◆ +1 chips, 乘前通道吃全倍率
+	var bamt: int = int(t._do_amount("backer", "additive"))
+	t.eq(Settle.run(flush_res, [null, Joker.by_id("backer"), null, null], {"coins": 10})["score"],
+		(int(flush_res["chips"]) + bamt * 5) * int(Pattern.BASE_MULT[Pattern.Kind.FLUSH]),
+		"backer: +1 chip per 2 coins held, rides the mult")
+	t.eq(Settle.run(flush_res, [null, Joker.by_id("backer"), null, null], {"coins": 1})["score"],
+		base, "backer silent below 2 coins")
+
+	# bench(替补, Splash 缓存直译):缓存最高点数按倍数计 chips
+	var btop: int = 13 * int(t._do_amount("bench", "additive_cache_top"))
+	t.eq(Settle.run(flush_res, [null, Joker.by_id("bench"), null, null],
+		{"cache_cards": [t._c(13, 2), t._c(3, 1), t._c(7, 0)]})["score"],
+		(int(flush_res["chips"]) + btop) * int(Pattern.BASE_MULT[Pattern.Kind.FLUSH]),
+		"bench: top cache rank rides as chips")
+
+	# boxseats(包厢, Baron 缓存直译):缓存每张人头 mult_add 0.2 —— 两张人头 = ×1.4
+	var bstep: float = t._do_amount("boxseats", "mult_add")
+	t.eq(Settle.run(flush_res, [null, Joker.by_id("boxseats"), null, null],
+		{"cache_cards": [t._c(13, 2), t._c(12, 1), t._c(7, 0)]})["score"],
+		int(round(base * (1.0 + bstep * 2.0))), "boxseats: two cache faces stack the mult")
+	t.eq(Settle.run(flush_res, [null, Joker.by_id("boxseats"), null, null],
+		{"cache_cards": [t._c(7, 2), t._c(5, 1), t._c(2, 0)]})["score"],
+		base, "boxseats silent with no face in cache")
+
+	# ---- 2026-08-13 引擎波次·子波1:动作内容信号(design/jokers_atlas.md)----
+	# 静物:零交换才给 —— 交换是免费动作, 这是「不动手」的那一侧张力(vs 串场)
+	t.eq(Settle.run(flush_res, [null, Joker.by_id("stilllife"), null, null], {"swaps": 0})["score"],
+		base + int(t._bonus("stilllife")), "still life pays a zero-swap phrase")
+	t.eq(Settle.run(flush_res, [null, Joker.by_id("stilllife"), null, null], {"swaps": 1})["score"],
+		base, "still life silent once a swap happened")
+	# 串场:按「换入且参与成牌」的张数计 —— 每张都要真的进了成牌五张
+	t.eq(Settle.run(flush_res, [null, Joker.by_id("segue"), null, null],
+		{"swapped_scoring": 2})["score"],
+		base + int(t._bonus("segue")) * 2, "segue pays per swapped scoring card")
+	t.eq(Settle.run(flush_res, [null, Joker.by_id("segue"), null, null],
+		{"swapped_scoring": 0})["score"], base, "segue silent with nothing swapped in")
+	# 断舍离(declutter)撤出 json 挂仪器债(bot 弃牌上限 2-3 张, 一次弃 5 张结构不可能),
+	# 断言随卡一起撤 —— 回池时连同 bot 弃牌流策略块一起恢复(同 wrecker/trio)。
+	# 让位:每张被弃的人头 —— 反贵宾路线的燃料
+	t.eq(Settle.run(flush_res, [null, Joker.by_id("stageexit"), null, null],
+		{"faces_discarded": 3})["score"], base + int(t._bonus("stageexit")) * 3,
+		"stage exit pays per discarded face card")
+	# 定格:早锁只武装**下一拍**(脉冲计数器, 一拍后自动归零)
+	var frz := Joker.by_id("freeze")
+	t.eq(Settle.run(flush_res, [null, frz, null, null], {})["score"], base,
+		"freeze silent before any early finish")
+	frz.on_phrase_end({"early_finish": true})
+	var fpct: float = t._do_amount("freeze", "bonus_pct")
+	t.eq(Settle.run(flush_res, [null, frz, null, null], {})["score"],
+		int(round(base * (1.0 + fpct))), "freeze arms the phrase after an early finish")
+	frz.on_phrase_end({"early_finish": false})
+	t.eq(Settle.run(flush_res, [null, frz, null, null], {})["score"], base,
+		"freeze lasts exactly one phrase (pulse, not permanent)")
+	# 分成:牌型自带金币翻倍, **不乘**其他卡给的 coins_bonus(小费罐同装时验证)
+	var pat_coins: int = int(flush_res["coins"])
+	t.eq(Settle.run(flush_res, [null, Joker.by_id("royalty"), null, null], {})["coins"],
+		pat_coins * 2, "royalties double the hand's own coin reward")
+	t.eq(Settle.run(flush_res, [null, Joker.by_id("royalty"), Joker.by_id("tipjar"), null],
+		{"discards": 0})["coins"],
+		pat_coins * 2 + int(t._do_amount("tipjar", "coins")),
+		"royalties do not double another card's coin bonus")
+	# 打包:段分已达目标两倍才给(悲观口径 —— 本拍自己的分还没落地)
+	t.eq(Settle.run(flush_res, [null, Joker.by_id("doggybag"), null, null],
+		{"section_score": 2000, "section_target": 1000})["coins"],
+		pat_coins + int(t._do_amount("doggybag", "coins")), "doggy bag pays past double target")
+	t.eq(Settle.run(flush_res, [null, Joker.by_id("doggybag"), null, null],
+		{"section_score": 1999, "section_target": 1000})["coins"],
+		pat_coins, "doggy bag silent just below double")
+	# 穷开心:常驻倍率 + 金币上限(上限本身在 Economy 收口, 见 t_economy)
+	var spct: float = t._do_amount("skint", "mult_add")
+	t.eq(Settle.run(flush_res, [null, Joker.by_id("skint"), null, null], {})["score"],
+		int(round(base * (1.0 + spct))), "broke & happy always multiplies")
+
+	# ---- 2026-08-13 子波 2:计时族(时钟观测由 view/探针经 flags 传入, core 不含时钟)----
+	# 谢幕:最后 1 秒窗口, 比尾声(2 秒)更窄 —— 两者是**包含关系**, 压到最后一秒双亮
+	var cpct: float = t._do_amount("curtain", "bonus_pct")
+	t.eq(Settle.run(flush_res, [null, Joker.by_id("curtain"), null, null],
+		{"acted_final": true})["score"], int(round(base * (1.0 + cpct))),
+		"curtain pays an action in the final second")
+	t.eq(Settle.run(flush_res, [null, Joker.by_id("curtain"), null, null],
+		{"acted_late": true})["score"], base,
+		"curtain stays silent on a merely-late action (its window is narrower)")
+	# 压到最后一秒 = 同时点亮谢幕(pct)与尾声(bonus)。两条通道分别落地:
+	# pct 乘在乘法链上, bonus 在乘法**后**加 —— 顺序错了这条断言会红。
+	t.eq(Settle.run(flush_res, [null, Joker.by_id("curtain"), Joker.by_id("finale"), null],
+		{"acted_final": true, "acted_late": true})["score"],
+		int(round(base * (1.0 + cpct))) + int(t._bonus("finale")),
+		"a final-second action lights both curtain and finale (windows nest, by design)")
+	# 秒表:每剩 1 秒;整秒向下取(玩家读的是秒表上的整数)
+	var swpct: float = t._do_amount("stopwatch", "bonus_pct")
+	t.eq(Settle.run(flush_res, [null, Joker.by_id("stopwatch"), null, null],
+		{"seconds_left": 3.0})["score"], int(round(base * (1.0 + swpct * 3.0))),
+		"stopwatch pays per whole second left")
+	t.eq(Settle.run(flush_res, [null, Joker.by_id("stopwatch"), null, null],
+		{"seconds_left": 2.9})["score"], int(round(base * (1.0 + swpct * 2.0))),
+		"stopwatch floors to whole seconds")
+	t.eq(Settle.run(flush_res, [null, Joker.by_id("stopwatch"), null, null],
+		{"seconds_left": 0.0})["score"], base, "stopwatch silent with no time left")
+	# 早弃:弃过牌**且**都在前段 —— 没弃过牌不算(否则整拍不动手白拿, A4 挂机)
+	t.eq(Settle.run(flush_res, [null, Joker.by_id("earlyout"), null, null],
+		{"early_discards": true})["score"], base + int(t._bonus("earlyout")),
+		"early purge pays when every discard landed early")
+	t.eq(Settle.run(flush_res, [null, Joker.by_id("earlyout"), null, null], {})["score"],
+		base, "early purge silent on an untouched phrase (no discards is not 'early')")

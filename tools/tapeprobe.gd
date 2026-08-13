@@ -52,6 +52,16 @@ func _process(_d: float) -> bool:
 		if _scene.phrase == null or _scene.state != 2:     # 2 = St.DECISION
 			return false
 		_did = true
+		# ⚠⚠ **必须先把脸清掉**(2026-08-13 修的间歇性假红)。
+		# 这个探针要做**两次**弃牌动作(跨区多选 + 单张直弃), 而第一轮的脸里
+		# 「一口气」`onetake` 是 `discard_action_limit: 1` —— 掷到它时第二次弃牌
+		# 被 core **正确地**拒绝, 于是 `expected 2 discards, saw 1` 报一个不存在的 bug。
+		# 抽中概率 1/8, 所以它**平均八次跑绿七次** —— 这种门比永远红的门更坏:
+		# 红的时候没人知道该信谁(我第一次撞上它时先去查了自己当天的改动)。
+		# 探针验的是**打点管线**, 不是打点与脸的交互 —— 让一个无关变量决定门的颜色
+		# 是仪器缺陷。清脸即确定化;脸与打点的交互由 `flow_probe` 那边覆盖。
+		_scene.run.run_faces = {}
+		_scene.phrase.mod = ""
 		# 点选:选中 → 取消 → 跨区再选(这三下原本在日志里完全不可见)
 		_scene.hand._decide = true
 		_scene.hand._on_hand_tap(1)

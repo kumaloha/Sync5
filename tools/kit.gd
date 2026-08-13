@@ -99,6 +99,25 @@ const SUPPORT_SLOT := 1
 ## 否则量到的是「前置 + 它」的合力, 而不是它自己。
 const PREREQ := {
 	"mirror": ["twin"],    # 复制 Target 的一半 —— 没 Target 时它恒等于 0
+	# ⚠ 打包(doggybag)一度挂在这里, 已撤 —— 它的条件是「段分达目标两倍」,
+	# 而 kit 的臂是**单卡臂**(基准只装前置、不装构筑), 段分天生打不到 2×目标:
+	# 加 PREREQ 救不回来(试过, 触发仍 0%)。那不是「前置」缺失, 是**这道门量的是
+	# 单卡效应, 而这张卡的条件依赖整套构筑的输出**。撤出 json 挂仪器债, 欠的是
+	# 一条「构筑臂」(与 declutter 欠 bot 弃牌策略块同批)。
+}
+
+
+## **量级豁免**(2026-08-13 补;`faces.json weak_upper_bound` 的小丑牌版)。
+##
+## 判据与脸那边逐字相同:通过 = |z|≥3 **且** 量级≥5%。有些卡**接上了、方向对、
+## z 高得没话说**, 只是效应占基准不到 5% —— 那是「效应小」的结论, 不是覆盖缺陷。
+## 允许豁免, 但**必须显式声明并写下理由**:与 `fixed_tiers` / `weak_upper_bound`
+## 同一条原则 —— **豁免必须是有意的, 不能是漏掉的**。
+## ⚠ 声明的是「对**这个 bot** 的上界效应小」, **不是**「这张卡没用」——
+## 真人的弃牌/交换习惯与 bot 差得远(早锁 8% vs 78% 就是先例), 所以一律标「真人待定」。
+## ⚠ 反向也锁(见 `_initialize` 末尾):声明了却其实量到 = 表过期, 该删条目。
+const WEAK_MAGNITUDE := {
+	"stageexit": "普通档 +30/张 × bot 的弃人头率 —— z=31.8 早已证明接上了, 量级 4.1%;真人待定",
 }
 
 ## solver 通路那四张的**证物**:它该造出来的东西真的出现了吗。
@@ -109,12 +128,34 @@ const WITNESS := {
 	"fourfingers": ["STRAIGHT", "STRAIGHT_FLUSH", "ROYAL_FLUSH"],
 	"twotone": ["FLUSH", "STRAIGHT_FLUSH", "ROYAL_FLUSH"],
 	"wildcard": ["*wild"],
+	# ⚠ 2026-08-12 流派批修仪器:第三种形状 —— **牌堆手术卡**(trim:不改判定规则、
+	# 不进 popup 链, 改的是**抽牌分布本身**)。它不制造任何单一牌型, 证物率没有定义域
+	# (「它该造出来的东西」是整摞牌的质量, 不是某个 kind);而分差正是它的全部效应,
+	# 实测 +1319(z=6.22, 18.7% @ 默认 n)—— 不是 shortcut 那种「分差被替代方案稀释」
+	# 的形状, 拿它当硬判据不算为平衡烧预算。`*score` 必须**显式声明**:
+	# 没声明的无 effects 卡照旧报证物率假红 —— 那是门在喊「来声明」, 不许静默兜底。
+	"trim": ["*score"],
+}
+
+## shop 通路(货架结构卡)的证物声明 —— 与 WITNESS 同一条纪律:必须显式声明。
+##   multi_shops = 每局「双购店」数(一次进店成交 ≥2;无联票在手时物理不可能 —— 基准≈0, 非严格零:bot 自己从货架买到联票的局会贡献几笔)
+##   discount    = 每局实收折扣◆(基础价 − 实付;无赞助在手时≈0, 同上)
+##   rule_offer  = 首发货架含规则牌的店比率(点唱机:成分证物)
+## ⚠ 第一版用「成交数↑ / 均价↓」当证物, 双双死于**钉槽混杂**(实验臂钉死一个槽 →
+## 少装一张卡, 效应同量级:联票 buys 差恰好 +0.0, 赞助花费 −5.9◆ z=−15 证明折扣
+## 明明活着而均价只动 0.2)。教训 = 行为量会被槽位效应吃掉, **货架证物必须选
+## 零基线的机械读数** —— 基准恒 0, 混杂无处藏身, 与 rule_offer 一次过 z=61 同理。
+const SHOP_WITNESS := {
+	"doublebill": "multi_shops",
+	"sponsor": "discount",
+	"jukebox": "rule_offer",
 }
 
 var _rng := RandomNumberGenerator.new()
 var _only := ""
 var _fail: Array = []
 var _warn: Array = []
+var _weak_seen: Dictionary = {}     # 本次真的用上了豁免的卡(反向检查用)
 
 
 func _initialize() -> void:
@@ -125,11 +166,19 @@ func _initialize() -> void:
 	var n_coin := Probe.env_int("SYNC5_KIT_N", N_COIN)
 
 	var cfg := _cohort()
-	var by_channel := {"score": [], "solver": [], "coin": []}
+	var by_channel := {"score": [], "solver": [], "coin": [], "shop": []}
 	var seen := false
+	# `SYNC5_KIT_ID` 支持**逗号分隔的多个 id**(2026-08-13 增量门)——
+	# 一次改动通常碰好几张卡, 而一张一张跑要付好几遍基准臂的钱(基准臂是最贵的一段)。
+	var wanted: Array = []
+	if _only != "":
+		for part in _only.split(","):
+			var t := part.strip_edges()
+			if t != "":
+				wanted.append(t)
 	for e in DB.jokers():
 		var jid := String(e["id"])
-		if _only != "" and jid != _only:
+		if not wanted.is_empty() and not wanted.has(jid):
 			continue
 		seen = true
 		var ch := String(e.get("proof", ""))
@@ -155,6 +204,15 @@ func _initialize() -> void:
 		_run_solver(cfg, by_channel["solver"], n_solver)
 	if not by_channel["coin"].is_empty():
 		_run_coin(cfg, by_channel["coin"], n_coin)
+	if not by_channel["shop"].is_empty():
+		_run_shop(cfg, by_channel["shop"], n_coin)
+
+	# 反向锁:声明了豁免却其实量到了 = 表过期, 该删条目(同 weak_upper_bound 的反向检查)。
+	# ⚠ 只在**全量**跑时查 —— 单卡模式(`SYNC5_KIT_ID`)本来就只跑一张, 其余当然"没用上"。
+	if _only == "":
+		for wid in WEAK_MAGNITUDE:
+			if not _weak_seen.has(wid):
+				_fail.append("%s 声明了量级豁免却其实量到了 —— 把它从 WEAK_MAGNITUDE 删掉" % wid)
 
 	print("\n=== 判据 ===")
 	for w in _warn:
@@ -225,7 +283,8 @@ func _run_score(cfg: Dictionary, ids: Array, n: int) -> void:
 func _run_solver(cfg: Dictionary, ids: Array, n: int) -> void:
 	print("\n  ---- ②  solver 通路(完美玩家, 无商店) ----")
 	print("    ⚠ 无 effects 的规则/牌堆卡:触发率恒 0 无意义, **硬判据 = 证物率**, 分差只作参考;")
-	print("       带 effects 的织构卡:WITNESS 无定义, **硬判据 = 分差**, 触发率照报。")
+	print("       带 effects 的织构卡:WITNESS 无定义, **硬判据 = 分差**, 触发率照报;")
+	print("       牌堆手术卡(WITNESS 声明 *score):无单一证物牌型, **硬判据 = 分差**。")
 	var bases := {}
 	for jid in ids:
 		var pre: Array = _prereq(jid)
@@ -239,6 +298,12 @@ func _run_solver(cfg: Dictionary, ids: Array, n: int) -> void:
 		if Joker.by_id(jid).has_effects():
 			_judge(jid, base["score"], arm["score"], Stat.mean(base["score"]),
 				_trigger_txt(arm, jid))
+			continue
+		var want_decl: Array = WITNESS.get(jid, [])
+		if want_decl.size() == 1 and String(want_decl[0]) == "*score":
+			# 牌堆手术卡(见 WITNESS 表注):无单一证物牌型, 分差即覆盖证明。
+			_judge("%s: 分差(牌堆手术)" % jid, base["score"], arm["score"],
+				Stat.mean(base["score"]), "无证物牌型, 分差为硬判据")
 			continue
 		var w0 := _witness_series(base, jid)
 		var w1 := _witness_series(arm, jid)
@@ -319,6 +384,58 @@ func _run_coin(cfg: Dictionary, ids: Array, n: int) -> void:
 			"← 钱确实流到了商店那一刻, 只是没被花掉" if dbal > 1.0 else ""])
 
 
+## --- ④ shop 通路:货架结构卡(联票/赞助/点唱机)。**三条旧通路按定义全量不到。** ---
+##
+## 它们不产分不产钱, 改的是**商店本身**(位数/价格/成分)。硬判据 = SHOP_WITNESS
+## 声明的货架证物 —— 全部是**机械读数**(规则活着就必然动的量), 不是行为结论;
+## 花费与总分只作参考(钉槽混杂, 同 coin 行为臂 2026-08-09 的理由)。
+func _run_shop(cfg: Dictionary, ids: Array, n: int) -> void:
+	print("\n  ---- ④ shop 通路(规则 bot, **开商店**)—— 货架结构卡, 证物按卡声明 ----")
+	print("    硬判据(全部零基线机械读数, 见 SHOP_WITNESS 注):")
+	print("    multi_shops=双购店数↑ · discount=实收折扣◆↑ · rule_offer=含规则牌店率↑")
+	var base := _play(cfg, [], true, false, n)
+	print("    基准:每局成交 %.2f 张 · 双购店 %.2f · 折扣 %.1f◆ · 含规则牌店率 %.0f%%"
+		% [Stat.mean(_rec_series(base, "buys")), Stat.mean(_rec_series(base, "multi_shops")),
+		Stat.mean(_rec_series(base, "discount")), Stat.mean(_rule_rate_series(base)) * 100.0])
+	for jid in ids:
+		var arm := _play(cfg, _install([jid]), true, false, n)
+		match String(SHOP_WITNESS.get(jid, "")):
+			"multi_shops":
+				_judge("%s: 双购店数" % jid, _rec_series(base, "multi_shops"),
+					_rec_series(arm, "multi_shops"), Stat.mean(_rec_series(base, "multi_shops")),
+					"货架证物=双购店(基准≈0)", true, true)
+			"discount":
+				_judge("%s: 实收折扣◆" % jid, _rec_series(base, "discount"),
+					_rec_series(arm, "discount"), Stat.mean(_rec_series(base, "discount")),
+					"货架证物=折扣(基准≈0)", true, true)
+			"rule_offer":
+				_judge("%s: 含规则牌店率" % jid, _rule_rate_series(base),
+					_rule_rate_series(arm), Stat.mean(_rule_rate_series(base)),
+					"货架证物=首发成分", true, true)
+			_:
+				_fail.append("%s: shop 通路缺 SHOP_WITNESS 声明" % jid)
+				continue
+		_judge("%s: 商店花费(参考)" % jid, base["spend"], arm["spend"],
+			Stat.mean(base["spend"]), "", false)
+		_judge("%s: 总分(参考)" % jid, base["score"], arm["score"],
+			Stat.mean(base["score"]), "", false)
+
+
+func _rec_series(d: Dictionary, key: String) -> Array:
+	var out: Array = []
+	for rec in d["runs"]:
+		out.append(float(rec.get(key, 0.0)))
+	return out
+
+
+func _rule_rate_series(d: Dictionary) -> Array:
+	var out: Array = []
+	for rec in d["runs"]:
+		var s: float = float(rec.get("shops", 0.0))
+		out.append(0.0 if s <= 0.0 else float(rec.get("rule_shops", 0.0)) / s)
+	return out
+
+
 ## 判据**两条**(照抄 `gate.gd::_judge`, 那是本项目所有读数的通用纪律):**显著** 且 **量级够**。
 ##   · **显著性(z)** 回答「这个读数信不信得过」;
 ##   · **量级(占基准的比例)** 回答「这个效应要不要管」。
@@ -352,8 +469,15 @@ func _judge(label: String, a: Array, b: Array, base: float, extra: String,
 		why = "量级不够"
 	elif not sig:
 		why = "量级够但不显著"
+	# 量级豁免要**在行内就看得出来**(照 `gate.gd` 的 "⚠ 豁免(上界效应小, 已声明)")。
+	# ⚠ 第一版只在 `_fail`/`_warn` 分流时豁免, 行里照旧印 ❌ —— 于是出现「印着 ❌
+	# 却放行」的行, 而**一个自相矛盾的读数会让下一个人整体不信这道门**。
+	var jid := label.split(":")[0].strip_edges()
+	var exempt: bool = hard and why == "量级不够" and sig and p["d"] > 0.0 \
+		and WEAK_MAGNITUDE.has(jid)
 	if why != "":
-		verdict = ("❌ " if hard else "⚠ 参考:") + why
+		verdict = ("⚠ 豁免(效应小, 已声明)" if exempt
+			else ("❌ " if hard else "⚠ 参考:") + why)
 	# ⚠ z 大到某个程度就没有信息了, 只有噪声:`neonsign` 是无条件 +80、24 拍 +1920,
 	# 逐局几乎一模一样(实测 se=0.0117), z 印出来是 **+163607** —— 数字没错,
 	# 但它长得像一个爆掉的读数, 下一个人会先怀疑仪器坏了。封顶印 `>1000` 即可。
@@ -365,7 +489,12 @@ func _judge(label: String, a: Array, b: Array, base: float, extra: String,
 	if why != "":
 		var msg := "%s: 差 %.1f ±%.1f (z=%.2f, 占基准 %.1f%%) —— %s。%s" \
 			% [label, p["d"], p["se"], z, mag * 100.0, why, extra]
-		if hard:
+		# 量级豁免:显著、方向对、只是效应小 —— 声明过的降级成 ⚠(见 WEAK_MAGNITUDE)。
+		# ⚠ 只豁免「量级不够」这一种:不显著或方向反了照旧红, 那两种是覆盖缺陷。
+		if exempt:
+			_warn.append("%s —— 已声明量级豁免(%s)" % [msg, WEAK_MAGNITUDE[jid]])
+			_weak_seen[jid] = true
+		elif hard:
 			_fail.append(msg)
 		else:
 			_warn.append(msg + "(参考行, 不作判据)")
@@ -521,7 +650,19 @@ func _play(cfg: Dictionary, install: Array, shop: bool, perfect: bool, n: int) -
 					break
 		o.on_section = func(_run: Run, _s: int, _sc: int, _c: int) -> void:
 			rec["income"] += float(GameConfig.SECTION_CLEAR_REWARD)
+		# shop 通路的货架证物:Report 的计数器是全 arm 累计的, 逐局取差分
+		# (联票=成交数 / 赞助=均价的分母 / 点唱机=含规则牌店率)。
+		var b0 := rep.buys_total
+		var s0 := rep.shops_n
+		var r0 := rep.rule_shops_n
+		var m0 := rep.multi_shops_n
+		var d0 := rep.discount_coins
 		var res_run := RunLoop.play(o, bot)
+		rec["buys"] = float(rep.buys_total - b0)
+		rec["shops"] = float(rep.shops_n - s0)
+		rec["rule_shops"] = float(rep.rule_shops_n - r0)
+		rec["multi_shops"] = float(rep.multi_shops_n - m0)
+		rec["discount"] = float(rep.discount_coins - d0)
 		scores.append(res_run["total"])
 		coins.append(float(res_run["coins"]))
 		spend.append(float(GameConfig.STARTING_COINS) + float(rec["income"])

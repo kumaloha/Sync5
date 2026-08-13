@@ -9,6 +9,10 @@ const IDS := [
 	"warmtone", "cooltone", "undertone", "curtain", "stopwatch", "freeze", "earlyout",
 	"crescendo", "segue", "stilllife", "declutter", "stageexit", "doggybag", "royalty",
 	"digger", "collector", "doublebill", "sponsor", "skint", "rebrand", "trim", "xray",
+	# 2026-08-12 流派批 +7(design/archetypes.md §5;快闪/伴唱撤出 json 但素材保留,
+	# wrecker 先例)。⚠ 这 7 张的 source/prompt/成卡素材尚未出图 —— 本工具在出图前对
+	# 它们报缺是**正确读数**(待办信号),不是门坏了。
+	"duo", "duet", "triad", "triplebill", "backer", "bench", "boxseats", "jukebox",
 ]
 const REQUIRED := ["id", "cn", "code", "kind", "rarity", "trigger_zh", "amount", "art_subject"]
 const VALID_KIND := ["target", "support"]

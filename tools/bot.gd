@@ -119,7 +119,7 @@ func _card_ev(id: String, st: Dictionary, slots: Array, phrases_left: int) -> fl
 		"mirror":
 			var tf: float = float(TARGET_TF.get(tid, 1.0))
 			return _rate(st, String(p["rate"]), float(p["prior"])) * (tf - 1.0) * _mirror_power() * score_mean
-		"shortcut", "fourfingers", "twotone":
+		"shortcut", "fourfingers", "twotone", "trim":
 			var ot: Array = p["on_target"]
 			var bm: float = score_mean / maxf(1.0, mult_mean)
 			return (float(ot[1]) * float(ot[2]) * bm) if tid == String(ot[0]) \
@@ -137,8 +137,62 @@ func _card_ev(id: String, st: Dictionary, slots: Array, phrases_left: int) -> fl
 			return _rate(st, String(p["rate"]), float(p["prior"])) * _amt(id) * score_mean
 		"opener":
 			return float(p["fixed_rate"]) * _amt(id) * score_mean
-		"popup", "rainbow", "nopair", "backup", "rehearsal", "fullcast":
+		"rainbow", "nopair", "rehearsal", "fullcast":
 			return float(p["fixed_rate"]) * _amt(id) * mult_mean
+		# ---- 2026-08-12 流派批(design/archetypes.md)。族内件/缓存件/经济件,
+		# 数额照旧 _amt 推导;行为先验(fixed_rate/coin_steps/avg_top/avg_faces)在 ev.cards。----
+		"duo", "triad":     # 族内 chips 件:含对/含三条 × 数额 × 倍率链(additive 吃全倍率)
+			return float(p["fixed_rate"]) * _amt(id) * mult_mean
+		"duet", "triplebill":   # 族内 pct 件:比例 × 均分
+			return float(p["fixed_rate"]) * _amt(id) * score_mean
+		"backer":           # +1 chip / 2◆:持币档数 × 倍率链
+			return _amt(id) * float(p["coin_steps"]) * mult_mean
+		"bench":            # 缓存最高点数计 chips:先验点数 × 倍率链
+			return float(p["avg_top"]) * mult_mean
+		"boxseats":         # 缓存人头 ×1.2/张:边际倍率 × 均分
+			return _amt(id) * float(p["avg_faces"]) * score_mean
+		# ---- 2026-08-13 引擎波次·子波1(design/jokers_atlas.md §2.9/2.12/2.13/2.15)----
+		# ---- 2026-08-13 子波 2:计时族。触发率来自 `ev.timing` 的同一张偏置表 ——
+		# **打法先验与估值先验必须同源**, 否则 bot 会买一张它自己不会去打的卡。----
+		"curtain":          # 压哨 pct:比例 × 均分
+			return float(p["fixed_rate"]) * _amt(id) * score_mean
+		"stopwatch":        # 每剩 1 秒 pct:期望秒数 × 每秒比例 × 均分
+			return float(p["avg_seconds"]) * _amt(id) * score_mean
+		"earlyout":         # 早弃 bonus:比例 × 数额 × 倍率链
+			return float(p["fixed_rate"]) * _amt(id) * mult_mean
+		"stilllife", "declutter", "stageexit", "segue", "freeze":
+			# 五张都是「行为触发 × 数额」:先验触发率 × 数额 × 量纲(bonus 吃倍率链,
+			# pct 吃均分)。⚠ 触发率是 bot 打法的先验, 不是真人 —— 定价锚仍是 Tape。
+			var pct: bool = id in ["declutter", "freeze"]
+			return float(p["fixed_rate"]) * _amt(id) * (score_mean if pct else mult_mean)
+		"skint":
+			# 常驻 ×1.3 **减去金币上限的代价**。
+			# ⚠⚠ 第一版只写了上面那半句(`_amt(id) * score_mean`), 于是 bot **100% 买它**,
+			# 买完经济锁死在 cap —— `gate.sh` 的单调性哨兵当场红:
+			# 「起始金币 +3 应该变容易, 实际 −0.00 段」。**多给的钱进不了口袋, 哨兵是对的。**
+			# 代价的口径:上限没收的是**购买力** —— 本局本来会攒到的持币(实测局末
+			# 34.7◆, S9)减去 cap, 按 bot 自己的金币折分率计价, 再按「还剩多少局面花它」
+			# 折现(与 `lam` 的 horizon 折现同一个道理:钱的价值在于还能买到多少分)。
+			var cap := 0.0
+			for e in DB.jokers():
+				if String(e["id"]) == id:
+					cap = float(e.get("hold", {}).get("coin_cap", 0))
+			var span: float = float(GameConfig.SECTIONS_PER_RUN
+				* GameConfig.PHRASES_PER_SECTION)
+			var forgone: float = maxf(0.0, float(p["hoard"]) - cap) * (future / maxf(1.0, span))
+			return _amt(id) * score_mean - forgone * coin_val
+		"royalty":          # 牌型金币翻倍:一拍多出的◆ ≈ 均金币 × (factor−1)
+			return float(p["coins_per_beat"]) * (_amt(id) - 1.0) * coin_val
+		"doggybag":         # 超标两倍才给:低频事件 × 3◆
+			return float(p["fixed_rate"]) * _amt(id) * coin_val
+		# ---- 货架结构卡(shop 通路, 2026-08-12 流派批二波):不产分, 价值全在商店侧,
+		# 折成◆当量再乘 coin_val —— 先验粗, 覆盖由 kit 商店臂证, 强弱等真人 Tape。----
+		"sponsor":          # 未来购买每张省 1◆
+			return float(p["saves"]) * coin_val
+		"doublebill":       # 每店多一次成交的期权
+			return float(p["option_ev"]) * coin_val
+		"jukebox":          # 定向搜索:追牌型流派(顺/同花)才值钱
+			return float(p["search_ev"]) * coin_val * (2.0 if tid in ["stair", "mono"] else 1.0)
 		"superfan":
 			return _amt(id) * float(p["pairs"]) * score_mean
 		"warmtone", "cooltone", "undertone":
@@ -250,7 +304,9 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 	# ⚠ 扫描见 `tools/decay.gd` —— 和跨拍那个 lam 一样, **不许拍脑袋**。
 	var lam: float = float(EV["coin_score_ratio"]) * score_mean \
 		* pow(horizon / DRAFT_HORIZON, float(EV["coin_decay"]))
-	var offer := _weighted_pick(candidates, 3, Joker.slots_target_mult(slots))
+	# 货架位数与两个「必定出」补丁 —— **与 view/shop.gd::_deal 同一套规则**(shelf API 收口)。
+	var offer := _weighted_pick(candidates, Joker.slots_shelf_size(slots),
+		Joker.slots_target_mult(slots))
 	# 「必定出 Target」(独狼的卡面效果):抽完若一张 Target 都没有, 顶掉最后一位。
 	# ⚠ 只在**允许换旗**时生效 —— 强制 target 的队列是实验者的随机分配, 不能被卡面绕过。
 	if allow_target and Joker.slots_guarantee_target(slots):
@@ -265,11 +321,30 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 					tp.append(j)
 			if not tp.is_empty() and not offer.is_empty():
 				offer[offer.size() - 1] = tp[_rng.randi_range(0, tp.size() - 1)]
+	# 「必定出规则牌」(点唱机)—— 同上;两补丁同时顶位时各占一头(规则牌顶第一位)。
+	if Joker.slots_rule_guaranteed(slots):
+		var has_r := false
+		for j in offer:
+			if j.is_rule_card():
+				has_r = true
+		if not has_r:
+			var rp: Array = []
+			for j in candidates:
+				if j.is_rule_card():
+					rp.append(j)
+			if not rp.is_empty() and not offer.is_empty():
+				offer[0] = rp[_rng.randi_range(0, rp.size() - 1)]
+	# 商店行为臂的证物记账(kit `shop` 通路):每店一记, 首发货架含规则牌就记一次。
+	_rep.shops_n += 1
+	for j in offer:
+		if j.is_rule_card():
+			_rep.rule_shops_n += 1
+			break
 	# 换旗:货架上**真的抽到** Target 时才发生(不再有专属骰子), 买入顶掉旧的、无回收。
 	for tj in offer:
 		if tj.kind != "target":
 			continue
-		var tprice := Economy.joker_price(tj, true)
+		var tprice := Economy.shelf_price(tj, slots)
 		if coins < tprice:
 			break
 		var mm: float = (float(st["mult"]) + float(EV["mult_prior"]) * bw) \
@@ -291,9 +366,16 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 			coins -= tprice
 			slots[0] = tj
 			tj.on_acquire(deck)
+			coins = Economy.cap_held(coins, slots)     # 装卡后修剪(同编排器)
 			_rep.pivots_n += 1
+			_rep.buys_total += 1
+			_rep.discount_coins += maxi(0, Economy.joker_price(tj, true) - tprice)
+			# 换旗即离店(联票的续买不覆盖 pivot —— 换旗是路线决策, 不是囤货)。
 			return coins
 		break
+	# 联票:一次进店最多成交 buy_limit 张(限额随槽位实时读 —— 买到联票当店多一次)。
+	# 两轮尝试的语义不变:第一轮什么都没买才允许一次付费刷新。
+	var buys := 0
 	for attempt in range(2):
 		var empty_slot := -1
 		for k in range(1, slots.size()):
@@ -309,7 +391,7 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 			# `joker_price(j)` 少传 has_target 会把它算成**免费**。
 			if j.kind == "target":
 				continue
-			var price := Economy.joker_price(j)
+			var price := Economy.shelf_price(j, slots)
 			# ⚑ 求解买牌(design/solving.md 第三部分):不查手写表, 直接**在已知的脸序列下算边际价值**。
 			# 前提是「四段的脸开局全可见」(design/solving.md §2.2)—— 用户 2026-08-08:
 			# 「没有脸信息就没有选牌策略」。
@@ -361,6 +443,7 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 				coins -= best_cost
 				slots[empty_slot] = best
 				best.on_acquire(deck)
+				coins = Economy.cap_held(coins, slots)     # 装卡后修剪(同编排器)
 				_rep.support_drafted[best.id] = int(_rep.support_drafted.get(best.id, 0)) + 1
 			else:
 				var weak_k := 1
@@ -370,16 +453,31 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 					if oe < weak_ev:
 						weak_ev = oe
 						weak_k = k2
-				coins += Economy.sell_value(slots[weak_k]) - Economy.joker_price(best)
+				coins = Economy.grant(coins, Economy.sell_value(slots[weak_k]), slots) \
+					- Economy.shelf_price(best, slots)
 				slots[weak_k] = best
 				best.on_acquire(deck)
+				coins = Economy.cap_held(coins, slots)     # 装卡后修剪(同编排器)
 				_rep.support_drafted[best.id] = int(_rep.support_drafted.get(best.id, 0)) + 1
-			return coins
+			buys += 1
+			_rep.buys_total += 1
+			if buys >= 2:
+				_rep.multi_shops_n += 1        # 双购店:联票的零基线证物
+			_rep.discount_coins += maxi(0,
+				Economy.joker_price(best) - Economy.shelf_price(best, slots))
+			# 联票:限额未满 → 同一货架摘掉已购的那张继续挑(与 view/phrase.gd 的
+			# sold 流程同构;不重掷 —— 重掷就成了免费刷新)。
+			if buys >= Joker.slots_buy_limit(slots):
+				return coins
+			offer.erase(best)
+			continue
 		# nothing worth buying: one paid reroll if rich, else just walk away
 		# (2026-08-06: leaving the shop pays nothing — the skip reward is gone)
-		if attempt == 0 and coins >= Economy.reroll_cost(0) + 6:
+		if attempt == 0 and buys == 0 and coins >= Economy.reroll_cost(0) + 6:
 			coins -= Economy.reroll_cost(0)
-			offer = _weighted_pick(candidates, 3)
+			# ⚠ 刷新后的货架沿用既有行为:只重掷、不重放两个「必定出」补丁 ——
+			# 游戏侧 redeal 会重放, 这是 bot 的既有保真缺口, 记档不扩大(证物只数首发)。
+			offer = _weighted_pick(candidates, Joker.slots_shelf_size(slots))
 			continue
 		break
 	return coins
@@ -427,25 +525,49 @@ func _play_phrase(p: Phrase, cfg: Dictionary, slots: Array, section: int, mod: S
 				float(cfg.get("lam", SOLVER["lam"])),
 				int(cfg.get("lam_samples", SOLVER["lam_samples"])), section,
 				float(cfg.get("eps", 0.0)))
-	# timing flags biased by owned jokers (a player plays to their cards)
-	var owns_finale := false
-	var owns_momentum := false
+	return _timing_flags(slots)
+
+
+## 玩家打向自己的卡 —— 装了压哨卡就更常压哨, 装了早锁卡就更常早锁。
+##
+## ⚠⚠ **2026-08-13 数据化(子波 2 的重构点)**。旧版三宗罪, 每条都咬过人:
+##   ① **概率写死在代码里** —— 违「数值与内容全部在 data/」, 调平衡要改 .gd;
+##   ② **只认 `finale` / `momentum` 两个卡名** —— 每加一张时机卡就要来改一次代码,
+##      而**忘了改不会报错**, 那张卡在模型里就是「玩家从不为它调整打法」;
+##   ③ **`elif` 是隐式优先级** —— 同时持有压哨卡和早锁卡时只有前者生效,
+##      这条规则从没人写下来过, 也没人验证过它是不是想要的。
+## 现在:偏置表在 `sim.json ev.timing`, 多张卡**取最大值**(玩家打向最强的那张),
+## 早/晚两轴各自独立取值 —— 同时持有两轴的卡时两边都抬, 不再互相吞掉。
+##
+## ⚠ 这是**行为改动**:`finale` / `momentum` 的既有实测强度会移动, 与 probe 修正同批解释。
+## ⚠ 真人锚:早锁率实测 **8%**(bot 78%)—— 表里的数是 **bot 的打法先验, 不是真人**,
+## 定价一律锚 Tape(numbers.md §1「p_bot ≫ p_人 → 定价锚真人」)。
+func _timing_flags(slots: Array) -> Dictionary:
+	var tim: Dictionary = EV.get("timing", {})
+	var base: Dictionary = tim.get("base", {})
+	var cards: Dictionary = tim.get("cards", {})
+	var want := {"late": float(base.get("late", 0.25)),
+		"early": float(base.get("early", 0.25)),
+		"final_second": 0.0, "discards_before": 0.0}
 	for j in slots:
-		if j != null and j.id == "finale":
-			owns_finale = true
-		if j != null and j.id == "momentum":
-			owns_momentum = true
-	var late := false
-	var early := false
-	if owns_finale:
-		late = _rng.randf() < 0.7
-	elif owns_momentum:
-		early = _rng.randf() < 0.6
-	else:
-		var roll := _rng.randf()
-		late = roll < 0.25
-		early = roll > 0.75
-	return {"early": early, "late": late}
+		if j == null or not cards.has(j.id):
+			continue
+		var bias: Dictionary = cards[j.id]
+		for k in want:
+			if bias.has(k):
+				want[k] = maxf(float(want[k]), float(bias[k]))
+	# 一次掷点决定「这一拍偏早还是偏晚」, 早晚互斥(物理上如此), 其余量条件化在它之上。
+	var roll := _rng.randf()
+	var late: bool = roll < float(want["late"])
+	var early: bool = not late and roll > 1.0 - float(want["early"])
+	# 谢幕的窗口在尾声之内:只有已经压哨的拍才可能压到最后一秒。
+	var final_sec: bool = late and _rng.randf() < float(want["final_second"])
+	# 秒表:剩余秒数 —— 早锁的拍剩得多, 压哨的拍几乎为零。
+	var secs: float = float(tim.get("seconds_left_early", 3.2)) if early else 0.0
+	# 早弃:弃牌都赶在早锁线之前(装了早弃卡的玩家会刻意这么打)。
+	var early_disc: bool = _rng.randf() < float(want["discards_before"])
+	return {"early": early, "late": late, "final": final_sec,
+		"secs_left": secs, "early_discards": early_disc}
 
 
 func _notify_discard(slots: Array, n: int) -> void:
@@ -592,10 +714,16 @@ func _play_adaptive(p: Phrase, slots: Array, target_id: String, section: int, mo
 	for ci in range(p.cache.size()):
 		for hi in range(p.hand.size()):
 			var before: float = float(_best_plan(p.hand, target_id, 3, rules)["ev"])
-			p.swap_with_cache(hi, ci)
+			# ⚠ 试探走 probe:牌要真的对调才算得出 EV, 但**试探不是玩家动作**。
+			# 不这么分, 每拍 15 次试探会让「本拍零交换」在模型里永不成立
+			# (静物的 kit 触发率 0% 就是这个 —— 病在 bot 的记账, 不在卡)。
+			if not p.swap_with_cache(hi, ci, true):
+				continue                    # 守卫拒绝(封条/墨迹/红灯):这一对换不了
 			var after: float = float(_best_plan(p.hand, target_id, 3, rules)["ev"])
 			if after <= before:
-				p.swap_with_cache(hi, ci)   # revert
+				p.swap_with_cache(hi, ci, true)   # revert, 同样不计数
+			else:
+				p.commit_probe_swap()             # 留下了 = 玩家真的动了手
 	if target_id == "lonewolf":
 		return                              # the vow: zero discards
 	# 弃牌免费(2026-08-06 用户拍板)后, **金币不再是闸门, 时间才是**。

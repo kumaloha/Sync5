@@ -28,6 +28,15 @@ var discards_n := 0
 var run_records: Array = []
 var pivots_n := 0
 var wall_mod: Dictionary = {}   # "S8 static" -> [runs, deaths]
+# 货架证物(kit shop 通路;bot._draft 记账): 进店数 / 首发含规则牌的店数 / 成交总数 /
+# 双购店数(一次进店成交 ≥2, 无联票时物理不可能) / 实收折扣(基础价 − 实付, 无赞助恒 0)。
+# ⚠ 后两个是**零基线**证物 —— 第一版用「成交数/均价」被钉槽混杂吃掉(实验臂钉死一个
+# 槽位, 少装一张卡的效应与被量的效应同量级), 零基线读数混杂无处藏身。
+var shops_n := 0
+var rule_shops_n := 0
+var buys_total := 0
+var multi_shops_n := 0
+var discount_coins := 0
 
 
 func reset() -> void:
@@ -50,6 +59,11 @@ func reset() -> void:
 	run_records = []
 	pivots_n = 0
 	wall_mod = {}
+	shops_n = 0
+	rule_shops_n = 0
+	buys_total = 0
+	multi_shops_n = 0
+	discount_coins = 0
 
 
 func record_run(slots: Array, died: int) -> void:

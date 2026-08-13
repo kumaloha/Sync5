@@ -49,9 +49,11 @@ func _init(host: Control = null, views: Array = []) -> void:
 
 ## 进入替换态:提示条带上买入价(商店一关, 玩家就看不到价了), 新卡钉出来,
 ## 四个槽开始接点击/拖放。
-func enter(j) -> void:
+func enter(j, price: int = -1) -> void:
 	pick = j
-	_prompt.text = String(_cfg["replace_prompt"]) % Economy.joker_price(j)
+	# 价由编排器传入(赞助折扣与成交价同源);-1 = 旧调用兜底, 读基础价。
+	_prompt.text = String(_cfg["replace_prompt"]) \
+		% (price if price >= 0 else Economy.joker_price(j))
 	_prompt.visible = true
 	_preview.set_joker(j)
 	_preview.drag_joker = j

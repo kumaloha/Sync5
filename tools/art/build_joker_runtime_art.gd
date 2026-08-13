@@ -8,6 +8,7 @@ const OUTPUT_SIZE := Vector2i(1024, 400)
 const ART_BOX_SIZE := Vector2i(900, 360)
 const ALPHA_THRESHOLD := 64.0 / 255.0
 const BBOX_PADDING := 24
+const EXPECTED_CARD_COUNT := 67
 
 var _errors: Array[String] = []
 
@@ -60,8 +61,10 @@ func _load_manifest() -> Dictionary:
 		return {}
 
 	var cards := manifest["cards"] as Array
-	if cards.size() != 60:
-		_error("%s.cards must contain exactly 60 records, found %d" % [_display_path(MANIFEST_PATH), cards.size()])
+	if cards.size() != EXPECTED_CARD_COUNT:
+		_error("%s.cards must contain exactly %d records, found %d" % [
+			_display_path(MANIFEST_PATH), EXPECTED_CARD_COUNT, cards.size(),
+		])
 
 	var seen := {}
 	for i in range(cards.size()):

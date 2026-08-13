@@ -64,24 +64,33 @@ func _ready() -> void:
 	_kind_label.size = Vector2(720, 26)
 	_layer.add_child(_kind_label)
 
-	var dw: float = float(_cfg["card_w"])
-	var dgap: float = float(_cfg["card_gap"])
-	var cy: float = float(_cfg["cards_y"])
-	var dx0 := (720.0 - dw * 3.0 - dgap * 2.0) * 0.5
-	for i in range(3):
+	# 联票(doublebill)把货架撑到 4 位, 所以视图建到上限、坐标交给 _layout()
+	# 按当拍货架数摆(4 张时用 card_w_4/card_gap_4 的窄版 —— 720 宽放不下 4×200)。
+	for i in range(4):
 		var dv := JokerSlotView.new()
 		dv.tappable = true
-		dv.position = Vector2(dx0 + float(i) * (dw + dgap), cy)
-		dv.size = Vector2(dw, dw * 1.10)
 		dv.tapped.connect(_on_pick.bind(i))
 		_layer.add_child(dv)
 		_views.append(dv)
 		# price tag under each card (targets read 免费)
 		var pl := StageTheme.label("", StageTheme.num("Bold"), 22, StageTheme.GOLD, HORIZONTAL_ALIGNMENT_CENTER)
-		pl.position = Vector2(dx0 + float(i) * (dw + dgap), cy + dw * 1.10 + float(_cfg["price_dy"]))
-		pl.size = Vector2(dw, 30)
 		_layer.add_child(pl)
 		_price_labels.append(pl)
+	_layout(3)
+
+
+## 按货架数摆卡位。改布局 = 改 JSON(card_w/card_gap 管 ≤3 张, card_w_4/card_gap_4 管 4 张)。
+func _layout(count: int) -> void:
+	var dw: float = float(_cfg["card_w"]) if count <= 3 else float(_cfg.get("card_w_4", 156))
+	var dgap: float = float(_cfg["card_gap"]) if count <= 3 else float(_cfg.get("card_gap_4", 14))
+	var cy: float = float(_cfg["cards_y"])
+	var dx0 := (720.0 - dw * float(count) - dgap * float(count - 1)) * 0.5
+	for i in range(_views.size()):
+		var x := dx0 + float(i) * (dw + dgap)
+		_views[i].position = Vector2(x, cy)
+		_views[i].size = Vector2(dw, dw * 1.10)
+		_price_labels[i].position = Vector2(x, cy + dw * 1.10 + float(_cfg["price_dy"]))
+		_price_labels[i].size = Vector2(dw, 30)
 
 	var by: float = float(_cfg["btn_y"])
 	_reroll_btn = _button("")
@@ -145,6 +154,15 @@ func redeal(slots: Array, coins: int, section_idx: int) -> void:
 	_deal()
 
 
+## 联票的续买态:一张成交后**同一货架**继续卖(不重掷 —— 重掷就成了免费刷新)。
+## 编排器扣完钱装完卡后调它:摘掉售出的那张, 按新的金币/槽位重算价签与可购性。
+func sold(j, slots: Array, coins: int) -> void:
+	_slots = slots
+	_coins = coins
+	_candidates.erase(j)
+	_render(false)
+
+
 func close() -> void:
 	_layer.visible = false
 
@@ -176,11 +194,12 @@ func _deal() -> void:
 				candidates.append(j)
 		else:
 			candidates.append(j)
+	var shelf_n := Joker.slots_shelf_size(_slots)
 	if first_target:
 		candidates.shuffle()
 		_candidates = candidates.slice(0, 3)
 	else:
-		_candidates = _weighted_pick(candidates, 3)
+		_candidates = _weighted_pick(candidates, shelf_n)
 		# 「必定出 Target」—— 与 tools/bot.gd 同一套规则, 别各写一份
 		if Joker.slots_guarantee_target(_slots):
 			var has_t := false
@@ -194,6 +213,26 @@ func _deal() -> void:
 						tp.append(j)
 				if not tp.is_empty() and not _candidates.is_empty():
 					_candidates[_candidates.size() - 1] = tp[randi_range(0, tp.size() - 1)]
+		# 「必定出规则牌」(点唱机)—— 同 Target 补丁的形状;两个补丁同时要顶位时
+		# 各占一头(规则牌顶第一位, Target 顶最后一位), 免得互相覆盖。
+		if Joker.slots_rule_guaranteed(_slots):
+			var has_r := false
+			for j in _candidates:
+				if j.is_rule_card():
+					has_r = true
+			if not has_r:
+				var rp: Array = []
+				for j in candidates:
+					if j.is_rule_card():
+						rp.append(j)
+				if not rp.is_empty() and not _candidates.is_empty():
+					_candidates[0] = rp[randi_range(0, rp.size() - 1)]
+	_render(true)
+
+
+## 渲染当前 _candidates(deal 弹入场动画;sold 后的重渲染不弹)。
+func _render(popin: bool) -> void:
+	_layout(maxi(3, _candidates.size()))
 	for i in range(_views.size()):
 		if i < _candidates.size():
 			var j = _candidates[i]
@@ -211,7 +250,8 @@ func _deal() -> void:
 				_price_labels[i].text = "◆ %d" % price
 				_price_labels[i].add_theme_color_override("font_color",
 					StageTheme.GOLD if afford else Color("8a5560"))
-			_pop(_views[i])
+			if popin:
+				_pop(_views[i])
 		else:
 			_views[i].visible = false
 			_price_labels[i].visible = false
@@ -234,7 +274,9 @@ func reroll_count() -> int:
 
 
 func _price(j) -> int:
-	return Economy.joker_price(j, _slots[0] != null)
+	# 赞助的 −1◆ 在这里生效(Economy.shelf_price 收口, 地板 1◆);
+	# 展示价与成交价共用这一个函数, 不许分家。
+	return Economy.shelf_price(j, _slots)
 
 
 ## Can the player take joker j right now? With full slots the best sell-back

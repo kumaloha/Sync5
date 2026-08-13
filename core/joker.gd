@@ -28,6 +28,7 @@ var _effects: Array
 var _counters: Dictionary
 var _acquire: Dictionary
 var _shelf: Dictionary   # 持续的**货架**影响(不是计分, 也不是一次性的 acquire)
+var _hold: Dictionary    # 持有期恒生效的经济/规则参数(穷开心的 coin_cap)
 
 
 func _init(e: Dictionary) -> void:
@@ -41,6 +42,7 @@ func _init(e: Dictionary) -> void:
 	_counters = e.get("counters", {})
 	_acquire = e.get("acquire", {})
 	_shelf = e.get("shelf", {})
+	_hold = e.get("hold", {})
 	state = Fx.init_state(_counters)
 
 
@@ -79,6 +81,65 @@ static func slots_target_mult(slots: Array) -> float:
 	return m
 
 
+## ---- 2026-08-12 流派批二波:货架结构卡的 shelf 键(design/archetypes.md §3.8) ----
+## 与 target_guaranteed 同一条原则:保证写在卡面上, 规则出现在动作空间里, 不藏在掷点里。
+## 读法一律 slots_* 静态口 —— **游戏侧(view/shop.gd)与 bot 侧(tools/bot.gd)必须
+## 消费同一个口**, 各读各的 shelf 字典就是下一个「游戏里活、模型里死」。
+
+## 货架位数(联票 doublebill: 3 → 4)。多张取最大, 不叠加 —— 5 张卡 720 宽摆不下。
+static func slots_shelf_size(slots: Array) -> int:
+	var n := 3
+	for j in slots:
+		if j != null:
+			n = maxi(n, int(j._shelf.get("shelf_slots", 3)))
+	return n
+
+
+## 一次商店最多成交几张(联票: 1 → 2)。买入联票后**当店即刻生效**(限额随槽位实时读)。
+static func slots_buy_limit(slots: Array) -> int:
+	var n := 1
+	for j in slots:
+		if j != null:
+			n = maxi(n, int(j._shelf.get("buy_limit", 1)))
+	return n
+
+
+## 货架价格增减(赞助 sponsor: −1)。多张求和;地板由 Economy.shelf_price 收口。
+static func slots_price_delta(slots: Array) -> int:
+	var d := 0
+	for j in slots:
+		if j != null:
+			d += int(j._shelf.get("price_delta", 0))
+	return d
+
+
+## 持有点唱机 jukebox 时, 货架必定有一张规则牌(概率线的定向搜索,
+## 独狼 target_guaranteed 的同款机制)。
+static func slots_rule_guaranteed(slots: Array) -> bool:
+	for j in slots:
+		if j != null and bool(j._shelf.get("rule_guaranteed", false)):
+			return true
+	return false
+
+
+## 持有期金币上限(穷开心 skint: 5;无卡 = 不设限)。多张取最小(最紧的约束赢)。
+## ⚠ 收口原则同 shelf:**所有金币入账点都必须过这一口**(Beat 结算入账 / 段工资
+## 两侧 / 替换回收), 漏一处 = 上限对那条收入无效且不报错。
+static func slots_coin_cap(slots: Array) -> int:
+	var cap := 999999
+	for j in slots:
+		if j != null and j._hold.has("coin_cap"):
+			cap = mini(cap, int(j._hold["coin_cap"]))
+	return cap
+
+
+## 「规则牌」的机械判据 = 带 acquire 键(shortcut/fourfingers/twotone/wildcard/trim)。
+## 点唱机的「必出规则牌」与 numbers.md §2 的「概率放大器」用的是同一个集合 ——
+## 判据挂在数据形状上, 加新规则牌不用改这里。
+func is_rule_card() -> bool:
+	return not _acquire.is_empty()
+
+
 ## Called once when the joker is installed.
 func on_acquire(deck: Deck) -> void:
 	if deck == null:
@@ -87,6 +148,8 @@ func on_acquire(deck: Deck) -> void:
 		deck.enable_wilds()
 	if _acquire.has("deck_rule"):
 		deck.rules[String(_acquire["deck_rule"])] = true
+	if _acquire.has("trim_low"):
+		deck.trim_low_ranks()
 
 
 ## Player discarded `n` cards (hand or cache) in one paid action.

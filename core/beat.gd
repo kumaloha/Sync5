@@ -86,7 +86,19 @@ static func settle(run: Run, p: Phrase, flags: Dictionary = {}) -> Dictionary:
 		"phrase_idx": run.phrase_in_section,
 		"cache_cards": run.cache,
 		"early_finish": bool(flags.get("early", false)),
+		# ---- 2026-08-13 子波 2:时钟观测(谢幕/秒表/早弃)。**全部由调用方传** ——
+		# core/ 不含时钟, 这里只是把 view/探针给的读数放进 ctx(late/early 的同款处理)。
+		"acted_final": bool(flags.get("final", false)),
+		"seconds_left": float(flags.get("secs_left", 0.0)),
+		"early_discards": bool(flags.get("early_discards", false)),
 		"section_idx": run.section_idx,
+		# ---- 2026-08-13 子波1 信号(拼 ctx 只此一处, 分叉无从发生) ----
+		"swaps": p.swap_actions_used,
+		"discard_batch_max": p.discard_batch_max,
+		"faces_discarded": p.faces_discarded,
+		"swapped_scoring": p.swapped_scoring_count(res.get("resolved", [])),
+		"section_score": run.section_score,
+		"section_target": run.target(),
 		"mod": run.face(),
 		"character": run.character,
 		"first_kind": run.first_kind,
@@ -109,7 +121,7 @@ static func settle(run: Run, p: Phrase, flags: Dictionary = {}) -> Dictionary:
 	if run.phrase_in_section == 0:
 		run.first_kind = int(res.get("kind", -99))
 	run.prev_kind = int(res.get("kind", -99))
-	p.coins += int(outcome["coins"])
+	p.coins = Economy.grant(p.coins, int(outcome["coins"]), run.joker_slots)
 	run.coins = p.coins
 	if SectionMod.section_discard_budget(run.face()) >= 0:
 		run.section_discards_used += p.discards_used

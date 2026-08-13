@@ -220,20 +220,33 @@ func _test_run_machine(t) -> void:
 	t.eq(ration_p2.discard_budget, 4, "the next phrase receives only the remaining ration")
 	t.check(not ration_p2.discard_selected([0, 1, 2, 3, 4]), "ration rejects five when four remain")
 
-	# Trilogy adds a clear condition beside score; it does not alter the target.
+	# Trilogy(裁决 #8, 2026-08-13):种数配额是**税**不是硬门 —— 缺一种目标升一档
+	# (悲观实时:段首欠满额, 覆盖一种降一档), 判生死只比分数。罚档从数据推导, 不手抄。
 	var trilogy_run := Run.new()
 	trilogy_run.reset(715)
 	trilogy_run.run_faces[2] = "trilogy"
 	trilogy_run.section_idx = 2
-	trilogy_run.section_score = trilogy_run.target() + 1
+	var tri_pen := SectionMod.variety_penalty("trilogy")
+	t.check(tri_pen > 0.0, "trilogy declares a variety penalty")
+	trilogy_run.section_kinds = {Pattern.Kind.PAIR: true, Pattern.Kind.FLUSH: true,
+		Pattern.Kind.STRAIGHT: true}
+	var tri_base := trilogy_run.target()
 	trilogy_run.section_kinds = {Pattern.Kind.PAIR: true, Pattern.Kind.FLUSH: true}
+	t.eq(trilogy_run.target(), int(round(float(tri_base) * (1.0 + tri_pen))),
+		"one missing Trilogy type raises the target one step")
+	trilogy_run.section_kinds = {}
+	t.eq(trilogy_run.target(), int(round(float(tri_base) * (1.0 + tri_pen * 3.0))),
+		"an untouched section owes the full variety tax (pessimistic-live)")
+	# 判生死:分数够基准、缺一种 → 税后目标没够 = 不过;补上第三种 → 目标回落 = 过
+	trilogy_run.section_kinds = {Pattern.Kind.PAIR: true, Pattern.Kind.FLUSH: true}
+	trilogy_run.section_score = tri_base + 1
 	trilogy_run.phrase_in_section = GameConfig.PHRASES_PER_SECTION - 1
-	var trilogy_miss := trilogy_run.advance()
-	t.check(not bool(trilogy_miss["cleared"]), "two of three Trilogy types cannot clear")
-	trilogy_run.phrase_in_section = GameConfig.PHRASES_PER_SECTION - 1
+	t.check(not bool(trilogy_run.advance()["cleared"]),
+		"base-target score cannot clear while one type is missing")
 	trilogy_run.section_kinds[Pattern.Kind.STRAIGHT] = true
-	var trilogy_clear := trilogy_run.advance()
-	t.check(bool(trilogy_clear["cleared"]), "score plus three Trilogy types clears")
+	trilogy_run.phrase_in_section = GameConfig.PHRASES_PER_SECTION - 1
+	t.check(bool(trilogy_run.advance()["cleared"]),
+		"covering the third type drops the bar back and clears")
 
 	# Double Set adds one score-only replay after the normal settlement.
 	var double_run := Run.new()

@@ -88,6 +88,12 @@ static func splits(visible: Array, slots: Array, extra: Dictionary,
 		# 和弦等谓词读缓存 —— 切法决定了缓存, 所以这里必须用本切法的 keep
 		var ctx := extra.duplicate()
 		ctx["cache_cards"] = keep
+		# 交换次数(静物/串场读它)—— `need_swaps` 上面已经算出来了, 只是以前没写进 ctx,
+		# 于是那两张卡在求解器眼里恒等于「零交换」。2026-08-13 引擎波次补:
+		# **求解器算得出来的量必须进 ctx**, 否则它对这张卡的估值是假的(jokers.md 第 3 问)。
+		ctx["swaps"] = need_swaps
+		# 串场:换入且参与成牌 = 本切法里来自缓存区的那几张(下标 >= HAND_SIZE)
+		ctx["swapped_scoring"] = need_swaps
 		var outcome: Dictionary = Settle.run(res, slots, ctx)
 		var s := Split.new()
 		s.score = int(outcome["score"])
@@ -556,6 +562,15 @@ static func best_discard(visible: Array, slots: Array, extra: Dictionary,
 				trial.append(f[j])
 			var ctx := extra.duplicate()
 			ctx["discards"] = int(extra.get("discards", 0)) + d
+			# 弃牌的**内容**(断舍离读批大小, 让位读人头张数)。求解器一拍弃一批,
+			# 所以批峰值就是 d;人头数从被弃的那几张实数 —— 同上, 算得出来就必须进 ctx。
+			ctx["discard_batch_max"] = maxi(int(extra.get("discard_batch_max", 0)), d)
+			var df := 0
+			for i in sub:
+				var dc: Card = base.keep[int(i)]
+				if dc != null and not dc.is_wild() and dc.rank >= 11 and dc.rank <= 13:
+					df += 1
+			ctx["faces_discarded"] = int(extra.get("faces_discarded", 0)) + df
 			if bsubs.is_empty():
 				acc += best_score(trial, slots, ctx, rules)  # 只要数字, 见 best_score 的注释
 			else:

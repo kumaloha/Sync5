@@ -44,12 +44,30 @@ func _initialize() -> void:
 
 	var cfg := _cohort()
 	var ids := SectionMod.pooled_ids()
+	# `SYNC5_GATE_FACE` 支持**逗号分隔的多个 id**(2026-08-13 增量门):一次改动常碰
+	# 好几张脸, 逐张跑要重复付基准臂的钱 —— 而基准臂正是这段最贵的部分。
 	if _only != "":
-		if not ids.has(_only):
-			print("[gate] '%s' 不在任何池子里 —— 没有池子就不需要自证" % _only)
+		var wanted: Array = []
+		for part in _only.split(","):
+			var t := part.strip_edges()
+			if t == "":
+				continue
+			if not ids.has(t):
+				print("[gate] '%s' 不在任何池子里 —— 没有池子就不需要自证" % t)
+				quit(1)
+				return
+			wanted.append(t)
+		if wanted.is_empty():
+			print("[gate] SYNC5_GATE_FACE 里没有有效 id")
 			quit(1)
 			return
-		ids = [_only]
+		# ⚠ **保持池内顺序**而不是照参数顺序 —— 同族软硬弧的检查依赖池序,
+		# 而调用方给的顺序是「git diff 吐出来的顺序」, 没有语义。
+		var kept: Array = []
+		for fid in ids:
+			if wanted.has(fid):
+				kept.append(fid)
+		ids = kept
 
 	print("\n=== 覆盖自证的门 (design/gates.md) ===")
 	print("  队列 %s · score %d / solver %d / belief %d 局/臂 · 判据 |z| >= %.1f **且** 量级 >= %.0f%%"
@@ -180,31 +198,39 @@ func _run_target(cfg: Dictionary, ids: Array, n: int) -> void:
 		_judge("%s: 通关段数(判生死)" % fid, base, arm, Stat.mean(base), _weak_declared(fid))
 
 
-## required_kinds 族(trilogy):惩罚不长在 target() 的数值上, 长在 advance() 的
-## `cleared` 判定里 —— 分数够但牌型种数不够 = 段失败(2026-08-10 抓到的教训:
-## 它声明 solver 时量出精确 +0.0, 因为 solver 臂只看总分, 而它根本不动分数)。
-## 所以算术验算不问「目标动没动」, 直接问 Run:同一份高分, 种数差一即必须翻盘。
+## required_kinds 族(trilogy):2026-08-13 裁决 #8 起是**税不是硬门** ——
+## 种数配额并进 `Run.variety_mult`(缺一种目标 ×(1+penalty)), 悲观实时。
+## 算术验算:同一个 run, 种数从满配额到缺一/缺二, target() 必须按罚档单调上升;
+## 且 cleared 随「同一份分数 vs 涨过税的目标」正确翻转。
 ## 行为臂(通关段数)与 target_mult 族共用上面那段。
 func _check_kind_gate(fid: String) -> void:
 	var kinds := SectionMod.required_kinds(fid)
-	var flipped := true
-	for met_quota in [false, true]:
-		var run := Run.new()
-		run.section_idx = 0
-		run.run_faces = {0: fid}
-		run.phrase_in_section = GameConfig.PHRASES_PER_SECTION - 1
-		run.section_score = run.target() + 1
-		run.section_kinds = {}
-		var have: int = kinds if met_quota else kinds - 1
-		for i in have:
-			run.section_kinds["kind_%d" % i] = true
-		var out := run.advance()
-		if bool(out["cleared"]) != met_quota:
-			flipped = false
-	print("    %-28s required_kinds = %d  %s"
-		% [fid, kinds, "✓ 种数不足即翻盘(判生死接上了)" if flipped else "❌ cleared 没有随种数翻转"])
-	if not flipped:
-		_fail.append("%s: 分数达标时 cleared 没有随牌型种数翻转 —— required_kinds 没接进 core/run.gd" % fid)
+	var pen := SectionMod.variety_penalty(fid)
+	var ok := true
+	var run := Run.new()
+	run.section_idx = 0
+	run.run_faces = {0: fid}
+	run.section_kinds = {}
+	for i in kinds:
+		run.section_kinds["kind_%d" % i] = true
+	var base_t := run.target()
+	for missing in [1, 2]:
+		run.section_kinds.erase("kind_%d" % (kinds - missing))
+		var want := int(round(float(base_t) * (1.0 + pen * float(missing)) \
+			/ (1.0 + pen * 0.0)))
+		if run.target() != want:
+			ok = false
+	# cleared 翻转:分数够基准目标、但缺一种 → 税后目标没够到 = 不许过
+	run.section_kinds = {"a": true, "b": true}
+	run.phrase_in_section = GameConfig.PHRASES_PER_SECTION - 1
+	run.section_score = base_t + 1
+	var out := run.advance()
+	if bool(out["cleared"]):
+		ok = false
+	print("    %-28s variety_penalty = %.2f  %s"
+		% [fid, pen, "✓ 缺种即加税(判生死接上了)" if ok else "❌ target 没有随缺种上升"])
+	if not ok:
+		_fail.append("%s: target()/cleared 没有随缺种加税 —— variety_mult 没接进 core/run.gd" % fid)
 
 
 ## --- ④ 结构单调性(design/gates.md):无论数值怎么调都必须成立的方向。 ---
@@ -228,16 +254,68 @@ func _run_monotonic(cfg: Dictionary, n: int) -> void:
 		var soft := _play_sections(cfg, "norepeat", 1.0, 0, n)
 		var hard := _play_sections(cfg, "rerun", 1.0, 0, n)
 		_mono("禁回 0.5 → 炒冷饭 0.0", soft, hard, false)
+	# ⚠ 拼写保护:`KNOWN_FLAT` 的 key 必须逐字对上某条断言的 label ——
+	# 拼错会让豁免**静默失效**(门照旧红, 而作者一头雾水), 与 faces.json 的
+	# `weak_upper_bound` 拼错 id 是同款坑, 那边已经挡掉了, 这边照做。
+	for fl in KNOWN_FLAT:
+		if not _flat_seen.has(fl):
+			_fail.append("KNOWN_FLAT 里的 '%s' 没有对上任何一条单调性断言 —— 拼错了, 或者那条断言已经改名"
+				% fl)
+
+
+## **已知零效应**的单调性断言(2026-08-13 补;同 `faces.json weak_upper_bound` 与
+## `kit.gd WEAK_MAGNITUDE` 的哲学)。
+##
+## 起因:金币那两条断言量出的效应**恒为零**, 于是它们的绿灯完全取决于四舍五入的符号
+## —— 08-12 `+0.00 ✓`、08-13 `−0.00 ❌`, **同一个零**。那不是在守护不变量, 是在抛硬币,
+## 而**一道靠运气变绿的门和一道永远红的门一样没用**。
+##
+## 「零」这个读数本身早被裁定过:S9(`tools/wallet.gd` 200 局)——
+## **「经济卡近乎无价值是游戏事实,不是模型缺陷」**:买不起只占 0.1%、局末余额 34.7◆、
+## 后期钱花不出去是因为那时没什么值得买的了。往一个已经溢出的桶里再加 3 枚金币,
+## 当然什么都不会发生。
+##
+## ⚠ 声明的语义是「**这个旋钮对当前 bot 的通关段数没有边际效应**」,
+## **不是**「这个旋钮不重要」—— 真人的购买力约束与 bot 差得远。所以一律标「真人待定」。
+## ⚠ 反向锁在 `_mono` 里:声明了却实测有明显效应 = 表过期, 当场红要求删条目。
+## ⚠ **别把它当放宽阈值的口子**:方向反了且量级**超过** `FLAT_BAND` 的照旧红 ——
+## 豁免只吃「零」, 不吃「负」。
+const KNOWN_FLAT := {
+	"起始金币 −3 → 0": "S9 裁定:钱从来不是约束(买不起 0.1%、局末余额 34.7◆);真人待定",
+	"起始金币 0 → +3": "同上 —— 往已经溢出的桶里加 3 枚金币, bot 的通关段数不动;真人待定",
+}
+## 「零」的判定带:通关段数满分 4.00, 真效应实测 0.47~1.34 段, 噪声在 ±0.005 ——
+## 0.02 段(0.5%)能干净地把两者分开, 且远小于任何真实效应。
+const FLAT_BAND := 0.02
+
+var _flat_seen: Dictionary = {}
 
 
 func _mono(label: String, a: Array, b: Array, want_up: bool) -> void:
 	var d: float = Stat.mean(b) - Stat.mean(a)
 	var ok: bool = d >= -0.0001 if want_up else d <= 0.0001
+	# 零效应 + 已声明 → ⚠ 而不是 ❌(行内就看得出来:一个印着 ❌ 却放行的读数
+	# 会让下一个人整体不信这道门, 这条教训今天刚在 kit.gd 上付过一次)
+	# ⚠ `_flat_seen` 记的是「这条 label **存在**」而不是「豁免生效了」——
+	# 否则「声明了但效应变真」会同时触发反向锁和拼写保护, 两条报同一件事。
+	if KNOWN_FLAT.has(label):
+		_flat_seen[label] = true
+	var flat: bool = absf(d) < FLAT_BAND and KNOWN_FLAT.has(label)
 	print("    %-28s 通关段数 %.2f → %.2f  (%+.2f)  %s"
-		% [label, Stat.mean(a), Stat.mean(b), d, "✓" if ok else "❌ 方向反了"])
+		% [label, Stat.mean(a), Stat.mean(b), d,
+		("⚠ 已知零效应(已声明)" if flat else ("✓" if ok else "❌ 方向反了"))])
+	if flat:
+		_warn.append("%s: 实测 %+.2f 段 ≈ 0 —— %s" % [label, d, KNOWN_FLAT[label]])
+		return
 	if not ok:
 		_fail.append("单调性破了: %s 应该%s, 实际 %+.2f 段"
 			% [label, "变容易" if want_up else "变难", d])
+	elif KNOWN_FLAT.has(label) and absf(d) >= FLAT_BAND:
+		# 反向锁:声明了「零效应」却量出真效应 —— 说明那条裁定过期了(比如经济系统
+		# 重做之后钱重新成为约束)。这是**好消息**, 但表必须跟着改, 否则下一次真的
+		# 塌了没人拦得住。
+		_fail.append("%s 实测 %+.2f 段(≥%.2f)—— 它不再是零效应, 把它从 KNOWN_FLAT 删掉"
+			% [label, d, FLAT_BAND])
 
 
 ## --- ⑤ 生成器哨兵(design/gates.md):目标分必须落在**录得到**的分数范围内。 ---
