@@ -84,7 +84,8 @@
   "triplet": 2.2,
   "lonewolf": 1.7,
   "kaleido": 2.3,
-  "shredder": 2.0
+  "shredder": 2.0,
+  "wrecker": 2.1
  },
  "lonewolf_value": {
   "high_prior": 0.35,
@@ -329,6 +330,10 @@
      "discards_before": 0.7
     }
    }
+  },
+  "discard_bias": {
+   "_comment": "玩家为自己的卡凑弃牌张数(tools/bot.gd::_play_adaptive)。值 = 想凑到几张;受 beat_discards 上限约束。⚠ 只在 plan 本来就要弃牌时生效 —— 手牌已经很好时硬凑会砸掉现成牌型。",
+   "wrecker": 3
   }
  },
  "chase": {

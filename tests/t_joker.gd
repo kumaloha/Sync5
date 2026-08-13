@@ -5,7 +5,7 @@ func run(t) -> void:
 	# roster shape (2026-08-12 流派批: 删 popup/backup, 加族内件×4 + backer/bench/boxseats + trim;
 	# 缘由与增删改清单见 design/archetypes.md §5)
 	var pool := Joker.pool()
-	t.eq(pool.size(), 60, "pool holds 60 jokers —— 正是用户拍板的 roster 目标数(子波3 +3)")
+	t.eq(pool.size(), 61, "pool holds 61 jokers(拆迁回池;断舍离/三重唱/打包仍在池外)")
 	var targets := 0
 	var rarities := {"common": 0, "uncommon": 0, "rare": 0}
 	for j in pool:
@@ -18,7 +18,7 @@ func run(t) -> void:
 			rarities[j.rarity] = int(rarities.get(j.rarity, 0)) + 1
 		# principle D2: EN card text, ≤7 words
 		t.check(j.fx_text.split(" ").size() <= 7, "%s card text within 7 words" % j.id)
-	t.eq(targets, 7, "seven targets (wrecker 待 bot 弃牌策略后 +1)")
+	t.eq(targets, 8, "eight targets —— 拆迁回池(beat_budget 校准 + 弃牌偏置后它可达了)")
 	# 概率线基建(archetypes.md §3.8): fourfingers/twotone 降罕见 —— 规则牌从 5% 池权重解放
 	t.eq(rarities["common"], 22, "twenty-two common supports")
 	t.eq(rarities["uncommon"], 23, "twenty-three uncommon supports")

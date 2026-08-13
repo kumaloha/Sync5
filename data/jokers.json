@@ -1284,6 +1284,36 @@
      }
     }
    ]
+  },
+  {
+   "id": "wrecker",
+   "name": "Demolition",
+   "cn": "拆迁",
+   "kind": "target",
+   "rarity": "rare",
+   "proof": "score",
+   "fx": "Three discards: made hands x3.5",
+   "effects": [
+    {
+     "when": {
+      "discards_gte": 3,
+      "kind_in": [
+       "PAIR",
+       "TWO_PAIR",
+       "THREE_KIND",
+       "STRAIGHT",
+       "FLUSH",
+       "FULL_HOUSE",
+       "FOUR_KIND",
+       "STRAIGHT_FLUSH",
+       "ROYAL_FLUSH"
+      ]
+     },
+     "do": {
+      "mult": 3.5
+     }
+    }
+   ]
   }
  ]
 }

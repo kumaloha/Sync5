@@ -282,7 +282,7 @@
    "trigger": "整拍零交换"
   },
   "declutter": {
-   "trigger": "一次弃光整手五张"
+   "trigger": "一次弃掉 4 张牌"
   },
   "stageexit": {
    "trigger": "每弃 1 张人头牌"

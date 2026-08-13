@@ -22,7 +22,7 @@ func run(t) -> void:
 	t.eq(Character.roster().size(), 8, "8 characters from data")
 	t.check(DB.validate_characters({"characters": [{"idx": 1, "cn": "x", "title": "t", "fx": "f"}]}) != "",
 		"non-dense idx detected")
-	t.eq(Joker.pool().size(), 60, "60 jokers from data (2026-08-13 三个子波毕;wrecker/trio/declutter/doggybag 是仪器债)")
+	t.eq(Joker.pool().size(), 61, "61 jokers from data (2026-08-13 拆迁回池;declutter/trio/doggybag 仍在池外)")
 	# 卡面文字随平衡改, 别抄死 —— 只锁「读得回来 + 符合 D2 的 ≤7 词」
 	t.check(Joker.by_id("twin").fx_text.length() > 0, "joker text roundtrip")
 	for oid in GameConfig.JOKER_PRICE_OVERRIDES:

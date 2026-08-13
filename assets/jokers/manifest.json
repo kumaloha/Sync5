@@ -499,7 +499,7 @@
    "code": "S-41",
    "kind": "support",
    "rarity": "uncommon",
-   "trigger_zh": "一次弃掉五张牌",
+   "trigger_zh": "一次弃掉 4 张牌",
    "amount": "+50%",
    "art_subject": "一只手把整手牌一次撒出"
   },

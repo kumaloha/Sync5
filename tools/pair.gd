@@ -56,8 +56,14 @@ func _initialize() -> void:
 	# ---- 第二、三关:逐级打开弃牌与前瞻, 看哪一级引入差距 ----
 	# 这两级都带采样, 所以不比"逐手相同", 比**配对均值差**(同种子同牌, 差应当近 0)。
 	_trace(rng, slots, extra)
-	_stage("第二关:开弃牌, 不前瞻", 2, 0.0, rng, slots, extra)
-	_stage("第三关:弃牌 + 前瞻(实战配置)", 2, float(DB.sim()["solver"]["lam"]), rng, slots, extra)
+	# ⚠⚠ 弃牌上限**必须读配置**, 不许写字面量(2026-08-13 踩到):
+	# 这里原本硬编码 `2`, 而真打侧走 bot 的 `GameConfig.beat_discards()` ——
+	# 我把 `beat_budget.discards` 按真人实测从 2 校准到 3 之后, 数学侧仍只弃 2 张,
+	# 于是配对差一夜之间变成 **−16 (z=−8)**, 看起来像「求解器和游戏代码分叉了」。
+	# 真相是**这个探针自己把配置抄成了字面量** —— 「乘除只写一处」的又一例。
+	var dmax := GameConfig.BEAT_DISCARDS
+	_stage("第二关:开弃牌, 不前瞻", dmax, 0.0, rng, slots, extra)
+	_stage("第三关:弃牌 + 前瞻(实战配置)", dmax, float(DB.sim()["solver"]["lam"]), rng, slots, extra)
 	quit(0)
 
 
@@ -72,7 +78,8 @@ func _trace(rng: RandomNumberGenerator, slots: Array, extra: Dictionary) -> void
 		for _j in range(8):
 			vis.append(d1.draw())
 		var b0 = Solver.best_split(vis, slots, extra)
-		var drop := Solver.best_discard(vis, slots, extra, d1, rng, 999, 2, 0.0, samples, 0.0)
+		var drop := Solver.best_discard(vis, slots, extra, d1, rng, 999,
+			GameConfig.BEAT_DISCARDS, 0.0, samples, 0.0)
 		var ks := {}
 		for di in drop:
 			ks[b0.keep[di]] = true

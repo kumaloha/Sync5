@@ -22,6 +22,10 @@ const DRAFT_HORIZON := 20.0
 var EV: Dictionary = SIM["ev"]
 var CHASE: Dictionary = SIM["chase"]
 var SOLVER: Dictionary = SIM["solver"]      # 平衡贪心的 lam / lam_samples (design/solver_roadmap.md)
+## 「玩家为自己的卡凑弃牌张数」的偏置表(2026-08-13)。id → 想凑到几张。
+## ⚠ 在 data/ 里而不是代码里 —— 与 `ev.timing` 同一条纪律:加一张吃弃牌张数的卡时
+## 只改 JSON, 而**忘了改不会报错**(那张卡就成了「玩家从不为它调整打法」的死卡)。
+var DISCARD_BIAS: Dictionary = SIM["ev"].get("discard_bias", {})
 
 
 func _init(rng: RandomNumberGenerator, rep: Report) -> void:
@@ -755,6 +759,34 @@ func _play_adaptive(p: Phrase, slots: Array, target_id: String, section: int, mo
 	for i in range(p.hand.size()):
 		if not keep.has(i) and idx.size() < d_max:
 			idx.append(i)
+	# ⚑ **玩家为自己的卡调整弃牌张数**(2026-08-13 还的仪器债;同 `_timing_flags` 的思路)。
+	# 拆迁(弃满 3 张 → 成牌 ×3.5)与断舍离(一次弃 4 张 → +50%)的收益都远大于
+	# 「多弃一张让手牌变差」的损失, 所以装了它们的玩家会**凑够张数**。
+	# ⚠ 这是「能力 ≠ 动机」那条判据的落地:把 `beat_budget` 从 2 校准到 3 只是让
+	# 弃 3 张**可达**, bot 照旧只弃 plan 说该弃的 —— 不给动机, 那两张卡永远量不到。
+	# ⚠ **只在 plan 本来就要弃牌时才凑**(`idx` 非空):plan 说 keep_all 时手牌已经很好,
+	# 硬凑会砸掉现成的牌型 —— 那不是玩家会做的事, 是仪器在自欺。
+	var want_cards := 0
+	for j in slots:
+		if j != null:
+			want_cards = maxi(want_cards, int(DISCARD_BIAS.get(j.id, 0)))
+	# ⚠⚠ **凑不到就别凑**(2026-08-13 实测踩到):`beat_budget` 是 3 时给断舍离
+	# (要 4 张)凑牌 —— 弃到上限 3 张、条件仍不满足, 于是**白弃一张手牌**:
+	# kit 实测 **−961 分 / 触发 0%**。而门差点放行它(z 和量级都过, 只有符号是负的)。
+	# 判据:**目标张数超出本拍预算时, 这个偏置整个不生效** —— 打不成的牌不值得为它赔手牌。
+	# ⚠ **最多只多弃一张**(2026-08-13 实测校正)。第一版是「装了就凑」——
+	# 断舍离触发率确实从 0% 拉到 86%, 但分差 **−330**:每拍强弃到 4 张,
+	# +50% 抵不上手牌被拆的损失。那不是卡的问题, 是**我的 bot 太笨** ——
+	# 真人装了这卡, 只在手牌本来就烂(已经要弃 3 张)时才顺手凑第 4 张,
+	# 手上有现成牌型时不会为了 +50% 去拆它。
+	# 判据对两张卡一视同仁:多弃**一张**的代价小, 多弃三张是在赌。
+	if want_cards > idx.size() and want_cards <= d_max and idx.size() >= want_cards - 1:
+		var target_n: int = mini(want_cards, p.hand.size())
+		for i in range(p.hand.size()):
+			if idx.size() >= target_n:
+				break
+			if not idx.has(i):
+				idx.append(i)
 	if not idx.is_empty() and p.can_discard(idx.size()) and p.discard_selected(idx, []):
 		_notify_discard(slots, idx.size())
 	# Forced Rotation: any non-vow build tosses its worst card rather than
