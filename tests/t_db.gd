@@ -77,3 +77,55 @@ func run(t) -> void:
 	rt_face["tape_required"] = true
 	t.eq(DB.validate_faces({"faces": [rt_face], "fixed_tiers": [1]}), "",
 		"real-time faces keep a model proof and declare tape_required separately")
+
+	# ⚑ 轮次集 `tiers`(2026-08-14 用户:「有大量只有一轮生效的盲注我不喜欢」)。
+	# 规格 = design/difficulty.md §2.1。这几条锁的是 schema 的**边界**, 不是内容。
+	var multi := good_face.duplicate(true)
+	multi["tiers"] = [1, 2]
+	t.eq(DB.validate_faces({"faces": [multi], "fixed_tiers": [1, 2]}), "",
+		"一张脸可以声明多个合法轮次(tiers)")
+	# ⚠ 缺省等价:这是「放开 tiers 后行为逐字节不变」那条的机器可读版本。
+	var single := good_face.duplicate(true)
+	var explicit := good_face.duplicate(true)
+	explicit["tiers"] = [1]
+	t.eq(DB.validate_faces({"faces": [single], "fixed_tiers": [1]}),
+		DB.validate_faces({"faces": [explicit], "fixed_tiers": [1]}),
+		"tiers 缺省 == [tier] —— 显式写单元素与不写完全等价")
+	var orphan := good_face.duplicate(true)
+	orphan.erase("tier")
+	orphan["tiers"] = [1, 2]
+	t.check(DB.validate_faces({"faces": [orphan], "fixed_tiers": [1, 2]}) != "",
+		"只写 tiers 不写 tier 被拒 —— tier 是定价/门禁的基准位置")
+	var offbase := good_face.duplicate(true)
+	offbase["tiers"] = [2, 3]          # 主场 tier=1 不在里面
+	t.check(DB.validate_faces({"faces": [offbase], "fixed_tiers": [2, 3]}) != "",
+		"主场 tier 不在 tiers 里被拒 —— 定价基准会指向它不出现的轮次")
+	var duped := good_face.duplicate(true)
+	duped["tiers"] = [1, 1]
+	t.check(DB.validate_faces({"faces": [duped], "fixed_tiers": [1]}) != "",
+		"tiers 里重复的轮次被拒")
+	var zero := good_face.duplicate(true)
+	zero["tiers"] = [0, 1]
+	t.check(DB.validate_faces({"faces": [zero], "fixed_tiers": [1]}) != "",
+		"tiers 里的轮次必须 >= 1")
+	# ⚑ 教学弧那条断言问的是「**最早**出现在第几轮」, 不是主场 —— 放开 tiers 之后
+	# 这两个不再是同一个数。这条锁的就是那个区别:主场顺序对, 但 hard 更早露面 ⇒ 仍该红。
+	var soft := {"id": "s", "name": "S", "cn": "s", "fx": "f",
+		"params": {"repeat_factor": 0.5}, "proof": "score", "tier": 1, "tiers": [1, 3]}
+	var hard := {"id": "h", "name": "H", "cn": "h", "fx": "f",
+		"params": {"repeat_factor": 0.0}, "proof": "score", "tier": 3, "tiers": [3]}
+	t.eq(DB.validate_faces({"faces": [soft, hard], "fixed_tiers": [1],
+		"families": {"repeat_factor": {"soft": "s", "hard": "h"}}}), "",
+		"soft 最早在 1、hard 最早在 3 —— 教学弧成立")
+	# 反例:**主场顺序仍然是对的**(soft 主场 2 < hard 主场 3), 但 hard 的轮次集里有个 1,
+	# 玩家第 1 轮就会先撞上硬的。⚑ 这正是「用主场问顺序」看不见的那个洞。
+	var late_soft := {"id": "s", "name": "S", "cn": "s", "fx": "f",
+		"params": {"repeat_factor": 0.5}, "proof": "score", "tier": 2, "tiers": [2, 3]}
+	var early_hard := {"id": "h", "name": "H", "cn": "h", "fx": "f",
+		"params": {"repeat_factor": 0.0}, "proof": "score", "tier": 3, "tiers": [1, 3]}
+	# ⚠ fixed_tiers 要带上 1 和 2, 否则会先被「这一轮只有 1 张脸」拦下 ——
+	# 那样这条断言就**为了错误的理由变绿**。所以下面连错误信息一起断言。
+	var arc_err := DB.validate_faces({"faces": [late_soft, early_hard], "fixed_tiers": [1, 2],
+		"families": {"repeat_factor": {"soft": "s", "hard": "h"}}})
+	t.check(arc_err.contains("教学弧"),
+		"hard 最早出现在 soft 之前被拒, 且是因为教学弧而不是别的规则(got: %s)" % arc_err)

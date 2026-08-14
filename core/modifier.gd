@@ -34,25 +34,56 @@ static func by_id(p_id: String) -> SectionMod:
 	return null
 
 
-## 这一段能掷到哪几张脸 —— **由每张脸自己的 `tier` 推导, 不再手写池子**
+## 一张脸的**合法轮次集** —— `tiers` 优先, 缺省退回 `[tier]`(单轮)。
+##
+## ⚑ **为什么是集合而不是一个数**(2026-08-14 用户:「有大量只有一轮生效的盲注我不喜欢」):
+## `tier` 单值等于宣称「难度是脸的固有属性」, 而 `design/gates.md §6` 早就写了反面 ——
+## **同一张脸放在 S1 和 S4 难度不一样**(构筑值 4.2 倍)。所以「这张脸属于哪轮」本来就该是
+## **一个子集**, 不是一个点。
+## ⚠⚠ 这不是新设计, 是**把 schema 放回它本来的宽度**:`tools/price.gd` 文件头写着
+## 「定价表的大小是**合法放置数** = 4+5+7+6 = **22**, 不是 12」—— 12 张脸 22 个放置,
+## 当年一张脸本来就能进多个段。定价仪器一直按「(脸, 段)」在量, **窄的是 schema 不是仪器**。
+## ⚠ 放开不等于随便放:每个 (脸, 轮) 都要各自过价, 荒谬的放置(如 `patchin` 进 S1 ——
+## 那时玩家还没有小丑牌, 效果为空)由作者在 `tiers` 里排除。
+static func tiers_of_entry(e: Dictionary) -> Array:
+	if e.has("tiers"):
+		var out: Array = []
+		for v in e["tiers"]:
+			out.append(int(v))
+		return out
+	if e.has("tier"):
+		return [int(e["tier"])]
+	return []
+
+
+## 这一段能掷到哪几张脸 —— **由每张脸自己的轮次集推导, 不再手写池子**
 ## (2026-08-07 用户拍板:「每次都要看塞在哪个轮次合适, 这也是脸的一个基础属性」)。
 ## 一张脸的归属只写一遍, 而且加新脸时不填 tier 会**直接报错**(core/db.gd), 和 `proof`
 ## 通路一样强制作者做一次决定 —— 手写池子时「塞哪轮」这个决定是可以被忘掉的。
-## `tier` 是 1..N(玩家口径的「第几轮」), section_idx 是 0 起, 差一。
+## 轮次是 1..N(玩家口径的「第几轮」), section_idx 是 0 起, 差一。
 static func pool_for(section_idx: int) -> Array:
 	var out: Array = []
 	for e in DB.faces().get("faces", []):
-		if int(e.get("tier", 0)) == section_idx + 1:
+		if tiers_of_entry(e).has(section_idx + 1):
 			out.append(String(e["id"]))
 	return out
 
 
-## 这张脸属于第几轮(1..N)。0 = 没入池(退役, 或还没决定塞哪轮)。
+## 这张脸的**主场轮次**(1..N)—— 定价与门禁的基准位置。0 = 没入池(退役, 或还没决定)。
+## ⚠ 它**不再等于**「这张脸只在这一轮出现」, 那个问题问 `tiers_of()`。
 static func tier_of(mod_id: String) -> int:
 	for e in DB.faces().get("faces", []):
 		if String(e["id"]) == mod_id:
 			return int(e.get("tier", 0))
 	return 0
+
+
+## 这张脸的全部合法轮次。空 = 没入池。
+static func tiers_of(mod_id: String) -> Array:
+	for e in DB.faces().get("faces", []):
+		if String(e["id"]) == mod_id:
+			return tiers_of_entry(e)
+	return []
 
 
 ## 声明为「固定」的轮次 —— 只有一张脸, 每局都一样。见 design/blinds.md §3:

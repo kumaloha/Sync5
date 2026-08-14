@@ -23,7 +23,11 @@ Lumines 的节奏推进 + Balatro 的构筑。**始终用中文回复。**
 > 标题写着「踩过坑,别退回去」= 按定义就是 [LESSONS.md](LESSONS.md)。
 >
 > **美术与渲染的具体做法**(剖面数值、分层顺序、实现细节)归 [`design/ui_meta.md`](design/ui_meta.md);
-> **牌型/经济/关卡的具体数值与推导**归 `design/` 对应那篇(`cards` / `levels` / `jokers` / `blinds`)。
+> **牌型/经济/关卡的具体数值与推导**归 `design/` 对应那篇(`cards` / `levels` / `jokers` / `blinds`);
+> **难度曲线与节奏**(死亡率形状、脸的轮次集、Director、新手引导)归 [`design/difficulty.md`](design/difficulty.md),
+> 它的**外部依据**在 [`design/research_pacing_retention.md`](design/research_pacing_retention.md)。
+> ⚠ **要「调研业内做法」之前先在 `design/` 里 grep** —— 那篇 27k 的调研已经覆盖
+> DDA / L4D Director / 心流 / 近失效应 / 短局留存 / 起承転結(踩过,见 [LESSONS.md](LESSONS.md) 八)。
 >
 > 设计规格在 `design/`,建模这条线按 `22 → 23 → 24 → 25` 读。
 

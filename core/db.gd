@@ -239,7 +239,7 @@ static func validate_faces(d: Dictionary) -> String:
 	var ids := {}
 	for e in d["faces"]:
 		for k in e:
-			if not ["id", "name", "cn", "fx", "params", "proof", "tape_required", "tier"].has(k):
+			if not ["id", "name", "cn", "fx", "params", "proof", "tape_required", "tier", "tiers"].has(k):
 				return "face '%s' unknown key '%s' — faces.json is data-only now, design notes belong in design/blinds.md §7" % [e.get("id", "?"), k]
 		if e.has("tape_required") and not e["tape_required"] is bool:
 			return "face '%s' tape_required wants bool" % e.get("id", "?")
@@ -256,18 +256,50 @@ static func validate_faces(d: Dictionary) -> String:
 	# 就进不了池子** —— 手写池子时「这张新脸塞哪轮」是可以被忘掉的, 现在忘不掉。
 	# ⚠ 这里刻意不引用 `GameConfig` —— 它是 data/ 之上的门面、反过来读 DB, 会成环。
 	# 「tier 覆盖了全部段」那条断言放在 tests/runner.gd(那边两边都看得见)。
+	# ⚑ 2026-08-14:轮次从**一个数**放成**一个集合**(`tiers`), `tier` 留作**主场轮次** ——
+	# 定价(tools/price.gd)与门禁(tools/gate.gd)的基准位置。缺 `tiers` 时退回 `[tier]`,
+	# 所以既有 30 张脸一行不用改、行为逐字节不变。理由与证据见 core/modifier.gd 文件头。
+	# ⚠ 这里刻意不调 `SectionMod.tiers_of_entry` —— 它反过来读 DB, 会成环(同 GameConfig 那条)。
 	var by_tier := {}          # tier -> [face id]
-	var tier_of := {}          # face id -> tier
+	var tier_of := {}          # face id -> 主场 tier
+	# ⚑ 教学弧那条断言(soft 必须早于 hard)问的是「**最早**出现在第几轮」, 不是主场 ——
+	# 轮次放成集合之后这两个不再是同一个数, 而**旧代码用主场问了一个关于顺序的问题**。
+	# 这正是「改段数要顺手核对所有按段索引的表」那条踩过的形状:schema 放宽会**静默**打破
+	# 按单值索引的不变量。单轮时 min(tiers) == tier, 所以既有行为不变。
+	var first_tier_of := {}    # face id -> min(tiers)
 	for e in d["faces"]:
 		if not e.has("tier"):
+			if e.has("tiers"):
+				return "face '%s' 只写了 tiers 没写 tier —— tier 是主场轮次(定价/门禁的基准位置), 不能省" % e["id"]
 			continue           # 没有 tier = 没入池(退役, 或还没决定塞哪轮)
 		var t: int = int(e["tier"])
 		if t < 1:
 			return "face '%s' tier must be >= 1 (玩家口径的第几轮), got %d" % [e["id"], t]
-		if not by_tier.has(t):
-			by_tier[t] = []
-		by_tier[t].append(String(e["id"]))
+		var ts: Array = [t]
+		if e.has("tiers"):
+			if not (e["tiers"] is Array):
+				return "face '%s' tiers wants an array of 轮次" % e["id"]
+			ts = []
+			for v in e["tiers"]:
+				var vt: int = int(v)
+				if vt < 1:
+					return "face '%s' tiers 里有 %d —— 轮次从 1 起" % [e["id"], vt]
+				if ts.has(vt):
+					return "face '%s' tiers 里 %d 写了两遍" % [e["id"], vt]
+				ts.append(vt)
+			if ts.is_empty():
+				return "face '%s' tiers 是空的 —— 想退池就把 tier 一起删掉" % e["id"]
+			# 主场必须在合法集里, 否则定价基准指向一个这张脸不会出现的位置。
+			if not ts.has(t):
+				return "face '%s' 主场 tier=%d 不在 tiers=%s 里 —— 定价基准会指向它不出现的轮次" % [e["id"], t, str(ts)]
+		var earliest: int = t
+		for tv in ts:
+			if not by_tier.has(tv):
+				by_tier[tv] = []
+			by_tier[tv].append(String(e["id"]))
+			earliest = mini(earliest, int(tv))
 		tier_of[String(e["id"])] = t
+		first_tier_of[String(e["id"])] = earliest
 	# 「每轮 >=2 张」曾经是硬规则, 理由写的是「否则脸的价格不可辨识」—— **那个理由是错的**:
 	# tools/price.gd 对**无脸基准**测价, 不在池内互比。固定的真实代价是**新鲜感为零**,
 	# 所以规则改成:固定允许, 但必须显式声明。**固定必须是有意的, 不能是排漏了。**
@@ -295,7 +327,7 @@ static func validate_faces(d: Dictionary) -> String:
 			return "weak_upper_bound 里的 '%s' 不是任何一张脸的 id —— 拼错了, 或者那张脸已经退役" % wid
 		if not tier_of.has(wid):
 			return "weak_upper_bound 里的 '%s' 没有 tier(不在任何池子里), 豁免一张不出场的脸没有意义" % wid
-	var ferr := _validate_face_families(d, ids, tier_of)
+	var ferr := _validate_face_families(d, ids, first_tier_of)
 	if ferr != "":
 		return ferr
 	return _validate_face_proof(d, tier_of)
@@ -555,7 +587,9 @@ static func validate_ui(d: Dictionary) -> String:
 ## ⚠ **哪个值更软是按参数定的, 不能自动推**(repeat_factor 越大越软 0.5>0.0,
 ## cache_evict 越小越软 1<3), 所以 soft/hard 由作者声明, 这里只校验:
 ## 两张脸真的同族(带同一个 param), 以及池子里的先后。
-static func _validate_face_families(d: Dictionary, ids: Dictionary, tier_of: Dictionary) -> String:
+## ⚠ `first_tier_of` 是**最早出现的轮次**(`min(tiers)`), 不是主场 `tier` ——
+## 这条断言问的是**顺序**("玩家先遇到哪个"), 而放开 `tiers` 之后主场答不了这个问题。
+static func _validate_face_families(d: Dictionary, ids: Dictionary, first_tier_of: Dictionary) -> String:
 	for fam in d.get("families", {}):
 		var e: Dictionary = d["families"][fam]
 		for role in ["soft", "hard"]:
@@ -568,11 +602,11 @@ static func _validate_face_families(d: Dictionary, ids: Dictionary, tier_of: Dic
 					% [fam, e[role]]
 		if String(e["soft"]) == String(e["hard"]):
 			return "family '%s': soft and hard are the same face" % fam
-		if not tier_of.has(e["soft"]) or not tier_of.has(e["hard"]):
+		if not first_tier_of.has(e["soft"]) or not first_tier_of.has(e["hard"]):
 			continue          # 有一档没入池 = 这条弧这一版没排, 不算错
-		if int(tier_of[e["soft"]]) >= int(tier_of[e["hard"]]):
-			return "family '%s': soft '%s' 在第 %d 轮, hard '%s' 在第 %d 轮 —— 先硬后软不是教学弧" \
-				% [fam, e["soft"], int(tier_of[e["soft"]]), e["hard"], int(tier_of[e["hard"]])]
+		if int(first_tier_of[e["soft"]]) >= int(first_tier_of[e["hard"]]):
+			return "family '%s': soft '%s' 最早在第 %d 轮, hard '%s' 最早在第 %d 轮 —— 先硬后软不是教学弧" \
+				% [fam, e["soft"], int(first_tier_of[e["soft"]]), e["hard"], int(first_tier_of[e["hard"]])]
 	return ""
 
 

@@ -465,13 +465,32 @@ Paid discards disable; swaps and settlement continue normally.
 
 ## Director(前瞻,未实施)
 
+> ### ⚠⚠ 2026-08-14:下面三节**已作废**,规格转 [`difficulty.md`](difficulty.md) §3
+>
+> 用户拍板:「**这里不是千人千面的不用读 context。真正千人千面的只有随机出来的小丑牌
+> (控制难度的)。**」
+>
+> ⇒ **`Inputs`(每拍 9 个信号)· `Recent behavior model`(20–30 拍滚动窗 + 6 种玩家倾向)·
+> `Joker learning states`(Tried / Understood / Mastered 判定)—— 这三节全是读 context 的,
+> 全部作废。**
+>
+> Director 从「自适应 AI 系统」降级成**一张设计期写死的表**:实现成本从「建行为模型 +
+> 在线推断」掉到「读一张 JSON」。⚑ 这大概也是它一直没实现的真正原因 —— **它被设计得太重了。**
+>
+> **`Sequence states`(七状态)· `Offer logic` · `Fairness` 三节仍然有效** ——
+> 用户举的例子(前三关教学 → 难一关 → 简单两关 → 难一关)与七状态序列**逐项对得上**。
+>
+> ⚠ `Fairness` 那节的边界要按 [`difficulty.md`](difficulty.md) §3 末尾精确化:
+> 禁的是 **DDA / 橡皮筋**(读表现偷偷改数),**不禁**按局数索引、对所有人相同的设计常量表。
+> 判据 = **同一个玩家在同一个位置永远拿到同一个数**。
+
 ### Definition
 
 Director controls learning and emotional pacing.
 
 It does not directly decide victory.
 
-### Inputs
+### ~~Inputs~~(作废,见上)
 
 Per Phrase:
 
@@ -485,7 +504,7 @@ Per Phrase:
 - Target/Support trigger
 - Section completion rate
 
-### Recent behavior model
+### ~~Recent behavior model~~(作废,见本节开头)
 
 Use a rolling window of 20–30 Phrases.
 
@@ -522,7 +541,7 @@ Establish
 → Payoff
 ```
 
-### Joker learning states
+### ~~Joker learning states~~(作废,见本节开头)
 
 ```text
 Unseen
