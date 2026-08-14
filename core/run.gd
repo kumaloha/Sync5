@@ -71,9 +71,10 @@ func roll_faces(face_seed: int = -1) -> void:
 		_blind_rng.seed = face_seed
 	else:
 		_blind_rng.randomize()
-	run_faces = {}
-	for w in GameConfig.WALL_SECTIONS:
-		run_faces[w] = SectionMod.roll(w, _blind_rng)
+	# ⚑ 一局四张脸走 `SectionMod.roll_run` 这**一份**(2026-08-14 收口, 原来 7 份)——
+	# 它保证「一局之内不偶然重复」, 而那条守卫只加在这里、探针各掷各的就是
+	# 「规则在游戏里不在模型里」的第 6 次。
+	run_faces = SectionMod.roll_run(_blind_rng)
 	run_boon = BlindBoon.roll(_blind_rng)
 
 

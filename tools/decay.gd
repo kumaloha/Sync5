@@ -100,9 +100,9 @@ func _arm(cfg: Dictionary, decay: float, n: int, seed0: int) -> Dictionary:
 		_rng.seed = seed0 + r
 		# ⚠ RNG 消耗顺序照抄 sim.gd:先抽主角, 后掷脸。
 		var character: Character = Character.roster()[_rng.randi_range(0, 7)]
-		var faces := {}
-		for w in GameConfig.WALL_SECTIONS:
-			faces[w] = SectionMod.roll(w, _rng)
+		# ⚑ 一局四张脸走 SectionMod.roll_run 这一份(2026-08-14 收口, 原来 7 份)——
+		# 保证「一局之内不偶然重复」。RNG 消耗与旧代码逐次相同。
+		var faces := SectionMod.roll_run(_rng)
 		var o := RunLoop.Opts.new()
 		o.rng = _rng
 		o.deck_seed = r * 7 + 1

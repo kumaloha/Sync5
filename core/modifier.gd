@@ -118,11 +118,53 @@ static func pooled_ids() -> Array:
 
 ## Roll this section's modifier id ("" = no modifier). Deterministic under a
 ## seeded RNG so the sim stays resumable.
-static func roll(section_idx: int, rng: RandomNumberGenerator) -> String:
+## ⚑⚑ `exclude` = 本局已经掷到过的脸 —— **「重复必须是有意的, 不能是偶然的」**。
+##
+## 这条守卫在 2026-08-07 `tier` 收成单值时被删过一次(叫 `arc`), 理由是「一张脸一个 tier
+## 之后跨段复现在结构上表达不出来, 它守着一个不可能发生的情况」——
+## 而 `design/blinds.md §3` 当场留了后手:**「将来真要让一张脸跨轮出现,
+## 把 tier 改成数组并把那条守卫加回来。」** 2026-08-14 放开 `tiers` = 那个「将来」到了。
+##
+## ⚠ 没有它会怎样:`roll` 是**每段独立均匀掷**, 一张脸跨轮之后同一局撞两次的概率立刻非零,
+## 而那是**偶然**重复 —— 玩家读到的是「这游戏在偷懒」, 不是教学弧。
+## ⚠ 教学弧那条(soft 早于 hard)管的是**族内先后**, 管不了**同一张脸**撞两次, 两条互不替代。
+## ⚑ 将来 Director 要**有意**安排复现时, 由它显式指定脸、绕开 `roll` —— 有意的那条路
+## 从来不经过这里, 所以这里可以无条件排除。
+static func roll(section_idx: int, rng: RandomNumberGenerator, exclude: Array = []) -> String:
 	var pool := pool_for(section_idx)
 	if pool.is_empty():
 		return ""
-	return pool[rng.randi_range(0, pool.size() - 1)]
+	var fresh: Array = []
+	for id in pool:
+		if not exclude.has(id):
+			fresh.append(id)
+	# ⚠ 池子被排空时**退回全池**而不是返回 "" —— 「这一段没有脸」是个真实的规则差异
+	# (4 段全是墙), 用它来表达「排布挤不下了」会静默改变游戏。宁可重复也不要漏一堵墙。
+	if fresh.is_empty():
+		fresh = pool
+	return fresh[rng.randi_range(0, fresh.size() - 1)]
+
+
+## ⚑⚑ **一局的四张脸 —— 唯一真相。**
+##
+## 2026-08-14 数了一下:这段 `for w in WALL_SECTIONS: faces[w] = roll(w, rng)` 被抄了
+## **7 份**(游戏 `core/run.gd` + 探针 `sim`/`curve`/`decomp`/`wallet`/`decay`/`formal`)。
+## 单值 `tier` 时七份等价, 所以没人发现;而 `exclude`(不许偶然重复)只加在游戏那一份上,
+## 立刻就是第 6 次「**规则在游戏里, 不在模型里**」—— 这个项目最贵的一类错。
+##
+## ⚠ **RNG 消耗与旧代码逐次相同**:每个墙段恰好一次 `randi_range`, 顺序照 `WALL_SECTIONS`。
+## 单轮时代 `exclude` 永远筛不掉东西(没有脸能出现在两个池子里), 所以**输出逐字节不变**。
+## ⚠ `formal.gd` 原来遍历的是 `range(SECTIONS_PER_RUN)` 而不是 `WALL_SECTIONS` ——
+## 四段全是墙时两者相同, 但 `is_wall` 一变就会静默分叉。收口顺手把这条也抹平了。
+static func roll_run(rng: RandomNumberGenerator) -> Dictionary:
+	var out := {}
+	var drawn: Array = []
+	for w in GameConfig.WALL_SECTIONS:
+		var f := roll(int(w), rng, drawn)
+		out[int(w)] = f
+		if f != "":
+			drawn.append(f)
+	return out
 
 
 ## Does this face change anything `Settle` computes?

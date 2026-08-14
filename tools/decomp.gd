@@ -61,9 +61,9 @@ func _initialize() -> void:
 		# ⚠ RNG 顺序照 curve.gd:**先抽主角, 后掷脸**。RunLoop 内部也会抽主角,
 		# 所以这里抽好传进去, 否则各臂的随机数流会错位。
 		var character: Character = Character.roster()[rng.randi_range(0, 7)]
-		var faces := {}
-		for w in GameConfig.WALL_SECTIONS:
-			faces[w] = SectionMod.roll(w, rng)
+		# ⚑ 一局四张脸走 SectionMod.roll_run 这一份(2026-08-14 收口, 原来 7 份)——
+		# 保证「一局之内不偶然重复」。RNG 消耗与旧代码逐次相同。
+		var faces := SectionMod.roll_run(rng)
 		var st0 := rng.state          # ⚑ 四臂的共同起点
 
 		_arm(acc["base"], rng, st0, r, character, faces, LAM_BASE, 0.0, false)

@@ -97,9 +97,9 @@ func _one_run(cfg: Dictionary, run_idx: int) -> void:
 	# 所以这里必须**自己抽好传进去**(Opts.character 非空时 RunLoop 就不抽了),
 	# 否则顺序变成「先掷脸后抽主角」, 全部 sim 读数整体漂移**而且不报错**。
 	var character: Character = Character.roster()[_rng.randi_range(0, 7)]
-	var faces := {}
-	for w in GameConfig.WALL_SECTIONS:
-		faces[w] = SectionMod.roll(w, _rng)
+	# ⚑ 一局四张脸走 SectionMod.roll_run 这一份(2026-08-14 收口, 原来 7 份)——
+	# 保证「一局之内不偶然重复」。RNG 消耗与旧代码逐次相同。
+	var faces := SectionMod.roll_run(_rng)
 	# 这一局自己的行为账本 —— 买牌算法拿它给卡定价
 	var st := {"n": 0.0, "disc": 0.0, "rep": 0.0, "late": 0.0, "early": 0.0,
 		"zerod": 0.0, "faces": 0.0, "chord": 0.0, "tgt": 0.0,

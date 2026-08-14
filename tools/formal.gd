@@ -239,17 +239,15 @@ func _swaps_needed(s, cache: Array) -> int:
 # ============================================================
 
 
+## ⚑ 2026-08-14 收口到 `SectionMod.roll_run`(原来这段被抄了 7 份)。
+## ⚠ 这个文件是 ⏸ 冻结的(TODO R6), 这一刀**不是重构**, 是对齐规则:
+## 「一局之内不偶然重复」只加在游戏那一份上, 就是第 6 次「规则在游戏里不在模型里」。
+## ⚠ 顺手抹平一处**静默分叉**:这里原本遍历 `range(SECTIONS_PER_RUN)` 而不是
+## `WALL_SECTIONS` —— 四段全是墙时相同, `is_wall` 一变就分家。
 func _roll_faces(seed_v: int) -> Dictionary:
 	var r := RandomNumberGenerator.new()
 	r.seed = seed_v
-	var out := {}
-	for sec in range(GameConfig.SECTIONS_PER_RUN):
-		var pool := SectionMod.pool_for(sec)
-		if pool.is_empty():
-			out[sec] = ""
-		else:
-			out[sec] = String(pool[r.randi_range(0, pool.size() - 1)])
-	return out
+	return SectionMod.roll_run(r)
 
 
 

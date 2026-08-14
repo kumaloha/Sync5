@@ -187,6 +187,34 @@ func run(t) -> void:
 	rng.seed = 7
 	t.check(SectionMod.roll(1, rng) in SectionMod.pool_for(1), "roll draws from the pool")
 	t.eq(SectionMod.roll(99, rng), "", "no roll outside the table")
+	# ⚑ 「重复必须是有意的, 不能是偶然的」——`exclude` 守卫(2026-08-14 随 `tiers` 加回,
+	# design/blinds.md §3 当年删它时就留了这句后手)。这里直接测原语, 不依赖数据里真有跨轮的脸。
+	var p1: Array = SectionMod.pool_for(1)
+	var keep: String = String(p1[0])
+	var others: Array = p1.slice(1)
+	t.eq(SectionMod.roll(1, rng, others), keep,
+		"排除掉除一张以外的全部 ⇒ 必然掷到剩下那张")
+	t.check(SectionMod.roll(1, rng, p1) in p1,
+		"池子被排空时退回全池, 而不是返回 ''(「这一段没有脸」是真实的规则差异, 不能拿来表达排不下)")
+	# 一局四张脸 = 唯一真相(原来抄了 7 份)。
+	var rng2 := RandomNumberGenerator.new()
+	rng2.seed = 11
+	var run_faces: Dictionary = SectionMod.roll_run(rng2)
+	t.eq(run_faces.size(), GameConfig.WALL_SECTIONS.size(), "roll_run 每个墙段一张脸")
+	var seen := {}
+	for w in run_faces:
+		t.check(SectionMod.pool_for(int(w)).has(String(run_faces[w])),
+			"roll_run 的 S%d 取自它自己的池子" % (int(w) + 1))
+		t.check(not seen.has(run_faces[w]), "roll_run 一局之内不重复掷到同一张脸")
+		seen[run_faces[w]] = true
+	# ⚠ 逐字节不变的证据:同一个种子, roll_run 与「逐段独立掷」结果相同 ——
+	# 单轮时代 exclude 永远筛不掉东西, 所以收口不该改变任何既有读数。
+	var rng3 := RandomNumberGenerator.new()
+	rng3.seed = 11
+	var manual := {}
+	for w in GameConfig.WALL_SECTIONS:
+		manual[int(w)] = SectionMod.roll(int(w), rng3)
+	t.eq(run_faces, manual, "roll_run == 逐段独立掷(当前数据下逐字节不变)")
 	t.eq(SectionMod.time_penalty("rush"), 2.0, "rush shaves 2 seconds")
 	# ⚠ 不抄死数额 —— 平衡要反复调, 抄死等于给每次调参加一道返工(CLAUDE.md 的老教训:
 	# Target 倍率那批抄死的断言一改就红 10 条)。这里锁的是**契约**:入场费真的收钱。
