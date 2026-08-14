@@ -30,7 +30,7 @@
    "kind": "target",
    "rarity": "rare",
    "trigger_zh": "顺子或同花顺",
-   "amount": "×13",
+   "amount": "×11",
    "art_subject": "通往聚光灯的霓虹台阶"
   },
   {
@@ -40,7 +40,7 @@
    "kind": "target",
    "rarity": "rare",
    "trigger_zh": "同花或同花顺",
-   "amount": "×10",
+   "amount": "×12",
    "art_subject": "单色灯光淹没的舞台"
   },
   {
@@ -238,7 +238,7 @@
    "cn": "双色调",
    "code": "S-15",
    "kind": "support",
-   "rarity": "uncommon",
+   "rarity": "rare",
    "trigger_zh": "同色即可组成同花",
    "amount": "RULE",
    "art_subject": "半红半黑的双色舞台灯"

@@ -34,14 +34,14 @@
    "kind": "target",
    "rarity": "rare",
    "proof": "score",
-   "fx": "Straights and straight flushes: ×13",
+   "fx": "Straights and straight flushes: ×11",
    "effects": [
     {
      "when": {
       "kind": "STRAIGHT"
      },
      "do": {
-      "mult": 13.0
+      "mult": 11.0
      }
     },
     {
@@ -52,7 +52,7 @@
       ]
      },
      "do": {
-      "mult": 13.0
+      "mult": 11.0
      }
     }
    ]
@@ -64,14 +64,14 @@
    "kind": "target",
    "rarity": "rare",
    "proof": "score",
-   "fx": "Flushes and straight flushes: ×10",
+   "fx": "Flushes and straight flushes: ×12",
    "effects": [
     {
      "when": {
       "kind": "FLUSH"
      },
      "do": {
-      "mult": 10.0
+      "mult": 12.0
      }
     },
     {
@@ -82,7 +82,7 @@
       ]
      },
      "do": {
-      "mult": 10.0
+      "mult": 12.0
      }
     }
    ]
@@ -442,7 +442,7 @@
    "name": "Two-Tone",
    "cn": "双色调",
    "kind": "support",
-   "rarity": "uncommon",
+   "rarity": "rare",
    "curve": "fixed",
    "proof": "solver",
    "fx": "Flushes need only matching colors",

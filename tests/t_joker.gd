@@ -21,10 +21,16 @@ func run(t) -> void:
 	t.eq(targets, 8, "eight targets —— 拆迁回池(beat_budget 校准 + 弃牌偏置后它可达了)")
 	# 概率线基建(archetypes.md §3.8): fourfingers/twotone 降罕见 —— 规则牌从 5% 池权重解放
 	t.eq(rarities["common"], 22, "twenty-two common supports")
-	t.eq(rarities["uncommon"], 23, "twenty-three uncommon supports")
-	t.eq(rarities["rare"], 8, "eight rare supports")
-	t.eq(String(Joker.by_id("fourfingers").rarity), "uncommon", "fourfingers is uncommon now")
-	t.eq(String(Joker.by_id("twotone").rarity), "uncommon", "twotone is uncommon now")
+	# ⚠ **twotone 已于 2026-08-14 升回 rare**(先验层实测它把同花抬 9.8×, 而同价位的
+	# 近道/四指只有 3.1×/3.0× —— 效力差三倍以上;见 design/jokers.md「第三次重锚」)。
+	# ⚠⚠ **这撤销了上面那条「规则牌曝光」措施的一半, 是有意的**:先验数据说要救的是
+	# **顺子线**(组合 8.89% 而真人只打出 1.9%), 不是同花线(组合 6.79% / 真人 7.4%, 几乎没差)。
+	# 所以近道/四指**留在 uncommon**, 升回去的只有 twotone。
+	# 配额上两个方向都在往 jokers_atlas.md §0 的目标(罕见 ~18 · 稀有 ~10)靠。
+	t.eq(rarities["uncommon"], 22, "twenty-two uncommon supports")
+	t.eq(rarities["rare"], 9, "nine rare supports")
+	t.eq(String(Joker.by_id("fourfingers").rarity), "uncommon", "fourfingers stays uncommon (顺子线要救)")
+	t.eq(String(Joker.by_id("twotone").rarity), "rare", "twotone back to rare (9.8× 效力不配 uncommon)")
 	t.check(Joker.by_id("popup") == null, "popup left the pool (结构死卡, archetypes.md §5)")
 	t.check(Joker.by_id("backup") == null, "backup left the pool (boxseats 上位替代)")
 	t.check(Joker.by_id("nope") == null, "by_id on unknown id -> null")
