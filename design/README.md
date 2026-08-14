@@ -29,6 +29,7 @@
 
 | 篇 | 管什么 |
 |---|---|
+| [**prior**](prior.md) | **先验层 —— ④⑤ 两篇的共同输入**(2026-08-14)。那两篇都假设"分布是已知的",而分布从哪来以前没有一篇文档回答。零数据算出牌型/谓词概率与规则牌 Δp;附**第二把尺子**的用法 |
 | [**gates**](gates.md) | **那道门的规格** —— `gate.sh` 怎么造对照臂、覆盖自证契约、可加性检验 |
 | [**capability**](capability.md) | **模型能看见什么、打得多好** —— 七类规则分类 · 三层精度 · 三个缺口 |
 | [**numbers**](numbers.md) · [**probbook**](probbook.md) | **定价宪法**(三轴+六步 SOP)与概率账本(仪器读数,手改无效) |
@@ -83,7 +84,7 @@
 想知道这游戏是什么      ../STATUS.md → vision → levels
 想改数值 / 加内容       ../CLAUDE.md(原则) → tech(schema) → gates(那道门)
 想加一张脸 / 一张牌     blinds / jokers —— 各自末尾有完整流程
-想搞懂建模与求解        solving → generating → capability
+想搞懂建模与求解        prior → solving → generating → capability
 想知道踩过什么坑        ../LESSONS.md → solving_history
 ```
 
