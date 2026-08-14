@@ -116,6 +116,18 @@
   "encore": {
    "command": "第一批弃掉的牌仍参与选牌",
    "signal": "GHOST HAND"
+  },
+  "overtime": {
+   "command": "每拍 6 秒,最后 2 秒不能弃牌",
+   "signal": "6s · CLOSE −2s"
+  },
+  "teardown": {
+   "command": "每拍 6 秒,最后 2 秒不能交换",
+   "signal": "6s · LOCK −2s"
+  },
+  "closing": {
+   "command": "每拍 6 秒,只能弃一次",
+   "signal": "6s · ONE TAKE"
   }
  },
  "jokercard": {

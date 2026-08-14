@@ -39,13 +39,17 @@ Lumines 的节奏推进 + Balatro 的构筑。**始终用中文回复。**
 godot --path /Users/kuma/Projects/Sync5                                    # 跑游戏(主场景 = 首页)
 godot --headless --path . --script res://tests/runner.gd                   # 单元测试
 ./tools/gate.sh                                                            # 加了内容就要过的门(~15 分钟)
-SYNC5_KIT_ID=<joker_id> godot --headless --path . --script res://tools/kit.gd   # 只验一张新小丑牌(十几秒)
-./tools/gate.sh <face_id>                                                  # 只验一张新脸(十几秒)
+SYNC5_KIT_ID=<joker_id> godot --headless --path . --script res://tools/kit.gd   # 只验一张新小丑牌
+./tools/gate.sh <face_id>                                                  # 只验一张新脸(⚠ 见下,不再是十几秒)
 godot --headless --path . --script res://tools/pair.gd                     # 守「求解器 = 游戏代码」(~3 分钟)
 godot --headless --path . --import                                         # 新增 class_name 后必须先跑
 ```
 
 **其余探针(生成器/定价/可加性/建模验证/截图)的清单见 [STATUS.md](STATUS.md) 的工具链表。**
+
+⚠⚠ **上面这些耗时标注会过期,而且已经过期过一次** —— S10(扩弃牌枚举,2026-08-14)把单测
+从 <300s 拖到 ~716s,而 `gate.sh` 与单脸门**第一步就跑全量单测**,于是「十几秒的快路径」
+**地板变成 12 分钟以上**。⇒ **别信文档里的秒数,跑之前先按当前单测时长估。**
 
 ⚠ 三条跑探针的纪律(踩过,详见 [LESSONS.md](LESSONS.md)):
 **跑完必须确认退出码**(GDScript 运行时错误不会终止 `SceneTree` 脚本,进程会空转) ·

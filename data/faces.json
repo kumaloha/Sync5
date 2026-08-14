@@ -334,6 +334,45 @@
    "proof": "solver",
    "tape_required": true,
    "tier": 4
+  },
+  {
+   "id": "overtime",
+   "name": "Overtime",
+   "cn": "加场",
+   "fx": "Six seconds; no discards last two",
+   "params": {
+    "time_penalty": 2.0,
+    "discard_lock_last": 2.0
+   },
+   "proof": "solver",
+   "tape_required": true,
+   "tier": 4
+  },
+  {
+   "id": "teardown",
+   "name": "Teardown",
+   "cn": "拆台",
+   "fx": "Six seconds; no swaps last two",
+   "params": {
+    "time_penalty": 2.0,
+    "swap_lock_last": 2.0
+   },
+   "proof": "solver",
+   "tape_required": true,
+   "tier": 4
+  },
+  {
+   "id": "closing",
+   "name": "Closing",
+   "cn": "打烊",
+   "fx": "Six seconds; discard only once",
+   "params": {
+    "time_penalty": 2.0,
+    "discard_actions": 1
+   },
+   "proof": "solver",
+   "tape_required": true,
+   "tier": 4
   }
  ],
  "families": {
@@ -342,9 +381,7 @@
    "hard": "rerun"
   }
  },
- "fixed_tiers": [
-  4
- ],
+ "fixed_tiers": [],
  "weak_upper_bound": [
   "lastcall",
   "lockup",
@@ -352,8 +389,10 @@
   "wetink",
   "request",
   "lostpage",
-  "lowend",
   "trilogy",
-  "rush"
+  "rush",
+  "overtime",
+  "teardown",
+  "closing"
  ]
 }

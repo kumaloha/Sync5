@@ -22,7 +22,10 @@ func run(t) -> void:
 		["norepeat", "lostpage", "smallstage", "facedown", "lastcall", "lockup", "onetake", "oneswap"],
 		["setlist", "blindspot", "throttle", "request", "redlight", "lowend", "wetink", "handseal"],
 		["rerun", "raisedbar", "trilogy", "blackout", "doubleseal", "patchin", "ration", "switchtrack"],
-		["rush"],
+		# ⚑ 2026-08-14 用户:「tier4 可以补脸, 只不过都是时间相关的就行」——
+		# 末轮从「固定一张」变成「时间族四张」。六秒仍然始终成立:**每张都自带 time_penalty**,
+		# 所以 design/blinds.md §6 删掉延音的那条理由(把六秒还回去 = 破坏第四轮主机制)不被违反。
+		["rush", "overtime", "teardown", "closing"],
 	]
 	for idx in range(expected_pools.size()):
 		t.check(SectionMod.pool_for(idx) == expected_pools[idx],
@@ -49,15 +52,26 @@ func run(t) -> void:
 		if pool.size() < 2:
 			t.check(SectionMod.tier_is_fixed(idx + 1),
 				"S%d 只有一张脸, 必须在 fixed_tiers 里显式声明" % (idx + 1))
-	t.check(SectionMod.tier_is_fixed(GameConfig.SECTIONS_PER_RUN),
-		"末轮是声明过的固定轮(用户拍板: 每拍缩到 6 秒的招牌收尾)")
+	# ⚑⚑ 末轮的契约从「固定一张」换成「**全员时间族**」(2026-08-14 用户:
+	# 「tier4 可以补脸, 只不过都是时间相关的就行」)。
+	# ⚠ 六秒是第四轮的**主机制** —— design/blinds.md §6 删掉「延音」的理由就是
+	# 「把六秒恢复到七至八秒, 破坏第四轮主机制」。所以末轮每张脸都必须自带 time_penalty,
+	# 否则掷到它那一局的终章会**变软**, 正是延音被删的同一个错。
+	for id in SectionMod.pool_for(GameConfig.SECTIONS_PER_RUN - 1):
+		t.check(SectionMod.time_penalty(String(id)) > 0.0,
+			"末轮的 '%s' 自带缩时 —— 六秒是第四轮的主机制, 不许有脸把它还回去" % id)
 	# ⚠⚠ 回归锁:**JSON 数字全是 float, `[4.0].has(4)` 是 false 且不报错**。
-	# 2026-08-07 当场踩到 —— fixed_tiers 写了 [4] 却一直判成没写。这条断言就是那个坑,
-	# 它必须走**真实的 JSON 数据**(不能用字面量夹具, 那样类型是 int, 测不到)。
-	t.check(not DB.faces().get("fixed_tiers", []).has(GameConfig.SECTIONS_PER_RUN),
-		"(记录事实)JSON 里的 fixed_tiers 是 float, 直接 .has(int) 匹配不上")
-	t.check(SectionMod.tier_is_fixed(GameConfig.SECTIONS_PER_RUN),
-		"所以读的时候必须转 int —— tier_is_fixed 做了这件事")
+	# 2026-08-07 当场踩到 —— fixed_tiers 写了 [4] 却一直判成没写。
+	# ⚠ 2026-08-14 补脸之后 `fixed_tiers` 空了, 原来那两条断言**双双变成空测**
+	# (一条恒真、一条恒假)—— 空测比没测更糟, 它看起来还在守。
+	# 所以改成直接测**那个坑本身**, 用真实的 JSON 解析(字面量夹具是 int, 测不到)。
+	var raw = JSON.parse_string('{"fixed_tiers": [4]}')
+	t.check(not raw["fixed_tiers"].has(4),
+		"(记录事实)JSON 解析出来是 float, 原始数组 .has(int) 匹配不上 —— 这就是那个坑")
+	var conv: Array = []
+	for v in raw["fixed_tiers"]:
+		conv.append(int(v))
+	t.check(conv.has(4), "转成 int 之后才判得对 —— core/db.gd 与 SectionMod 都这么做")
 	# ── 量级豁免 weak_upper_bound(2026-08-08 用户拍板 A 案)──────────────
 	# 覆盖自证判据两条:|z|>=3(信不信得过)**且** 量级>=5%(要不要管)。
 	# 量级不够允许豁免, 但**必须显式声明** —— 和 fixed_tiers 同一条原则。
