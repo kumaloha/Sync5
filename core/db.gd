@@ -51,6 +51,7 @@ static func load_error() -> String:
 	sim()
 	ui()
 	tape()
+	tutorial()
 	return _err
 
 
@@ -90,6 +91,10 @@ static func ui() -> Dictionary:
 ## 在类里同名会把它遮掉。
 static func tape() -> Dictionary:
 	return _load("tape", func(d): return validate_tape(d))
+
+
+static func tutorial() -> Dictionary:
+	return _load("tutorial", func(d): return validate_tutorial(d))
 
 
 static func _load(fname: String, validator: Callable) -> Dictionary:
@@ -331,6 +336,53 @@ static func validate_faces(d: Dictionary) -> String:
 	if ferr != "":
 		return ferr
 	return _validate_face_proof(d, tier_of)
+
+
+## 教学关脚本(design/difficulty.md §4)。`core/tutorial.gd` 是它唯一的消费者。
+## ⚠ 这里守的是**结构**, 不是内容:拍长多少、教哪几步是设计, 由用户直接改 JSON。
+static func validate_tutorial(d: Dictionary) -> String:
+	for k in d:
+		if String(k).begins_with("_"):
+			continue
+		if not ["components", "steps"].has(k):
+			return "tutorial.json unknown top-level key '%s'" % k
+	if not d.has("components") or not (d["components"] is Array) or d["components"].is_empty():
+		return "tutorial.json wants a non-empty 'components' whitelist"
+	if not d.has("steps") or not (d["steps"] is Array) or d["steps"].is_empty():
+		return "tutorial.json wants a non-empty 'steps' array"
+	var known: Array = []
+	for c in d["components"]:
+		known.append(String(c))
+	# 亮过的部件 —— 同一个部件解锁两次是脚本写错了(第二次是死行, 而且读起来像它会再亮一遍)。
+	var seen: Array = []
+	for i in range(d["steps"].size()):
+		var st = d["steps"][i]
+		if not (st is Dictionary):
+			return "tutorial step %d wants an object" % i
+		for k in st:
+			if not ["seconds", "unlock", "command", "signal"].has(String(k)):
+				return "tutorial step %d unknown key '%s'" % [i, k]
+		if float(st.get("seconds", 0.0)) <= 0.0:
+			return "tutorial step %d wants seconds > 0" % i
+		for c in st.get("unlock", []):
+			var id := String(c)
+			if not known.has(id):
+				return "tutorial step %d unlocks unknown component '%s' (whitelist: %s)" \
+					% [i, id, ", ".join(known)]
+			if seen.has(id):
+				return "tutorial step %d unlocks '%s' again — unlock 是累积的, 写两遍是死行" % [i, id]
+			seen.append(id)
+		# 卡面那条规矩:英文 ≤7 词(1.5 秒读懂)。提示行沿用同一条。
+		var sig := String(st.get("signal", ""))
+		if sig == "" or String(st.get("command", "")) == "":
+			return "tutorial step %d wants both command(中文) and signal(英文短标)" % i
+		if sig.split(" ", false).size() > 7:
+			return "tutorial step %d signal '%s' 超过 7 词(卡面那条 1.5 秒规矩)" % [i, sig]
+	# 走完教学关必须全部解锁, 否则某个部件会一直是灰的 —— 那是个静默死锁。
+	for id in known:
+		if not seen.has(id):
+			return "component '%s' 从来没被任何一步解锁 —— 教学关走完它仍是灰的" % id
+	return ""
 
 
 static func validate_boons(d: Dictionary) -> String:

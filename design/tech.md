@@ -38,9 +38,33 @@
 | `run.json` | 关卡结构: gigs × blinds, targets, clocks, timing windows | — |
 | `economy.json` | coins, prices, wage, swap, reroll | — |
 | `sim.json` | bot beliefs: cohorts, priors, EV params, chase shape | — |
+| `tutorial.json` | 教学关脚本:每拍的拍长 / 首次解锁的部件 / 提示行 | 6 步 |
+
+⚠ 上表的条目数是**当年的快照**,早就过期(小丑牌 61 张 / 脸 30 条)——
+**现役数量看 [STATUS.md](../STATUS.md),别信这一列。**
 
 JSON has no comments — use `"_comment"` keys where a why is worth keeping;
 the loader ignores them.
+
+### tutorial.json — 教学关脚本(2026-08-14)
+
+消费者只有 `core/tutorial.gd`(`Tutorial`),规格 = [`difficulty.md`](difficulty.md) §4。
+
+```json
+{ "components": ["hand", "discard", "cache", "multiselect", "shop"],
+  "steps": [ {"seconds": 12.0, "unlock": ["hand"],
+              "command": "中文一句", "signal": "SHORT EN"} ] }
+```
+
+- `seconds` —— 这一拍多长。**拍长只收不放**,最后一拍必须等于正式局的 `phrase_duration`
+  (过渡发生在教学关之内,不留 12 秒的错误肌肉记忆);
+- `unlock` —— 这一拍**首次**亮出来的部件,**累积生效**(亮过就一直亮,后面不用重抄);
+- `command` / `signal` —— 照 `ui.json` 的 `blindcard` 口径:中文一句 + 英文短标,
+  英文守卡面那条 **≤7 词**。
+
+`core/db.gd::validate_tutorial` 守四条结构契约:白名单外的部件 · 同一部件解锁两遍(死行)·
+拍长 ≤0 · **有部件从没被解锁过**(教学关走完它仍是灰的 = 静默死锁)。
+⚠ **只守结构,不守内容** —— 教哪几步、拍长多少是设计,用户直接改 JSON。
 
 ### Effect DSL (jokers + characters share it)
 
