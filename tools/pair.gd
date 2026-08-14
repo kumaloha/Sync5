@@ -79,10 +79,11 @@ func _trace(rng: RandomNumberGenerator, slots: Array, extra: Dictionary) -> void
 			vis.append(d1.draw())
 		var b0 = Solver.best_split(vis, slots, extra)
 		var drop := Solver.best_discard(vis, slots, extra, d1, rng, 999,
-			GameConfig.BEAT_DISCARDS, 0.0, samples, 0.0)
+			GameConfig.BEAT_DISCARDS, 0.0, samples, 0.0, {}, b0)
+		# ⚠ 2026-08-14:drop 是 **vis 下标**(枚举已扩到全 8 张), 不是 b0.keep 下标。
 		var ks := {}
 		for di in drop:
-			ks[b0.keep[di]] = true
+			ks[vis[di]] = true
 		var rb: Array = []
 		for c in vis:
 			if not ks.has(c):
@@ -130,10 +131,11 @@ func _stage(label: String, d_max: int, lam: float, rng: RandomNumberGenerator,
 				var drop := Solver.best_discard(vis, slots, extra, d1, rng, 999, d_max,
 					0.0, samples, 0.0)
 				if not drop.is_empty():
+					# ⚠ 2026-08-14:drop 是 **vis 下标**(枚举已扩到全 8 张), 不是 b0.keep 下标。
 					var ks := {}
 					for di in drop:
-						if di >= 0 and di < b0.keep.size():
-							ks[b0.keep[di]] = true
+						if di >= 0 and di < vis.size():
+							ks[vis[di]] = true
 					var rb: Array = []
 					for c in vis:
 						if not ks.has(c):

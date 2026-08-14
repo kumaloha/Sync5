@@ -649,7 +649,9 @@ func _play_perfect(p: Phrase, slots: Array, mod: String = "",
 				var drop := Solver.best_discard(vis0, slots, extra, p.deck, _rng,
 					999, d_max, 0.0, lam_samples, 0.0, p.deck.rules, b0, blind_refill)
 				if not drop.is_empty():
-					_do_discard(p, b0.keep, drop, slots)
+					# ⚠ 2026-08-14:`best_discard` 返回的是 **visible 下标**(枚举已扩到全 8 张),
+					# 不再是 `b0.keep` 的下标 —— 传错数组会静默弃错牌。
+					_do_discard(p, vis0, drop, slots)
 
 	# ② 切法:重新看 8 张(弃牌后已补), 选「计分 5 / 留缓存 3」
 	var visible: Array = []
@@ -688,13 +690,15 @@ func _play_perfect(p: Phrase, slots: Array, mod: String = "",
 
 ## 把「要弃 keep 里的第几张」翻译成 Phrase 认的 (手牌下标, 缓存下标) 两组。
 ## keep 的 3 张可能散落在手牌和缓存里 —— 按对象身份找位置, 不靠下标推算。
-func _do_discard(p: Phrase, keep: Array, drop_idx: Array, slots: Array) -> void:
+## `cards` = 下标的宿主数组(现在是 visible 全 8 张;2026-08-14 前是 `base.keep` 那 3 张)。
+## 本函数对宿主是什么不敏感 —— 它按**牌对象**去 hand/cache 里定位, 所以弃手牌天然就支持。
+func _do_discard(p: Phrase, cards: Array, drop_idx: Array, slots: Array) -> void:
 	var hi: Array = []
 	var ci: Array = []
 	for i in drop_idx:
-		if i < 0 or i >= keep.size():
+		if i < 0 or i >= cards.size():
 			continue
-		var card = keep[i]
+		var card = cards[i]
 		var at := p.hand.find(card)
 		if at >= 0:
 			hi.append(at)

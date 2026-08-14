@@ -505,10 +505,28 @@ const TOP_K := 12
 static var ORACLE := false
 
 
-## 弃牌头 (design/solver_roadmap.md ①)。返回该弃掉 `keep` 里的哪几张(下标, 相对 keep)。
+## 弃牌枚举退回 2026-08-14 之前的窄空间(只枚举 `base.keep` 那 3 张)。
+## ⚠ **只有探针能开它**(同 `ORACLE`):生产路径必须保持 false。
+## 留着它唯一的理由是**做配对 A/B 量这次扩枚举值多少分** —— **不是给性能开的后门**。
+## CLAUDE.md:「不许为性能去砍这个数 —— 那是拿平衡换速度。」
+## ⚠ 候选剪枝那条提速路已被实测否掉(`design/prior.md` §5.6d:M=6 只提速 2.9× 就丢 3.26%)。
+static var NARROW_DISCARD := OS.get_environment("SYNC5_NARROW_DISCARD") == "1"
+
+
+## 弃牌头 (design/solver_roadmap.md ①)。返回该弃掉哪几张(**下标, 相对 `visible`**)。
 ##
-## **只考虑弃 `keep`(留缓存的那 3 张)**:计分的 5 张是当前最优解, 弃掉它们等于自伤;
-## 真实玩家弃的也正是"这拍用不上、留着也没用"的那几张。8 个子集, 便宜。
+## ⚠⚠ **2026-08-14:枚举空间从 `base.keep`(3 张)扩到全部可见的 8 张,返回值语义随之改变。**
+## 旧注释的理由是「计分的 5 张是当前最优解, 弃掉它们等于自伤」——
+## **那条理由是错的**, 而且错多少已经量到了:`base` 是**不弃牌时**的最优切法,
+## 弃掉其中只贡献 rank_sum 的废牌去搏更大的牌型经常更好。
+## 先验层配对实测(`design/prior.md` §5.6b,400 手):窄枚举系统性低估最优分
+## **+26.6 ±1.7 · z=15.5 · 量级 9.3%** —— 项目两条判据都过。
+## ⚠ 连带:窄枚举**结构上弃不了 4 张**(keep 只有 3 张), 而真人实测一拍最多弃 4,
+## `beat_budget.discards` 早已按此校准到 4 —— **配置允许的动作,求解器做不出来**。
+##
+## ⚑ 顺带收口了一处「同一件事两套平行机制」:`best_beat` 本来就是全枚举(`_combos(n,d)`),
+## 但**没有任何调用方**, 而且它每个子集**独立抽补牌**(违反共用随机数铁律)。
+## 两份各对一半;现在正确的枚举空间与正确的随机数合到了这一份里。
 ##
 ## ⚠ **`coin_value`(κ, 金币影子价)不能省。** 孤立一拍地看金币没有下一拍, 最优解永远是
 ## 把钱花光 —— 那正是 `design/history_adversarial.md` §7 亲口警告的幻想区(一拍弃 8 张要 8◆, 一局总收入才 45-70◆)。
@@ -544,49 +562,63 @@ static func best_discard(visible: Array, slots: Array, extra: Dictionary,
 	if not ORACLE:
 		for _i in range(mini(blind_samples, 2)):
 			bsubs.append(deck.peek_many(rng, budget))
+	# 可弃的 `visible` 下标。⚠ NARROW 只给探针做 A/B 用, 生产路径永远是全部可见牌。
+	var cand: Array = []
+	if NARROW_DISCARD:
+		for i in range(visible.size()):
+			if base.keep.has(visible[i]):
+				cand.append(i)
+	else:
+		for i in range(visible.size()):
+			cand.append(i)
+
 	var best_gain := 0.0
 	var best_sub: Array = []
-	for sub in _subsets(base.keep.size()):
-		var d: int = sub.size()
-		if d == 0 or d > budget:
-			continue
-		var acc := 0.0
-		for f in pool:
-			var trial: Array = []
-			for c in base.hold:
-				trial.append(c)
-			for i in range(base.keep.size()):
-				if not sub.has(i):
-					trial.append(base.keep[i])
-			for j in range(d):
-				trial.append(f[j])
-			var ctx := extra.duplicate()
-			ctx["discards"] = int(extra.get("discards", 0)) + d
-			# 弃牌的**内容**(断舍离读批大小, 让位读人头张数)。求解器一拍弃一批,
-			# 所以批峰值就是 d;人头数从被弃的那几张实数 —— 同上, 算得出来就必须进 ctx。
-			ctx["discard_batch_max"] = maxi(int(extra.get("discard_batch_max", 0)), d)
-			var df := 0
-			for i in sub:
-				var dc: Card = base.keep[int(i)]
-				if dc != null and not dc.is_wild() and dc.rank >= 11 and dc.rank <= 13:
-					df += 1
-			ctx["faces_discarded"] = int(extra.get("faces_discarded", 0)) + df
-			if bsubs.is_empty():
-				acc += best_score(trial, slots, ctx, rules)  # 只要数字, 见 best_score 的注释
-			else:
-				# 新牌落在 trial 的末 d 位, 它们就是玩家看不见的那几张。
-				var hid: Array = []
+	var drop := {}
+	for d in range(1, mini(budget, cand.size()) + 1):
+		for pick in _combos(cand.size(), d):
+			var sub: Array = []
+			drop.clear()
+			for pi in pick:
+				var vi: int = int(cand[int(pi)])
+				sub.append(vi)
+				drop[vi] = true
+			var acc := 0.0
+			for f in pool:
+				# ⚠ 新牌**必须落在末 d 位** —— 盲路径的 `hid` 是按位置算的。
+				var trial: Array = []
+				for i in range(visible.size()):
+					if not drop.has(i):
+						trial.append(visible[i])
 				for j in range(d):
-					hid.append(trial.size() - d + j)
-				var sub_d: Array = []
-				for bs in bsubs:
-					sub_d.append(bs.slice(0, d))
-				acc += best_blind_score(trial, slots, ctx, rules, hid, sub_d)
-		var mean: float = acc / float(maxi(1, pool.size()))
-		var gain: float = mean - float(base.score) - coin_value * float(d)
-		if gain > best_gain:
-			best_gain = gain
-			best_sub = sub.duplicate()
+					trial.append(f[j])
+				var ctx := extra.duplicate()
+				ctx["discards"] = int(extra.get("discards", 0)) + d
+				# 弃牌的**内容**(断舍离读批大小, 让位读人头张数)。求解器一拍弃一批,
+				# 所以批峰值就是 d;人头数从被弃的那几张实数 —— 同上, 算得出来就必须进 ctx。
+				ctx["discard_batch_max"] = maxi(int(extra.get("discard_batch_max", 0)), d)
+				var df := 0
+				for vi in sub:
+					var dc: Card = visible[int(vi)]
+					if dc != null and not dc.is_wild() and dc.rank >= 11 and dc.rank <= 13:
+						df += 1
+				ctx["faces_discarded"] = int(extra.get("faces_discarded", 0)) + df
+				if bsubs.is_empty():
+					acc += best_score(trial, slots, ctx, rules)  # 只要数字, 见 best_score 的注释
+				else:
+					# 新牌落在 trial 的末 d 位, 它们就是玩家看不见的那几张。
+					var hid: Array = []
+					for j in range(d):
+						hid.append(trial.size() - d + j)
+					var sub_d: Array = []
+					for bs in bsubs:
+						sub_d.append(bs.slice(0, d))
+					acc += best_blind_score(trial, slots, ctx, rules, hid, sub_d)
+			var mean: float = acc / float(maxi(1, pool.size()))
+			var gain: float = mean - float(base.score) - coin_value * float(d)
+			if gain > best_gain:
+				best_gain = gain
+				best_sub = sub.duplicate()
 	return best_sub
 
 
