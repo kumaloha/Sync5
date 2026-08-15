@@ -298,31 +298,13 @@ func _affordable(j) -> bool:
 
 
 ## Rarity-weighted sample without replacement.
+## 货架抽卡 —— 算法在 `Economy.weighted_pick`(**唯一真相**,2026-08-15 收口)。
+## ⚠ 这里只剩入口:算 `tmult` + 用**全局** `randi_range`(`rng = null`)。
+## 原来这个函数体和 `tools/bot.gd` 逐字节相同,而它的注释写着「不许各写一份」——
+## **它自己就是第二份**。
 func _weighted_pick(candidates: Array, count: int) -> Array:
-	# 卡面声明的货架加成(现在只有独狼的 "more Targets")—— 与 tools/bot.gd 同一套算法,
-	# 两边都读 `Joker.slots_target_mult`, 不许各写一份。
-	var tmult := Joker.slots_target_mult(_slots)
-	var pool := candidates.duplicate()
-	var picked: Array = []
-	while picked.size() < count and not pool.is_empty():
-		var total := 0
-		for j in pool:
-			total += _shelf_weight(j, tmult)
-		var roll := randi_range(1, maxi(1, total))
-		for k in range(pool.size()):
-			roll -= _shelf_weight(pool[k], tmult)
-			if roll <= 0:
-				picked.append(pool[k])
-				pool.remove_at(k)
-				break
-	return picked
-
-
-func _shelf_weight(j, target_mult: float) -> int:
-	var w := int(GameConfig.DRAFT_RARITY_WEIGHTS.get(j.rarity, 1))
-	if j.kind == "target":
-		w = int(round(float(w) * target_mult))
-	return maxi(1, w)
+	# 卡面声明的货架加成(现在只有独狼的 "more Targets")—— 两边都读 `Joker.slots_target_mult`。
+	return Economy.weighted_pick(candidates, count, Joker.slots_target_mult(_slots))
 
 
 func _on_pick(i: int) -> void:

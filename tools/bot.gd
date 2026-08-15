@@ -500,29 +500,12 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 	return coins
 
 
+## 货架抽卡 —— 算法在 `Economy.weighted_pick`(**唯一真相**,2026-08-15 收口)。
+## ⚠ **这个方法必须留着**:`tools/wallet.gd` 的 SpyBot 用 `super._weighted_pick(...)`
+## 覆盖它来记录货架内容。收的是算法,不是这个覆盖点。
+## ⚠ 传 `_rng` 而不是走全局 —— 探针要复现性,这是它与 `view/shop.gd` 唯一的正当差异。
 func _weighted_pick(candidates: Array, count: int, target_mult: float = 1.0) -> Array:
-	var pool := candidates.duplicate()
-	var picked: Array = []
-	while picked.size() < count and not pool.is_empty():
-		var total := 0
-		for j in pool:
-			total += _shelf_weight(j, target_mult)
-		var roll := _rng.randi_range(1, maxi(1, total))
-		for k in range(pool.size()):
-			roll -= _shelf_weight(pool[k], target_mult)
-			if roll <= 0:
-				picked.append(pool[k])
-				pool.remove_at(k)
-				break
-	return picked
-
-
-## 稀有度权重 × 卡面声明的货架加成(现在只有独狼的 "more Targets")。
-func _shelf_weight(j, target_mult: float) -> int:
-	var w := int(GameConfig.DRAFT_RARITY_WEIGHTS.get(j.rarity, 1))
-	if j.kind == "target":
-		w = int(round(float(w) * target_mult))
-	return maxi(1, w)
+	return Economy.weighted_pick(candidates, count, target_mult, _rng)
 
 
 # ============================== BOT PLAY ==============================

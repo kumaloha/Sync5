@@ -66,5 +66,55 @@ static func sell_value(j: Joker) -> int:
 
 
 ## Cost of the n-th reroll of one draft board (n starts at 0).
+## ⚑⚑ **货架抽卡的算法 —— 唯一真相**(2026-08-15 收口)。
+##
+## 原来 `view/shop.gd` 与 `tools/bot.gd` **各一份**, 而 shop 那份的注释写着
+## 「与 tools/bot.gd 同一套算法……**不许各写一份**」—— **它自己就是第二份**。
+## 这是本项目第 5 次「注释承诺了一个不存在的机制」(前四:`beat.gd` 漏步=崩 ·
+## `db.gd` 直接红 · `shop.gd` 这句 · `price.gd` 指向从未存在的 `pool.gd`)。
+##
+## ⚠ **收的是算法, 不是入口** —— 两个调用方的入口必须各自保留:
+##   · `shop` 用**全局** `randi_range`(玩家侧);
+##   · `bot` 用**自己的种子 rng**(探针复现性), 而且 `tools/wallet.gd` 的 SpyBot
+##     靠 `super._weighted_pick(...)` **覆盖它**来记货架 —— 抽成静态会打断那个覆盖点。
+## ⚠ 逐字节不变:`rng == null` 时走全局 `randi_range`, 与 shop 原实现同一个函数。
+##
+## ⚑ 2026-08-15 曝光轴改动(70/25/5 → 35/30/25)**正好流经这两份** ——
+## 保持同步比以前更要紧, 这也是现在才收口的理由。
+static func shelf_weight(j, target_mult: float) -> int:
+	var w := int(GameConfig.DRAFT_RARITY_WEIGHTS.get(j.rarity, 1))
+	if j.kind == "target":
+		w = int(round(float(w) * target_mult))
+	return maxi(1, w)
+
+
+## 按每卡权重**不放回**抽 `count` 张。⚠ `rng = null` ⇒ 全局 `randi_range`。
+static func weighted_pick(candidates: Array, count: int, target_mult: float,
+		rng: RandomNumberGenerator = null) -> Array:
+	var pool := candidates.duplicate()
+	var picked: Array = []
+	while picked.size() < count and not pool.is_empty():
+		var total := 0
+		for j in pool:
+			total += shelf_weight(j, target_mult)
+		# ⚠⚠ **刻意不用三元表达式**:第一版写成 `(A if rng != null else B)`,
+		# sim 九个队列里有一个从 41.9% 变成 41.8%(1000 局翻了 1 局)。sim 是**确定性**的
+		# (`_rng.seed = 90000 + r`), 所以那不是噪声 —— 唯一的嫌疑就是**没被走到的那一支
+		# 也求了值**, 于是全局 `randi_range` 每轮被多调一次, 把全局随机流推偏。
+		# **显式 if 把这个疑点整个消掉**, 而不是去赌语言的求值规则。
+		var roll := 0
+		if rng != null:
+			roll = rng.randi_range(1, maxi(1, total))
+		else:
+			roll = randi_range(1, maxi(1, total))
+		for k in range(pool.size()):
+			roll -= shelf_weight(pool[k], target_mult)
+			if roll <= 0:
+				picked.append(pool[k])
+				pool.remove_at(k)
+				break
+	return picked
+
+
 static func reroll_cost(n: int) -> int:
 	return GameConfig.DRAFT_REROLL_BASE + n * GameConfig.DRAFT_REROLL_STEP
