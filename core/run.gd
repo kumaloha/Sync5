@@ -86,7 +86,15 @@ func roll_faces(face_seed: int = -1) -> void:
 
 
 ## This section's Boss face id ("" = none).
+##
+## ⚑⚑ 教学关在**这里**也挡一道, 而不是只靠「先设 tutorial 再 roll_faces」的顺序约定。
+## 起因:我写下那条顺序契约不到一小时, 就在自己的测试里违反了它
+## (`Run.reset()` 内部会 `roll_faces()`, 而测试在 reset 之后才设 `tutorial`)——
+## **一条我自己都记不住的调用顺序契约, 是个坏契约。**
+## 现在顺序怎么写都对:`roll_faces` 的提前返回只是省一次掷点, **正确性不依赖它**。
 func face() -> String:
+	if tutorial:
+		return ""
 	return String(run_faces.get(section_idx, ""))
 
 

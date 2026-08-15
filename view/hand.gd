@@ -151,6 +151,25 @@ func _v2(a: Array) -> Vector2:
 
 # ---- selection & input (pure view state; intents go up as signals) ----
 
+## 允不允许**多选**(跨手牌/缓存)。false = 每次只能选一张, 选新的自动放掉旧的。
+## ⚑ 它是给教学关用的(第 5 步之前只教单选), 但**这个组件不认识教学关** ——
+## 按铁律组件只发意图信号、由编排器给状态(view/phrase.gd 在 `_start_phrase` 里设)。
+## 正式局恒 true, 所以这条对非教学关**逐字节无影响**。
+var multi_select := true
+
+
+## 单选模式下先清干净 —— 「点击 = 纯选择」那条契约不变, 变的只是**能同时选几张**。
+func _enforce_single() -> void:
+	if multi_select:
+		return
+	for k in sel_hand:
+		card_picked.emit("hand", k, false)
+	for k in sel_cache:
+		card_picked.emit("cache", k, false)
+	sel_hand.clear()
+	sel_cache.clear()
+
+
 func _on_hand_tap(i: int) -> void:
 	if not _decide:
 		return
@@ -158,6 +177,7 @@ func _on_hand_tap(i: int) -> void:
 		return
 	var on := not sel_hand.has(i)
 	if on:
+		_enforce_single()
 		sel_hand.append(i)
 	else:
 		sel_hand.erase(i)
@@ -177,6 +197,7 @@ func _on_cache_card_tap(i: int) -> void:
 		return
 	var on := not sel_cache.has(i)
 	if on:
+		_enforce_single()
 		sel_cache.append(i)
 	else:
 		sel_cache.erase(i)

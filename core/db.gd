@@ -52,6 +52,7 @@ static func load_error() -> String:
 	ui()
 	tape()
 	tutorial()
+	director()
 	return _err
 
 
@@ -95,6 +96,11 @@ static func tape() -> Dictionary:
 
 static func tutorial() -> Dictionary:
 	return _load("tutorial", func(d): return validate_tutorial(d))
+
+
+## B 轴 · 跨局序列表(design/difficulty.md §3)。`core/director.gd` 是它唯一的消费者。
+static func director() -> Dictionary:
+	return _load("director", func(d): return validate_director(d))
 
 
 static func _load(fname: String, validator: Callable) -> Dictionary:
@@ -382,6 +388,154 @@ static func validate_tutorial(d: Dictionary) -> String:
 	for id in known:
 		if not seen.has(id):
 			return "component '%s' 从来没被任何一步解锁 —— 教学关走完它仍是灰的" % id
+	return ""
+
+
+## ---- B 轴 · Director(design/difficulty.md §3) ----
+##
+## ⚑⚑ **Director 是一张按局数索引、对所有人相同的设计常量表**(2026-08-14 用户拍板:
+## 「这里不是千人千面的不用读 context」)。所以这里守的是**结构**, 不是内容 ——
+## 第几局哪个状态、货架偏多少是设计, 用户直接改 JSON;而**它能碰哪些字段**是铁律,
+## 由下面这三张表锁死。
+const _DIRECTOR_KEYS := ["band_fraction", "loop_from", "sequence", "states"]
+const _DIRECTOR_STATE_KEYS := ["face_bias", "shelf"]
+const _DIRECTOR_SHELF_KEYS := ["rarity_weight_mult"]
+const _DIRECTOR_BIASES := ["mild", "median", "harsh"]
+
+## **明确禁用**的键 —— 白名单本来就挡得住它们, 这张表是为了**说清楚为什么**。
+## ⚠ 「unknown key」那种错误信息会让作者以为「拼错了, 换个名字就行」, 而这里每一条
+## 都是**拍过板的边界**, 换个名字照样越界。四类:
+##   ① 目标分/难度形状 —— 铁律「Director 不许调目标分」(玩家看得见的数不许按局数漂);
+##   ② 价格 —— 定价先过 design/numbers.md 的宪法, 不许从这里绕;
+##   ③ 「必定出某张牌」—— 2026-08-06 用户拍板「不应该有任何卡有固定概率」,
+##      活法是**把保证写在卡面上**(独狼/点唱机), 不是藏进 Director 的掷点;
+##   ④ 读 context —— 2026-08-14 拍板作废的那三节(Inputs / 行为模型 / 掌握度)。
+const _DIRECTOR_FORBIDDEN := {
+	"target_mult": "铁律「Director 不许调目标分」(design/difficulty.md §3)—— 玩家看得见的数不许按局数漂",
+	"section_targets": "目标分表在 data/run.json, 它对所有人、对每一局都是同一张",
+	"death_spec": "难度形状是 A 轴的设计常量(data/run.json), 不是 B 轴的手段",
+	"gig_clocks": "拍长玩家感觉得到(时间是唯一压力货币)—— 教学关可以放宽, 正式局不许按局数漂",
+	"joker_prices": "定价先过 design/numbers.md 的三轴框架与六步 SOP, 不许从 Director 绕",
+	"price_delta": "同上;货架价格增减是卡面效果(赞助), 不是 Director 的口",
+	"reroll": "同上",
+	"discard_cost": "同上",
+	"starting_coins": "同上",
+	"section_clear_reward": "同上",
+	"target_guaranteed": "「不应该有任何卡有固定概率」(2026-08-06 用户拍板)—— 保证要写在**卡面**上(独狼), 不许藏进掷点",
+	"rule_guaranteed": "同上(点唱机)",
+	"target_weight_mult": "同上:货架上 Target 的权重是卡面效果, 不是按局数的暗改",
+	"inputs": "2026-08-14 用户拍板「不读 context」—— Director 只按局数索引, 不看玩家做了什么",
+	"player_model": "同上(levels.md 的 Recent behavior model 已作废)",
+	"tendency": "同上",
+	"mastery": "同上(Joker learning states 已作废)",
+	"rolling_window": "同上",
+}
+
+
+## 跨局序列表(design/difficulty.md §3)。`core/director.gd` 是它唯一的消费者。
+## ⚠ 这里读 `economy()` 拿稀有度名单 —— 不引用 `GameConfig`(它反过来读 DB, 会成环,
+## 同 `validate_faces` 那条);`validate_economy` 不碰 director, 所以不成环。
+static func validate_director(d: Dictionary) -> String:
+	# ⚠ **禁用键要先于白名单查** —— 否则作者只会看到一句「unknown key」, 拿不到越界的理由。
+	for k in d:
+		var re := _director_key_ok(String(k), "")
+		if re != "":
+			return re
+	for sname in d.get("states", {}):
+		var st = d["states"][sname]
+		if st is Dictionary:
+			var se := _director_no_forbidden(st, "states.%s." % sname)
+			if se != "":
+				return se
+	var e := _keys_ok(d, _DIRECTOR_KEYS)
+	if e != "":
+		return e
+	# 档宽:0 会让每一档都空(pick_face 无解), >1 等于「整池」也就是没有倾向。
+	var bf := float(d["band_fraction"])
+	if bf <= 0.0 or bf > 1.0:
+		return "band_fraction 要在 (0, 1] —— 0 会让每一档都空, >1 等于没有倾向, got %s" % str(bf)
+	if not (d["sequence"] is Array) or d["sequence"].is_empty():
+		return "sequence 是空的 —— Director 至少要给第 1 局一个状态"
+	if not (d["states"] is Dictionary) or d["states"].is_empty():
+		return "states 是空的"
+	var n: int = d["sequence"].size()
+	var lf := int(d["loop_from"])
+	if lf < 0 or lf >= n:
+		return "loop_from=%d 越界(sequence 有 %d 项, 合法下标 0..%d)—— 走完序列之后就没有下一局了" \
+			% [lf, n, n - 1]
+	var used := {}
+	for i in range(n):
+		var sname := String(d["sequence"][i])
+		if not d["states"].has(sname):
+			return "sequence 第 %d 项 '%s' 不是任何一个 state —— 拼错了" % [i + 1, sname]
+		used[sname] = true
+	# 定义了却没排进序列的状态 = 一行死设计(同 tutorial 那条「解锁两次是死行」)。
+	# ⚠ 它不会报错也不会生效, 只会让读表的人以为这一局会发生别的事。
+	for sname in d["states"]:
+		if not used.has(String(sname)):
+			return "state '%s' 从来没进过 sequence —— 那是一行死设计, 排进去或者删掉" % sname
+	var rar: Dictionary = economy().get("draft_rarity_weights", {})
+	for sname in d["states"]:
+		var st = d["states"][sname]
+		if not (st is Dictionary):
+			return "state '%s' wants an object" % sname
+		var ke := _keys_ok(st, _DIRECTOR_STATE_KEYS)
+		if ke != "":
+			return "state '%s': %s —— Director 一局只调两样(脸的排布 + 货架), 见 design/difficulty.md §3" \
+				% [sname, ke]
+		if not _DIRECTOR_BIASES.has(String(st["face_bias"])):
+			return "state '%s' 的 face_bias '%s' 不认识, 只能是 %s" \
+				% [sname, st["face_bias"], str(_DIRECTOR_BIASES)]
+		var sh = st["shelf"]
+		if not (sh is Dictionary):
+			return "state '%s' 的 shelf wants an object —— 中性写 {}(中性必须是有意的, 不能是漏掉的)" % sname
+		for k in sh:
+			if String(k).begins_with("_"):
+				continue
+			if not _DIRECTOR_SHELF_KEYS.has(String(k)):
+				return "state '%s' 的 shelf 不认识 '%s'(只有 %s)" \
+					% [sname, k, ", ".join(_DIRECTOR_SHELF_KEYS)]
+		var rw = sh.get("rarity_weight_mult", {})
+		if not (rw is Dictionary):
+			return "state '%s' 的 rarity_weight_mult wants an object" % sname
+		for k in rw:
+			var rk := String(k)
+			# ⚠ 拼错的稀有度会**静默不生效**(乘数找不到就退回 1.0), 正是这个项目栽过
+			# 六次的形状。稀有度名单只有一份 —— data/economy.json。
+			if not rar.has(rk):
+				return "state '%s' 的 rarity_weight_mult 里 '%s' 不是 data/economy.json 的稀有度(有 %s)" \
+					% [sname, rk, ", ".join(rar.keys())]
+			if float(rw[k]) <= 0.0:
+				return "state '%s' 的 rarity_weight_mult['%s'] = %s —— 必须 > 0(0 等于把这一档从货架上删掉, 那是改规则不是加倾向)" \
+					% [sname, rk, str(rw[k])]
+	return ""
+
+
+static func _director_key_ok(ks: String, path: String) -> String:
+	if ks.begins_with("_"):
+		return ""
+	if _DIRECTOR_FORBIDDEN.has(ks):
+		return "director.json 的 `%s%s` 是**明确禁用**的键 —— %s" % [path, ks, _DIRECTOR_FORBIDDEN[ks]]
+	# 脸的参数不许在这里出现:Director **只排布脸, 不改脸**。一张脸是什么由
+	# data/faces.json 定义, 从 Director 覆写等于同一个口径写两处(而且是按局数漂的那一处)。
+	if _FACE_PARAMS.has(ks):
+		return "director.json 的 `%s%s` 是**脸的参数**(data/faces.json)—— Director 只排布脸, 不改脸" \
+			% [path, ks]
+	return ""
+
+
+## ⚠ 只在**状态条目内部**递归 —— 不扫 `states` 自己的键, 那是状态名(设计者起的),
+## 撞上禁用词表是误伤(例:草案七状态里就有 `Mastery`)。
+static func _director_no_forbidden(d: Dictionary, path: String) -> String:
+	for k in d:
+		var ks := String(k)
+		var e := _director_key_ok(ks, path)
+		if e != "":
+			return e
+		if d[k] is Dictionary:
+			var sub := _director_no_forbidden(d[k], path + ks + ".")
+			if sub != "":
+				return sub
 	return ""
 
 

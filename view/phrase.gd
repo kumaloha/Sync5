@@ -64,7 +64,15 @@ var fx: StageFeedback        # 屏震/弹跳/飘字 —— 纯表现, view/feedb
 var _shown_score := 0        # what the HUD prints; counts up to run.section_score
 
 
+## 这一次「坐下」的身份 —— `{id, gap, runs_prev}`,整个进程只取一次。
+## ⚠ 必须在 `_ready` 取而不是每局取:一局一取会让 `gap` 变成「上一局到这一局」,
+## 那是**局间隔**不是**会话间隔**,两者是不同的量(D4 要的是后者)。
+var _sess: Dictionary = {}
+
+
 func _ready() -> void:
+	# ⚑ 会话边界(D4)——「隔多久回来」跨应用启动才有意义, 所以数据来自存档层。
+	_sess = SaveState.session_start()
 	run.reset()
 	_build_ui()
 	_open_home()
@@ -186,7 +194,11 @@ func choose_character(i: int) -> void:
 	# 混进 Tape 会污染 `tools/probbook.py` 的「合格真人局」分拣。
 	# 不干脆不打点, 是因为 design/difficulty.md §4 明写着要量的东西正在这里 ——
 	# **新手的动作时刻分布**(12 秒够不够), 而那正是现有 Tape 全是熟练玩家所以缺的那一块。
+	# ⚑ 会话边界(D4)——「一次坐下玩几局 / 隔多久回来」。目标函数换成留存之后,
+	# **这是唯一能直接观测目标的量**。它跨局, 而 Tape 一局一个文件, 所以只能进 meta。
+	SaveState.note_run_started()
 	Tape.begin({
+		"sess": _sess,
 		"tutorial": run.tutorial,
 		"char": i, "cn": run.character.cn_name,
 		"faces": run.run_faces.duplicate(),
@@ -321,6 +333,10 @@ func _start_phrase() -> void:
 	# 教学关的一行提示 —— 正式局 hint 是空串, TutorHint 整块隐身。
 	var h := run.tutorial_hint()
 	tutor.set_hint(String(h["command"]), String(h["signal"]))
+	# 跨区多选在教学关第 5 步才解锁 —— 在那之前每次只能选一张。
+	# ⚠ 组件不认识教学关(铁律:组件只发意图, 状态由编排器给), 所以这里翻译成
+	# 它听得懂的话:`multi_select`。正式局恒 true。
+	hand.multi_select = run.tutorial_unlocked("multiselect")
 	orbit.set_mode("walk")
 	hand.clear_selection()
 	hand.deal_flip()

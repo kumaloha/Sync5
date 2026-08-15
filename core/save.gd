@@ -56,6 +56,60 @@ static func mark_tutorial_seen() -> void:
 	_flush()
 
 
+## 「重看教学」—— 清掉标记, 下一局就会再进一次教学关。
+##
+## ⚠⚠ **UI 上还没有入口, 这是有意的**(2026-08-15):三个可能的落点全都是用户的地盘 ——
+## 页签轨的几何锁死在「四屏单源」(`Chrome.TAB_W = (672-88)/4`, 加第 5 个会改动全部四个)·
+## 荣誉页以 `resources/荣誉.dc.html` 为权威 · 首页用户明确否过加东西(「别加东西了」)。
+## **放哪是口味决定, 不该由我替他拍**, 所以先只留机制:接到哪个按钮上都是一行。
+## ⚠ 用户对这件事本身的判断是「**教一把就会了**」—— 所以别默认它一定要有入口。
+static func clear_tutorial() -> void:
+	if _is_probe():
+		return
+	_data().erase("seen_tutorial")
+	_flush()
+
+
+## ⚑⚑ **会话边界**(TODO 的 D4)—— 目标函数换成留存之后,**这是唯一能直接观测目标的量**,
+## 其余全是代理指标。它必须长在存档层上, 因为「隔多久回来」**跨应用启动**才有意义。
+##
+## 每次启动调一次, 返回 `{"id": 第几次坐下, "gap": 距上次多少秒, "runs_prev": 历史总局数}`,
+## 并就地把 `last_seen` / `sessions` 推进。调用方(编排器)把它塞进 `Tape.begin` 的 meta,
+## 于是「**一次坐下玩了几局**」= 按 `id` 分组数局数,「**隔多久回来**」= `gap`。
+##
+## ⚠ **口径铁律:只记事实, 不记特征**(2026-08-06 用户拍板)。所以这里记的是
+## 「距上次 N 秒」这个**事实**, 不是「这是个回流玩家」这种**特征** —— 特征会迭代, 分析侧自己去读。
+## ⚠ 首次启动 `gap = -1`(没有上一次, 不是「间隔 0」—— 那是两件事)。
+## ⚠ 探针返回 `id = -1` 且不落盘, 分析侧照这个过滤(同 `_is_probe` 那条)。
+static func session_start() -> Dictionary:
+	var now := int(Time.get_unix_time_from_system())
+	if _is_probe():
+		return {"id": -1, "gap": -1, "runs_prev": 0}
+	var d := _data()
+	var last := int(d.get("last_seen", 0))
+	var out := {
+		"id": int(d.get("sessions", 0)) + 1,
+		"gap": -1 if last <= 0 else maxi(0, now - last),
+		"runs_prev": int(d.get("runs_total", 0)),
+	}
+	d["sessions"] = out["id"]
+	d["last_seen"] = now
+	_flush()
+	return out
+
+
+## 一局开始时推进「历史总局数」并盖上时间戳 —— `last_seen` 每局都刷, 这样
+## 「隔多久回来」量的是**离开游戏**到**回来**, 而不是从上次启动算起。
+## ⚠ 幂等性不做要求:它就是个计数器, 每局一次。
+static func note_run_started() -> void:
+	if _is_probe():
+		return
+	var d := _data()
+	d["runs_total"] = int(d.get("runs_total", 0)) + 1
+	d["last_seen"] = int(Time.get_unix_time_from_system())
+	_flush()
+
+
 ## ⚠ 只给测试用:把内存态清掉并重读。**不删盘上的文件** ——
 ## 测试误删玩家存档是一种很贵的意外。
 static func _reset_cache_for_tests() -> void:

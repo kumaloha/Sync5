@@ -53,6 +53,13 @@ extends RefCounted
 #   leave   继续▸       coins
 #   nav     界面跳转    to                 (home/pick/win/lose/retry/back)
 #   close   run 终      ok, sec, score, target, beats
+#
+# ⚑ **会话边界**(2026-08-15,TODO 的 D4)不是一个事件,而是 `run` 事件 meta 里的一块
+#   `sess: {id, gap, runs_prev}` —— 因为 Tape **一局一个文件**(`begin` 会 flush + clear),
+#   会话跨局,放事件里会被文件边界切断。数据来自 `SaveState.session_start()`。
+#     · **一次坐下玩几局** = 按 `sess.id` 分组数局数
+#     · **隔多久回来**     = `sess.gap`(秒;**首次启动是 −1,不是 0** —— 那是两件事)
+#   ⚠ 探针的 `sess.id = −1`,分析侧照这个过滤。
 
 ## 每条事件的元字段。payload 不许用这三个键(用了会被覆盖, on() 会报错)。
 const RESERVED := ["n", "ms", "e"]

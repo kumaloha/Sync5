@@ -66,3 +66,43 @@ func run(t) -> void:
 	var wordy := {"components": ["hand"], "steps": [{"seconds": 9.0, "unlock": ["hand"],
 		"command": "中", "signal": "one two three four five six seven eight"}]}
 	t.check(DB.validate_tutorial(wordy) != "", "英文短标超过 7 词被拒")
+
+	# --- 存档:探针一律当老玩家, 且绝不落盘 ---
+	# ⚑ 这条锁的是 2026-08-15 那次真实事故(见 LESSONS 六):flow_probe 第一次跑走了
+	# 教学关、撞破流程不变量、还把存档写了出来, 第二次就绿了 —— **同一棵树两次不同结果**。
+	# ⚠ 测试自己就是 `--script` 起的, 所以这里断言的正是探针侧的行为。
+	t.check(SaveState._is_probe(), "测试自身被认作探针(--script 起的)")
+	t.check(SaveState.seen_tutorial(), "探针一律当老玩家 —— 否则每个从首页驱动的探针都会先走一遍教学关")
+	SaveState.mark_tutorial_seen()
+	SaveState.clear_tutorial()
+	t.check(SaveState.seen_tutorial(), "探针里读写都是 no-op, clear 之后仍然是老玩家(没碰盘)")
+	t.check(not FileAccess.file_exists(SaveState.PATH),
+		"探针不落盘 —— 实验条件不许依赖机器本地状态")
+
+	# --- Run 的教学关模式 ---
+	var r := Run.new()
+	r.reset(1)
+	r.tutorial = true
+	t.eq(r.target(), 0, "教学关目标分恒 0 = 不判生死(起 = 无惩罚)")
+	# ⚑ **顺序无关**:这里刻意在 `reset()`(它内部就掷了脸)**之后**才设 `tutorial` ——
+	# 第一版契约是「必须先设 tutorial 再 roll_faces」, 而我写完不到一小时就在这条测试里
+	# 自己违反了它。**一条我自己都记不住的顺序契约是个坏契约**, 于是 `face()` 也挡一道。
+	t.eq(r.face(), "", "教学关没有 Boss 脸 —— 挂一张 Boss 规则直接违背「安全地理解机制」")
+	var r2 := Run.new()
+	r2.tutorial = true
+	r2.reset(1)
+	t.eq(r2.run_faces, {}, "先设 tutorial 再 reset:连掷都不掷(提前返回, 省一次掷点)")
+	t.eq(r2.face(), "", "两种顺序结果一致 —— 正确性不依赖调用顺序")
+	t.eq(r.phrase_duration(), Tutorial.seconds(0), "教学关拍长走脚本, 不走 gig_clocks")
+	t.check(r.tutorial_unlocked(String(comps[0])), "第一步已解锁的部件是开的")
+	t.check(not r.tutorial_done(), "第 0 拍还没走完")
+	r.phrase_in_section = Tutorial.steps()
+	t.check(r.tutorial_done(), "走满脚本步数 = 教学关结束")
+	# ⚠ 正式局必须**逐字节不受影响** —— 这是「加功能不许改既有行为」的机器可读版本。
+	var n := Run.new()
+	n.reset(1)
+	t.check(n.target() > 0, "正式局仍有目标分")
+	t.check(not n.run_faces.is_empty(), "正式局照常掷脸")
+	t.eq(n.phrase_duration(), Run.phrase_duration_for(0, n.face()), "正式局拍长仍走原口")
+	t.check(n.tutorial_unlocked("multiselect"), "正式局所有部件恒解锁")
+	t.eq(String(n.tutorial_hint()["command"]), "", "正式局没有提示行")
