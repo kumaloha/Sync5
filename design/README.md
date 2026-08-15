@@ -37,6 +37,7 @@
 | [**numbers**](numbers.md) · [**probbook**](probbook.md) | **定价宪法**(三轴+六步 SOP)与概率账本(仪器读数,手改无效) |
 | [**jokers_atlas**](jokers_atlas.md) · [**archetypes**](archetypes.md) | **候选池**:小丑牌 60 张口径(卡片层)· 流派图谱(流派层,2026-08-12) |
 | `research_balatro_jokers` · `research_balatro_builds` · `research_balatro_bosses` · `research_pacing_retention` | **调研:原作是怎么做的**(卡普查 / 流派目录 / Boss / 节奏留存) |
+| [**jokers_history**](jokers_history.md) · [**blinds_history**](blinds_history.md) | **小丑牌 / 盲注的历次经过与当年实测**(2026-08-15 从 `jokers.md`(−456)与 `blinds.md`(−337)拆出)。⚠ **没删,只搬家** —— 它们含大量实测读数(z 值 / 触发率 / 真人反事实率 / 旧池价格),那些是**结果**。⚠⚠ `blinds` 那批**被删过一次**(2026-08-10 重写),后来发现证据丢了才恢复 —— **别再删第二次**。同 `solving_history` / `history_*` 的模式 |
 
 ⚠ 四篇 `research_*` **刻意保持独立** —— 它们是**外部事实**,不是我们的决定。
 混进设计篇会让「调研结论」和「我们的选择」分不开。
