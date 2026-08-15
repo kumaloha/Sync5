@@ -1,29 +1,51 @@
 {
  "_comment": "教学关脚本(design/difficulty.md §4)。**教学单开一关**(用户 2026-08-07 拍板:「教学关是可以突破这个时间的, 教学总要时间, 但教学只要一次, 不影响整体节奏」), 所以它不受一局 4.9 分钟的约束、不判生死、不进 tools/curve.gd 的分位数反解 —— **别把它的放水算进 death_spec 的 13.7%**。\n⚑ 形状 = 起承転結 的「起」:安全的地方、无惩罚地理解机制(design/research_pacing_retention.md §5.5)。\n⚑ 诊断:新手的敌人不是「不知道按钮在哪」, 是**8 秒内来不及想** —— 真人熟练玩家每拍最后一个动作中位已经 5.7s/8s(12 局 168 拍实测), 新手只会更慢。所以主手段是**给时间**, 拍长从 12s 收到 8s。\n⚠ 12 秒这个初值**没有新手数据支撑** —— 现有合格 Tape 全是熟练玩家(用户本人)。它是待测的假设, 不是标定过的数。",
  "_comment_steps": "每一步 = 一拍。`seconds` 拍长 · `unlock` 这一拍**首次**亮出来的部件 · `command`/`signal` 提示行(照 ui.json 的 blindcard 口径:中文一句 + 英文短标)。\n⚠ **判据不是「列个清单讲一遍」, 是「它这一拍派得上用场才亮」** —— 部件在它第一次真正有用的那一拍出现。\n⚠ `unlock` 是累积的:亮过就一直亮, 不用在后面的步骤里重复写。\n⚠ 英文短标沿用卡面那条规矩 **≤7 词**(1.5 秒读懂), 测试里有断言。",
- "components": ["hand", "discard", "cache", "multiselect", "shop"],
+ "components": [
+  "hand",
+  "discard",
+  "cache",
+  "multiselect",
+  "shop"
+ ],
  "steps": [
   {
    "seconds": 12.0,
-   "unlock": ["hand"],
+   "unlock": [
+    "hand"
+   ],
    "command": "选五张牌,凑出最大的牌型",
    "signal": "PICK FIVE"
   },
   {
    "seconds": 12.0,
-   "unlock": ["discard"],
+   "unlock": [
+    "discard"
+   ],
    "command": "不要的牌可以弃掉,立刻补新牌",
    "signal": "DISCARD REFILLS"
   },
   {
    "seconds": 10.0,
-   "unlock": ["cache"],
+   "unlock": [
+    "cache"
+   ],
    "command": "拖一张进缓存,两张对调",
    "signal": "DRAG TO SWAP"
   },
   {
    "seconds": 10.0,
-   "unlock": ["multiselect"],
+   "unlock": [
+    "shop"
+   ],
+   "command": "赚到的金币在商店买小丑牌",
+   "signal": "SPEND ON JOKERS"
+  },
+  {
+   "seconds": 8.0,
+   "unlock": [
+    "multiselect"
+   ],
    "command": "点击是选择,可以跨区一起弃",
    "signal": "TAP SELECTS"
   },
@@ -32,12 +54,7 @@
    "unlock": [],
    "command": "现在是正式的八秒,试一拍",
    "signal": "EIGHT SECONDS"
-  },
-  {
-   "seconds": 8.0,
-   "unlock": ["shop"],
-   "command": "赚到的金币在商店买小丑牌",
-   "signal": "SPEND ON JOKERS"
   }
- ]
+ ],
+ "_comment_shop": "⚠ `shop` 排在第 4 步而不是最后一步 —— 因为商店**每 3 拍开一次**(`phrases_per_shop`), 玩家在第 3 拍打完就会看见它。判据是「它这一拍派得上用场才亮」, 所以解锁必须跟着**引擎真正把它推出来的时刻**走, 不是跟着脚本作者的叙事顺序走。"
 }

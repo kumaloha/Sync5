@@ -6,6 +6,41 @@ extends RefCounted
 ## Widgets.GradBar / Widgets.SegPill / Widgets.DJKey.
 
 
+## 教学关的一行提示(design/difficulty.md §4.4)。
+##
+## ⚑ 契约是**不打断**:不暂停、不弹窗、不需要点确认 —— 因为「8 秒是唯一闸门」,
+## 第一次体验若是暂停态, 真正开始时的手忙脚乱会加倍。
+## ⚠ 它**只在教学关出现**;正式局 `set_hint("", "")` 就整块隐身, 不占位、不画。
+## 语言沿用全屏那套:暗玻璃底 + 主色描边 + 外发光(CLAUDE.md 美术方向)。
+class TutorHint:
+	extends Control
+	var _cn := ""
+	var _en := ""
+
+	func set_hint(cn: String, en: String) -> void:
+		if cn == _cn and en == _en:
+			return                      # 每拍都会被调, 不变就别重画
+		_cn = cn
+		_en = en
+		visible = cn != ""
+		queue_redraw()
+
+	func _draw() -> void:
+		if _cn == "":
+			return
+		var r := Rect2(Vector2.ZERO, size)
+		draw_style_box(StageTheme.box(Color(0.02, 0.03, 0.08, 0.88),
+			Color(StageTheme.CYAN.r, StageTheme.CYAN.g, StageTheme.CYAN.b, 0.55), 1, 8), r)
+		# ⚠ 中文走 StageTheme.zh()(系统中文), 拉丁走 Rajdhani —— 混用会让中文掉进
+		# fallback 字形, 那正是这条美术线上「数字对了形态错了」的典型形状。
+		var fs := 20
+		draw_string(StageTheme.zh(), Vector2(14, size.y * 0.5 + fs * 0.36), _cn,
+			HORIZONTAL_ALIGNMENT_LEFT, size.x - 130, fs, StageTheme.CYAN)
+		# ⚠ 右对齐时 position 是**盒子左边**、width 定盒宽 —— 传 0 宽度不会右对齐(会退成左对齐)。
+		draw_string(StageTheme.num("Medium"), Vector2(0, size.y * 0.5 + 5), _en,
+			HORIZONTAL_ALIGNMENT_RIGHT, size.x - 12, 13, Color(1, 1, 1, 0.42))
+
+
 class GradBar:
 	extends Control
 	var fraction := 0.0:

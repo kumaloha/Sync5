@@ -57,6 +57,7 @@ var hud: Hud
 var settle_fx: SettleFx
 var run_end: RunEndScreen
 var banner: BlindBanner
+var tutor: Widgets.TutorHint      # 教学关的一行提示;正式局整块隐身
 var blind_card: Widgets.BlindCard
 var intro: BlindIntro
 var fx: StageFeedback        # 屏震/弹跳/飘字 —— 纯表现, view/feedback.gd
@@ -173,9 +174,20 @@ func choose_character(i: int) -> void:
 	# `vinyl` 是 StageLayout 建的, 选角之后才拿到引用(同 orbit)。
 	if not vinyl.tapped.is_connected(_on_vinyl_tapped):
 		vinyl.tapped.connect(_on_vinyl_tapped)
+	# ⚑ 教学关:**只在第一次启动时出现一次**(用户 2026-08-07 拍板「教学只要一次」)。
+	# 判据存在 `SaveState`(`user://`), 与将来的断点续玩共用同一个存档层。
+	# ⚠⚠ **必须在 roll_faces 之前设** —— 教学关不掷 Boss 脸(见 Run.roll_faces),
+	# 而「起」按定义就是**安全的地方、无惩罚地理解机制**。顺序写反了截图里就会
+	# 挂着一张「禁回」, 我第一版正是这么错的。
+	run.tutorial = not SaveState.seen_tutorial()
 	run.roll_faces()
 	# 打点从这里开流 —— 主角与四面墙都定了, 这一局的初始条件已经完整
+	# ⚠⚠ 教学关**照样打点, 但必须打上标记**:它是一局假局(6 拍、目标分 0、不判生死),
+	# 混进 Tape 会污染 `tools/probbook.py` 的「合格真人局」分拣。
+	# 不干脆不打点, 是因为 design/difficulty.md §4 明写着要量的东西正在这里 ——
+	# **新手的动作时刻分布**(12 秒够不够), 而那正是现有 Tape 全是熟练玩家所以缺的那一块。
 	Tape.begin({
+		"tutorial": run.tutorial,
 		"char": i, "cn": run.character.cn_name,
 		"faces": run.run_faces.duplicate(),
 		"targets": GameConfig.SECTION_TARGETS,
@@ -208,6 +220,7 @@ func _build_ui() -> void:
 	settle_fx = n["settle_fx"]
 	run_end = n["run_end"]
 	banner = n["banner"]
+	tutor = n["tutor"]
 	intro = n["intro"]
 
 	for i in range(joker_views.size()):
@@ -287,6 +300,9 @@ func _start_phrase() -> void:
 		var m := SectionMod.by_id(cur_modifier)
 		var nxt := SectionMod.by_id(String(run.run_faces.get(run.section_idx + 1, "")))
 		blind_card.setup(run.section_idx, m, nxt, BlindBoon.by_id(run.boon()))
+		# ⚠ 教学关没有脸 ⇒ 盲注卡整块隐藏。不隐藏会留下一个**只剩 "BOSS" 边框的空壳**,
+		# 那比没有更糟:玩家会以为这一关有个规则而他没看懂。(截图看出来的)
+		blind_card.visible = not run.tutorial
 	# 规则全在这一句里:解析脸 → 发牌(缓存容量在 start() 生效)→ 收入场费 → 推进计数器。
 	# 这三样曾经在六个文件里各写一遍, 而入场费那份我一度还判断错了它有没有用(design/tech.md)。
 	phrase = Beat.begin(run)
@@ -302,6 +318,9 @@ func _start_phrase() -> void:
 	cur_lock = GameConfig.lock_time(cur_duration)
 	_discard_gate_open = _discard_open()
 	_swap_gate_open = _swap_open()
+	# 教学关的一行提示 —— 正式局 hint 是空串, TutorHint 整块隐身。
+	var h := run.tutorial_hint()
+	tutor.set_hint(String(h["command"]), String(h["signal"]))
 	orbit.set_mode("walk")
 	hand.clear_selection()
 	hand.deal_flip()
@@ -478,6 +497,16 @@ func _acted_early() -> bool:
 func _advance() -> void:
 	Beat.phrase_end(run, phrase, {"early": _acted_early()})
 	var out := run.advance()
+	# ⚑ 教学关走完 = 记下「看过了」→ 回首页, 玩家下一局起就是正式局。
+	# ⚠ 放在生死判定**之前** —— 教学关 target 恒 0, 走到这里 `cleared` 必真,
+	# 但把它夹在下面那段结算逻辑里会让「教学关不判生死」变成一个隐式的巧合。
+	# **显式返回, 别依赖巧合。**
+	if run.tutorial_done():
+		Tape.close({"ok": true, "tutorial": true, "beats": run.phrase_index})
+		SaveState.mark_tutorial_seen()
+		tutor.set_hint("", "")
+		_open_home()
+		return
 	if bool(out["section_done"]):
 		state = St.END
 		Tape.on("sec_end", {"i": run.section_idx, "score": run.section_score,
@@ -724,13 +753,20 @@ func _seconds_left() -> float:
 	return maxf(0.0, cur_lock - elapsed)
 
 
+## ⚑ 教学关的部件门控**复用脸的那条闸门**(2026-08-15), 不新造机制:
+## 「这一拍能不能弃牌」本来就有唯一的判定口, 教学关只是再加一个合取项。
+## 好处是 UI 的灰化/提示文案**全都自动跟着走** —— 它们读的就是这两个函数
+## (`can_discard_sel` / `can_drop` / `can_swap` 都在 `_vm()` 里由它们喂)。
+## ⚠ 正式局 `tutorial_unlocked()` 恒真, 所以这两行对非教学关**逐字节无影响**。
 func _discard_open() -> bool:
-	return SectionMod.discard_open(cur_modifier, _seconds_left())
+	return SectionMod.discard_open(cur_modifier, _seconds_left()) \
+		and run.tutorial_unlocked("discard")
 
 
 func _swap_open() -> bool:
 	return SectionMod.swap_open(cur_modifier, _seconds_left()) \
-		and (phrase == null or phrase.can_swap_action())
+		and (phrase == null or phrase.can_swap_action()) \
+		and run.tutorial_unlocked("cache")
 
 
 func _blind_status() -> String:

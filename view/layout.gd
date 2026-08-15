@@ -52,6 +52,21 @@ static func build(host: Control) -> Dictionary:
 	out["settle_fx"] = SettleFx.new()
 	host.add_child(out["settle_fx"])
 
+	# 教学关的一行提示(design/difficulty.md §4.4)。⚠ 加在这里而不是最后 ——
+	# run_end / banner / intro 是模态覆盖层, 它们必须能盖住提示行。
+	# 正式局它整块隐身(set_hint("", "") → visible=false), 不占位也不画。
+	var tutor := Widgets.TutorHint.new()
+	# ⚠ 位置是**截图逐版调出来的**, 不是算出来的(CLAUDE.md:改了视觉就渲染出来自己看):
+	#   y=96  → 压进顶栏玻璃板里(hud = pos[26,26]+size[668,96], 下沿 122), 读起来像顶栏的一部分;
+	#   y=132 → 盖住「♪ 小丑牌 ♪」那个标签;
+	#   y=384 → 小丑牌槽位下沿(~370)与音浪层上沿(~430)之间的空带, 两边都不碰。
+	tutor.position = Vector2(margin, 384)
+	tutor.size = Vector2(720 - margin * 2, 40)
+	tutor.visible = false
+	tutor.mouse_filter = Control.MOUSE_FILTER_IGNORE   # 提示不吃点击, 否则挡住顶栏
+	host.add_child(tutor)
+	out["tutor"] = tutor
+
 	# section-end result screens (resources/success.html + fail.html)
 	out["run_end"] = RunEndScreen.new()
 	host.add_child(out["run_end"])

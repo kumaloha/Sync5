@@ -71,6 +71,13 @@ func roll_faces(face_seed: int = -1) -> void:
 		_blind_rng.seed = face_seed
 	else:
 		_blind_rng.randomize()
+	# ⚑ **教学关不掷 Boss 脸** —— 起承転結 的「起」按定义是「安全的地方、**无惩罚**地
+	# 理解机制」(design/research_pacing_retention.md §5.5), 挂一张 Boss 规则直接违背它。
+	# ⚠ 所以调用方必须**先设 `tutorial` 再调这里**;顺序反了教学关第一拍就带着一张脸。
+	if tutorial:
+		run_faces = {}
+		run_boon = ""
+		return
 	# ⚑ 一局四张脸走 `SectionMod.roll_run` 这**一份**(2026-08-14 收口, 原来 7 份)——
 	# 它保证「一局之内不偶然重复」, 而那条守卫只加在这里、探针各掷各的就是
 	# 「规则在游戏里不在模型里」的第 6 次。
@@ -129,7 +136,18 @@ static func request_label(goal: String) -> String:
 ## ⚠ raisedbar is the one face that is HONESTLY a difficulty knob — Balatro
 ## does the same (The Wall 4×, Violet Vessel 6×) and never disguises pure
 ## amount as a rule. Everything else must change the problem, not the bar.
+## ⚑ **教学关模式**(design/difficulty.md §4)—— 用户 2026-08-07 拍板「教学单开一关」。
+## 它**不判生死、不进 curve.gd 的分位数反解**, 所以:
+##   · `target()` 恒 0 ⇒ 分数永远够, 一拍都不会死(起承転結 的「起」= **无惩罚**);
+##   · `phrase_duration()` 走 `Tutorial` 的脚本(12s 收到 8s), 不走 gig_clocks。
+## ⚠ 只挂在**实例**方法上, 不碰 `phrase_duration_for` 那个静态口 ——
+## 它是求解器/bot 共用的, 而教学关**不属于模型**, 混进去就是给尺子掺水。
+var tutorial := false
+
+
 func target() -> int:
+	if tutorial:
+		return 0
 	return int(round(float(section_target_for(GameConfig.SECTION_TARGETS, section_idx, face()))
 		* variety_mult(face(), section_kinds.size())))
 
@@ -145,7 +163,25 @@ static func phrase_duration_for(section: int, mod: String) -> float:
 
 
 func phrase_duration() -> float:
+	if tutorial:
+		return Tutorial.seconds(phrase_in_section)
 	return phrase_duration_for(section_idx, face())
+
+
+## 教学关这一拍该亮哪些部件 / 说什么。非教学关时**全部解锁、无提示** ——
+## 调用方因此不必到处写 `if run.tutorial`。
+func tutorial_unlocked(component: String) -> bool:
+	return (not tutorial) or Tutorial.is_unlocked(component, phrase_in_section)
+
+
+func tutorial_hint() -> Dictionary:
+	return Tutorial.hint(phrase_in_section) if tutorial else {"command": "", "signal": ""}
+
+
+## 教学关走完了没有。⚠ 判据是**拍数**而不是段数 —— 教学关的长度由脚本定,
+## 不受 `PHRASES_PER_SECTION` 约束(用户拍板:教学关可以突破 4.9 分钟)。
+func tutorial_done() -> bool:
+	return tutorial and phrase_in_section >= Tutorial.steps()
 
 
 ## 段目标 = 表里的基准 × 这一段的脸的加码。

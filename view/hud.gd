@@ -77,6 +77,9 @@ func refresh(vm: Dictionary) -> void:
 	phrase_label.text = "PHRASE %02d" % int(vm["phrase_no"])
 	coin_label.text = "◆ %d" % int(vm["coins"])
 	score_label.text = "%d" % int(vm["score"])
+	# ⚠ 目标分为 0 = **这一段没有目标**(目前只有教学关会这样, Run.target() 恒 0)——
+	# 显示「0 / 0」会让玩家以为自己一分没得或者目标坏了。**没有目标就别画那一格。**
+	target_label.visible = int(vm["target"]) > 0
 	target_label.text = "/ %d" % int(vm["target"])
 	target_label.position.x = float(_cfg["target_x_base"]) + score_label.get_minimum_size().x
 	pbar.fraction = clampf(float(vm["fraction"]), 0.0, 1.0)
