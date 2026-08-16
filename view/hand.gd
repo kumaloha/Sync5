@@ -102,9 +102,12 @@ func _ready() -> void:
 	sort_key.zh_label = String(_cfg["sort_label"])
 	sort_key.kind = "sort"
 	# 两个键各自往外挪 `key_outset`(改布局 = 改 JSON)。0 = 与手牌最外侧两列对齐(旧行为)。
+	# ⚠ **只挪位置不够** —— 26 是全屏边距, 外挪上限只有 17px(屏宽 2.4%), 用户反馈「没处理」。
+	# 真正的分隔靠**把键做窄**(114 → key_w), 与缓存牌的间隙 24 → 50px。
 	var outset: float = float(_cfg.get("key_outset", 0))
+	var kw: float = float(_cfg.get("key_w", CARD_W))
 	sort_key.position = Vector2(HAND_X0 - outset, CACHE_Y)
-	sort_key.size = Vector2(CARD_W, CARD_H)
+	sort_key.size = Vector2(kw, CARD_H)
 	sort_key.pressed.connect(func() -> void: sort_pressed.emit())
 	add_child(sort_key)
 
@@ -112,8 +115,9 @@ func _ready() -> void:
 	discard_key.accent = Color("ff5f7e")
 	discard_key.zh_label = String(_cfg["discard_label"])
 	discard_key.kind = "discard"
-	discard_key.position = Vector2(HAND_X0 + 4 * (CARD_W + GAP) + outset, CACHE_Y)
-	discard_key.size = Vector2(CARD_W, CARD_H)
+	# 右键窄了要往右补 (CARD_W - kw), 否则右沿会离边距变远、左右不再对称。
+	discard_key.position = Vector2(HAND_X0 + 4 * (CARD_W + GAP) + outset + (CARD_W - kw), CACHE_Y)
+	discard_key.size = Vector2(kw, CARD_H)
 	discard_key.pressed.connect(func() -> void:
 		discard_pressed.emit(sel_hand.duplicate(), sel_cache.duplicate()))
 	discard_key.dropped.connect(func(data: Dictionary) -> void:
