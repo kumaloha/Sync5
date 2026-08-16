@@ -65,6 +65,31 @@ func shelf_target_guaranteed() -> bool:
 	return bool(_shelf.get("target_guaranteed", false))
 
 
+## ⚑⚑ **槽位归属 —— 唯一真相**(2026-08-16,真人试玩报 bug 后收口)。
+##
+## **0 号槽是 Target 专用,Support 只能进 1..3。** 这条规则原本没有单一出处:
+## `view/shop.gd` 用 `_slots.has(null)`(**四个槽**)判满,而 `tools/bot.gd` 用
+## `range(1, size)`(**只看 1..3**)。⇒ 两处**答案不同**,而游戏那处是错的:
+##
+## > 玩家**没有 Target**(0 号空)+ 三个 Support 已满时买第 4 张 Support:
+## > ① `_affordable` 不把「卖旧卡的回收」算进预算 ⇒ 判你买不起 ⇒ **点了没反应**;
+## > ② 万一过了 ①,`_on_pick` 也不进替换流程 ⇒ **钱扣了、卡没装上、不报错**。
+##
+## ⚠⚠ **这次是「规则在模型里、不在游戏里」—— 与本项目此前五次的方向相反。**
+## 后果:`gate.sh` / `kit.gd` 这类**覆盖门证明的是「模型看得见游戏做的事」**,
+## **没有任何东西证明「游戏做了模型假设的事」** —— 所以这个 bug 只有真人玩才发现得了。
+static func first_free_support(slots: Array) -> int:
+	for k in range(1, slots.size()):
+		if slots[k] == null:
+			return k
+	return -1
+
+
+## 这张卡装得进去吗。Target 永远装得进(0 号就地换旗),Support 只看 1..3。
+static func has_room_for(slots: Array, kind: String) -> bool:
+	return kind == "target" or first_free_support(slots) >= 0
+
+
 static func slots_guarantee_target(slots: Array) -> bool:
 	for j in slots:
 		if j != null and j.shelf_target_guaranteed():

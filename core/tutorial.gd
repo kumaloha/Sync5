@@ -63,6 +63,32 @@ static func hint(step: int) -> Dictionary:
 		"signal": String(s[step].get("signal", ""))}
 
 
+## 这一步指向哪几块区域 —— 名字取自 `data/ui.json` 的 `tutor_focus`。
+##
+## ⚑ 用户 2026-08-15:「教学关不在于秒数,在于**页面不同区域干嘛**」——
+## 第一版只改了文案, 于是第 6 步写着「顶栏是分数和拍数」而提示条在屏幕中间:**光说不指**。
+## ⚠ 返回**区域名**而不是矩形 —— 坐标属于 `ui.json`(改布局 = 改 JSON 那条铁律),
+## `core/` 不该认识像素。
+static func focus(step: int) -> Array:
+	var s := _steps()
+	if step < 0 or step >= s.size():
+		return []
+	var out: Array = []
+	for r in s[step].get("focus", []):
+		out.append(String(r))
+	return out
+
+
+## 全部合法区域 id —— `data/ui.json` 的 `tutor_focus`(去掉 `_` 注释键)。
+## `core/db.gd` 拿它当白名单:指向一块不存在的区域 = 画不出来且不报错。
+static func regions() -> Array:
+	var out: Array = []
+	for k in DB.ui().get("tutor_focus", {}):
+		if not String(k).begins_with("_"):
+			out.append(String(k))
+	return out
+
+
 ## 全部合法部件 id —— `data/tutorial.json` 的 `components`,`core/db.gd` 拿它当白名单。
 static func components() -> Array:
 	var out: Array = []

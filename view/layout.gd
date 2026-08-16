@@ -56,12 +56,10 @@ static func build(host: Control) -> Dictionary:
 	# run_end / banner / intro 是模态覆盖层, 它们必须能盖住提示行。
 	# 正式局它整块隐身(set_hint("", "") → visible=false), 不占位也不画。
 	var tutor := Widgets.TutorHint.new()
-	# ⚠ 位置是**截图逐版调出来的**, 不是算出来的(CLAUDE.md:改了视觉就渲染出来自己看):
-	#   y=96  → 压进顶栏玻璃板里(hud = pos[26,26]+size[668,96], 下沿 122), 读起来像顶栏的一部分;
-	#   y=132 → 盖住「♪ 小丑牌 ♪」那个标签;
-	#   y=384 → 小丑牌槽位下沿(~370)与音浪层上沿(~430)之间的空带, 两边都不碰。
-	tutor.position = Vector2(margin, 384)
-	tutor.size = Vector2(720 - margin * 2, 40)
+	# ⚠ **铺满全屏** —— 它既要画提示条(位置写死在 `TutorHint.BAR`), 又要在**别处**
+	# 画分区描边(手牌区 / 缓存区 / 顶栏…), 所以不能只占那一条。
+	tutor.position = Vector2.ZERO
+	tutor.size = Vector2(720, 1280)
 	tutor.visible = false
 	tutor.mouse_filter = Control.MOUSE_FILTER_IGNORE   # 提示不吃点击, 否则挡住顶栏
 	host.add_child(tutor)

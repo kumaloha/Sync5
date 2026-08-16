@@ -391,11 +391,10 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 	# 两轮尝试的语义不变:第一轮什么都没买才允许一次付费刷新。
 	var buys := 0
 	for attempt in range(2):
-		var empty_slot := -1
-		for k in range(1, slots.size()):
-			if slots[k] == null:
-				empty_slot = k
-				break
+		# 规则在 `Joker.first_free_support`(唯一真相, 2026-08-16 收口)。
+		# ⚑ bot 这一份**本来就是对的**(只看 1..3), 错的是 `view/shop.gd`——
+		# 这次是「规则在模型里、不在游戏里」, 与此前五次方向相反。
+		var empty_slot := Joker.first_free_support(slots)
 		var best = null
 		var best_gain := 0.0
 		var best_cost := 0

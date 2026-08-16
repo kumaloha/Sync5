@@ -366,8 +366,19 @@ static func validate_tutorial(d: Dictionary) -> String:
 		if not (st is Dictionary):
 			return "tutorial step %d wants an object" % i
 		for k in st:
-			if not ["seconds", "unlock", "command", "signal"].has(String(k)):
+			if not ["seconds", "unlock", "command", "signal", "focus"].has(String(k)):
 				return "tutorial step %d unknown key '%s'" % [i, k]
+		# 指向一块不存在的区域 = **画不出来而且不报错**, 正是这个项目最贵的那类静默失败。
+		# ⚠ 白名单来自 `ui.json` 的 `tutor_focus`(坐标归 ui.json 那条铁律)。
+		# ⚠ 这里嵌套调 `ui()` 是安全的:`_load` 有缓存, 且 ui 的校验不反过来读 tutorial(无环)。
+		var known_regions: Array = []
+		for rk in ui().get("tutor_focus", {}):
+			if not String(rk).begins_with("_"):
+				known_regions.append(String(rk))
+		for r in st.get("focus", []):
+			if not known_regions.has(String(r)):
+				return "tutorial step %d focus 指向未知区域 '%s'(白名单在 data/ui.json 的 tutor_focus: %s)" \
+					% [i, r, ", ".join(known_regions)]
 		if float(st.get("seconds", 0.0)) <= 0.0:
 			return "tutorial step %d wants seconds > 0" % i
 		for c in st.get("unlock", []):
@@ -779,7 +790,11 @@ static func validate_ui(d: Dictionary) -> String:
 	for k in d:
 		if String(k).begins_with("_"):
 			continue
-		if not ["stage", "hud", "shop", "hand", "banner", "blindcard", "jokercard"].has(k):
+		# `tutor_focus` = 教学关的分区指向矩形(2026-08-15)。⚑ 它进 ui.json 而不是
+		# tutorial.json, 因为**坐标归 ui.json** 是既定铁律(改布局改文案 = 改 JSON);
+		# tutorial.json 里只放**区域名**, `core/tutorial.gd` 也因此不认识像素。
+		if not ["stage", "hud", "shop", "hand", "banner", "blindcard", "jokercard",
+				"tutor_focus"].has(k):
 			return "unknown section '%s'" % k
 	return ""
 

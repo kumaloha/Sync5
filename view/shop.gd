@@ -289,10 +289,18 @@ func _affordable(j) -> bool:
 	if j.kind == "target":
 		return _coins >= price
 	var budget: int = _coins
-	if not _slots.has(null):
+	# ⚠⚠ 同一个错误谓词曾经也在这里(2026-08-16 与 `_on_pick` 一起修):旧代码写
+	# `not _slots.has(null)`(**四个槽**), 而 Support 只能进 1..3。
+	# ⇒ **没有 Target(0 号空)+ 三个 Support 满**时条件为真 ⇒ **不把「卖掉旧卡的回收」
+	#   算进预算** ⇒ 商店判你买不起、弹个价格提示就没了。
+	#   **玩家看到的就是「点替换失效」** —— 这正是真人试玩报上来的那条。
+	# ⚑ 顺带:旧写法在 0 号为空时还会把 `null` 传进 `Economy.sell_value` ——
+	#   只是它恰好走不到那一支, 属于「靠巧合没崩」。
+	if not _has_slot_for(j):
 		var best_sell := 0
 		for k in range(1, _slots.size()):
-			best_sell = maxi(best_sell, Economy.sell_value(_slots[k]))
+			if _slots[k] != null:
+				best_sell = maxi(best_sell, Economy.sell_value(_slots[k]))
 		budget += best_sell
 	return budget >= price
 
@@ -315,10 +323,23 @@ func _on_pick(i: int) -> void:
 		_float(String(_cfg["insufficient"]), _views[i].get_global_position() + Vector2(70, 40))
 		denied.emit("price")
 		return
-	if j.kind != "target" and not _slots.has(null):
+	# ⚠⚠ **满不满要按 kind 问**(2026-08-16 真人试玩报的 bug:「第五个小丑牌来的时候,
+	# 点替换会失效」)。0 号是 **Target 专用**槽, Support 只能进 1..3 ——
+	# 而旧代码问的是 `_slots.has(null)`(**四个槽**里有没有空的)。
+	# ⇒ 玩家**没有 Target**(0 号空)+ 三个 Support 已满时买第 4 张 Support:
+	#   条件为真 ⇒ 不进替换流程 ⇒ 走购买 ⇒ `_on_shop_bought` 只遍历 1..3 找不到空位
+	#   ⇒ **钱扣了、卡没装上、还不报错。**
+	# ⚑ 判据:**「有没有空位」这个问题, 答案取决于问的是哪种卡** —— 一个不分 kind 的
+	#   `has(null)` 天然会在两种卡里挑错一种。
+	if not _has_slot_for(j):
 		replace_requested.emit(j)
 		return
 	bought.emit(j, _price(j))
+
+
+## 这张卡装得进去吗 —— 规则在 `Joker.has_room_for`(**唯一真相**),这里只是入口。
+func _has_slot_for(j) -> bool:
+	return Joker.has_room_for(_slots, String(j.kind))
 
 
 func _on_reroll() -> void:

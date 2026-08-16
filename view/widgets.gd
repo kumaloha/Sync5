@@ -16,29 +16,55 @@ class TutorHint:
 	extends Control
 	var _cn := ""
 	var _en := ""
+	## 这一步指向的区域矩形(全屏坐标)。⚑ 「说」和「指」是同一件事的两半, 所以同一个部件管 ——
+	## 拆成两个部件会让「文案换了但框没跟着换」变成一种可能, 而那正是第一版的毛病(光说不指)。
+	var _focus: Array = []
 
-	func set_hint(cn: String, en: String) -> void:
-		if cn == _cn and en == _en:
+	## ⚠ 本部件铺满全屏(要在别处画框), 所以**必须** MOUSE_FILTER_IGNORE, 否则整屏点不动。
+	func set_hint(cn: String, en: String, focus: Array = []) -> void:
+		if cn == _cn and en == _en and focus == _focus:
 			return                      # 每拍都会被调, 不变就别重画
 		_cn = cn
 		_en = en
+		_focus = focus
 		visible = cn != ""
 		queue_redraw()
+
+	## 提示条的位置 —— **截图逐版调出来的**(y=96 压进顶栏 / y=132 盖住「♪ 小丑牌 ♪」/
+	## y=384 落在小丑牌槽位下沿与音浪层上沿之间的空带)。⚠ 本部件铺满全屏, 所以这是绝对坐标。
+	const BAR := Rect2(26, 384, 668, 40)
 
 	func _draw() -> void:
 		if _cn == "":
 			return
-		var r := Rect2(Vector2.ZERO, size)
+		# ① 先画「指」——(框在下, 条在上, 免得框压住字)
+		for rect in _focus:
+			_draw_ring(rect)
+		# ② 再画「说」
+		var r := BAR
 		draw_style_box(StageTheme.box(Color(0.02, 0.03, 0.08, 0.88),
 			Color(StageTheme.CYAN.r, StageTheme.CYAN.g, StageTheme.CYAN.b, 0.55), 1, 8), r)
 		# ⚠ 中文走 StageTheme.zh()(系统中文), 拉丁走 Rajdhani —— 混用会让中文掉进
 		# fallback 字形, 那正是这条美术线上「数字对了形态错了」的典型形状。
 		var fs := 20
-		draw_string(StageTheme.zh(), Vector2(14, size.y * 0.5 + fs * 0.36), _cn,
-			HORIZONTAL_ALIGNMENT_LEFT, size.x - 130, fs, StageTheme.CYAN)
+		draw_string(StageTheme.zh(), Vector2(r.position.x + 14, r.get_center().y + fs * 0.36), _cn,
+			HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 130, fs, StageTheme.CYAN)
 		# ⚠ 右对齐时 position 是**盒子左边**、width 定盒宽 —— 传 0 宽度不会右对齐(会退成左对齐)。
-		draw_string(StageTheme.num("Medium"), Vector2(0, size.y * 0.5 + 5), _en,
-			HORIZONTAL_ALIGNMENT_RIGHT, size.x - 12, 13, Color(1, 1, 1, 0.42))
+		draw_string(StageTheme.num("Medium"), Vector2(r.position.x, r.get_center().y + 5), _en,
+			HORIZONTAL_ALIGNMENT_RIGHT, r.size.x - 12, 13, Color(1, 1, 1, 0.42))
+
+	## 指向某块区域的霓虹描边。⚠ **不做遮罩/压暗** —— 那要在全屏铺一层半透黑,
+	## 而 CLAUDE.md 已经拍死「画面里的光全部由光效层承担, 底色不贡献亮度」,
+	## 压暗会把整套黑底霓虹的对比关系打乱。描边是这套语言里现成的词汇。
+	## ⚠ 入参是 `ui.json` 里的 `[x, y, w, h]` 四元数组 —— 只认这一种形状。
+	## (第一版写成「Array 就转 Rect2, 否则原样用」的三元式, GDScript 推断不出类型直接不给过。)
+	func _draw_ring(rect: Array) -> void:
+		var q := Rect2(float(rect[0]), float(rect[1]), float(rect[2]), float(rect[3]))
+		var c := StageTheme.CYAN
+		# 外发光(大一圈、低不透明)+ 主描边 —— 与玻璃卡三件套同一手法
+		draw_style_box(StageTheme.box(Color(0, 0, 0, 0), Color(c.r, c.g, c.b, 0.18), 6, 14),
+			q.grow(7.0))
+		draw_style_box(StageTheme.box(Color(0, 0, 0, 0), Color(c.r, c.g, c.b, 0.95), 2, 10), q)
 
 
 class GradBar:

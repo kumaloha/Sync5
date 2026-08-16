@@ -330,9 +330,16 @@ func _start_phrase() -> void:
 	cur_lock = GameConfig.lock_time(cur_duration)
 	_discard_gate_open = _discard_open()
 	_swap_gate_open = _swap_open()
-	# 教学关的一行提示 —— 正式局 hint 是空串, TutorHint 整块隐身。
+	# 教学关的一行提示 + 分区指向 —— 正式局 hint 是空串, TutorHint 整块隐身。
+	# ⚠ 区域名 → 矩形的翻译在**编排器**这一侧:`core/` 不认识像素(坐标归 ui.json)。
 	var h := run.tutorial_hint()
-	tutor.set_hint(String(h["command"]), String(h["signal"]))
+	var rects: Array = []
+	if run.tutorial:
+		var geo: Dictionary = DB.ui().get("tutor_focus", {})
+		for name in Tutorial.focus(run.phrase_in_section):
+			if geo.has(name):
+				rects.append(geo[name])
+	tutor.set_hint(String(h["command"]), String(h["signal"]), rects)
 	# 跨区多选在教学关第 5 步才解锁 —— 在那之前每次只能选一张。
 	# ⚠ 组件不认识教学关(铁律:组件只发意图, 状态由编排器给), 所以这里翻译成
 	# 它听得懂的话:`multi_select`。正式局恒 true。
@@ -672,13 +679,23 @@ func _on_shop_bought(j, price: int) -> void:
 		fx.pop(joker_views[0])
 	else:
 		# pay and install into the first empty support slot
+		# ⚠⚠ **找不到空位必须响** —— 2026-08-16 真人试玩踩到:`view/shop.gd` 当时用
+		# `_slots.has(null)`(四个槽)判满, 而 Support 只能进 1..3, 于是「没有 Target +
+		# 三个 Support 满」时这个循环**空转**, 玩家**钱扣了、卡没了、没有任何提示**。
+		# 上游已按 kind 修好(`Shop._has_slot_for`), 这里留一道**响亮的**兜底:
+		# 静默的 for-else 正是这个项目最贵的那类失败。
+		var placed := false
 		for k in range(1, run.joker_slots.size()):
 			if run.joker_slots[k] == null:
 				run.joker_slots[k] = j
 				j.on_acquire(run.deck)
 				joker_views[k].set_joker(j)
 				fx.pop(joker_views[k])
+				placed = true
 				break
+		if not placed:
+			push_error("[shop] 买了 '%s' 却没有空的 Support 槽 —— 钱已扣。上游的满槽判定漏了 kind"
+				% String(j.id))
 	# 刚装的卡若自带金币上限(穷开心), 存量当场修剪 —— 卡面「上限 5」对已经很富的
 	# 玩家也必须为真(D2:卡面不许说谎), 而修剪只许发生在编排器手里。
 	phrase.coins = Economy.cap_held(phrase.coins, run.joker_slots)

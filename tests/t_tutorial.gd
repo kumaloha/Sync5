@@ -67,6 +67,28 @@ func run(t) -> void:
 		"command": "中", "signal": "one two three four five six seven eight"}]}
 	t.check(DB.validate_tutorial(wordy) != "", "英文短标超过 7 词被拒")
 
+	# --- 分区指向(2026-08-15 用户:「教学关……在于**页面不同区域干嘛**」)---
+	# ⚑ 第一版只改了文案, 结果第 6 步写着「顶栏是分数和拍数」而提示条在屏幕中间 —— **光说不指**。
+	var regions: Array = Tutorial.regions()
+	t.check(regions.size() > 0, "ui.json 的 tutor_focus 里有区域")
+	var pointed := 0
+	for i in range(steps.size()):
+		for r in Tutorial.focus(i):
+			t.check(regions.has(r), "第 %d 步指向的 '%s' 在白名单里" % [i + 1, r])
+			pointed += 1
+	t.check(pointed > 0, "至少有一步真的指了 —— 否则这个功能等于没接")
+	t.eq(Tutorial.focus(steps.size()), [], "越界不指")
+	# ⚠ 坐标必须是 [x,y,w,h] 四元数且宽高为正 —— 画不出来的框**不报错**, 那是静默失败。
+	var geo: Dictionary = DB.ui()["tutor_focus"]
+	for r in regions:
+		var q: Array = geo[r]
+		t.eq(q.size(), 4, "区域 '%s' 是 [x,y,w,h]" % r)
+		t.check(float(q[2]) > 0.0 and float(q[3]) > 0.0, "区域 '%s' 宽高为正" % r)
+	# schema 门禁:指向一块不存在的区域必须红(否则画不出来且不报错)
+	var badfocus := {"components": ["hand"], "steps": [{"seconds": 9.0, "unlock": ["hand"],
+		"command": "中", "signal": "EN", "focus": ["nowhere"]}]}
+	t.check(DB.validate_tutorial(badfocus) != "", "指向未知区域被拒")
+
 	# --- 存档:探针一律当老玩家, 且绝不落盘 ---
 	# ⚑ 这条锁的是 2026-08-15 那次真实事故(见 LESSONS 六):flow_probe 第一次跑走了
 	# 教学关、撞破流程不变量、还把存档写了出来, 第二次就绿了 —— **同一棵树两次不同结果**。

@@ -101,7 +101,9 @@ func _ready() -> void:
 	sort_key.accent = StageTheme.CYAN
 	sort_key.zh_label = String(_cfg["sort_label"])
 	sort_key.kind = "sort"
-	sort_key.position = Vector2(HAND_X0, CACHE_Y)
+	# 两个键各自往外挪 `key_outset`(改布局 = 改 JSON)。0 = 与手牌最外侧两列对齐(旧行为)。
+	var outset: float = float(_cfg.get("key_outset", 0))
+	sort_key.position = Vector2(HAND_X0 - outset, CACHE_Y)
 	sort_key.size = Vector2(CARD_W, CARD_H)
 	sort_key.pressed.connect(func() -> void: sort_pressed.emit())
 	add_child(sort_key)
@@ -110,7 +112,7 @@ func _ready() -> void:
 	discard_key.accent = Color("ff5f7e")
 	discard_key.zh_label = String(_cfg["discard_label"])
 	discard_key.kind = "discard"
-	discard_key.position = Vector2(HAND_X0 + 4 * (CARD_W + GAP), CACHE_Y)
+	discard_key.position = Vector2(HAND_X0 + 4 * (CARD_W + GAP) + outset, CACHE_Y)
 	discard_key.size = Vector2(CARD_W, CARD_H)
 	discard_key.pressed.connect(func() -> void:
 		discard_pressed.emit(sel_hand.duplicate(), sel_cache.duplicate()))

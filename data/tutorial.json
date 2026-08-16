@@ -15,7 +15,10 @@
     "hand"
    ],
    "command": "下面是手牌区:点五张牌打出去",
-   "signal": "HAND · TAP FIVE"
+   "signal": "HAND · TAP FIVE",
+   "focus": [
+    "hand"
+   ]
   },
   {
    "seconds": 12.0,
@@ -23,7 +26,10 @@
     "discard"
    ],
    "command": "右下弃牌键:不要的牌弃掉,立刻补新",
-   "signal": "DISCARD · REFILLS NOW"
+   "signal": "DISCARD · REFILLS NOW",
+   "focus": [
+    "discard"
+   ]
   },
   {
    "seconds": 10.0,
@@ -31,7 +37,10 @@
     "cache"
    ],
    "command": "最下面是缓存区:拖一张进去,两张对调",
-   "signal": "CACHE · DRAG TO SWAP"
+   "signal": "CACHE · DRAG TO SWAP",
+   "focus": [
+    "cache"
+   ]
   },
   {
    "seconds": 10.0,
@@ -39,7 +48,8 @@
     "shop"
    ],
    "command": "商店每三拍开一次,金币买小丑牌",
-   "signal": "SHOP · EVERY THREE"
+   "signal": "SHOP · EVERY THREE",
+   "focus": []
   },
   {
    "seconds": 8.0,
@@ -47,14 +57,22 @@
     "multiselect"
    ],
    "command": "点击只是选中;手牌和缓存可以一起选",
-   "signal": "TAP SELECTS, NOT SWAPS"
+   "signal": "TAP SELECTS, NOT SWAPS",
+   "focus": [
+    "hand",
+    "cache"
+   ]
   },
   {
    "seconds": 8.0,
    "unlock": [],
    "command": "牌型越大得分越高,顶栏是分数和拍数",
-   "signal": "BIGGER HAND, MORE SCORE"
+   "signal": "BIGGER HAND, MORE SCORE",
+   "focus": [
+    "hud"
+   ]
   }
  ],
- "_comment_shop": "⚠ `shop` 排在第 4 步而不是最后一步 —— 因为商店**每 3 拍开一次**(`phrases_per_shop`), 玩家在第 3 拍打完就会看见它。判据是「它这一拍派得上用场才亮」, 所以解锁必须跟着**引擎真正把它推出来的时刻**走, 不是跟着脚本作者的叙事顺序走。"
+ "_comment_shop": "⚠ `shop` 排在第 4 步而不是最后一步 —— 因为商店**每 3 拍开一次**(`phrases_per_shop`), 玩家在第 3 拍打完就会看见它。判据是「它这一拍派得上用场才亮」, 所以解锁必须跟着**引擎真正把它推出来的时刻**走, 不是跟着脚本作者的叙事顺序走。",
+ "_comment_focus": "`focus` = 这一步**指向哪几块区域**(名字取自 ui.json 的 `tutor_focus`), 空数组 = 不指。\n⚑ 起因:第一版只改了文案, 结果第 6 步写着「顶栏是分数和拍数」而提示条在屏幕中间 —— **光说不指**。\n⚠ 第 4 步(商店)故意留空:商店是**全屏覆盖层**, 它自己会占满屏幕, 再画一圈框是噪声。\n⚠ 第 5 步指两块 —— 跨区多选的要点正是「手牌和缓存可以一起选」。"
 }

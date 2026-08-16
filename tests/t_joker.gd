@@ -340,3 +340,22 @@ func run(t) -> void:
 	t.check(float(shelf_slots[1].state.get("n", 0.0)) == 1.0
 		and float(shelf_slots[2].state.get("n", 0.0)) == 0.0,
 		"notify_shop feeds every slot but only the matching counters")
+
+	# ── 槽位归属:0 号 = Target 专用, Support 只进 1..3 ──────────────────
+	# ⚠⚠ **这一组是回归锁**:2026-08-16 真人试玩报「第五个小丑牌来的时候, 点替换会失效」。
+	# 根因 = `view/shop.gd` 用 `_slots.has(null)`(四个槽)判满, 而 Support 只能进 1..3。
+	# **当时没有任何测试守着这条规则**, 所以它一路溜到了真人手里。
+	var sup := Joker.by_id("collector")
+	var tgt_slots: Array = [null, sup, sup, sup]       # 没有 Target, 三个 Support 满
+	t.eq(Joker.first_free_support(tgt_slots), -1,
+		"0 号空不算 Support 的空位 —— 这正是那个 bug 的确切形状")
+	t.check(not Joker.has_room_for(tgt_slots, "support"),
+		"没有 Target + 三 Support 满 ⇒ Support 装不进 ⇒ 必须走替换流程")
+	t.check(Joker.has_room_for(tgt_slots, "target"),
+		"同一局面下 Target 装得进 —— 0 号槽就地换旗, 不需要替换流程")
+	var half: Array = [null, sup, null, sup]
+	t.eq(Joker.first_free_support(half), 2, "返回**第一个**空的 Support 槽")
+	t.check(Joker.has_room_for(half, "support"), "有空位就装得进")
+	var full: Array = [sup, sup, sup, sup]
+	t.eq(Joker.first_free_support(full), -1, "全满没有空位")
+	t.check(Joker.has_room_for(full, "target"), "全满时 Target 仍装得进(换旗)")
