@@ -112,8 +112,11 @@ func _phrase_score(c: Dictionary, w: Array) -> float:
 	p.start()
 	var used := _curate(p, tid, budget)
 	var res := p.lock_and_settle()
+	# ⚠⚠ `section_target` 必须传, 否则按「本段每拍目标的 x%」定额的卡在这里静默算 0。
+	# 本探针是**单段尺度**的, 所以取第 0 段 —— 显式写出来, 别让它是个默认值的副作用。
 	var out := Settle.run(res, slots, {"prev_kind": prev_kind, "acted_late": true,
-		"discards": used, "coins": 20, "cache_cards": p.cache, "mod": mod})
+		"discards": used, "coins": 20, "cache_cards": p.cache, "mod": mod,
+		"section_idx": 0, "section_target": GameConfig.section_target(0)})
 	return float(out["score"])
 
 

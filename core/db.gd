@@ -36,7 +36,7 @@ const _RUN_KEYS := ["phrases_per_section", "phrases_per_shop", "sections_per_gig
 	"hand_size", "cache_cap", "beat_budget", "death_spec"]
 const _ECO_KEYS := ["starting_coins", "discard_cost", "section_clear_reward",
 	"draft_rarity_weights", "joker_prices", "joker_price_overrides",
-	"reroll"]
+	"reroll", "joker_upgrade"]
 const _TAPE_KEYS := ["enabled", "to_file", "dir", "max_events", "mute"]
 
 
@@ -53,6 +53,7 @@ static func load_error() -> String:
 	tape()
 	tutorial()
 	director()
+	tickets()
 	return _err
 
 
@@ -96,6 +97,37 @@ static func tape() -> Dictionary:
 
 static func tutorial() -> Dictionary:
 	return _load("tutorial", func(d): return validate_tutorial(d))
+
+
+## 消耗品层(券)。`core/ticket.gd` 是它唯一的消费者。
+static func tickets() -> Dictionary:
+	return _load("tickets", func(d): return validate_tickets(d))
+
+
+## ⚠ `scope` 写错会让券**静默地在错误的时机可用**, 而那不报错 —— 所以是白名单硬校验。
+static func validate_tickets(d: Dictionary) -> String:
+	var e := _keys_ok(d, ["reset_hour", "max_held", "tickets"])
+	if e != "":
+		return e
+	if int(d["reset_hour"]) < 0 or int(d["reset_hour"]) > 23:
+		return "reset_hour 必须在 0..23"
+	if int(d["max_held"]) < 1:
+		return "max_held 必须 >= 1"
+	var seen: Array = []
+	for t in d["tickets"]:
+		for k in t:
+			if not ["id", "cn", "name", "fx", "scope", "params"].has(String(k)) \
+					and not String(k).begins_with("_"):
+				return "ticket '%s' unknown key '%s'" % [t.get("id", "?"), k]
+		var tid := String(t.get("id", ""))
+		if tid == "" or seen.has(tid):
+			return "ticket id 缺失或重复: '%s'" % tid
+		seen.append(tid)
+		if not ["phrase", "shop", "run"].has(String(t.get("scope", ""))):
+			return "ticket '%s' scope 必须是 phrase/shop/run" % tid
+		if String(t.get("fx", "")).split(" ", false).size() > 7:
+			return "ticket '%s' 卡面超过 7 词(与小丑牌同一条 1.5 秒规矩)" % tid
+	return ""
 
 
 ## B 轴 · 跨局序列表(design/difficulty.md §3)。`core/director.gd` 是它唯一的消费者。
@@ -250,7 +282,8 @@ static func validate_faces(d: Dictionary) -> String:
 	var ids := {}
 	for e in d["faces"]:
 		for k in e:
-			if not ["id", "name", "cn", "fx", "params", "proof", "tape_required", "tier", "tiers"].has(k):
+			if not ["id", "name", "cn", "fx", "params", "proof", "tape_required", "tier", "tiers",
+					"min_run"].has(k):
 				return "face '%s' unknown key '%s' — faces.json is data-only now, design notes belong in design/blinds.md §7" % [e.get("id", "?"), k]
 		if e.has("tape_required") and not e["tape_required"] is bool:
 			return "face '%s' tape_required wants bool" % e.get("id", "?")
@@ -366,8 +399,15 @@ static func validate_tutorial(d: Dictionary) -> String:
 		if not (st is Dictionary):
 			return "tutorial step %d wants an object" % i
 		for k in st:
-			if not ["seconds", "unlock", "command", "signal", "focus"].has(String(k)):
+			if not ["seconds", "unlock", "require", "command", "signal", "focus"].has(String(k)):
 				return "tutorial step %d unknown key '%s'" % [i, k]
+		# ⚠⚠ **写错一个动作名, 那一步永远推进不了, 而且不报错** —— 玩家会**卡死在教学关里**,
+		# 而这是个只有真人玩才发现得了的死法(探针不走 view, 不产生这些动作)。
+		# 所以这条必须是硬校验, 和「focus 指向未知区域」同一类静默失败。
+		var req := String(st.get("require", ""))
+		if req != "" and not Tutorial.ACTIONS.has(req):
+			return "tutorial step %d require 未知动作 '%s'(白名单: %s)" \
+				% [i, req, ", ".join(Tutorial.ACTIONS)]
 		# 指向一块不存在的区域 = **画不出来而且不报错**, 正是这个项目最贵的那类静默失败。
 		# ⚠ 白名单来自 `ui.json` 的 `tutor_focus`(坐标归 ui.json 那条铁律)。
 		# ⚠ 这里嵌套调 `ui()` 是安全的:`_load` 有缓存, 且 ui 的校验不反过来读 tutorial(无环)。
@@ -429,6 +469,7 @@ const _DIRECTOR_FORBIDDEN := {
 	"joker_prices": "定价先过 design/numbers.md 的三轴框架与六步 SOP, 不许从 Director 绕",
 	"price_delta": "同上;货架价格增减是卡面效果(赞助), 不是 Director 的口",
 	"reroll": "同上",
+	"joker_upgrade": "同上 —— 升级曲线锚在「一局白剩多少钱」, 见 economy.json 的注释",
 	"discard_cost": "同上",
 	"starting_coins": "同上",
 	"section_clear_reward": "同上",
@@ -615,7 +656,7 @@ const _PREDICATES := ["kind", "kind_in", "same_as_prev", "diff_from_prev",
 	"cache_all_faces", "cache_run", "cache_trio",
 	"swaps_eq", "discard_batch_gte", "section_doubled",
 	"acted_final", "early_discards"]
-const _DO_KEYS := ["mult", "mult_add", "additive", "bonus", "bonus_pct",
+const _DO_KEYS := ["mult", "mult_add", "additive", "bonus", "bonus_target_pct", "bonus_pct",
 	"coins", "per", "step", "cap", "mult_from_target_factor", "additive_face_value",
 	"additive_low_value", "additive_cache_top", "chips_per_card", "card_filter",
 	"coins_factor"]
@@ -641,7 +682,10 @@ const _PER_SOURCES := ["discard", "cache_face", "face_discard", "swapped_scoring
 ## 会让规则牌**静默什么都不做**(joker.gd on_acquire 查不到就跳过),
 ## 正是「规则在游戏里、不在模型里」栽过五次的那个形状,趁加 trim_low 一起锁死。
 const _ACQUIRE_KEYS := ["wilds", "deck_rule", "trim_low"]
-const _DECK_RULES := ["shortcut", "fourfingers", "twotone"]
+## ⚠ `twotone` 2026-08-16 拆成 `redtone` / `blacktone` 两张, **旧名已删** ——
+## 留着它等于留一条没人实现的规则(`pattern.gd` 不再认它), 而拼错/过期的 deck_rule
+## 会让规则牌**静默什么都不做**, 正是这条注释上面说的那个形状。
+const _DECK_RULES := ["shortcut", "fourfingers", "redtone", "blacktone"]
 
 
 ## 小丑牌的覆盖自证通路。含义见 `validate_jokers` 里的注释与 design/jokers.md。

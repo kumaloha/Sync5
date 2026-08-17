@@ -5,7 +5,7 @@ func run(t) -> void:
 	# roster shape (2026-08-12 流派批: 删 popup/backup, 加族内件×4 + backer/bench/boxseats + trim;
 	# 缘由与增删改清单见 design/archetypes.md §5)
 	var pool := Joker.pool()
-	t.eq(pool.size(), 61, "pool holds 61 jokers(拆迁回池;断舍离/三重唱/打包仍在池外)")
+	t.eq(pool.size(), 63, "pool holds 62 jokers(2026-08-16 双色调拆两张 61→62)")
 	var targets := 0
 	var rarities := {"common": 0, "uncommon": 0, "rare": 0}
 	for j in pool:
@@ -20,7 +20,7 @@ func run(t) -> void:
 		t.check(j.fx_text.split(" ").size() <= 7, "%s card text within 7 words" % j.id)
 	t.eq(targets, 8, "eight targets —— 拆迁回池(beat_budget 校准 + 弃牌偏置后它可达了)")
 	# 概率线基建(archetypes.md §3.8): fourfingers/twotone 降罕见 —— 规则牌从 5% 池权重解放
-	t.eq(rarities["common"], 22, "twenty-two common supports")
+	t.eq(rarities["common"], 23, "twenty-three common supports(快闪 2026-08-16 回池)")
 	# ⚠ **twotone 已于 2026-08-14 升回 rare**(先验层实测它把同花抬 9.8×, 而同价位的
 	# 近道/四指只有 3.1×/3.0× —— 效力差三倍以上;见 design/jokers.md「第三次重锚」)。
 	# ⚠⚠ **这撤销了上面那条「规则牌曝光」措施的一半, 是有意的**:先验数据说要救的是
@@ -28,10 +28,18 @@ func run(t) -> void:
 	# 所以近道/四指**留在 uncommon**, 升回去的只有 twotone。
 	# 配额上两个方向都在往 jokers_atlas.md §0 的目标(罕见 ~18 · 稀有 ~10)靠。
 	t.eq(rarities["uncommon"], 22, "twenty-two uncommon supports")
-	t.eq(rarities["rare"], 9, "nine rare supports")
+	t.eq(rarities["rare"], 10, "ten rare supports(双色调拆两张, rare 9→10)")
 	t.eq(String(Joker.by_id("fourfingers").rarity), "uncommon", "fourfingers stays uncommon (顺子线要救)")
-	t.eq(String(Joker.by_id("twotone").rarity), "rare", "twotone back to rare (9.8× 效力不配 uncommon)")
-	t.check(Joker.by_id("popup") == null, "popup left the pool (结构死卡, archetypes.md §5)")
+	# ⚑ 拆分后单张实测 5.3×(先验层 N=20万, Δ同花族 +29.7pp), 两张都装 9.6× = 老 twotone。
+	# 仍是同类规则牌里最强(近道/四指只 1.8×), 所以 rare 保持不动。
+	t.eq(String(Joker.by_id("blacktone").rarity), "rare", "黑调 rare")
+	t.eq(String(Joker.by_id("redtone").rarity), "rare", "红调 rare")
+	# ⚑ 快闪 2026-08-16 **按用户 08-15 那条原则复活**:「仅限一轮的卡不该删, 该是窗口窄 ⇒ 效果强」。
+	# ⚠ 但**光加数额是假修**(design/jokers.md 原话)—— 它的死因是 `section_eq: 0` 而**商店最早
+	# S1 过半才开**, 玩家根本没机会在第 1 段拥有它(bot 2685 局触发 0%)。
+	# ⇒ 窗口改成**每段第 1 拍**的滚动窗口:每段都有第 1 拍 ⇒ 何时买到都够得着,
+	# 而窗口仍然窄(4/24 = 16.7%)⇒ 效果强(80% 每拍目标, 期望 13.3%/拍, 族内锚 12%)。
+	t.check(Joker.by_id("popup") != null, "快闪已回池(窗口从「只有第 1 段」改成「每段第 1 拍」)")
 	t.check(Joker.by_id("backup") == null, "backup left the pool (boxseats 上位替代)")
 	t.check(Joker.by_id("nope") == null, "by_id on unknown id -> null")
 
@@ -234,7 +242,7 @@ func run(t) -> void:
 	# 串场:按「换入且参与成牌」的张数计 —— 每张都要真的进了成牌五张
 	t.eq(Settle.run(flush_res, [null, Joker.by_id("segue"), null, null],
 		{"swapped_scoring": 2})["score"],
-		base + int(t._bonus("segue")) * 2, "segue pays per swapped scoring card")
+		base + t._bonus_n("segue", 2), "segue pays per swapped scoring card(总额一次取整, 同 Fx)")
 	t.eq(Settle.run(flush_res, [null, Joker.by_id("segue"), null, null],
 		{"swapped_scoring": 0})["score"], base, "segue silent with nothing swapped in")
 	# 断舍离(declutter)撤出 json 挂仪器债(bot 弃牌上限 2-3 张, 一次弃 5 张结构不可能),
@@ -359,3 +367,40 @@ func run(t) -> void:
 	var full: Array = [sup, sup, sup, sup]
 	t.eq(Joker.first_free_support(full), -1, "全满没有空位")
 	t.check(Joker.has_room_for(full, "target"), "全满时 Target 仍装得进(换旗)")
+	_t_upgrade(t)
+
+
+## 升级(2026-08-16, 金币的主出口)—— 规格在 data/economy.json 的 joker_upgrade 注释。
+func _t_upgrade(t) -> void:
+	var base := {"mult": 1.0, "additive": 0, "bonus": 0, "bonus_pct": 0.0,
+		"coins_bonus": 0, "chips": 0, "kind": 0, "base_score": 0,
+		"scoring_cards": [], "cache_cards": []}
+	# ⚠⚠⚠ **这条是整套升级里唯一会静默炸掉平衡的地方。**
+	# 乘子必须按 `1 + (x−1)×scale` 放大:×1.5 的卡满级 = **×2.0**。
+	# 若误写成 `x × scale`, 满级会变成 ×3.05 —— 而且它**不报错**, 只是所有乘子卡
+	# 悄悄变成三倍强。四级下来是指数, 不是线性。
+	var c5 := base.duplicate()
+	Fx.apply_effects([{"do": {"mult": 1.5}}], {}, c5, 2.0)
+	t.check(absf(float(c5["mult"]) - 2.0) < 0.001,
+		"满级乘子 ×1.5 → ×2.0(按**增量**放大);写成整数放大会得到 ×3.05 = 指数爆炸")
+	var c1 := base.duplicate()
+	Fx.apply_effects([{"do": {"mult": 1.5}}], {}, c1, 1.0)
+	t.check(absf(float(c1["mult"]) - 1.5) < 0.001, "Lv1 逐字节不变 —— 加功能不许改既有行为")
+	var cb := base.duplicate()
+	Fx.apply_effects([{"do": {"bonus": 240.0}}], {}, cb, 2.0)
+	t.eq(int(cb["bonus"]), 480, "满级加分 240 → 480(加分族按整数放大是对的)")
+	# ⚠ 金币不放大 —— 升级印钱就是正反馈:钱越多升得越多, 升得越多钱越多。
+	var cc := base.duplicate()
+	Fx.apply_effects([{"do": {"coins": 3.0}}], {}, cc, 2.0)
+	t.eq(int(cc["coins_bonus"]), 3, "金币通道**不**随等级放大")
+	# ⚑ 规则牌不可升级 —— 这不只是「没数值可升」, 它是红调/黑调的**平衡杠杆**:
+	# 它们开局 5.3× 最强, 但吃不到升级红利, 中后期被满级乘子卡压过去。
+	var rule := Joker.by_id("blacktone")
+	t.check(rule != null and not rule.can_upgrade(), "规则牌不可升级(红调/黑调靠这条被时间轴拉平)")
+	var up := Joker.by_id("neonsign")
+	t.check(up != null and up.can_upgrade(), "带 effects 的普通卡可升级")
+	t.eq(up.upgrade_cost(), int(GameConfig.UPGRADE_COSTS[0]), "第一级价格取自 economy.json")
+	up.level = GameConfig.UPGRADE_MAX_LEVEL
+	t.check(not up.can_upgrade(), "满级不可再升")
+	t.eq(up.upgrade_cost(), -1, "满级 upgrade_cost() = −1, 不是 0 —— 0 会被读成「免费」")
+	up.level = 1

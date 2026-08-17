@@ -57,6 +57,11 @@ func _run(target_id: String, rng: RandomNumberGenerator) -> void:
 				var out := Settle.run(res, slots, {
 					"prev_kind": -99, "acted_late": false, "discards": 0,
 					"coins": 99, "phrase_idx": 0, "cache_cards": cache,
+					# ⚠⚠ **`section_target` 必须传** —— 缺了它, 任何按「本段每拍目标的 x%」
+					# 定额的卡(加分族 A 案)在这个探针里会**静默算成 0**, 而这正是
+					# 牌型频率/中性基准的仪器 ⇒ 会「测出」那族卡没用。**自我实现的错误结论。**
+					# 这是「规则在游戏里、不在模型里」的第 6 次的预防, 不是修 bug。
+					"section_idx": s, "section_target": GameConfig.section_target(s),
 					"mod": "", "character": null,
 				})
 				var k := int(res.get("kind", -1))

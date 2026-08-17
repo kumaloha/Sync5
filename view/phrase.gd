@@ -21,6 +21,22 @@ var phrase: Phrase
 var state: int = St.DECISION
 var elapsed := 0.0
 
+## 今天发到的券 id(空串 = 今天已领 / 满仓)。⚠ 目前只用来打点与将来的提示,
+## **不参与任何判定** —— 券的效力一律走 `SaveState.consume_ticket()`。
+var _daily_ticket := ""
+
+## ---- 教学关的钟:**照常走, 不冻结**(2026-08-17 用户拍板拆掉)----
+##
+## ⚑ 2026-08-16 我加过「玩家第一次动手才起钟」, 依据是用户那句「你还在那倒计时,
+## 不是每个人都来得及看」。**2026-08-17 试玩后他自己否了**:「开头进教学的时候,
+## 要点一下才会开始走, 没必要, 直接走。」
+##
+## ⚠⚠ **我漏掉的那件事:冻结是看不见的。** 玩家不知道钟停着, 只看到**游戏没反应** ——
+## 「给你时间」和「卡住了」在屏幕上长得一模一样, 而后者更像默认解释。
+## ⇒ 一个**需要解释才成立**的贴心, 在没有解释的地方就是 bug。
+##
+## ⚑ 而读的时间**本来就给了**:教学关拍长是 12/12/10/10/8/8/8 秒, 正式局才 8 秒。
+## 冻结只是第二层保险, 它的代价(看起来卡死)比收益大。
 # per-phrase timing (always taken from the GameConfig hooks — plans plug in there)
 var cur_duration := 12.0
 var cur_warning := 11.0
@@ -73,6 +89,9 @@ var _sess: Dictionary = {}
 func _ready() -> void:
 	# ⚑ 会话边界(D4)——「隔多久回来」跨应用启动才有意义, 所以数据来自存档层。
 	_sess = SaveState.session_start()
+	# ⚑ 每日券的发放也在这一处结算 —— 与会话边界同源:两者都是「这次打开」才有意义的事。
+	# ⚠ **只在这里调**, 别在别处补 —— 多一个调用点就多一次掷点, 而它一天只该掷一次。
+	_daily_ticket = SaveState.settle_daily_ticket()
 	run.reset()
 	_build_ui()
 	_open_home()
@@ -169,6 +188,13 @@ func choose_character(i: int) -> void:
 	if _front_latch:
 		return
 	_front_latch = true
+	# ⚠⚠ **从首页开新一局必须先重置**(2026-08-17 真人试玩报的:「教学关退回主屏幕,
+	# 点开始游戏, 居然还存着之前的小丑牌」)。`run.reset()` 原本只在 `_ready()` 和
+	# 「再来一次」里调 —— **「回首页再开一局」这条路径整个漏了**。
+	# ⚑ 它是教学关之前就存在的洞:以前没有「打完一局自己回首页」的出口, 所以没人撞到。
+	# ⚠ 走 `_reset_run` 而不是裸 `run.reset()` —— 后者只清 Run 的状态, **不清槽位视图**,
+	# 那样数据干净了但屏幕上还挂着旧卡面(比不重置更难查)。
+	_reset_run(false)
 	_close_menu()
 	if _home != null and is_instance_valid(_home):
 		_home.queue_free()
@@ -188,7 +214,10 @@ func choose_character(i: int) -> void:
 	# 而「起」按定义就是**安全的地方、无惩罚地理解机制**。顺序写反了截图里就会
 	# 挂着一张「禁回」, 我第一版正是这么错的。
 	run.tutorial = not SaveState.seen_tutorial()
-	run.roll_faces()
+	# ⚑ **游戏是唯一传真实局数的地方**(探针一律走缺省 = 全解锁, 理由在 SectionMod.unlocked_at)。
+	# ⚠ `+1` 是因为掷脸发生在 `note_run_started()` **之前** —— 存档里的 `runs_total`
+	# 此刻还是「以前玩过几局」, 而这一局是第 `runs_total + 1` 局。
+	run.roll_faces(-1, SaveState.runs_total() + 1)
 	# 打点从这里开流 —— 主角与四面墙都定了, 这一局的初始条件已经完整
 	# ⚠⚠ 教学关**照样打点, 但必须打上标记**:它是一局假局(6 拍、目标分 0、不判生死),
 	# 混进 Tape 会污染 `tools/probbook.py` 的「合格真人局」分拣。
@@ -197,6 +226,19 @@ func choose_character(i: int) -> void:
 	# ⚑ 会话边界(D4)——「一次坐下玩几局 / 隔多久回来」。目标函数换成留存之后,
 	# **这是唯一能直接观测目标的量**。它跨局, 而 Tape 一局一个文件, 所以只能进 meta。
 	SaveState.note_run_started()
+	# ⚑ **run scope 的券在这里兑现** —— 开局一次性生效, 用掉即消耗。
+	# ⚠ 必须**先看返回值再加钱**:`consume_ticket` 返回 false 表示根本没这张券,
+	# 不看就直接加 = 白送一次效果, 而那不会报错(`core/save.gd` 里写着同一条)。
+	if SaveState.consume_ticket("seedmoney"):
+		# ⚠⚠ **加在 `run.coins`, 不是 `phrase.coins`** —— 此刻 `phrase` 还是 null
+		# (`_reset_run` 把它清了, 真正的 Phrase 要到 `_start_phrase()` 才建)。
+		# 2026-08-17 写成 `phrase.coins` 直接空引用 ⇒ `choose_character` 后半段全不执行
+		# ⇒ **牌不发、教学关不启动**。而 `run.coins` 正是「跨拍带过去的那份」,
+		# Phrase 建的时候从它取 —— 开局加钱本来就该加在这里。
+		# ⚠⚠ **探针抓不到这条**:探针拿不到任何券(`_is_probe` 闸), 那一行永远不执行。
+		# **我给券加的探针闸, 把这个 bug 一起挡在了探针视野外。**
+		run.coins += int(Ticket.param("seedmoney", "coins"))
+		Tape.on("ticket", {"id": "seedmoney", "coins": run.coins})
 	Tape.begin({
 		"sess": _sess,
 		"tutorial": run.tutorial,
@@ -250,6 +292,7 @@ func _build_ui() -> void:
 	shop.replace_requested.connect(_on_shop_replace)
 	shop.skipped.connect(_on_shop_skipped)
 	shop.reroll_paid.connect(_on_shop_reroll)
+	shop.upgrade_requested.connect(_on_shop_upgrade)
 	shop.denied.connect(func(why: String) -> void: Tape.on("deny", {"why": why}))
 	settle_fx.burst_started.connect(_on_settle_burst)
 	run_end.next_pressed.connect(_on_end_next)
@@ -270,6 +313,15 @@ func _build_ui() -> void:
 ## shop are announced on the shop's blind board instead, and mid-section
 ## phrases go straight to _start_phrase().
 func _enter_section() -> void:
+	# ⚠⚠ **教学关不弹盲注公示卡**(2026-08-17 试玩抓到)。它不掷脸、目标分恒 0,
+	# 弹出来就是一张「小酒吧 · 目标分 0 · BOSS 墙」的空卡 —— 而教学关的第一印象
+	# 应该是**直接开始玩**, 不是先读一张说明书。
+	# ⚑ 这条闸和 `Run.face()`/`target()` 里那两道同源:**教学关的每一个「正式局才有的
+	# 东西」都要显式挡一次**, 靠调用顺序约定挡不住(那条契约我自己一小时内违反过)。
+	if run.tutorial:
+		_tape_section()
+		_start_phrase()
+		return
 	state = St.INTRO
 	var m := SectionMod.by_id(String(run.run_faces.get(run.section_idx, "")))
 	var boon := BlindBoon.by_id(run.boon())
@@ -335,11 +387,32 @@ func _start_phrase() -> void:
 	var h := run.tutorial_hint()
 	var rects: Array = []
 	if run.tutorial:
-		var geo: Dictionary = DB.ui().get("tutor_focus", {})
-		for name in Tutorial.focus(run.phrase_in_section):
-			if geo.has(name):
-				rects.append(geo[name])
-	tutor.set_hint(String(h["command"]), String(h["signal"]), rects)
+		# ⚑ 矩形从**活部件**取, 不再读 `ui.json` 的手抄坐标(见 `Hand.focus_rect` 的文件头:
+		# 那三个数是目测的, 而真值是运行时按 stage 常量算的 ⇒ 位置对不上是必然的)。
+		# `ui.json` 的 `tutor_focus` 现在只剩「合法区域名」这一个职责。
+		for name in Tutorial.focus(run.tutorial_step):
+			var q := Rect2()
+			if name == "hud":
+				var hp: Array = DB.ui()["hud"]["pos"]
+				var hs: Array = DB.ui()["hud"]["size"]
+				q = Rect2(float(hp[0]), float(hp[1]), float(hs[0]), float(hs[1]))
+			else:
+				q = hand.focus_rect(name)
+			if q.size.x > 0.0:
+				rects.append(q)
+	# ⚑ 把**全部**可高亮区域喂给提示条, 让它自己躲开 —— 而不是我在这里算坐标。
+	# 屏幕下半部三块区域占满, 硬贴高亮区必然压住别的字(第一版就是这么糊的)。
+	var avoid: Array = []
+	if run.tutorial:
+		for rn in Tutorial.regions():
+			var aq := hand.focus_rect(rn)
+			if aq.size.x > 0.0:
+				# ⚠ 往上放宽 44px —— 「手 牌 区」「缓 存 区」那两个标签画在**容器矩形之外**
+				# (上方 ~35px), 只躲容器会让条正好压住标签。第一版就是这么漏的:
+				# 卡片不压了, 标签仍然被盖。**可高亮区 ≠ 它的视觉范围**, 差的正是这一条
+				# —— 同 design/ui_meta.md 那句「对齐类反馈要查视觉顶端而不是几何顶端」。
+				avoid.append(Rect2(aq.position - Vector2(0, 44), aq.size + Vector2(0, 44)))
+	tutor.set_hint(String(h["command"]), String(h["signal"]), rects, avoid)
 	# 跨区多选在教学关第 5 步才解锁 —— 在那之前每次只能选一张。
 	# ⚠ 组件不认识教学关(铁律:组件只发意图, 状态由编排器给), 所以这里翻译成
 	# 它听得懂的话:`multi_select`。正式局恒 true。
@@ -519,17 +592,36 @@ func _acted_early() -> bool:
 
 func _advance() -> void:
 	Beat.phrase_end(run, phrase, {"early": _acted_early()})
+	# ⚑ 教学关的步进在这里, 而且**只在这里** —— 一拍收尾时结算「这一步的动作做到没有」。
+	# 每一拍都必然出一手牌(哪怕是高牌), 所以 `play` 恒真:第 1 步的门 = 「把一拍打完」。
+	# ⚠ 顺序:先记 play → 再 try_advance → 再 `run.advance()` → 最后才轮到 `tutorial_done()`,
+	# 因为 `tutorial_done()` 读的正是 try_advance 推出来的那个下标。
+	run.tutorial_note("play")
+	run.tutorial_try_advance()
 	var out := run.advance()
 	# ⚑ 教学关走完 = 记下「看过了」→ 回首页, 玩家下一局起就是正式局。
 	# ⚠ 放在生死判定**之前** —— 教学关 target 恒 0, 走到这里 `cleared` 必真,
 	# 但把它夹在下面那段结算逻辑里会让「教学关不判生死」变成一个隐式的巧合。
 	# **显式返回, 别依赖巧合。**
+	# ⚑⚑ **教学走完 = 收起提示, 接着把这一局打完**(2026-08-17 用户拍板:
+	# 「为什么不让玩家玩完一局, 后面别提示了就正常玩呗」)。
+	#
+	# ⚠ 旧行为是**回首页** —— 玩家的体感是「游戏突然跳出去了」, 他连一局都还没打过。
+	# ⚑ 而数字正好对上:**教学 6 步 = 一段 6 拍**, 所以切换点**恰好落在段边界**上,
+	# 不会出现「打了一半规则突然变了」。
+	#
+	# 切换要做三件, 缺一不可:
+	#   ① `tutorial = false` —— 目标分/脸/拍长立刻回到正式局(它们全看这个标志);
+	#   ② **现在才掷脸** —— 教学关期间 `roll_faces` 是提前返回的(`run_faces` 是空的),
+	#      不补掷的话后面三段全都没有 Boss;
+	#   ③ 收起提示条。
+	# ⚠ **不再 `Tape.close`** —— 这一局还没完, 关掉打点会把后三段的数据丢光。
 	if run.tutorial_done():
-		Tape.close({"ok": true, "tutorial": true, "beats": run.phrase_index})
 		SaveState.mark_tutorial_seen()
+		run.tutorial = false
+		run.roll_faces(-1, SaveState.runs_total())
 		tutor.set_hint("", "")
-		_open_home()
-		return
+		Tape.on("tutorial_done", {"beat": run.phrase_index})
 	if bool(out["section_done"]):
 		state = St.END
 		Tape.on("sec_end", {"i": run.section_idx, "score": run.section_score,
@@ -634,6 +726,11 @@ func _reset_run(keep_character: bool) -> void:
 
 func _open_draft() -> void:
 	state = St.DRAFT
+	# ⚠ **进商店先收掉教学提示条**(2026-08-17 试玩报的:「选小丑牌了, 前面的提示怎么还在」)。
+	# 它只在 `_start_phrase` 设, 而商店是**从拍中间弹出来的全屏层** —— 没人负责清它,
+	# 于是上一拍那句话就压在货架上。
+	# ⚑ 不用记状态再恢复:下一拍 `_start_phrase()` 照常重设, 那里本来就是唯一的入口。
+	tutor.set_hint("", "")
 	_shop_buys = 0        # 联票的续买配额按「一次进店」计
 	# a mid-section shop opens with the blind's counter part-way through; a
 	# section-end one opens at phrase 0 of the blind being entered
@@ -666,6 +763,7 @@ func _on_shop_bought(j, price: int) -> void:
 	phrase.coins -= price
 	Tape.on("buy", {"id": String(j.id), "kind": String(j.kind),
 		"price": price, "coins": phrase.coins})
+	run.tutorial_note("buy")
 	# 收藏家:每买一张。⚠ **在装卡之前发** —— 否则刚买的这张会给自己记一次,
 	# 「每买 1 张 +15」就凭空多了第一次(转型同理:换旗不该给新旗自己记一次)。
 	Joker.notify_shop(run.joker_slots, "buy")
@@ -711,6 +809,33 @@ func _on_shop_bought(j, price: int) -> void:
 
 
 ## full slots: pick which support to swap out (old sells for half)
+## 升级一张已装备的小丑牌 —— **金币的主出口**(2026-08-16)。
+##
+## ⚠ **钱和等级只在这里动**(CLAUDE.md:金币/装槽等经济动作只发生在编排器)。
+## 组件只发意图, 所以 `shop.gd` 里那个按钮不碰 `_coins` 也不碰 `level`。
+## ⚠ 这里**重新取一次 cost 并复查钱** —— 信号里带的 cost 是组件按它那一刻的状态算的,
+## 中间要是有别的路径改了等级/金币, 照着旧数扣就会扣错。**信号带的数当提示, 不当依据。**
+func _on_shop_upgrade(slot_idx: int, _cost_hint: int) -> void:
+	if state != St.DRAFT:
+		return
+	if slot_idx < 0 or slot_idx >= run.joker_slots.size():
+		return
+	var j = run.joker_slots[slot_idx]
+	if j == null or not j.can_upgrade():
+		return
+	var cost: int = j.upgrade_cost()
+	if cost < 0 or phrase.coins < cost:
+		Tape.on("deny", {"why": "upgrade_coins", "id": String(j.id), "coins": phrase.coins})
+		return
+	phrase.coins -= cost
+	j.level += 1
+	# ⚑ 只记事实(等级到了几、花了多少、剩多少), 不记「这一级值多少分」——
+	# 那是**特征**, 会随平衡迭代而变;口径铁律 = 只记事实, 分析侧自己去推。
+	Tape.on("upgrade", {"id": String(j.id), "lv": j.level, "cost": cost, "coins": phrase.coins})
+	shop.sold(null, run.joker_slots, phrase.coins)   # 重绘价签/可购性/升级行
+	_refresh()
+
+
 func _on_shop_replace(j) -> void:
 	if state != St.DRAFT:
 		return
@@ -867,6 +992,7 @@ func _on_hand_swap(hand_i: int, cache_i: int) -> void:
 		return
 	if phrase.swap_with_cache(hand_i, cache_i):
 		Tape.on("swap", {"h": hand_i, "c": cache_i, "at": elapsed})
+		run.tutorial_note("swap")
 		_action_feedback()
 	else:
 		Tape.on("deny", {"why": "blind_swap", "h": hand_i, "c": cache_i, "at": elapsed})
@@ -993,6 +1119,11 @@ func _on_hand_discard(sel_h: Array, sel_c: Array) -> void:
 		Tape.on("disc", {"k": total, "h": sel_h.size(), "c": sel_c.size(),
 			"cost": Economy.discard_cost(total), "coins": phrase.coins,
 			"cards": gone, "got": _refilled(sel_h, sel_c), "at": elapsed})
+		run.tutorial_note("discard")
+		# 跨区多选 = 手牌和缓存**同时**选中过 —— 教学关第 6 步教的正是这个,
+		# 而它只有在这里才看得出来(组件只报选了哪些下标, 不报「这算不算跨区」)。
+		if sel_h.size() > 0 and sel_c.size() > 0:
+			run.tutorial_note("multiselect")
 		_notify_discard(total)
 		hand.clear_selection()
 		vinyl.spin_boost()
@@ -1035,6 +1166,9 @@ func _on_hand_single_discard(zone: String, idx: int) -> void:
 			_notify_discard(1)
 			succeeded = true
 	if succeeded:
+		# ⚑ 拖到弃牌键的单张直弃也算数 —— 教学关第 2/3 步问的是「弃没弃」,
+		# 不是「用哪个手势弃的」。只记多选那条路会让拖拽玩家永远推进不了。
+		run.tutorial_note("discard")
 		hand.clear_selection()
 		vinyl.spin_boost()
 		_action_feedback()

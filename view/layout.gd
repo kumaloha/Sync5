@@ -38,14 +38,34 @@ static func build(host: Control) -> Dictionary:
 		host.add_child(bg)
 
 	var out := {}
+	# ⚠⚠ **教学高亮必须加在这里 —— 在 hud/hand 之前**(`add_child` 的顺序 = 画的顺序)。
+	# 它是「打光不画框」的唯一可行位置:画在上层的光会盖住卡面把花色染掉(两版实测,
+	# 详见 `Widgets.TutorGlow` 的文件头)。放在下面, 光从半透黑的面板底透上来,
+	# 卡面画在更上层, 颜色一个像素不动。**挪动这一行就是把那个 bug 放回来。**
+	var tutor_glow := Widgets.TutorGlow.new()
+	# ⚠ 不要再加 `set_anchors_preset(PRESET_FULL_RECT)` —— 它和显式 size 一起用会
+	# 触发「anchors 会在 _ready 之后覆盖 size」的警告。写法与下面的 `tutor` 保持一致。
+	tutor_glow.position = Vector2.ZERO
+	tutor_glow.size = Vector2(720, 1280)
+	tutor_glow.visible = false
+	tutor_glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	host.add_child(tutor_glow)
 	var hud := Hud.new()
 	host.add_child(hud)
 	out["hud"] = hud
+	# ⚠⚠ **Hand 必须加在小丑牌槽位之前**(2026-08-17 真人试玩抓到)。
+	# 它是 `(0,0) 720×1280` 的全屏控件(拖放兜底落区要真实矩形), `mouse_filter = PASS`。
+	# 而 **PASS ≠ 透明** —— 它不消费事件, 但**赢得命中测试**并把事件传给父节点,
+	# **不会向下漏给下面的兄弟**。加在槽位之后 ⇒ 槽位收不到任何鼠标事件。
+	# ⇒ 症状:**替换小丑牌时点不动、拖过去显示禁止符号**。而槽位**只有替换态才可点**,
+	# 所以它一直存在却只在「第五张小丑牌来的时候」暴露。
+	# ⚠ 视觉不受影响:Hand 的内容都在 y≥676, 槽位在 y 200-372, **两者不重叠**。
+	# ⚠ **别改成收窄 Hand 的矩形** —— 它的子节点用绝对坐标, 挪 position 会让手牌整排飞走。
+	out["hand"] = Hand.new()
+	host.add_child(out["hand"])
 	out["joker_views"] = _build_joker_row(host, margin, gap, pill_w)
 	_build_wave_zone(host, out, margin)
 	out["orbit"] = _build_orbit(host, hand_top)
-	out["hand"] = Hand.new()
-	host.add_child(out["hand"])
 	out["shop"] = Shop.new()
 	host.add_child(out["shop"])
 
@@ -55,6 +75,14 @@ static func build(host: Control) -> Dictionary:
 	# 教学关的一行提示(design/difficulty.md §4.4)。⚠ 加在这里而不是最后 ——
 	# run_end / banner / intro 是模态覆盖层, 它们必须能盖住提示行。
 	# 正式局它整块隐身(set_hint("", "") → visible=false), 不占位也不画。
+	# ⚠ 压暗层要画在**内容之上**(要暗的是卡面本身), 但在提示条**之下**(条不该被自己压暗)。
+	# 所以它必须夹在这里 —— glow 在最下、dim 在这、hint 在最上, 三层的顺序是有意的。
+	var tutor_dim := Widgets.TutorDim.new()
+	tutor_dim.position = Vector2.ZERO
+	tutor_dim.size = Vector2(720, 1280)
+	tutor_dim.visible = false
+	tutor_dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	host.add_child(tutor_dim)
 	var tutor := Widgets.TutorHint.new()
 	# ⚠ **铺满全屏** —— 它既要画提示条(位置写死在 `TutorHint.BAR`), 又要在**别处**
 	# 画分区描边(手牌区 / 缓存区 / 顶栏…), 所以不能只占那一条。
@@ -63,6 +91,10 @@ static func build(host: Control) -> Dictionary:
 	tutor.visible = false
 	tutor.mouse_filter = Control.MOUSE_FILTER_IGNORE   # 提示不吃点击, 否则挡住顶栏
 	host.add_child(tutor)
+	# ⚑ 三层各在各的高度, 但**决定指哪的入口仍然只有 `tutor.set_hint`** —— 由它转发。
+	# 拆的是「画在哪一层」, 不是「谁来决定指哪」, 所以「文案换了但高亮没跟着换」仍然不可能发生。
+	tutor.glow = tutor_glow
+	tutor.dim = tutor_dim
 	out["tutor"] = tutor
 
 	# section-end result screens (resources/success.html + fail.html)
@@ -108,12 +140,15 @@ static func _scrim(host: Control, r: Rect2, col: Color, dark_at_top: bool) -> vo
 ## 四个槽的视图。槽里的**数据**在 `run.joker_slots`, 这里只有壳;
 ## `tapped` 由编排器接(它只在替换态才活着)。
 static func _build_joker_row(host: Control, margin: float, gap: float, pill_w: float) -> Array:
+	# ⚠ 装饰件一律显式 IGNORE(2026-08-17 立的规矩, 见下面 frame 那段的教训)。
 	var line_l := ColorRect.new()
+	line_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	line_l.color = Color(0.55, 0.63, 1.0, 0.22)
 	line_l.position = Vector2(margin, 167)
 	line_l.size = Vector2(200, 1)
 	host.add_child(line_l)
 	var line_r := ColorRect.new()
+	line_r.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	line_r.color = line_l.color
 	line_r.position = Vector2(720 - margin - 200, 167)
 	line_r.size = Vector2(200, 1)
@@ -121,6 +156,7 @@ static func _build_joker_row(host: Control, margin: float, gap: float, pill_w: f
 
 	# 小丑牌区的标签条(盲注 2026-08-05 移到音浪层左侧的竖卡, 这里回到原样)
 	var pill := PanelContainer.new()
+	pill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	pill.add_theme_stylebox_override("panel", StageTheme.box(
 		Color(StageTheme.CYAN.r, StageTheme.CYAN.g, StageTheme.CYAN.b, 0.10),
 		Color(StageTheme.CYAN.r, StageTheme.CYAN.g, StageTheme.CYAN.b, 0.45), 1, 18,
@@ -183,6 +219,15 @@ static func _build_wave_zone(host: Control, out: Dictionary, margin: float) -> v
 static func _build_orbit(host: Control, hand_top: float) -> OrbitZone:
 	# the frame is the walker's track, so it sits a little outside the card row
 	var frame := PanelContainer.new()
+	# ⚠⚠ **必须 IGNORE** —— 它是主角绕圈的**装饰轨道**, 覆盖 y 672..958,
+	# 也就是**整个手牌行**。`PanelContainer` 默认 `MOUSE_FILTER_STOP`,
+	# 一旦它排在手牌卡上面, **手牌就点不动了**(缓存行在 y 1024+, 不受影响 ——
+	# 症状正是「只能弃缓存区的」)。
+	# ⚑ 2026-08-17 亲手撞的:为修「替换态点不动」把 `Hand` 提到了槽位之前,
+	# 于是这个框反而跑到了手牌卡上面。**一个层序修复引出另一个层序 bug。**
+	# ⇒ 真正的教训:**装饰性控件一律显式 IGNORE**, 别依赖它排在哪一层 ——
+	# 依赖层序的正确性会在下一次调整层序时**静默失效**。
+	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	frame.position = Vector2(24, hand_top)
 	frame.size = Vector2(672, 286)
 	frame.add_theme_stylebox_override("panel", StageTheme.box(

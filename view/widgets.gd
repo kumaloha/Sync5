@@ -16,32 +16,83 @@ class TutorHint:
 	extends Control
 	var _cn := ""
 	var _en := ""
-	## 这一步指向的区域矩形(全屏坐标)。⚑ 「说」和「指」是同一件事的两半, 所以同一个部件管 ——
-	## 拆成两个部件会让「文案换了但框没跟着换」变成一种可能, 而那正是第一版的毛病(光说不指)。
+	## 这一步指向的区域矩形(全屏坐标)。⚑ 「说」和「指」是同一件事的两半 ——
+	## 拆开会让「文案换了但高亮没跟着换」变成一种可能, 而那正是第一版的毛病(光说不指)。
+	## ⚠ **所以哪怕光挪到了 TutorGlow 那一层, 入口仍然只有 `set_hint` 这一个** ——
+	## 拆的是**画在哪一层**, 不是**谁来决定指哪**。glow 由本部件转发, 调用方感知不到它。
 	var _focus: Array = []
+	## 画在手牌/缓存**下面**的那层光, 与画在内容**上面**的那层暗(`Layout.build` 塞进来)。
+	## 可以是 null(测试/探针)。⚑ 三层由本部件统一转发 ⇒ 调用方仍然只有 `set_hint` 一个口。
+	var glow = null
+	var dim = null
+	## 提示条要躲开的矩形(全部可高亮区域)。空 = 不躲(旧行为)。
+	var _avoid: Array = []
 
-	## ⚠ 本部件铺满全屏(要在别处画框), 所以**必须** MOUSE_FILTER_IGNORE, 否则整屏点不动。
-	func set_hint(cn: String, en: String, focus: Array = []) -> void:
+	## ⚠ 本部件铺满全屏, 所以**必须** MOUSE_FILTER_IGNORE, 否则整屏点不动。
+	func set_hint(cn: String, en: String, focus: Array = [], avoid: Array = []) -> void:
+		_avoid = avoid
 		if cn == _cn and en == _en and focus == _focus:
 			return                      # 每拍都会被调, 不变就别重画
 		_cn = cn
 		_en = en
 		_focus = focus
 		visible = cn != ""
+		if glow != null:
+			glow.set_focus(focus if cn != "" else [])
+		if dim != null:
+			dim.set_focus(focus if cn != "" else [])
 		queue_redraw()
 
-	## 提示条的位置 —— **截图逐版调出来的**(y=96 压进顶栏 / y=132 盖住「♪ 小丑牌 ♪」/
-	## y=384 落在小丑牌槽位下沿与音浪层上沿之间的空带)。⚠ 本部件铺满全屏, 所以这是绝对坐标。
+	## 提示条**跟着高亮区走**(2026-08-16 用户:「教学描述放在高亮区附近」)——
+	## 说的和指的挨在一起, 眼睛不用在屏幕两头来回找。
+	##
+	## ⚠ 这是**绝对坐标**(本部件铺满全屏)。`BAR` 只保留 x/宽/高;y 由 `_bar_rect()` 按
+	## 这一步的高亮区算。没有高亮区时退回 384 —— 那个数是截图逐版调出来的
+	## (y=96 压进顶栏 / y=132 盖住「♪ 小丑牌 ♪」/ y=384 落在小丑牌槽位下沿与音浪层上沿的空带)。
 	const BAR := Rect2(26, 384, 668, 40)
+	const BAR_GAP := 12.0
+
+	## 条贴在高亮区的**上方**;顶上放不下就翻到**下方**。
+	## ⚠ 多块高亮区时取**并集**(第 6 步同时指手牌 + 缓存)—— 贴着其中一块会把另一块甩下。
+	func _bar_rect() -> Rect2:
+		if _focus.is_empty():
+			return BAR
+		var top := INF
+		var bottom := -INF
+		for r in _focus:
+			top = minf(top, (r as Rect2).position.y)
+			bottom = maxf(bottom, (r as Rect2).end.y)
+		var y := top - BAR_GAP - BAR.size.y
+		if y < 60.0:                       # 顶上放不下(会压进顶栏)⇒ 翻到区域下方
+			y = bottom + BAR_GAP
+		# ⚑⚑ **再往上躲开所有可高亮区域**(2026-08-16 第二版)。
+		# 第一版只做「贴着高亮区上方」, 于是指弃牌键(右下角 108×108)那两步,
+		# 条落在 y=1004 —— 正好压住「缓存区」标签和卡片顶沿。**屏幕下半部被
+		# 手牌/缓存/弃牌三块占满, 那里根本没有空带**, 硬贴必然压住东西。
+		# ⇒ 撞上谁就挪到谁的上方, 迭代到不撞为止。对底部那几步, 结果是落在
+		# 手牌行上沿的空带(≈620)—— **离得远一点, 但不压字**。
+		# ⚑ 这在有了压暗层之后才成立:高亮区被单独照亮、其余压暗, 所以
+		# 「说的」和「指的」不必物理挨着也不会认错 —— **对比度接管了邻近性**。
+		# ⚠ `_avoid` 由编排器喂(全部四块区域的真实矩形), 空数组时退回旧行为。
+		for _pass in range(4):             # 有界迭代:四块区域, 最多躲四次
+			var hit := false
+			for a in _avoid:
+				var q: Rect2 = a as Rect2
+				var bar := Rect2(BAR.position.x, y, BAR.size.x, BAR.size.y)
+				if bar.intersects(q.grow(BAR_GAP)):
+					y = q.position.y - BAR_GAP - BAR.size.y
+					hit = true
+			if not hit:
+				break
+		y = clampf(y, 60.0, 1280.0 - BAR.size.y - 16.0)
+		return Rect2(BAR.position.x, y, BAR.size.x, BAR.size.y)
 
 	func _draw() -> void:
 		if _cn == "":
 			return
-		# ① 先画「指」——(框在下, 条在上, 免得框压住字)
-		for rect in _focus:
-			_draw_ring(rect)
-		# ② 再画「说」
-		var r := BAR
+		# ⚑ 「指」已经不在这一层了 —— 高亮走 `TutorGlow`, 它画在**手牌/缓存的下面**。
+		# 理由见 TutorGlow 的文件头:在最上层加光必然盖住卡面、把花色染掉。
+		var r := _bar_rect()
 		draw_style_box(StageTheme.box(Color(0.02, 0.03, 0.08, 0.88),
 			Color(StageTheme.CYAN.r, StageTheme.CYAN.g, StageTheme.CYAN.b, 0.55), 1, 8), r)
 		# ⚠ 中文走 StageTheme.zh()(系统中文), 拉丁走 Rajdhani —— 混用会让中文掉进
@@ -53,18 +104,105 @@ class TutorHint:
 		draw_string(StageTheme.num("Medium"), Vector2(r.position.x, r.get_center().y + 5), _en,
 			HORIZONTAL_ALIGNMENT_RIGHT, r.size.x - 12, 13, Color(1, 1, 1, 0.42))
 
-	## 指向某块区域的霓虹描边。⚠ **不做遮罩/压暗** —— 那要在全屏铺一层半透黑,
-	## 而 CLAUDE.md 已经拍死「画面里的光全部由光效层承担, 底色不贡献亮度」,
-	## 压暗会把整套黑底霓虹的对比关系打乱。描边是这套语言里现成的词汇。
-	## ⚠ 入参是 `ui.json` 里的 `[x, y, w, h]` 四元数组 —— 只认这一种形状。
-	## (第一版写成「Array 就转 Rect2, 否则原样用」的三元式, GDScript 推断不出类型直接不给过。)
-	func _draw_ring(rect: Array) -> void:
-		var q := Rect2(float(rect[0]), float(rect[1]), float(rect[2]), float(rect[3]))
-		var c := StageTheme.CYAN
-		# 外发光(大一圈、低不透明)+ 主描边 —— 与玻璃卡三件套同一手法
-		draw_style_box(StageTheme.box(Color(0, 0, 0, 0), Color(c.r, c.g, c.b, 0.18), 6, 14),
-			q.grow(7.0))
-		draw_style_box(StageTheme.box(Color(0, 0, 0, 0), Color(c.r, c.g, c.b, 0.95), 2, 10), q)
+
+## 教学关的**区域高亮** —— 打光, 不画框(2026-08-16 用户拍板:「需要操作的和需要注意的,
+## 打高亮, 不要画框」)。
+##
+## ⚑ **为什么高亮比描边对**:描边是**边界**语言, 说的是「这块到那块为止」;
+## 而这里要说的是「**看这儿**」—— 那是**注意力**语言。何况这个界面里描边已经被占满了
+## (手牌区/缓存区/顶栏/每张卡各自都有主色描边), 再套一圈只是**又多一个框**, 跳不出来。
+## ⚑ 打光还正好是这套美术的母语 —— **霓虹舞台**上「看这儿」的自然写法就是**一束追光**。
+##
+## ⚠⚠⚠ **它必须画在手牌/缓存的下面, 这不是风格选择, 是硬约束。**
+## `Layout.build()` 把它 add 在 `hud`/`hand` **之前**(add_child 的顺序 = 画的顺序)。
+## 起因:第一版把光画在 TutorHint 那一层(铺满全屏、最上层), 结果 ——
+##   · 铺 0.13 的青 ⇒ 缓存区的 ♥♦ 从 `#ff6aa9` **变成灰紫**;
+##   · 改成「零填充 + 大外发光」⇒ StyleBoxFlat 的阴影是**填充**的扩张矩形,
+##     bg 全透就直接透出来, 整块糊成一片青, 比上一版更糟。
+## ⇒ **在最上层做不出「不染色的高亮」**。而放到下面就天然成立:面板底是**半透黑**
+## (CLAUDE.md 那条), 光从后面透上来, 卡面画在更上层, **花色一个像素不动**。
+## ⚠ 这两版都是「改了视觉就渲染出来自己看」当场抓到的, 靠想象一个都发现不了。
+##
+## ⚠ **仍然不做遮罩/压暗** —— 那要全屏铺半透黑, 而 CLAUDE.md 拍死「画面里的光全部由
+## 光效层承担, 底色不贡献亮度」。**加光, 不减光。**
+class TutorGlow:
+	extends Control
+	var _focus: Array = []
+
+	## ⚠ 入参是 **`Rect2` 的数组**(2026-08-16 从 `[x,y,w,h]` 四元数组改过来)——
+	## 现在矩形由 `Hand.focus_rect()` 从活部件算, 不再从 `ui.json` 抄。
+	func set_focus(focus: Array) -> void:
+		if focus == _focus:
+			return
+		_focus = focus
+		visible = not focus.is_empty()
+		queue_redraw()
+
+	## ⚑ **白光, 不用主色**(2026-08-16 用户:「高光的颜色你改一下, 现在太艳了,
+	## 白色高光就好啦」)。青色是**语义色** —— 这一屏的青已经被顶栏、手牌框、理牌键占着,
+	## 再拿它当追光等于在一堆青里再加一块青, **艳而不显**。白是这套配色里唯一没被占用的,
+	## 所以它反而最跳。⚠ **白在同 alpha 下比任何主色都亮**, 所以数值要压低(0.22 → 0.10)。
+	func _draw() -> void:
+		for rect in _focus:
+			var q: Rect2 = rect as Rect2
+			# ⚠ **圆角要跟着形状走**(2026-08-17 用户:「弃牌按钮的高亮好丑」)——
+			# 弃牌/理牌是**圆形**的 DJ 键, 罩一个方角白块上去当然丑。
+			# ⇒ 近似正方形(长宽比 <1.3)就按**整圆**画, 长条区域仍用固定圆角。
+			var ratio: float = maxf(q.size.x, q.size.y) / maxf(1.0, minf(q.size.x, q.size.y))
+			var radius: int = int(minf(q.size.x, q.size.y) * 0.5) if ratio < 1.3 else 18
+			# 一层柔白光铺满该区 + 外溢的辉光。零描边 —— 没有任何一条边界线。
+			# ⚠⚠ **亮度必须让被指的东西「更亮」, 不只是让别处「更暗」**
+			# (2026-08-17 用户:「教弃牌那轮, 高亮很奇怪, 反而是变暗了」)。
+			# 起因:光画在**内容下面**(不染花色的代价), 对弃牌键那种小圆钮,
+			# 光只能从背后透一点 ⇒ **按钮本身亮度没变, 而周围被压暗 46%**
+			# ⇒ 观感是「高亮把东西弄暗了」。⇒ 光加倍, 暗收一档(见 TutorDim.ALPHA)。
+			draw_style_box(StageTheme.box(
+				Color(1, 1, 1, 0.22), Color(0, 0, 0, 0), 0, radius,
+				Color(1, 1, 1, 0.34), 34), q)
+
+
+## 教学关的**压暗层** —— 高亮区之外整屏压暗(2026-08-16 用户:「高光打起来的时候,
+## 其他部分要暗一点」)。
+##
+## ⚠⚠ **这一条显式推翻了 CLAUDE.md 的「不做遮罩/压暗」。** 那条原话是「画面里的光全部由
+## 光效层承担, 底色不贡献亮度」, 我据此在上一版**拒绝过压暗** —— 用户直接指令优先, 已照改。
+## ⚑ 而且它有独立理由:**只加光不减光时对比度不够** —— 这一屏本来就到处是霓虹, 光加在
+## 一片亮里读不出来。**压暗提供的是对比, 不是亮度**, 与那条原则并不真冲突。
+##
+## ⚠ **它必须画在内容之上**(与 `TutorGlow` 正相反, glow 在下、dim 在上)——
+## 要暗的是**卡面本身**, 画在下面等于什么都没暗到。
+## ⚠ **挖洞用四条边带, 不是画个洞**:Canvas 没有便宜的「反向裁剪」, 所以在高亮区
+## 上/下/左/右各铺一条暗带, 中间那块自然留空。多块高亮时取**并集**(第 6 步同时指
+## 手牌 + 缓存)—— 逐块挖会在两块之间留下一条没被暗到的缝。
+class TutorDim:
+	extends Control
+	## ⚠ 0.46 → 0.38:压暗是**对比手段**不是主角。太重会让「被指的那块」显得更暗
+	## (2026-08-17 用户报的)—— 光是加法, 暗只是背景, 两者一起调才对。
+	const ALPHA := 0.38
+	var _focus: Array = []
+
+	func set_focus(focus: Array) -> void:
+		if focus == _focus:
+			return
+		_focus = focus
+		visible = not focus.is_empty()
+		queue_redraw()
+
+	func _draw() -> void:
+		if _focus.is_empty():
+			return
+		var u: Rect2 = _focus[0] as Rect2
+		for i in range(1, _focus.size()):
+			u = u.merge(_focus[i] as Rect2)
+		# 洞比高亮区再放宽一点, 免得暗带压住 glow 的外溢辉光(那会画出一条硬边 = 又变成框)。
+		u = u.grow(14.0)
+		var d := Color(0, 0, 0, ALPHA)
+		var w := 720.0
+		var h := 1280.0
+		draw_rect(Rect2(0, 0, w, maxf(0.0, u.position.y)), d)                      # 上
+		draw_rect(Rect2(0, u.end.y, w, maxf(0.0, h - u.end.y)), d)                 # 下
+		draw_rect(Rect2(0, u.position.y, maxf(0.0, u.position.x), u.size.y), d)    # 左
+		draw_rect(Rect2(u.end.x, u.position.y, maxf(0.0, w - u.end.x), u.size.y), d)  # 右
 
 
 class GradBar:

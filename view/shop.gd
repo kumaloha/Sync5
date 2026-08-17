@@ -12,6 +12,9 @@ signal replace_requested(j)           # full slots: orchestrator runs the replac
 signal skipped()                      # orchestrator pays the skip reward
 signal reroll_paid(cost: int)         # orchestrator deducts, then calls redeal()
 signal denied(why: String)            # 想买/想刷但钱不够 — 编排器打点(购买力压力)
+## 升级第 i 个已装槽位。⚠ **只发信号, 不动钱也不动等级** —— 与「金币/装槽等经济动作
+## 只发生在编排器」那条铁律同一条线(CLAUDE.md 架构铁律)。
+signal upgrade_requested(slot_idx: int, cost: int)
 
 var _cfg: Dictionary = DB.ui()["shop"]
 var _layer: Control
@@ -25,6 +28,7 @@ var _reroll_btn: Button
 var _skip_btn: Button
 var _candidates: Array = []
 var _reroll_count := 0
+var _upgrade_btns: Array = []
 var _slots: Array = []
 var _coins := 0
 var _section := 0
@@ -76,6 +80,18 @@ func _ready() -> void:
 		var pl := StageTheme.label("", StageTheme.num("Bold"), 22, StageTheme.GOLD, HORIZONTAL_ALIGNMENT_CENTER)
 		_layer.add_child(pl)
 		_price_labels.append(pl)
+	# ---- 升级行(2026-08-16, 金币的主出口)----
+	# ⚑ 它把商店从**一个动词**(换掉谁)变成**三个**(换 / 升 / 攒)。后 3 次商店
+	# 100% 是替换场景, 而替换是个二选一;有了升级才谈得上取舍。
+	for i in range(4):
+		var ub := _button("")
+		ub.custom_minimum_size = Vector2(float(_cfg["upgrade_w"]), float(_cfg["upgrade_h"]))
+		ub.size = ub.custom_minimum_size
+		# 两行(卡名 / 等级·价格)⇒ 字号要小, 160px 宽塞不下一行「黑胶 Lv2 ▸ ◆4」
+		ub.add_theme_font_size_override("font_size", 15)
+		ub.pressed.connect(_on_upgrade.bind(i))
+		_layer.add_child(ub)
+		_upgrade_btns.append(ub)
 	_layout(3)
 
 
@@ -232,6 +248,9 @@ func _deal() -> void:
 
 ## 渲染当前 _candidates(deal 弹入场动画;sold 后的重渲染不弹)。
 func _render(popin: bool) -> void:
+	# ⚑ 升级行跟着**每一次**重绘走 —— 等级、金币、槽位任何一个变了它都要跟。
+	# 挂在 `_render` 而不是各调用点, 是为了不给「买完卡忘了刷升级行」留口子。
+	_render_upgrades()
 	_layout(maxi(3, _candidates.size()))
 	for i in range(_views.size()):
 		if i < _candidates.size():
@@ -261,6 +280,47 @@ func _render(popin: bool) -> void:
 
 ## 当前货架(打点读口)。买不起的牌也要记 —— 「摆出来了但买不起」正是
 ## 购买力压力的直接证据, 只记成交会把它整个漏掉。
+## 升级行的重绘 —— 每次 `redeal`/`sold` 之后调(等级和钱都可能变了)。
+##
+## ⚠ 四个按钮**恒显示**(不隐藏), 空槽/规则牌/满级各自写明原因。
+## 隐藏会让玩家以为「这个位置没有升级这回事」, 而实际是「这一张不能升」——
+## 这个项目吃过「按钮消失 = 玩家以为机制不存在」的亏(继续▸ 那次)。
+func _render_upgrades() -> void:
+	var y := float(_cfg["upgrade_y"])
+	var w := float(_cfg["upgrade_w"])
+	var gap := float(_cfg["upgrade_gap"])
+	var total := w * 4.0 + gap * 3.0
+	var x0 := (720.0 - total) * 0.5
+	for i in range(_upgrade_btns.size()):
+		var b: Button = _upgrade_btns[i]
+		b.position = Vector2(x0 + float(i) * (w + gap), y)
+		b.size = Vector2(w, float(_cfg["upgrade_h"]))
+		var j = _slots[i] if i < _slots.size() else null
+		if j == null:
+			b.text = String(_cfg["upgrade_empty"])
+			b.disabled = true
+		elif not j.can_upgrade():
+			# 规则牌没有数值可升;满级是另一回事 —— 两种都写清楚, 别都显示成灰
+			b.text = (String(_cfg["upgrade_locked"]) if j.is_rule_card() \
+				else String(_cfg["upgrade_maxed"])) % j.cn_name
+			b.disabled = true
+		else:
+			var cost: int = j.upgrade_cost()
+			b.text = String(_cfg["upgrade_text"]) % [j.cn_name, j.level + 1, cost]
+			b.disabled = _coins < cost
+
+
+func _on_upgrade(i: int) -> void:
+	var j = _slots[i] if i < _slots.size() else null
+	if j == null or not j.can_upgrade():
+		return
+	var cost: int = j.upgrade_cost()
+	if _coins < cost:
+		denied.emit("upgrade_coins")     # 想升但钱不够 —— 与买不起同一类购买力证据
+		return
+	upgrade_requested.emit(i, cost)
+
+
 func offers() -> Array:
 	var out: Array = []
 	for j in _candidates:

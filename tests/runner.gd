@@ -66,14 +66,54 @@ func _tmult(joker_id: String, kind_name: String) -> float:
 
 ## support 的 bonus 数额 —— 同 `_tmult` 的理由(2026-08-12 bonus 族重定价
 ## 一次红了 9 条手抄断言, 全部改推导)。
+## ⚠⚠ **两个通道都要认**(2026-08-16 加分族 A 案之后)。
+## 12 张卡从固定数额 `bonus` 换成了跟随尺度的 `bonus_target_pct`, 而这个助手只读前者
+## ⇒ 一次红 12 条。**这正是当初写这个助手的理由**(别抄死数额), 只是它自己也要跟着
+## 通道走 —— 断言从数据推导, 那「数据长什么样」变了它就得跟。
+## ⚠ 换算基准必须与 `core/fx.gd` 缺 `section_target` 时的退路**一致**:
+## 一局的平均每拍目标。测试调 `Settle.run(..., {})` 不带 section_target, 走的就是那条退路。
 func _bonus(joker_id: String) -> int:
 	for e in DB.jokers():
 		if String(e["id"]) != joker_id:
 			continue
 		for fx in e.get("effects", []):
-			if fx.get("do", {}).has("bonus"):
-				return int(fx["do"]["bonus"])
+			var do: Dictionary = fx.get("do", {})
+			if do.has("bonus"):
+				return int(do["bonus"])
+			if do.has("bonus_target_pct"):
+				return int(round(float(do["bonus_target_pct"]) * _avg_beat_target()))
 	return 0
+
+
+## `per` 类卡的**总额**(n 份)—— ⚠⚠ **必须一次取整, 不能逐份取整再乘**。
+## `core/fx.gd` 的算法是 `round(每拍目标 × pct × 份数)`;测试若写成
+## `份数 × round(每拍目标 × pct)` 就会**逐份累积舍入误差**(串场 3 份差 1 分, 实测 455 vs 454)。
+## ⚑ 差 1 分不是小事:它说明**测试和实现用了不同的算法**, 而那正是这类断言要防的。
+## 实现那边是对的 —— 逐份取整会累积误差, 所以**测试跟实现走**。
+func _bonus_n(joker_id: String, n: int) -> int:
+	for e in DB.jokers():
+		if String(e["id"]) != joker_id:
+			continue
+		for fx in e.get("effects", []):
+			var do: Dictionary = fx.get("do", {})
+			if do.has("bonus"):
+				return int(do["bonus"]) * n
+			if do.has("bonus_target_pct"):
+				return int(round(float(do["bonus_target_pct"]) * _avg_beat_target() * float(n)))
+	return 0
+
+
+## 一局的平均每拍目标 —— `bonus_target_pct` 的换算基准。
+## ⚑ 与 `core/fx.gd` 的退路、`tools/bot.gd::_avg_beat_target()` **三处同源**,
+## 都从 `SECTION_TARGETS` 推导 ⇒ 目标分一改三处一起动, 不会漂开。
+func _avg_beat_target() -> float:
+	var t := 0.0
+	for v in GameConfig.SECTION_TARGETS:
+		t += float(v)
+	var n := float(GameConfig.SECTION_TARGETS.size())
+	if n <= 0.0:
+		return 0.0
+	return t / n / float(GameConfig.PHRASES_PER_SECTION)
 
 
 ## 任意 do 通道的数额(additive / additive_face_value / chips_per_card …)——

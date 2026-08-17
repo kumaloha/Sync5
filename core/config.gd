@@ -78,6 +78,10 @@ static var JOKER_PRICE_OVERRIDES: Dictionary = _eco["joker_price_overrides"]
 # 「不应该有任何卡有固定概率, 大家都是一样的」)。换旗不再有专属骰子和专属价格 ——
 # Target 按 rarity=rare 进同一个货架池, 出现率是**池子组成的推论**, 价格走同一张价目表。
 # 顺带拆掉了 from_section 这颗地雷(它是按段号写死的绝对值, 改段数会静默漂到末段)。
+## 升级已装备的小丑牌 —— 金币的主出口(design 见 economy.json 的 joker_upgrade 注释)。
+static var UPGRADE_MAX_LEVEL: int = int(_eco["joker_upgrade"]["max_level"])
+static var UPGRADE_COSTS: Array = _eco["joker_upgrade"]["costs"]
+static var UPGRADE_STEP: float = float(_eco["joker_upgrade"]["step"])
 static var DRAFT_REROLL_BASE: int = int(_eco["reroll"]["base"])
 static var DRAFT_REROLL_STEP: int = int(_eco["reroll"]["step"])
 

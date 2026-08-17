@@ -58,12 +58,31 @@ func _amt(id: String) -> float:
 			for fx in e.get("effects", []):
 				# chips_per_card / additive_low_value 是 2026-08-10 批 3 的新操作码 ——
 				# 前者返回每张的 chips, 后者返回「按多少计」的面值;期望命中数在 ev.cards 里。
+				# ⚠⚠ **`bonus_target_pct` 必须换算成分数再返回** —— 它是**比例**不是点数,
+				# 原样返回 0.8 会被 EV 公式当成「0.8 分」, 比返回 0 还糟(那是错的数, 不是没数)。
+				# 换算基准 = **一局的平均每拍目标**(四段平均), 因为 `_amt` 没有段上下文,
+				# 而买牌决策本来就是「这张卡这一整局值多少」。
+				if fx.get("do", {}).has("bonus_target_pct"):
+					var pr = fx["do"]["bonus_target_pct"]
+					return 0.0 if pr is Dictionary else float(pr) * _avg_beat_target()
 				for ch in ["mult_add", "additive", "bonus", "bonus_pct", "coins",
 						"chips_per_card", "additive_low_value"]:
 					if fx.get("do", {}).has(ch):
 						var raw = fx["do"][ch]
 						return 0.0 if raw is Dictionary else float(raw)
 	return 0.0
+
+
+## 一局的平均每拍目标 —— `bonus_target_pct` 换算成分数用。
+## ⚠ 从 `GameConfig.SECTION_TARGETS` 推导, **不许抄第二份**:目标分改了它要跟着改。
+func _avg_beat_target() -> float:
+	var t := 0.0
+	for v in GameConfig.SECTION_TARGETS:
+		t += float(v)
+	var n := float(GameConfig.SECTION_TARGETS.size())
+	if n <= 0.0:
+		return 0.0
+	return t / n / float(GameConfig.PHRASES_PER_SECTION)
 
 
 ## glowstick average lifetime pct = init/2 (linear decay to 0), from data.
@@ -123,7 +142,7 @@ func _card_ev(id: String, st: Dictionary, slots: Array, phrases_left: int) -> fl
 		"mirror":
 			var tf: float = float(TARGET_TF.get(tid, 1.0))
 			return _rate(st, String(p["rate"]), float(p["prior"])) * (tf - 1.0) * _mirror_power() * score_mean
-		"shortcut", "fourfingers", "twotone", "trim":
+		"shortcut", "fourfingers", "redtone", "blacktone", "trim":
 			var ot: Array = p["on_target"]
 			var bm: float = score_mean / maxf(1.0, mult_mean)
 			return (float(ot[1]) * float(ot[2]) * bm) if tid == String(ot[0]) \
@@ -486,6 +505,31 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 				return coins
 			offer.erase(best)
 			continue
+		# ---- 升级已装备的卡(2026-08-16, 金币的主出口)----
+		#
+		# ⚠⚠ **不给 bot 这段, 就是第 7 次「规则在游戏里、不在模型里」** —— 玩家能把卡推到
+		# ×2.0 而 bot 永远 Lv1, 于是 sim 会**系统性低估**通关率, 而且不会报错。
+		# 方向是保守的(bot 比玩家弱), 所以它给不出乐观的假读数 —— 但仍然是分叉。
+		#
+		# ⚑ 策略 = **最便宜的先升**, 留 6◆ 缓冲。它不是最优解, 而是一条**明确的基线**:
+		# 与「规则 bot 永久保留手写表当回归基线」(tools/bot.gd:256 那条)同一个取舍 ——
+		# 求最优是求解器的活, bot 只要**不是零**。
+		# ⚠ 放在「买不动了」之后、刷新之前:先补齐构筑, 再加固, 最后才考虑重掷。
+		while true:
+			var up_i := -1
+			var up_cost := 999
+			for si in range(slots.size()):
+				var sj = slots[si]
+				if sj == null or not sj.can_upgrade():
+					continue
+				var uc: int = sj.upgrade_cost()
+				if uc >= 0 and uc < up_cost and coins - uc >= 6:
+					up_cost = uc
+					up_i = si
+			if up_i < 0:
+				break
+			coins -= up_cost
+			slots[up_i].level += 1
 		# nothing worth buying: one paid reroll if rich, else just walk away
 		# (2026-08-06: leaving the shop pays nothing — the skip reward is gone)
 		if attempt == 0 and buys == 0 and coins >= Economy.reroll_cost(0) + 6:
@@ -818,11 +862,17 @@ func _best_plan(hand: Array, target_id: String, d: int, rules: Dictionary = {}) 
 		"keep": [], "keep_all": true})
 
 	# flush chase: majority suit (or color, under Two-Tone), any rank works
-	var two: bool = bool(rules.get("twotone", false))
+	# ⚠ 双色调拆两张之后, 「按颜色追」只在**装了那一色**时成立 —— 沿用旧的单开关
+	# 会让 bot 在只装黑调时也去追红同花, 那是一条游戏里不存在的策略。
+	var two_red: bool = bool(rules.get("redtone", false))
+	var two_black: bool = bool(rules.get("blacktone", false))
+	var two: bool = two_red or two_black
 	var suit_n := {}
 	for c in hand:
 		if not c.is_wild():
-			var sk: int = (1 if c.is_red() else 0) if two else c.suit
+			# 只有装了对应颜色的那张牌, 这一色才折叠成一个"花色";另一色照旧按真花色分。
+			var folded: bool = (two_red and c.is_red()) or (two_black and not c.is_red())
+			var sk: int = (1 if c.is_red() else 0) if folded else c.suit + 2
 			suit_n[sk] = int(suit_n.get(sk, 0)) + 1
 	var best_suit := -1
 	var m := 0

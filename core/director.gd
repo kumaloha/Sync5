@@ -177,10 +177,12 @@ static func roll_run(run_index: int, rng: RandomNumberGenerator,
 	var drawn: Array = []
 	for w in GameConfig.WALL_SECTIONS:
 		var idx := int(w)
-		var ranked := ranked_pool(idx, ranking)
+		var ranked := ranked_pool(idx, ranking, run_index)
 		var f := ""
 		if ranked.is_empty():
-			f = SectionMod.roll(idx, rng, drawn)
+			# ⚠⚠ **必须把 `run_index` 传下去** —— 不传就绕过 `min_run` 的按局数解锁门
+			# (禁回会在第 1 局重新冒出来, 而且不报错)。2026-08-16 接线时当场抓到。
+			f = SectionMod.roll(idx, rng, drawn, run_index)
 		else:
 			f = pick_face(ranked, bias, rng, drawn)
 		out[idx] = f
@@ -190,13 +192,14 @@ static func roll_run(run_index: int, rng: RandomNumberGenerator,
 
 
 ## 排序表里属于这一段池子的部分,保持排序表给的先后。
-static func ranked_pool(section_idx: int, ranking: Dictionary) -> Array:
+## ⚠ `run_index` 用于 `min_run` 解锁过滤 —— 排序表是仪器输出, 它不知道谁解锁了。
+static func ranked_pool(section_idx: int, ranking: Dictionary, run_index: int = -1) -> Array:
 	if not ranking.has(section_idx):
 		return []
 	var pool := SectionMod.pool_for(section_idx)
 	var out: Array = []
 	for id in ranking[section_idx]:
 		var s := String(id)
-		if pool.has(s) and not out.has(s):
+		if pool.has(s) and not out.has(s) and SectionMod.unlocked_at(s, run_index):
 			out.append(s)
 	return out

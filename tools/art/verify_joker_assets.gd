@@ -3,7 +3,7 @@ extends SceneTree
 const IDS := [
 	"twin", "stair", "mono", "triplet", "lonewolf", "kaleido", "shredder", "wrecker",
 	"encore", "finale", "turnover", "tipjar", "chord", "neonsign", "vinyl", "chorus",
-	"interest", "momentum", "vip", "glowstick", "shortcut", "fourfingers", "twotone",
+	"interest", "momentum", "vip", "glowstick", "shortcut", "fourfingers", "blacktone", "redtone",
 	"bassline", "mirror", "wildcard", "variation", "reprise", "fullcast", "superfan",
 	"opener", "popup", "rainbow", "nopair", "backup", "rehearsal", "trio", "bassclef",
 	"warmtone", "cooltone", "undertone", "curtain", "stopwatch", "freeze", "earlyout",

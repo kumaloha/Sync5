@@ -335,12 +335,23 @@ static func _classify_ref(five: Array, rules: Dictionary = {}) -> int:
 		rank_count[c.rank] = int(rank_count.get(c.rank, 0)) + 1
 	ranks.sort()
 	var is_flush: bool = suits.size() == 1
-	if not is_flush and rules.get("twotone", false):
-		# Two-Tone: color is the suit (♥♦ vs ♠♣ — the art already says so)
-		var colors := {}
-		for c in five:
-			colors[c.is_red()] = true
-		is_flush = colors.size() == 1
+	# ⚑⚑ **双色调 2026-08-16 拆成两张**(用户拍板:「可以分成两张, 黑色可以认为同花色,
+	# 红色可以认为同花色」)。旧的 `twotone` 一张管两色, 先验层实测它把同花从 6.79%
+	# 抬到 **66.3%(9.8 倍)** —— 它把一个 ×5 的稀有牌型变成了常驻, 而整张倍率表
+	# 正建立在「同花很难打」这个前提上。
+	# ⚑ 拆开之后单张约 **4.4 倍**, 两张都要才回到原强度 —— 而那要占 4 个槽里的 2 个,
+	# **定价由槽位自然完成, 不用给它加任何特例**。
+	# ⚠ 拆分**也把选择前移到了货架上**:玩家看到的是两张不同的卡, 而不是一张卡加个弹窗。
+	if not is_flush:
+		var red_on: bool = rules.get("redtone", false)
+		var black_on: bool = rules.get("blacktone", false)
+		if red_on or black_on:
+			var colors := {}
+			for c in five:
+				colors[c.is_red()] = true
+			# 五张同色才谈得上;然后看这一色的那张卡装了没有。
+			if colors.size() == 1:
+				is_flush = red_on if colors.has(true) else black_on
 	var is_straight: bool = _is_straight(ranks, rules)
 	var counts: Array = rank_count.values()
 	counts.sort()

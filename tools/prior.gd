@@ -45,7 +45,9 @@ const RULE_SETS: Array = [
 	{"label": "(无规则)", "rules": {}},
 	{"label": "shortcut 近道", "rules": {"shortcut": true}},
 	{"label": "fourfingers 四指", "rules": {"fourfingers": true}},
-	{"label": "twotone 双色调", "rules": {"twotone": true}},
+	{"label": "redtone 红调", "rules": {"redtone": true}},
+	{"label": "blacktone 黑调", "rules": {"blacktone": true}},
+	{"label": "red+black 两张都装", "rules": {"redtone": true, "blacktone": true}},
 	{"label": "近道+四指", "rules": {"shortcut": true, "fourfingers": true}},
 ]
 
@@ -751,7 +753,7 @@ func _run_shelf() -> void:
 	print("\n## 卡级:一局至少见到一次的概率")
 	print("| id | 名 | 稀有 | 单位概率 | **一局(%d 位)见到** | 12 局见到 |" % (shops * width))
 	print("|---|---|---|---:|---:|---:|")
-	var focus := ["twotone", "shortcut", "fourfingers", "jukebox", "mirror", "neonsign", "chord"]
+	var focus := ["redtone", "blacktone", "shortcut", "fourfingers", "jukebox", "mirror", "neonsign", "chord"]
 	for i in range(jokers.size()):
 		var jd: Dictionary = jokers[i]
 		var jid := String(jd.get("id", ""))

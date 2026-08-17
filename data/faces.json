@@ -54,7 +54,8 @@
     "repeat_factor": 0.5
    },
    "proof": "score",
-   "tier": 1
+   "tier": 1,
+   "min_run": 10
   },
   {
    "id": "lostpage",

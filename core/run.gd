@@ -60,13 +60,23 @@ func reset(face_seed: int = -1) -> void:
 	character = null
 	coins = GameConfig.STARTING_COINS
 	stage = Stage.DECISION
+	# ⚠ **`tutorial` 自己不在这里清**(调用方 reset 之后才设它, 见 roll_faces 那条注释),
+	# 但**进度必须清** —— 否则重开会带着上一次的步骤下标继续走。
+	tutorial_step = 0
+	_tutorial_acted.clear()
+	_tutorial_step_beats = 0
 	roll_faces(face_seed)
 
 
 ## Boss faces are rolled for the whole run up front (Balatro's visible-boss
 ## mechanic — the preview one section ahead is what turns a face from an
 ## execution into a routing decision).
-func roll_faces(face_seed: int = -1) -> void:
+## ⚑ `run_index` = **这是第几局(1 起)**, 决定哪些脸已解锁(`min_run`)。
+## **`-1` = 不设限、全部解锁**, 也是缺省 —— 探针/测试因此逐字节不变(见 `SectionMod.unlocked_at`)。
+## ⚠ **显式参数, 不是实例字段** —— 上面那条「先设 tutorial 再调这里」的顺序契约
+## 我自己一小时内就违反过一次, 所以这次不再造第二条顺序契约:忘了传 = 退回旧行为(全解锁),
+## 而不是**静默用上一局的值**。
+func roll_faces(face_seed: int = -1, run_index: int = -1) -> void:
 	if face_seed >= 0:
 		_blind_rng.seed = face_seed
 	else:
@@ -81,7 +91,11 @@ func roll_faces(face_seed: int = -1) -> void:
 	# ⚑ 一局四张脸走 `SectionMod.roll_run` 这**一份**(2026-08-14 收口, 原来 7 份)——
 	# 它保证「一局之内不偶然重复」, 而那条守卫只加在这里、探针各掷各的就是
 	# 「规则在游戏里不在模型里」的第 6 次。
-	run_faces = SectionMod.roll_run(_blind_rng)
+	# ⚑ 走 Director(B 轴 · 跨局序列)。`face_ranking` 为空时它**逐字节退回**
+	# `SectionMod.roll`(Director 文件头承诺的), 所以现在接上**不改变任何掷法**,
+	# 也不改 RNG 消耗 —— 排序表(tools/price.gd 的仪器输出)到位后才真正生效。
+	# ⚠ 排序是**仪器读数不是设计常量**, 所以它是入参, 不进 data/(会过期)。
+	run_faces = Director.roll_run(run_index, _blind_rng, face_ranking)
 	run_boon = BlindBoon.roll(_blind_rng)
 
 
@@ -152,6 +166,11 @@ static func request_label(goal: String) -> String:
 ## 它是求解器/bot 共用的, 而教学关**不属于模型**, 混进去就是给尺子掺水。
 var tutorial := false
 
+## 脸的难度排序 `{段号: [face_id 由易到难]}` —— `tools/price.gd` 出数, **调用方传入**。
+## 空 = Director 退回原掷法(见 roll_faces)。**别把它搬进 data/**:它是仪器读数,
+## 抄进配置就会过期, 而「同一个口径抄第二份」是这个项目最贵的一类错。
+var face_ranking: Dictionary = {}
+
 
 func target() -> int:
 	if tutorial:
@@ -172,24 +191,80 @@ static func phrase_duration_for(section: int, mod: String) -> float:
 
 func phrase_duration() -> float:
 	if tutorial:
-		return Tutorial.seconds(phrase_in_section)
+		return Tutorial.seconds(tutorial_step)
 	return phrase_duration_for(section_idx, face())
+
+
+## ---- 教学关的进度 ----
+##
+## ⚑⚑ **步骤下标与拍数解耦(2026-08-16)** —— 从前这里全部读 `phrase_in_section`,
+## 于是**一拍过去就下一步, 玩家做没做那个动作都一样**:第 3 步说「拖一张进去」,
+## 不拖也照样进第 4 步。⇒ 教了不等于学会了, 而且连「有没有做」都不知道。
+## 现在步骤只在**这一步要求的动作被做出来**之后才推进(外部调研的第 ② 条共识)。
+var tutorial_step := 0
+
+## 这一拍已经做出来的动作(`Tutorial.ACTIONS` 的子集), 每拍开头清空。
+## ⚠ 它是**这一拍**的账, 不是整关的 —— 「上一拍弃过牌」不该替这一拍的门买单。
+var _tutorial_acted: Dictionary = {}
+
+## 当前这一步已经打了几拍。⚠⚠ **软门必须有兜底, 否则做不出那个动作就永远卡在同一句上。**
+## 2026-08-17 真人试玩报的:「同一条提示词放了太多轮」—— 第 6 步要「手牌和缓存一起选着弃」,
+## 想不到这个操作就无限重复。⚑ 我给**时钟**做了 30 秒兜底(`TUTOR_HOLD_MAX`),
+## 却忘了给**步进**做 —— 同一个道理漏了一半。
+## ⚑ 3 拍 = 教一次 + 练两次。到了还没做出来就往前走:**教学关的职责是让他见过, 不是逼他学会**
+## (「强制引导」在 design/difficulty.md §4 里是明确不做的)。
+const STEP_MAX_BEATS := 3
+var _tutorial_step_beats := 0
+
+
+## 编排器报一个玩家动作。⚠ **只有编排器调**(view/phrase.gd)——
+## 和「金币/装槽等经济动作只发生在编排器」「打点只在编排器打」同一条线:
+## 组件各报各的必然报重、报漏。
+func tutorial_note(action: String) -> void:
+	if tutorial:
+		_tutorial_acted[action] = true
+
+
+## 这一拍结束时调。要求满足就推进一步并返回 `true`;没满足就**留在原地**返回 `false`。
+## 无论推没推进, 这一拍的动作账都清空。
+func tutorial_try_advance() -> bool:
+	if not tutorial:
+		return false
+	var need := Tutorial.require(tutorial_step)
+	var ok: bool = need == "" or bool(_tutorial_acted.get(need, false))
+	_tutorial_acted.clear()
+	_tutorial_step_beats += 1
+	# ⚠ 兜底:同一步打满 STEP_MAX_BEATS 拍就放行, 哪怕动作没做出来。
+	# 返回值仍是**真实的**「做到没有」—— 调用方要区分「学会了」和「超时放行」时看它。
+	if ok or _tutorial_step_beats >= STEP_MAX_BEATS:
+		tutorial_step += 1
+		_tutorial_step_beats = 0
+	return ok
+
+
+## 这一步还欠什么动作 —— 空串 = 不欠。给编排器做「再说一次」的反馈用。
+func tutorial_pending() -> String:
+	if not tutorial:
+		return ""
+	var need := Tutorial.require(tutorial_step)
+	return "" if need == "" or bool(_tutorial_acted.get(need, false)) else need
 
 
 ## 教学关这一拍该亮哪些部件 / 说什么。非教学关时**全部解锁、无提示** ——
 ## 调用方因此不必到处写 `if run.tutorial`。
 func tutorial_unlocked(component: String) -> bool:
-	return (not tutorial) or Tutorial.is_unlocked(component, phrase_in_section)
+	return (not tutorial) or Tutorial.is_unlocked(component, tutorial_step)
 
 
 func tutorial_hint() -> Dictionary:
-	return Tutorial.hint(phrase_in_section) if tutorial else {"command": "", "signal": ""}
+	return Tutorial.hint(tutorial_step) if tutorial else {"command": "", "signal": ""}
 
 
-## 教学关走完了没有。⚠ 判据是**拍数**而不是段数 —— 教学关的长度由脚本定,
+## 教学关走完了没有。⚠ 判据是**走完的步数**而不是拍数 —— 动作门解耦之后
+## 两者不再相等(卡在某一步会一直打拍而不推进), 而教学关的长度由**脚本**定,
 ## 不受 `PHRASES_PER_SECTION` 约束(用户拍板:教学关可以突破 4.9 分钟)。
 func tutorial_done() -> bool:
-	return tutorial and phrase_in_section >= Tutorial.steps()
+	return tutorial and tutorial_step >= Tutorial.steps()
 
 
 ## 段目标 = 表里的基准 × 这一段的脸的加码。

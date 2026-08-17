@@ -101,6 +101,80 @@ static func session_start() -> Dictionary:
 ## 一局开始时推进「历史总局数」并盖上时间戳 —— `last_seen` 每局都刷, 这样
 ## 「隔多久回来」量的是**离开游戏**到**回来**, 而不是从上次启动算起。
 ## ⚠ 幂等性不做要求:它就是个计数器, 每局一次。
+## 历史总局数(不含正在开的这一局)。⚑ **键早就有了** —— `note_run_started()` 一直在写,
+## `session_start()` 一直当 `runs_prev` 读出来, 缺的只是一个公开的口(2026-08-16 补)。
+## ⚠ 「这是第几局」= `runs_total() + 1`, 因为掷脸发生在 `note_run_started()` **之前**。
+static func runs_total() -> int:
+	return int(_data().get("runs_total", 0))
+
+
+## ---- 券(消耗品层)· 2026-08-16 ----
+##
+## ⚑ 存两个键:`tickets` = {券 id: 张数} · `tickets_day` = 上次结算是第几天。
+## **每次读都先结算「今天是不是新的一天」** —— 不靠任何定时器, 因为玩家可能几天不开。
+##
+## ⚠⚠ **清零只清 `tickets`, 绝不碰别的键。** `runs_total` 是 `min_run`(禁回第 10 局解锁)
+## 的依据, 教学关标记也在同一个字典里 —— 顺手 `clear()` 会把解锁进度一起清掉,
+## 而那种 bug 只有玩了十局的人才发现得了。
+##
+## ⚠ 探针一律**没有券也不落盘**(同本文件其余六道闸):券是玩家的日常状态,
+## 让探针拿到它就等于让实验条件依赖「这台机器今天领没领」。
+
+
+## 今天的券。⚠ 会**顺带结算过期**并落盘(所以它不是纯读)。
+## ⚑ 逻辑在 `Ticket` 的纯函数里, 这里只负责**盘 + 时钟 + 探针闸**三件不可测的事。
+static func tickets() -> Dictionary:
+	if _is_probe():
+		return {}
+	var d := _data()
+	if Ticket.reset_if_new_day(d, Ticket.day_index(int(Time.get_unix_time_from_system()))):
+		_flush()
+	return d.get("tickets", {})
+
+
+## 每天第一次打开时结算发放。返回发到的券 id(空串 = 今天已领 / 满仓 / 探针)。
+## ⚠ 调用方 = 编排器启动时一次(同 `session_start`), 别在别处调。
+static func settle_daily_ticket() -> String:
+	if _is_probe():
+		return ""
+	var d := _data()
+	var today := Ticket.day_index(int(Time.get_unix_time_from_system()))
+	Ticket.reset_if_new_day(d, today)          # 先清过期, 再发今天的
+	var rng := RandomNumberGenerator.new()
+	rng.randomize()
+	var got := Ticket.settle_daily_grant(d, today, rng)
+	_flush()
+	return got
+
+
+static func tickets_held(tid: String) -> int:
+	return int(tickets().get(tid, 0))
+
+
+## 发一张券(看广告/每日领取的出口)。返回实际发到的张数。
+static func grant_ticket(tid: String, n: int = 1) -> int:
+	if _is_probe():
+		return 0
+	var held := tickets()          # ← 顺带结算跨天
+	var got := Ticket.grant_into(held, tid, n)
+	if got > 0:
+		_data()["tickets"] = held
+		_flush()
+	return got
+
+
+## 用掉一张。返回是否真的用掉了。
+static func consume_ticket(tid: String) -> bool:
+	if _is_probe():
+		return false
+	var held := tickets()
+	if not Ticket.consume_from(held, tid):
+		return false
+	_data()["tickets"] = held
+	_flush()
+	return true
+
+
 static func note_run_started() -> void:
 	if _is_probe():
 		return
@@ -117,11 +191,27 @@ static func _reset_cache_for_tests() -> void:
 	_loaded = false
 
 
+## ⚑ **`-- --fresh` = 这次启动当新玩家**(2026-08-16 用户要一条「按这个命令启动就去掉存档」)。
+##
+## ⚠ **用 `--` 之后的用户参数, 不是 `OS.get_cmdline_args()`** —— 后者混着 Godot 自己的
+## 参数, 塞个它不认识的进去要看引擎脸色;`--` 之后的部分引擎保证原样交给游戏。
+## ⚑ **删盘上的文件, 不是只清内存** —— 只清内存的话这一局结束照样写回去,
+## 下次启动又跳过教学关, 「去掉存档」就成了一句没兑现的话。
+## ⚠ 它**只在这里生效一次**(`_loaded` 守着), 所以同一次运行里后面的读写照常。
+static func _wants_fresh() -> bool:
+	return OS.get_cmdline_user_args().has("--fresh")
+
+
 static func _data() -> Dictionary:
 	if _loaded:
 		return _cache
 	_loaded = true
 	_cache = {}
+	if _wants_fresh():
+		if FileAccess.file_exists(PATH):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(PATH))
+		print("[SaveState] --fresh:已清空存档, 这次按新玩家跑(会进教学关)")
+		return _cache
 	if not FileAccess.file_exists(PATH):
 		return _cache
 	var f := FileAccess.open(PATH, FileAccess.READ)

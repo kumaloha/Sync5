@@ -12,7 +12,9 @@ var _scene: Node
 var _frames := 0
 var _idx := 0
 ## 每一步停几帧再截 —— 教学关的拍长是 12/12/10/10/8/8 秒,而探针不等真钟走完:
-## 直接改 `phrase_in_section` 再重进一拍,拿到的就是那一步的提示与拍长。
+## 直接改 `tutorial_step` 再重进一拍,拿到的就是那一步的提示与拍长。
+## ⚠ **2026-08-16 从 `phrase_in_section` 改过来** —— 动作门上线后步骤下标与拍数解耦,
+## 还按拍数驱动会让这个探针每一张都截到第 1 步(而且**不报错**)。
 const HOLD := 40
 
 
@@ -39,7 +41,7 @@ func _process(_delta: float) -> bool:
 			return true
 		# 摆到第 _idx 步:改计数器 → 重进一拍, 走游戏自己的 `_start_phrase` 路径,
 		# 所以提示行/拍长都是真实渲染出来的, 不是探针拼的。
-		_scene.run.phrase_in_section = _idx
+		_scene.run.tutorial_step = _idx
 		_scene._start_phrase()
 		var h := Tutorial.hint(_idx)
 		print("step %d  %.0fs  %s | %s  → 已解锁 %s"

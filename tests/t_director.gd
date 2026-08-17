@@ -121,8 +121,12 @@ func run(t) -> void:
 	var b2 := RandomNumberGenerator.new()
 	a.seed = 99
 	b2.seed = 99
-	var plain: Dictionary = SectionMod.roll_run(b2)
-	var same: Dictionary = Director.roll_run(1, a)
+	# ⚠⚠ **等价契约的正确形状是「同一个局数下等价」**(2026-08-16 加 min_run 之后)。
+	# 旧写法比的是 `SectionMod.roll_run(b2)`(不带局数 = **全解锁**)vs `Director.roll_run(1, ...)`
+	# (第 1 局 = **禁回锁着**)—— 两边看的池子不一样, 差异是 min_run **有意**造成的, 不是漂。
+	const RUN_IDX := 1
+	var plain: Dictionary = SectionMod.roll_run(b2, RUN_IDX)
+	var same: Dictionary = Director.roll_run(RUN_IDX, a)
 	t.eq(same.size(), plain.size(), "没有排序表时段数与现有掷法一致")
 	for w in GameConfig.WALL_SECTIONS:
 		t.eq(String(same[int(w)]), String(plain[int(w)]), "第 %d 段与现有掷法掷出同一张脸" % int(w))
@@ -146,7 +150,10 @@ func run(t) -> void:
 		var idx := int(w)
 		var pool: Array = SectionMod.pool_for(idx)
 		t.check(pool.has(String(faces[idx])), "第 %d 段的脸来自它自己的池子" % idx)
-		t.check(Director.band(ranking[idx], Director.face_bias(1)).has(String(faces[idx])),
+		# ⚠ 档要从**过滤后**的排序池算 —— Director 掷点用的就是它(`ranked_pool` 会按
+		# min_run 摘掉没解锁的脸), 拿未过滤的 ranking 算档等于和另一个池子比。
+		t.check(Director.band(Director.ranked_pool(idx, ranking, 1), Director.face_bias(1))
+				.has(String(faces[idx])),
 			"第 %d 段的脸落在本局的倾向档里" % idx)
 		for fid in pool:
 			if seen.has(fid):

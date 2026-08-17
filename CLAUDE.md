@@ -37,6 +37,7 @@ Lumines 的节奏推进 + Balatro 的构筑。**始终用中文回复。**
 
 ```bash
 godot --path /Users/kuma/Projects/Sync5                                    # 跑游戏(主场景 = 首页)
+godot --path /Users/kuma/Projects/Sync5 -- --fresh                         # 同上, 但**清掉存档当新玩家跑**(会进教学关)
 godot --headless --path . --script res://tests/runner.gd                   # 单元测试
 ./tools/gate.sh                                                            # 加了内容就要过的门(~15 分钟)
 SYNC5_KIT_ID=<joker_id> godot --headless --path . --script res://tools/kit.gd   # 只验一张新小丑牌

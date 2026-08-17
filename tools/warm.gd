@@ -74,7 +74,7 @@ func _one_beat(slots: Array, lam: float, n: int) -> Array:
 		var ph := Phrase.new(deck, cache, 99)
 		ph.start()
 		bot._play_phrase(ph, cfg, slots, 0, "")
-		out.append(float(Settle.run(ph.lock_and_settle(), slots, _extra())["score"]))
+		out.append(float(Settle.run(ph.lock_and_settle(), slots, _extra(s))["score"]))
 		ph.cleanup()
 	return out
 
@@ -93,7 +93,7 @@ func _chain(slots: Array, lam: float, out: Array, first: Array, rest: Array) -> 
 				var ph := Phrase.new(deck, cache, 99)
 				ph.start()
 				bot._play_phrase(ph, cfg, slots, s, "")
-				var sc := float(Settle.run(ph.lock_and_settle(), slots, _extra())["score"])
+				var sc := float(Settle.run(ph.lock_and_settle(), slots, _extra(s))["score"])
 				out.append(sc)
 				if beat == 0:
 					first.append(sc)
@@ -103,10 +103,14 @@ func _chain(slots: Array, lam: float, out: Array, first: Array, rest: Array) -> 
 				ph.cleanup()
 
 
-func _extra() -> Dictionary:
+## ⚠⚠ `sec` 决定 `section_target` —— 缺了它, 按「本段每拍目标的 x%」定额的卡
+## (加分族 A 案)在这个探针里会**静默算成 0**, 而这是养牌价值的仪器。
+## **缺省 0 是有意的**:本探针大部分调用点确实只模拟第一段。
+func _extra(sec: int = 0) -> Dictionary:
 	return {
 		"prev_kind": -99, "acted_late": false, "discards": 0, "coins": 99,
 		"phrase_idx": 0, "cache_cards": [], "mod": "", "character": null,
+		"section_idx": sec, "section_target": GameConfig.section_target(sec),
 	}
 
 

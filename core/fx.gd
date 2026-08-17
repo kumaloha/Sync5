@@ -7,12 +7,15 @@ extends RefCounted
 ## legacy hand-written formats byte-for-byte (tests enforce it).
 
 
-static func apply_effects(effects: Array, state: Dictionary, ctx: Dictionary) -> String:
+## `scale` = 升级把**增量**放大多少倍(`Joker.increment_scale()`, Lv1 = 1.0)。
+## ⚠ 缺省 1.0 ⇒ **主角与所有既有调用点逐字节不变**(主角没有等级)。
+static func apply_effects(effects: Array, state: Dictionary, ctx: Dictionary,
+		scale: float = 1.0) -> String:
 	var popup := ""
 	for e in effects:
 		if not _when_ok(e.get("when", {}), state, ctx):
 			continue
-		var text := _do(e["do"], state, ctx)
+		var text := _do(e["do"], state, ctx, scale)
 		if popup == "" and text != "":
 			popup = text
 	return popup
@@ -184,7 +187,8 @@ static func _count(d: Dictionary, state: Dictionary, ctx: Dictionary) -> float:
 	return c
 
 
-static func _do(d: Dictionary, state: Dictionary, ctx: Dictionary) -> String:
+static func _do(d: Dictionary, state: Dictionary, ctx: Dictionary,
+		scale: float = 1.0) -> String:
 	# escape-hatch opcodes first (design/tech.md: the irreducible two)
 	if d.has("mult_from_target_factor"):
 		var tf: float = float(ctx.get("target_factor", 1.0))
@@ -256,7 +260,7 @@ static func _do(d: Dictionary, state: Dictionary, ctx: Dictionary) -> String:
 	var cnt := _count(d, state, ctx)
 	if cnt <= 0.0:
 		return ""
-	for ch in ["mult", "mult_add", "additive", "bonus", "bonus_pct", "coins"]:
+	for ch in ["mult", "mult_add", "additive", "bonus", "bonus_target_pct", "bonus_pct", "coins"]:
 		if not d.has(ch):
 			continue
 		var raw = d[ch]
@@ -265,6 +269,18 @@ static func _do(d: Dictionary, state: Dictionary, ctx: Dictionary) -> String:
 		var contrib: float = amt * cnt
 		if d.has("cap"):
 			contrib = minf(contrib, float(d["cap"]))
+		# ---- 升级:放大**增量**(2026-08-16)----
+		# ⚠⚠ `mult` 那一档必须走 `1 + (x−1)×scale` —— 直接 `x×scale` 会让 ×1.5 的卡
+		# 满级变成 ×3.05(而不是 ×2.0), 4 级下来是**指数爆炸**。测试里锁着这条。
+		# ⚠ `coins` **不放大** —— 升级不该印钱, 否则是正反馈。
+		# ⚠ `cap` 在放大**之前**生效:cap 是这张卡的设计上限(如铁粉 15%),
+		# 升级该抬的是它离上限多近, 不是把上限本身顶穿。
+		if scale != 1.0:
+			match ch:
+				"mult":
+					contrib = 1.0 + (contrib - 1.0) * scale
+				"mult_add", "additive", "bonus", "bonus_target_pct", "bonus_pct":
+					contrib *= scale
 		match ch:
 			"mult":
 				ctx.mult *= contrib
@@ -282,6 +298,39 @@ static func _do(d: Dictionary, state: Dictionary, ctx: Dictionary) -> String:
 			"bonus":
 				ctx.bonus += int(round(contrib))
 				return "+%d" % int(round(contrib))
+			"bonus_target_pct":
+				# ⚑⚑ **奖励分跟着尺度走**(2026-08-16, 加分族 A 案)——
+				# 数额 = 本段**每拍**目标 × pct, 而不是一个固定数。
+				# 起因:S1→S4 每拍需求 70 → 933 = **13.3 倍跨度**, 固定数在两头只能选一头 ——
+				# 调到 S4 够用就在 S1 打穿, 调到 S1 合理在 S4 只剩 +3%。**没有任何固定数成立。**
+				# ⚠ 它仍落在 `ctx.bonus`(乘法链**之后**), 身份不变:**保底, 不是放大**。
+				# ⚠⚠ `section_target` 缺失时**响一声**, 不静默给 0 —— 三个探针曾经就没传它,
+				# 那会让这一族在仪器里测出 0 = 自我实现的错误结论(见 LESSONS 三)。
+				# ⚠⚠ **缺 `section_target` 时退回「一局的平均每拍目标」, 不返回 0。**
+				# 第一版是 `push_error` + 返回 0, 两个后果都很糟:
+				#   ① **这族卡在模型里隐身** —— 求解器给它们估值 0, bot 永远不买
+				#      (`t_draft.gd` 的 SOLVER_BLIND 断言当场抓到);
+				#   ② 单测日志刷出 **120 万行** ERROR —— 求解器的 ctx 由调用方组, 漏传的路径太多。
+				# ⇒ 「所有路径都必须传」这个要求不现实, 而**近似值远好过隐身**:
+				# 游戏与 Beat 路径始终传真值(精确), 求解器的假想局面用全局平均(粗但不为零)。
+				# ⚑ 与 `tools/bot.gd::_avg_beat_target()` **同一个基准**, 两处都从
+				# `SECTION_TARGETS` 推导 —— 目标分一改两边一起动, 不会漂开。
+				var st: int = int(ctx.get("section_target", 0))
+				var per_beat: float = 0.0
+				if st > 0:
+					per_beat = float(st) / float(GameConfig.PHRASES_PER_SECTION)
+				else:
+					var tot := 0.0
+					for v in GameConfig.SECTION_TARGETS:
+						tot += float(v)
+					var n := float(GameConfig.SECTION_TARGETS.size())
+					if n > 0.0:
+						per_beat = tot / n / float(GameConfig.PHRASES_PER_SECTION)
+				var amt_pts: int = int(round(per_beat * contrib))
+				if amt_pts == 0:
+					return ""
+				ctx.bonus += amt_pts
+				return "+%d" % amt_pts
 			"bonus_pct":
 				if contrib < 0.001:
 					return ""

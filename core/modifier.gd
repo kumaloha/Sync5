@@ -130,8 +130,32 @@ static func pooled_ids() -> Array:
 ## ⚠ 教学弧那条(soft 早于 hard)管的是**族内先后**, 管不了**同一张脸**撞两次, 两条互不替代。
 ## ⚑ 将来 Director 要**有意**安排复现时, 由它显式指定脸、绕开 `roll` —— 有意的那条路
 ## 从来不经过这里, 所以这里可以无条件排除。
-static func roll(section_idx: int, rng: RandomNumberGenerator, exclude: Array = []) -> String:
-	var pool := pool_for(section_idx)
+## ⚑ 这张脸在「第 `run_index` 局」解锁了没有(`min_run`, 缺省 0 = 一直有)。
+##
+## ⚠ `run_index <= 0` = **不设限, 全部解锁**。这是给探针/模型的口径, 也是缺省值 ——
+## 选它是为了让**既有探针逐字节不变**:模型一直假设全部脸可用, 悄悄砍掉一张
+## 会让所有历史读数与新读数不可比, 而且**不报错**。
+## ⚠⚠ **所以真实局数必须由调用方显式传进来, `core/` 绝不自己去读存档** ——
+## 从 SaveState 偷读会让同一份纯逻辑在「这台机器玩过几局」下产出不同结果,
+## 那正是 2026-08-15 `flow_probe` 事故的形状(实验条件静默依赖机器本地状态)。
+static func unlocked_at(id: String, run_index: int) -> bool:
+	if run_index <= 0:
+		return true
+	# ⚠ `faces` 是**数组**不是字典 —— 走现成的 `_entry()`。第一版写成 `.get(id, {})`,
+	# 那会静默返回空 ⇒ `min_run` 恒 0 ⇒ **门形同虚设, 而且一声不吭**。
+	return run_index >= int(_entry(id).get("min_run", 0))
+
+
+static func roll(section_idx: int, rng: RandomNumberGenerator, exclude: Array = [],
+		run_index: int = -1) -> String:
+	var pool_all := pool_for(section_idx)
+	# ⚠ 先按解锁筛, 再按 exclude 筛 —— 反过来会让「没解锁的那张」占掉 exclude 的名额。
+	var pool: Array = []
+	for id in pool_all:
+		if unlocked_at(String(id), run_index):
+			pool.append(id)
+	if pool.is_empty():
+		pool = pool_all      # 全被锁住时退回全池, 同下面那条:宁可重复也不要漏一堵墙
 	if pool.is_empty():
 		return ""
 	var fresh: Array = []
@@ -156,11 +180,14 @@ static func roll(section_idx: int, rng: RandomNumberGenerator, exclude: Array = 
 ## 单轮时代 `exclude` 永远筛不掉东西(没有脸能出现在两个池子里), 所以**输出逐字节不变**。
 ## ⚠ `formal.gd` 原来遍历的是 `range(SECTIONS_PER_RUN)` 而不是 `WALL_SECTIONS` ——
 ## 四段全是墙时两者相同, 但 `is_wall` 一变就会静默分叉。收口顺手把这条也抹平了。
-static func roll_run(rng: RandomNumberGenerator) -> Dictionary:
+## ⚑ `run_index` = **这是第几局(1 起)**, `<= 0` = 不设限。见 `unlocked_at`。
+## ⚠ **RNG 消耗不受它影响** —— 每个墙段仍恰好一次 `randi_range`, 顺序照 `WALL_SECTIONS`。
+## 解锁只改**候选集**, 不改**抽几次**, 所以探针的随机流不会因为这个参数而错位。
+static func roll_run(rng: RandomNumberGenerator, run_index: int = -1) -> Dictionary:
 	var out := {}
 	var drawn: Array = []
 	for w in GameConfig.WALL_SECTIONS:
-		var f := roll(int(w), rng, drawn)
+		var f := roll(int(w), rng, drawn, run_index)
 		out[int(w)] = f
 		if f != "":
 			drawn.append(f)

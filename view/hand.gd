@@ -62,6 +62,13 @@ var discard_key: Widgets.DJKey
 func _ready() -> void:
 	# 兜底落区的前提:Hand 自己得有真实矩形(以前是零矩形控件,拖放的祖先链
 	# 在卡缝处根本走不到它)。PASS = 参与拖放目标查找,但不吞别人的点击。
+	# ⚠⚠ **不许改这里的矩形**(2026-08-17 试过一次, 错的):子节点用的是**绝对坐标**
+	# (`HAND_CARD_Y=724` 等), 而子节点位置**相对父节点** —— 一挪 position, 手牌整排飞出屏幕。
+	# ⚑ 「Hand 盖住小丑牌槽位」那个 bug 的正解是**换添加顺序**(见 view/layout.gd),
+	# 不是收窄它。
+	# ⚠ 上面那句「PASS = 不吞别人的点击」**是错的**:PASS 不消费事件, 但它照样
+	# **赢得命中测试**, 事件向上传给父节点, **不会向下漏给下面的兄弟节点**。
+	# Godot 的经典坑:**PASS ≠ 透明**。
 	position = Vector2.ZERO
 	size = Vector2(720, 1280)
 	mouse_filter = Control.MOUSE_FILTER_PASS
@@ -310,6 +317,35 @@ func deal_flip() -> void:
 ## The discard could not be honoured — jolt the key so it is never silent.
 func reject_discard() -> void:
 	discard_key.shake()
+
+
+## 教学关高亮要的**真实**矩形(view/phrase.gd 用)。
+##
+## ⚑⚑ **从活节点/活常量取, 不许再抄第二份坐标。**
+## 起因(2026-08-16 用户:「高光的位置打的不对, 跟原图不对应, 看起来很奇怪」):
+## 第一版把这三个矩形**手写在 `ui.json` 的 `tutor_focus` 里** —— 而手牌行/缓存行/弃牌键的
+## 位置是**运行时按 `stage` 的 card_w/gap/cache_y 算出来的**, `ui.json` 里压根没有这三个矩形。
+## 那三个数是**目测抄的**, 而且键做窄(`key_w`)之后就更对不上了。**位置不对是必然的, 不是没调准。**
+## ⚠ 这正是本项目最贵的那类错的形状:**同一个口径抄了第二份**, 而且第二份不会报错。
+## ⚠ `ui.json` 的 `tutor_focus` 现在**只当区域名白名单**, 值不再是坐标。
+func focus_rect(region: String) -> Rect2:
+	match region:
+		"hand":
+			return Rect2(HAND_X0, HAND_CARD_Y, CARD_W * 5.0 + GAP * 4.0, CARD_H)
+		"cache":
+			return Rect2(cache_holder.position, cache_holder.size)
+		"discard":
+			# ⚠ **返回看得见的那个圆, 不是整个键的矩形**(2026-08-17 用户:「弃牌按钮的
+			# 高亮好丑」)。`DJKey` 的矩形是 88×172(高瘦), 但它**画出来是个圆** ——
+			# 拿矩形去照亮就得到一个比按钮高一倍的方角光块。
+			# ⇒ 取矩形内**居中的正方形**(边 = 短边), 高亮层看到长宽比 1.0 就会画成整圆。
+			# ⚑ 判据:**高亮该贴合「玩家看到的形状」, 不是「控件的碰撞盒」** ——
+			# 同 design/ui_meta.md 那句「对齐类反馈要查视觉顶端而不是几何顶端」。
+			var side: float = minf(discard_key.size.x, discard_key.size.y)
+			return Rect2(discard_key.position
+				+ (discard_key.size - Vector2(side, side)) * 0.5,
+				Vector2(side, side))
+	return Rect2()
 
 
 ## 拒绝原因浮字的锚点(view/phrase.gd 用):弃牌键 / 某张手牌的全局位置。

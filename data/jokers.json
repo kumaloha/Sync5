@@ -159,7 +159,7 @@
       "same_as_prev": true
      },
      "do": {
-      "bonus": 240.0
+      "bonus_target_pct": 0.577
      }
     }
    ]
@@ -179,7 +179,7 @@
       "acted_late": true
      },
      "do": {
-      "bonus": 100.0
+      "bonus_target_pct": 0.24
      }
     }
    ]
@@ -199,7 +199,7 @@
       "discards_gte": 1
      },
      "do": {
-      "bonus": 30.0,
+      "bonus_target_pct": 0.072,
       "per": "discard"
      }
     }
@@ -257,7 +257,27 @@
    "effects": [
     {
      "do": {
-      "bonus": 50.0
+      "bonus_target_pct": 0.12
+     }
+    }
+   ]
+  },
+  {
+   "id": "popup",
+   "name": "Pop-Up",
+   "cn": "快闪",
+   "kind": "support",
+   "rarity": "common",
+   "curve": "fixed",
+   "proof": "score",
+   "fx": "First phrase each section: big bonus",
+   "effects": [
+    {
+     "when": {
+      "first_phrase": true
+     },
+     "do": {
+      "bonus_target_pct": 0.8
      }
     }
    ]
@@ -438,16 +458,29 @@
    }
   },
   {
-   "id": "twotone",
-   "name": "Two-Tone",
-   "cn": "双色调",
+   "id": "blacktone",
+   "name": "Black Tone",
+   "cn": "黑调",
    "kind": "support",
    "rarity": "rare",
    "curve": "fixed",
    "proof": "solver",
-   "fx": "Flushes need only matching colors",
+   "fx": "Black suits count as one",
    "acquire": {
-    "deck_rule": "twotone"
+    "deck_rule": "blacktone"
+   }
+  },
+  {
+   "id": "redtone",
+   "name": "Red Tone",
+   "cn": "红调",
+   "kind": "support",
+   "rarity": "rare",
+   "curve": "fixed",
+   "proof": "solver",
+   "fx": "Red suits count as one",
+   "acquire": {
+    "deck_rule": "redtone"
    }
   },
   {
@@ -555,7 +588,7 @@
       "diff_from_prev": true
      },
      "do": {
-      "bonus": 85.0
+      "bonus_target_pct": 0.204
      }
     }
    ]
@@ -601,7 +634,7 @@
       ]
      },
      "do": {
-      "bonus": 320.0
+      "bonus_target_pct": 0.769
      }
     }
    ]
@@ -693,7 +726,7 @@
       "all_suits": true
      },
      "do": {
-      "bonus": 180.0
+      "bonus_target_pct": 0.433
      }
     }
    ]
@@ -713,7 +746,7 @@
       "no_pair": true
      },
      "do": {
-      "bonus": 190.0
+      "bonus_target_pct": 0.457
      }
     }
    ]
@@ -1061,7 +1094,7 @@
       "swaps_eq": 0
      },
      "do": {
-      "bonus": 60
+      "bonus_target_pct": 0.144
      }
     }
    ]
@@ -1078,7 +1111,7 @@
    "effects": [
     {
      "do": {
-      "bonus": 40,
+      "bonus_target_pct": 0.096,
       "per": "swapped_scoring"
      }
     }
@@ -1096,7 +1129,7 @@
    "effects": [
     {
      "do": {
-      "bonus": 30,
+      "bonus_target_pct": 0.072,
       "per": "face_discard"
      }
     }
@@ -1192,7 +1225,7 @@
       "early_discards": true
      },
      "do": {
-      "bonus": 80
+      "bonus_target_pct": 0.192
      }
     }
    ]

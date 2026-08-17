@@ -47,7 +47,7 @@ func _process(_delta: float) -> bool:
 		# full board, 7 ◆ -> tapping a candidate enters replace mode
 		_scene.shop.close()
 		_set_slot(1, "shortcut")     # batch-2 rule cards get eyeballed here
-		_set_slot(2, "twotone")
+		_set_slot(2, "blacktone")
 		_set_slot(3, "fourfingers")
 		_scene.phrase.coins = 7
 		_scene.run.phrase_in_section = 0

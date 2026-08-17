@@ -24,6 +24,38 @@ var kind: String        # "target" | "support"
 var rarity: String      # "common" | "uncommon" | "rare" | "" for targets
 var fx_text: String     # card text — EN, ≤7 words (principle D2)
 var state: Dictionary = {}   # per-run counters for growth/decay cards
+
+## ---- 升级(2026-08-16, 金币的主出口)----
+##
+## ⚑ **一局内的等级, 1 起。** 和 `state` 同性质:属于**这一局的这张卡**, 不是卡的定义,
+## 所以不进 `data/jokers.json`, 也不跨局保留。
+## ⚠ **它必须被求解器/bot 读到** —— 升级是一条**改数值的规则**, 而 `tools/bot.gd` 与
+## solver 一直是从 jokers.json 直接读数额的。漏了它就是第 7 次「规则在游戏里、不在模型里」,
+## 这个项目最贵的一类错。所以放大发生在 `Joker.apply()` 这**一处**, 谁调 apply 谁自动拿到。
+var level := 1
+
+
+## 这一级把**增量**放大多少倍。Lv1 = 1.0(原样), 每级 +`step`。
+##
+## ⚠⚠ **是「增量」不是「整个数」** —— ×1.5 的卡按整数升会变成 ×3.05(4 级指数爆炸),
+## 按增量升满级正好翻倍(增量 0.5 → 1.0 ⇒ ×2.0)。`tests/t_joker.gd` 锁着这条。
+func increment_scale() -> float:
+	return 1.0 + GameConfig.UPGRADE_STEP * float(level - 1)
+
+
+## 还能不能升。⚠ **规则牌一律不能** —— 它们没有数值可升(改的是判定规则),
+## 而这正好是红调/黑调的平衡杠杆:开局 5.3× 很强, 但**吃不到升级红利**。
+func can_upgrade() -> bool:
+	return not is_rule_card() and has_effects() and level < GameConfig.UPGRADE_MAX_LEVEL
+
+
+## 升到下一级要多少钱;−1 = 升不了(满级或规则牌)。
+func upgrade_cost() -> int:
+	if not can_upgrade():
+		return -1
+	var costs: Array = GameConfig.UPGRADE_COSTS
+	var i := level - 1
+	return int(costs[i]) if i >= 0 and i < costs.size() else -1
 var _effects: Array
 var _counters: Dictionary
 var _acquire: Dictionary
@@ -212,8 +244,10 @@ func on_section_end() -> void:
 	pass
 
 
+## ⚑ 升级的放大**只发生在这一处** —— 游戏、bot、求解器全都走 `apply()`,
+## 所以谁都不会拿到没放大的数(见 `level` 那条注释里说的第 7 次)。
 func apply(ctx: Dictionary) -> String:
-	return Fx.apply_effects(_effects, state, ctx)
+	return Fx.apply_effects(_effects, state, ctx, increment_scale())
 
 
 ## 有无 effects 决定 kit 的 solver 臂用哪把判据(证物率 vs 分差)—— 见 tools/kit.gd::_run_solver。

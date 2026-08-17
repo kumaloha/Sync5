@@ -78,12 +78,22 @@ func run(t) -> void:
 			pointed += 1
 	t.check(pointed > 0, "至少有一步真的指了 —— 否则这个功能等于没接")
 	t.eq(Tutorial.focus(steps.size()), [], "越界不指")
-	# ⚠ 坐标必须是 [x,y,w,h] 四元数且宽高为正 —— 画不出来的框**不报错**, 那是静默失败。
+	# ⚑⚑ **2026-08-16:`tutor_focus` 的值不再是坐标, 而是说明文字。**
+	# 起因(用户报「高光位置不对、跟原图不对应」):那四个矩形是**手抄的第二份**, 而手牌行/
+	# 缓存行/弃牌键的真实位置是运行时按 stage 常量算的 —— 对不上是必然的。真值现在从活部件
+	# 取(`Hand.focus_rect()`), 这里只剩「合法区域名白名单」一个职责。
+	#
+	# ⚠⚠ **这条断言本身曾经把整个域静默掐断**:改成字符串之后旧代码 `var q: Array = geo[r]`
+	# 抛类型错, `run()` 当场中断 ⇒ **它后面的十几条断言一条都没跑, 而套件照样报 0 failed**。
+	# 「绿」是假的。⇒ **改数据形状时必须回头看谁在读它**, 而 GDScript 的类型错在测试里
+	# 不计入 failed, 只在日志里留一行 SCRIPT ERROR。
+	# ⚠ 矩形本身**在这里测不了**(要活部件), 它由 `tools/tutorsheet.gd` 的目视对账覆盖。
 	var geo: Dictionary = DB.ui()["tutor_focus"]
 	for r in regions:
-		var q: Array = geo[r]
-		t.eq(q.size(), 4, "区域 '%s' 是 [x,y,w,h]" % r)
-		t.check(float(q[2]) > 0.0 and float(q[3]) > 0.0, "区域 '%s' 宽高为正" % r)
+		t.check(geo.has(r), "白名单里有区域 '%s'" % r)
+		t.check(String(geo[r]) != "", "区域 '%s' 带一句说明(值是文字不是坐标)" % r)
+	t.check(not (geo.get("hand") is Array),
+		"tutor_focus 的值**不许**是坐标 —— 坐标一旦抄第二份就会和运行时算的那份漂开")
 	# schema 门禁:指向一块不存在的区域必须红(否则画不出来且不报错)
 	var badfocus := {"components": ["hand"], "steps": [{"seconds": 9.0, "unlock": ["hand"],
 		"command": "中", "signal": "EN", "focus": ["nowhere"]}]}
@@ -98,8 +108,20 @@ func run(t) -> void:
 	SaveState.mark_tutorial_seen()
 	SaveState.clear_tutorial()
 	t.check(SaveState.seen_tutorial(), "探针里读写都是 no-op, clear 之后仍然是老玩家(没碰盘)")
-	t.check(not FileAccess.file_exists(SaveState.PATH),
-		"探针不落盘 —— 实验条件不许依赖机器本地状态")
+	# ⚠⚠ **旧断言是 `not file_exists(PATH)`, 它自己犯了它要防的那个错。**
+	# 「盘上没有文件」依赖的是**这台机器以前玩没玩过**, 而不是「这一次写没写」——
+	# 于是它在开发机(有存档)红、在 CI(干净)绿, 结论跟着机器走。
+	# ⚑ 正确的断言是**前后对比**:上面那串读写跑完, 盘上的状态必须**一个字节都没动**。
+	# (2026-08-16 暴露:此前 t_tutorial 在第 84 行静默中断, 这条根本没跑过。)
+	var existed_before := FileAccess.file_exists(SaveState.PATH)
+	var mtime_before := FileAccess.get_modified_time(SaveState.PATH) if existed_before else 0
+	SaveState.mark_tutorial_seen()
+	SaveState.note_run_started()
+	t.eq(FileAccess.file_exists(SaveState.PATH), existed_before,
+		"探针不落盘:写操作跑完, 文件的存在与否没变")
+	if existed_before:
+		t.eq(FileAccess.get_modified_time(SaveState.PATH), mtime_before,
+			"探针不落盘:已有存档的修改时间没动 —— 实验条件不许依赖、也不许改动机器本地状态")
 
 	# --- Run 的教学关模式 ---
 	var r := Run.new()
@@ -118,8 +140,51 @@ func run(t) -> void:
 	t.eq(r.phrase_duration(), Tutorial.seconds(0), "教学关拍长走脚本, 不走 gig_clocks")
 	t.check(r.tutorial_unlocked(String(comps[0])), "第一步已解锁的部件是开的")
 	t.check(not r.tutorial_done(), "第 0 拍还没走完")
-	r.phrase_in_section = Tutorial.steps()
+	r.tutorial_step = Tutorial.steps()
 	t.check(r.tutorial_done(), "走满脚本步数 = 教学关结束")
+	# ---- 动作门(2026-08-16):步骤下标与拍数解耦 ----
+	# ⚑ 这一组锁的是**「教了不等于学会了」那个洞**:从前一拍过去就下一步, 玩家做没做
+	# 那个动作都一样 —— 第 3 步说「拖一张进去」, 不拖也照样进第 4 步。
+	var g := Run.new()
+	g.tutorial = true
+	g.reset(1)
+	var need := Tutorial.require(0)
+	t.eq(need, "play", "第 1 步的门 = 把一拍打完")
+	# 找一个真的设了非 play 门的步骤, 用它验「不做就不推进」
+	var gated := -1
+	for s in range(Tutorial.steps()):
+		if Tutorial.require(s) != "" and Tutorial.require(s) != "play":
+			gated = s
+			break
+	t.check(gated > 0, "脚本里至少有一步设了动作门(不然做中学这条没落地)")
+	g.tutorial_step = gated
+	var want := Tutorial.require(gated)
+	t.check(not g.tutorial_try_advance(), "没做那个动作 ⇒ 不推进")
+	t.eq(g.tutorial_step, gated, "不推进 = 停在原地, 不是跳过")
+	t.eq(g.tutorial_hint()["command"], Tutorial.hint(gated)["command"], "停在原地时提示原样再说一遍")
+	g.tutorial_note(want)
+	t.check(g.tutorial_try_advance(), "做了那个动作 ⇒ 推进")
+	t.eq(g.tutorial_step, gated + 1, "推进正好一步")
+	# 动作账是**这一拍**的, 不是整关的 —— 上一拍弃过牌不该替这一拍的门买单
+	g.tutorial_step = gated
+	g.tutorial_note(want)
+	t.check(g.tutorial_try_advance(), "本拍做过 ⇒ 过")
+	g.tutorial_step = gated
+	t.check(not g.tutorial_try_advance(), "上一拍做过不算数 —— 动作账每拍清空")
+	# require 全部在白名单里, 否则那一步**永远推进不了且不报错**(玩家卡死在教学关)
+	for s2 in range(Tutorial.steps()):
+		var rq := Tutorial.require(s2)
+		t.check(rq == "" or Tutorial.ACTIONS.has(rq),
+			"第 %d 步的 require '%s' 必须在 ACTIONS 白名单里" % [s2, rq])
+	# 重开必须清进度 —— 否则第二次进教学关会从半路开始
+	g.reset(1)
+	t.eq(g.tutorial_step, 0, "reset 清掉教学进度")
+	# ⚠ 正式局对这套**逐字节无影响**:note/try_advance 都直接返回
+	var q := Run.new()
+	q.reset(1)
+	q.tutorial_note("discard")
+	t.check(not q.tutorial_try_advance(), "正式局 try_advance 恒 false")
+	t.eq(q.tutorial_step, 0, "正式局步骤下标不动")
 	# ⚠ 正式局必须**逐字节不受影响** —— 这是「加功能不许改既有行为」的机器可读版本。
 	var n := Run.new()
 	n.reset(1)

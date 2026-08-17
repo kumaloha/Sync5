@@ -16,6 +16,10 @@ extends Probe
 
 # ⚠ 求解器每拍要跑 ~1400 次 Pattern+Settle, 8 队列 × 200 局跑不完 10 分钟。
 # 100 局够估分位数(段分位的采样误差 ~±3%), 要更准就单队列加大。
+## 探针一律按「脸全部解锁」的世界标定 —— 见 roll_run 调用点那段。
+## 取 10 是因为现役最大的 `min_run` 就是 10(禁回);加更晚解锁的脸要顺手抬这个数。
+const UNLOCK_ALL_RUN := 10
+
 const N_RUNS := 100
 
 ## 用哪个玩家来定关卡。**两张表, 两个尺度, 别混用**:
@@ -79,7 +83,13 @@ func _play(cfg: Dictionary) -> Array:
 		var character: Character = Character.roster()[_rng.randi_range(0, 7)]
 		# ⚑ 一局四张脸走 SectionMod.roll_run 这一份(2026-08-14 收口, 原来 7 份)——
 		# 保证「一局之内不偶然重复」。RNG 消耗与旧代码逐次相同。
-		var faces := SectionMod.roll_run(_rng)
+		# ⚠⚠ **显式传「全解锁」的局数, 不吃默认值**(2026-08-16 加 `min_run` 之后)。
+		# 脸现在可以按局数解锁(禁回 min_run=10), 于是「探针看到的脸池」与「新玩家
+		# 第 1-9 局看到的」**不是同一个**。目标分是拿这个探针反解的, 所以这行决定了
+		# 那张表描述的是谁的世界 —— **它必须是一句写下来的话, 不是一个默认参数的副作用**。
+		# ⚑ 选「全解锁」= 目标分按**老玩家**标定;新手前 9 局面对的池子更温和 ⇒
+		# 偏差方向是**安全的**(新手更轻松), 但它是一条真实的分叉, 记在这里。
+		var faces := SectionMod.roll_run(_rng, UNLOCK_ALL_RUN)
 		var o := RunLoop.Opts.new()
 		o.rng = _rng
 		o.deck_seed = r * 17 + 5

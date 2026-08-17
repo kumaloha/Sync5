@@ -125,7 +125,17 @@ const PREREQ := {
 ## 真人的弃牌/交换习惯与 bot 差得远(早锁 8% vs 78% 就是先例), 所以一律标「真人待定」。
 ## ⚠ 反向也锁(见 `_initialize` 末尾):声明了却其实量到 = 表过期, 该删条目。
 const WEAK_MAGNITUDE := {
-	"stageexit": "普通档 +30/张 × bot 的弃人头率 —— z=31.8 早已证明接上了, 量级 4.1%;真人待定",
+	# ⚠⚠ **和弦是「条件坏了」不是「数额坏了」, 所以它不该靠调数额过门。**
+	# 2026-08-16 加分族 A 案把 12 张换成跟随尺度(`bonus_target_pct`), **有意没动和弦**:
+	# 它的触发率只有 **4.0%**(先验层 N=20万), 要够格占 4 个槽之一得给到
+	# 「每拍目标的 300%」—— 那个数本身就说明问题在条件, 不在数额。
+	# ⇒ 门量到 z=8.62(**效果确实存在**)但量级只有 4.3%, 判定完全正确。
+	# ⚑ **这条豁免是把债写明白, 不是把门糊绿**:待办在 TODO「和弦/排练单独处理」,
+	# 两条出路都是设计判断(**改条件放宽** 或 **删**), 归用户拍。
+	# ⚠ 定了之后**必须回来删掉这一行** —— 下面那段反查会在它变强后主动喊。
+	"chord": "触发 4.0% 太窄, 数额救不了(要 300%/拍才够格) —— 待改条件或删, 见 TODO",
+	# ~~stageexit~~ 2026-08-16 已移除:换成 `bonus_target_pct` 后它变强了(S4 +30 → +67),
+	# 门反查到「声明了豁免却其实量到了」。⚑ 这正是反查存在的意义 —— **豁免表不许留过期条目**。
 }
 
 ## solver 通路那四张的**证物**:它该造出来的东西真的出现了吗。
@@ -134,7 +144,8 @@ const WEAK_MAGNITUDE := {
 const WITNESS := {
 	"shortcut": ["STRAIGHT", "STRAIGHT_FLUSH", "ROYAL_FLUSH"],
 	"fourfingers": ["STRAIGHT", "STRAIGHT_FLUSH", "ROYAL_FLUSH"],
-	"twotone": ["FLUSH", "STRAIGHT_FLUSH", "ROYAL_FLUSH"],
+	"redtone": ["FLUSH", "STRAIGHT_FLUSH", "ROYAL_FLUSH"],
+	"blacktone": ["FLUSH", "STRAIGHT_FLUSH", "ROYAL_FLUSH"],
 	"wildcard": ["*wild"],
 	# ⚠ 2026-08-12 流派批修仪器:第三种形状 —— **牌堆手术卡**(trim:不改判定规则、
 	# 不进 popup 链, 改的是**抽牌分布本身**)。它不制造任何单一牌型, 证物率没有定义域
