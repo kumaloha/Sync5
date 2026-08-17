@@ -12,6 +12,12 @@ extends RefCounted
 ## (测试没法造「明天」), 而每日清零这种东西不测就等于没写。
 
 
+## 券系统的总开关(1.0 = false, 用户 2026-08-18 拍板「第一版去掉券」;1.1 商业化时翻 true)。
+## ⚠ 闸在 SaveState 的入口层, 不在这里的纯函数 —— 纯函数要继续被 t_ticket 背书。
+static func enabled() -> bool:
+	return bool(DB.tickets().get("enabled", false))
+
+
 static func roster() -> Array:
 	return DB.tickets().get("tickets", [])
 

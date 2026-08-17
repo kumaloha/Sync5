@@ -106,7 +106,7 @@ static func tickets() -> Dictionary:
 
 ## ⚠ `scope` 写错会让券**静默地在错误的时机可用**, 而那不报错 —— 所以是白名单硬校验。
 static func validate_tickets(d: Dictionary) -> String:
-	var e := _keys_ok(d, ["reset_hour", "max_held", "tickets"])
+	var e := _keys_ok(d, ["enabled", "reset_hour", "max_held", "tickets"])
 	if e != "":
 		return e
 	if int(d["reset_hour"]) < 0 or int(d["reset_hour"]) > 23:

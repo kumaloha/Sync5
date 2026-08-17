@@ -131,7 +131,9 @@ static func runs_total() -> int:
 ## 今天的券。⚠ 会**顺带结算过期**并落盘(所以它不是纯读)。
 ## ⚑ 逻辑在 `Ticket` 的纯函数里, 这里只负责**盘 + 时钟 + 探针闸**三件不可测的事。
 static func tickets() -> Dictionary:
-	if _is_probe():
+	# ⚑ `not Ticket.enabled()` = 1.0 不上券的总闸(数据开关, 五个入口同一句)——
+	# 关掉唯一进水口后其余路径本就死水, 连读口一起闸是为了让**存档里已有的券也隐身**。
+	if _is_probe() or not Ticket.enabled():
 		return {}
 	var d := _data()
 	if Ticket.reset_if_new_day(d, Ticket.day_index(int(Time.get_unix_time_from_system()))):
@@ -142,7 +144,7 @@ static func tickets() -> Dictionary:
 ## 每天第一次打开时结算发放。返回发到的券 id(空串 = 今天已领 / 满仓 / 探针)。
 ## ⚠ 调用方 = 编排器启动时一次(同 `session_start`), 别在别处调。
 static func settle_daily_ticket() -> String:
-	if _is_probe():
+	if _is_probe() or not Ticket.enabled():
 		return ""
 	var d := _data()
 	var today := Ticket.day_index(int(Time.get_unix_time_from_system()))
@@ -160,7 +162,7 @@ static func tickets_held(tid: String) -> int:
 
 ## 发一张券(看广告/每日领取的出口)。返回实际发到的张数。
 static func grant_ticket(tid: String, n: int = 1) -> int:
-	if _is_probe():
+	if _is_probe() or not Ticket.enabled():
 		return 0
 	tickets()                      # ← 顺带结算跨天
 	var rng := RandomNumberGenerator.new()
@@ -173,7 +175,7 @@ static func grant_ticket(tid: String, n: int = 1) -> int:
 
 ## 队首掷值(boost 的「下一张是 ×几」)。UI 展示与使用前的确认都读这里。
 static func ticket_roll(tid: String) -> float:
-	if _is_probe():
+	if _is_probe() or not Ticket.enabled():
 		return 0.0
 	return Ticket.peek_roll(_data(), tid)
 
@@ -181,7 +183,7 @@ static func ticket_roll(tid: String) -> float:
 ## 用掉一张。返回是否真的用掉了。
 ## ⚑ 掷值与张数**必须同步弹**(FIFO)—— 只减张数不弹值, 下一张会「继承」用掉那张的值。
 static func consume_ticket(tid: String) -> bool:
-	if _is_probe():
+	if _is_probe() or not Ticket.enabled():
 		return false
 	var held := tickets()
 	if not Ticket.consume_from(held, tid):
