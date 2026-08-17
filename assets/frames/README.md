@@ -1,7 +1,7 @@
 # 首页大卡的玻璃壳素材
 
-`glass.png`(842×1355)= `resources/godot-handoff/card_glass_full.png` 的原样拷贝
-(灰白预烘焙版,自带 y 1197–1355 的镜面倒影;它又是 `resources/assets/frame-glass4.png`
+`glass.png`(842×1355)= `docs/mockups/godot-handoff/card_glass_full.png` 的原样拷贝
+(灰白预烘焙版,自带 y 1197–1355 的镜面倒影;它又是 `docs/mockups/assets/frame-glass4.png`
 的去色版 —— 三张是同一张图)。
 
 - **接管范围只有首页大卡**:`Widgets.StageCard.draw_card` 的贴图分支按 `tail` 取键,

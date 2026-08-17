@@ -10,7 +10,7 @@ extends SceneTree
 func _initialize() -> void:
 	for name in ["card_glass_full", "card_glass_face", "card_glass_pink_source",
 			"../assets/frame-glass4"]:
-		var img := Image.load_from_file("res://resources/godot-handoff/%s.png" % name)
+		var img := Image.load_from_file("res://docs/mockups/godot-handoff/%s.png" % name)
 		if img == null:
 			print(name, ": 读不到")
 			continue

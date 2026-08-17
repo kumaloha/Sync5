@@ -72,7 +72,7 @@ static func build(host: Control) -> Dictionary:
 	out["settle_fx"] = SettleFx.new()
 	host.add_child(out["settle_fx"])
 
-	# 教学关的一行提示(design/difficulty.md §4.4)。⚠ 加在这里而不是最后 ——
+	# 教学关的一行提示(docs/design/difficulty.md §4.4)。⚠ 加在这里而不是最后 ——
 	# run_end / banner / intro 是模态覆盖层, 它们必须能盖住提示行。
 	# 正式局它整块隐身(set_hint("", "") → visible=false), 不占位也不画。
 	# ⚠ 压暗层要画在**内容之上**(要暗的是卡面本身), 但在提示条**之下**(条不该被自己压暗)。
@@ -83,6 +83,15 @@ static func build(host: Control) -> Dictionary:
 	tutor_dim.visible = false
 	tutor_dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	host.add_child(tutor_dim)
+	# 提亮层:**加法混合**画在暗层之上(它只在洞里画, 与暗层形状共用同一份判据,
+	# 所以顺序对边缘无影响 —— 放上面只是语义:光压过暗)。用户 2026-08-18:
+	# 「其实是需要操作的区域提亮, 其他地方变暗」—— 暗层管对比, 这层管真的把小件照亮。
+	var tutor_light := Widgets.TutorLight.new()
+	tutor_light.position = Vector2.ZERO
+	tutor_light.size = Vector2(720, 1280)
+	tutor_light.visible = false
+	tutor_light.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	host.add_child(tutor_light)
 	var tutor := Widgets.TutorHint.new()
 	# ⚠ **铺满全屏** —— 它既要画提示条(位置写死在 `TutorHint.BAR`), 又要在**别处**
 	# 画分区描边(手牌区 / 缓存区 / 顶栏…), 所以不能只占那一条。
@@ -95,9 +104,10 @@ static func build(host: Control) -> Dictionary:
 	# 拆的是「画在哪一层」, 不是「谁来决定指哪」, 所以「文案换了但高亮没跟着换」仍然不可能发生。
 	tutor.glow = tutor_glow
 	tutor.dim = tutor_dim
+	tutor.light = tutor_light
 	out["tutor"] = tutor
 
-	# section-end result screens (resources/success.html + fail.html)
+	# section-end result screens (docs/mockups/success.html + fail.html)
 	out["run_end"] = RunEndScreen.new()
 	host.add_child(out["run_end"])
 

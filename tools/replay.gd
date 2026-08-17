@@ -1,6 +1,6 @@
 extends Probe
 
-## **L2 完备性门**(design/solving.md 第四部分)—— 给定形式化描述 + 一局 Tape,
+## **L2 完备性门**(docs/design/solving.md 第四部分)—— 给定形式化描述 + 一局 Tape,
 ## 能不能重放出**每一个决策点**?
 ##   godot --headless --path . --script res://tools/replay.gd
 ##   SYNC5_REPLAY_INJECT=1   注入一个假事件, 用来 A/B 验证这道门本身没坏

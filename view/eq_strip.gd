@@ -2,7 +2,7 @@ class_name EqStrip
 extends Control
 
 ## The vertical bar curtain that sits between the wave and the hand zone.
-## Ports the strip in resources/Neon Rain Card Game.dc.html:
+## Ports the strip in docs/mockups/Neon Rain Card Game.dc.html:
 ##
 ##   repeating-linear-gradient(90deg, rgba(120,140,220,.35) 0 12px,
 ##                                    transparent 12px 22px)

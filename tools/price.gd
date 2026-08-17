@@ -8,7 +8,7 @@ extends Probe
 ## ## ⚠ 这个文件头曾经指着两个不存在的东西(2026-08-14 清理)
 ##
 ## **① 「这是 `tools/pool.gd`(池子搜索)的输入」—— `tools/pool.gd` 从未存在。**
-## 「池子搜索」是 `design/gates.md §6` 的前瞻设计(生成器造一池子段 → Director 排序,
+## 「池子搜索」是 `docs/design/gates.md §6` 的前瞻设计(生成器造一池子段 → Director 排序,
 ## 在留存代理下优化)。它的三个前提**现在去掉了两个**:`death_spec` 已由用户直接指定形状
 ## (2026-08-14, 设计常量不是待搜索参数)、Director 已拍板**不读 context** 是一张设计期的表;
 ## 第三个(留存代理数据)从来没有过。**所以这条指向不是"还没做", 是"不做了"。**
@@ -39,7 +39,7 @@ extends Probe
 ## solver 用完美玩家(基准 7038)。`cover −997` 和 `rush −909` 看着差不多, 其实一个是
 ## 基准的 5%、一个是 13%。**跨尺子的读数不能相加, 更不能拿来排序。**
 ## 这里统一用**完美玩家 + 开着商店**:
-##   · 完美玩家是 design/solver_roadmap.md 的锚(上界靠"解"不靠"学"), 而且**它是唯一能看见全部四类脸的**
+##   · 完美玩家是 docs/design/solver_roadmap.md 的锚(上界靠"解"不靠"学"), 而且**它是唯一能看见全部四类脸的**
 ##     —— 规则 bot 不跨拍养缓存、几乎用不满弃牌预算, 量缓存族和时间族会翻号(实测 freshsheet
 ##     规则 bot +1584 / 完美玩家 −790);
 ##   · 商店必须开着 —— `cover` 的伤害 98% 走商店(tools/coin.gd 实测), 关掉就量不到它。
@@ -145,7 +145,7 @@ func _cohort() -> Dictionary:
 
 
 ## 不死局打满 24 拍, 按 `faces` 放脸。完美玩家 + 商店。
-## ⚑ 短, 是因为编排归了 `core/beat.gd`(design/tech.md)—— 按段放不同的脸是免费的。
+## ⚑ 短, 是因为编排归了 `core/beat.gd`(docs/design/tech.md)—— 按段放不同的脸是免费的。
 ##
 ## ⚠ 2026-08-08 迁到 `RunLoop`(一局的骨架只此一份)。st 记账口径同 `addit.gd`:原实现
 ## 只手动记过 n/score/disc, 没记过 mult/kinds —— 关掉 `tally_mult_kinds`, disc 照旧手动补。

@@ -3,14 +3,14 @@ extends RefCounted
 
 ## B 轴 · 跨局序列 —— **纯逻辑,引擎无关、不含时钟、不 import view**(CLAUDE.md 架构铁律)。
 ## 内容全在 `data/director.json`,这里只回答三件事:
-## **第 r 局走哪个状态 · 脸该怎么挑 · 货架该怎么偏**。规格 = `design/difficulty.md` §3。
+## **第 r 局走哪个状态 · 脸该怎么挑 · 货架该怎么偏**。规格 = `docs/design/difficulty.md` §3。
 ##
 ## ⚑⚑ **它不读任何玩家行为**(2026-08-14 用户拍板:「这里不是千人千面的不用读 context。
 ## 真正千人千面的只有随机出来的小丑牌(控制难度的)」)。所以这个文件里**只有一个输入**:
 ## `run_index`(第几局,1 起)。多一个参数就是多一条 DDA 的口子。
 ##
 ## ⚑ **铁律:Director 不许调目标分。** 它能调的只有 `face_bias` 与 `shelf` 两样。
-## 依据是外部调研(`design/research_pacing_retention.md` §1):**约束的本体是「可不可见」**——
+## 依据是外部调研(`docs/design/research_pacing_retention.md` §1):**约束的本体是「可不可见」**——
 ## DDA 被察觉就失效,橡皮筋是反面教材。可执行版本 = **同一个玩家在同一个位置永远拿到同一个数**,
 ## 而「只按 `run_index` 索引一张写死的表」正是这句话的实现。
 ## ⚠ 目标分/价格/「必定出某张牌」/读 context 四类键由 `core/db.gd::validate_director`

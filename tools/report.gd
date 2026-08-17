@@ -1,7 +1,7 @@
 class_name Report
 extends RefCounted
 
-## The sim's ledgers and printed reports (design/tech.md split): per-section
+## The sim's ledgers and printed reports (docs/design/tech.md split): per-section
 ## death/score/coin accumulators, joker presence/trigger counts, the
 ## playbook harvester. Pure bookkeeping — no RNG, no decisions.
 

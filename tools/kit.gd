@@ -17,7 +17,7 @@ extends Probe
 ##
 ## `tools/coin.gd` 实测**整个构筑值 4.2 倍**(有商店 18654 / 无商店 4410)——
 ## **分数的大头在小丑牌上**。而脸有 `gate.sh <face_id>`, 小丑牌一直**没有门**
-## (design/jokers.md 验证方案里唯一的 ❌)。这个项目栽过**五次同一个形状**:
+## (docs/design/jokers.md 验证方案里唯一的 ❌)。这个项目栽过**五次同一个形状**:
 ## 规则在游戏里生效、在模型里是空气, **五次都不报错**。代价不是"少一张卡",
 ## 是**目标分照着一个没发生过的难度算**, 一路静默。
 ##
@@ -223,7 +223,7 @@ func _initialize() -> void:
 		quit(1)
 		return
 
-	print("\n=== 小丑牌覆盖自证的门 (design/jokers.md 验证方案) ===")
+	print("\n=== 小丑牌覆盖自证的门 (docs/design/jokers.md 验证方案) ===")
 	print("  队列 %s · score %d / solver %d / coin %d 局/臂 · 判据 |z| >= %.1f **且** 量级 >= %.0f%%"
 		% [cfg.get("name", "?"), n_score, n_solver, n_coin, Z_MIN, MAG_MIN * 100.0])
 	print("  问的不是「这张牌强不强」, 是「**模型看得见它吗**」。")
@@ -363,7 +363,7 @@ func _run_solver(cfg: Dictionary, ids: Array, n: int) -> void:
 ## 是自由的 —— 一个普通 support 值 500~2800 分(见 score 通路), 而 tipjar 的 +9◆
 ## 按 `coin.gd` 的 κ 折算也就一两千分。**两个数量级相同、符号相反, 分差因此恒在 0 附近。**
 ## 换成「花费」就绕开了它:①花费直接落在 `bot._draft` 那条决定路径上;
-## ②满槽之后 bot 走「买新替旧」照样花钱(design/levels.md), 所以钉死一个槽不堵住花费 ——
+## ②满槽之后 bot 走「买新替旧」照样花钱(docs/design/levels.md), 所以钉死一个槽不堵住花费 ——
 ## 实测那点残余混杂只有 1~3◆(占基准花费 31◆ 的个位数), 不再和效应同量级。
 ## **教训和 `freshsheet` 是同一条:选错仪器会把结论量成一个不存在的问题。**
 ##

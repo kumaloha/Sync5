@@ -1,7 +1,7 @@
 class_name Character
 extends RefCounted
 
-## Data shell over data/characters.json (design/tech.md). Same contract as Joker:
+## Data shell over data/characters.json (docs/design/tech.md). Same contract as Joker:
 ## apply(ctx) mutates the settle context and returns a popup text ("" =
 ## none). It runs AFTER every joker, so a character reads the totals the
 ## jokers built. idx doubles as the walk-sprite id (Walker.CREW order) —

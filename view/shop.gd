@@ -1,7 +1,7 @@
 class_name Shop
 extends Control
 
-## The joker draft shop (design/tech.md view split): board, pricing, reroll and
+## The joker draft shop (docs/design/tech.md view split): board, pricing, reroll and
 ## skip live here; the orchestrator owns the money and the slots (economy
 ## actions never happen inside a view). 2026-08 shop model: priced supports,
 ## paid reroll, full-slot replace, pivot-arc Target on the shelf.
@@ -39,7 +39,7 @@ var _section := 0
 
 func _ready() -> void:
 	# explicit rects, not anchor presets — the preset sets anchors without
-	# offsets and a nested chain resolves to 0×0 (design/ui_meta.md 渲染手法)
+	# offsets and a nested chain resolves to 0×0 (docs/design/ui_meta.md 渲染手法)
 	position = Vector2.ZERO
 	size = Vector2(720, 1280)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE

@@ -2,7 +2,7 @@ class_name SettleFx
 extends Control
 
 ## Three-phase settle sequence, ported from `doSettle` in
-## resources/Neon Rain Card Game.dc.html.
+## docs/mockups/Neon Rain Card Game.dc.html.
 ##
 ##   t=0      FLY    基础分 × 乘数 = ?   (boxes pop in, staggered 0/.06/.12)
 ##   t=450ms  MERGE  the product lands with a bounce; screen shake; wave boost

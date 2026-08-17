@@ -40,7 +40,7 @@ const RED := Color("ff3632")     # h.003 s.80 —— 纯红, 不是 354° 的珊
 const SURFACE := Color("232b58")
 const SURFACE_DARK := Color("1b2247")
 
-# --- neon GLASS cards (spec: resources/整副卡牌.dc.html · 1a 玻璃底 × 2a 传统点阵) ---
+# --- neon GLASS cards (spec: docs/mockups/整副卡牌.dc.html · 1a 玻璃底 × 2a 传统点阵) ---
 const GLASS_TOP := Color(30.0 / 255, 12.0 / 255, 32.0 / 255, 0.72)
 const GLASS_BOT := Color(10.0 / 255, 6.0 / 255, 20.0 / 255, 0.82)
 const GLASS_BODY := Color(0.078, 0.035, 0.102, 0.80)   # flat blend for the stylebox

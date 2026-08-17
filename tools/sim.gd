@@ -15,7 +15,7 @@ extends Probe
 ## (a player who drafted Finale plays to Finale). Characters are drawn
 ## uniformly per run, so the roster averages out.
 
-# bot beliefs live in data/sim.json (design/tech.md); card amounts and target
+# bot beliefs live in data/sim.json (docs/design/tech.md); card amounts and target
 # tiers are read from data/jokers.json so a balance edit reaches the bot too.
 # 2026-08-05: run.json targets are HUMAN-anchored (真人产出高出机器人约一个
 # 数量级) — the sim measures RELATIVE archetype strength on the bot-scale
@@ -88,7 +88,7 @@ func _run_cohort(cfg: Dictionary) -> void:
 	report.print_report(cfg)
 
 
-## ⚠ 2026-08-07: 这个循环原来是**六份编排之一**(design/tech.md)。现在它持有一个真的
+## ⚠ 2026-08-07: 这个循环原来是**六份编排之一**(docs/design/tech.md)。现在它持有一个真的
 ## `Run`, 结算走 `Beat.settle` / `Beat.phrase_end` —— 和游戏是同一份实现。
 ## 局部的 deck/cache/slots/coins 只是 run 里那几个字段的别名, 留着是为了少改行。
 func _one_run(cfg: Dictionary, run_idx: int) -> void:

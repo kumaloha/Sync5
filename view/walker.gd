@@ -2,7 +2,7 @@ class_name Walker
 extends Node2D
 
 ## The protagonist walking the hand-zone perimeter — ports the `crew` table and
-## the walker SVG in resources/Neon Rain Card Game.dc.html.
+## the walker SVG in docs/mockups/Neon Rain Card Game.dc.html.
 ##
 ## Eight characters share one stick-figure skeleton (head + spine + legs) and
 ## differ by a `static` overlay (hat, headphones, arms), an animated `prop`

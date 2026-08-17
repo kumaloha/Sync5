@@ -1,7 +1,7 @@
 class_name AlbumScreen
 extends Control
 
-## 小丑牌收藏册,自 resources/小丑牌.dc.html(该屏权威)。
+## 小丑牌收藏册,自 docs/mockups/小丑牌.dc.html(该屏权威)。
 ## 结构:页标题栏 → 稀有度筛选 → 60 张全量收藏网格(滚动)→ 页签轨。
 ## 设计稿顶部还有一块「出战牌组 LOADOUT(5 槽装备)」—— 游戏里**不存在**
 ## 局外配牌:小丑牌只在局内商店获得,4 槽,run 结束即散。装一个假装备面板

@@ -5,7 +5,7 @@ extends Probe
 ##   SYNC5_GATE_FACE=<id>   只验一张脸(加了一张新脸时用这个, 十几秒)
 ##   SYNC5_GATE_N=<n>       改样本量(默认 score 250 / belief 60)
 ##
-## 规格 = `design/gates.md`。一句话:**一条规则如果进不了模型, 它就不该进池子。**
+## 规格 = `docs/design/gates.md`。一句话:**一条规则如果进不了模型, 它就不该进池子。**
 ##
 ## 为什么要有这道门:这个项目栽过**四次同一个形状**的事故 —— 规则在游戏里生效,
 ## 在模型里是空气, 而**四次都不报错**:
@@ -18,7 +18,7 @@ extends Probe
 ## 判据 = **配对 A/B**:同种子、同队列, 唯一的区别是这张脸在不在。
 ## 分差不显著 = 没接上(或者它本来就是空气规则)。**两种都该拦下来。**
 ## 通路按 `faces.json` 每张脸的 `proof` 字段分派 —— 声明错通路门会静默放过, 所以
-## 那个字段是必填的(`DB.validate_faces` 锁着), 含义见 design/blinds.md §4。
+## 那个字段是必填的(`DB.validate_faces` 锁着), 含义见 docs/design/blinds.md §4。
 ##
 ## 口径全部按项目铁律:配对(逐局作差)、报标准误和 z、不死局打满 24 拍。
 ## 同 `tools/coin.gd` / `tools/blind.gd`。**没有标准误的差值等于没有结论。**
@@ -69,7 +69,7 @@ func _initialize() -> void:
 				kept.append(fid)
 		ids = kept
 
-	print("\n=== 覆盖自证的门 (design/gates.md) ===")
+	print("\n=== 覆盖自证的门 (docs/design/gates.md) ===")
 	print("  队列 %s · score %d / solver %d / belief %d 局/臂 · 判据 |z| >= %.1f **且** 量级 >= %.0f%%"
 		% [cfg.get("name", "?"), n_score, n_solver, n_belief, Z_MIN, MAG_MIN * 100.0])
 	print("  问的不是「这张脸难不难」, 是「**模型看得见它吗**」。")
@@ -233,7 +233,7 @@ func _check_kind_gate(fid: String) -> void:
 		_fail.append("%s: target()/cleared 没有随缺种加税 —— variety_mult 没接进 core/run.gd" % fid)
 
 
-## --- ④ 结构单调性(design/gates.md):无论数值怎么调都必须成立的方向。 ---
+## --- ④ 结构单调性(docs/design/gates.md):无论数值怎么调都必须成立的方向。 ---
 ##
 ## 便宜, 而且抓的正是最难发现的那类事故:`bot_targets` 失效那次, 表被静默截断成
 ## 放水盘之后, 「调高目标」和「通关变难」的关系当场就断了 —— 但没人在看那个关系。
@@ -331,7 +331,7 @@ func _mono(label: String, a: Array, b: Array, want_up: bool) -> void:
 			% [label, d, FLAT_BAND])
 
 
-## --- ⑤ 生成器哨兵(design/gates.md):目标分必须落在**录得到**的分数范围内。 ---
+## --- ⑤ 生成器哨兵(docs/design/gates.md):目标分必须落在**录得到**的分数范围内。 ---
 ##
 ## 落在范围外 = 反解那一步在做分位数**外推**, 而外推出来的分位数没有意义。
 ## (另两条哨兵 —— 乱打必须过不了 / 最强必须过得了 —— `tools/sim.gd` 已经有了,
@@ -370,7 +370,7 @@ func _run_sentinel(_cfg: Dictionary, n: int) -> void:
 
 ## 判据**两条**(2026-08-08 用户拍板 A 案):**显著** 且 **量级够**。
 ##
-## 为什么必须两条 —— 这是本项目所有读数的通用纪律(`design/gates.md`):
+## 为什么必须两条 —— 这是本项目所有读数的通用纪律(`docs/design/gates.md`):
 ##   · **显著性(z)** 回答「这个读数信不信得过」;
 ##   · **量级(占基准的比例)** 回答「这个效应要不要管」。
 ## **蒙特卡洛的样本量是我们自己定的, 样本一大什么都会显著** —— 只看 z 等于让判据

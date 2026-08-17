@@ -1,7 +1,7 @@
 class_name RunEndScreen
 extends Control
 
-## Section-end result screens, 1:1 from the user's mocks in resources/
+## Section-end result screens, 1:1 from the user's mocks in docs/mockups/
 ## success.html + fail.html (the authority for these screens).
 ##
 ## SUCCESS 演出成功: three gold stars spin in, confetti + swaying beams +

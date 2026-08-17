@@ -128,7 +128,7 @@ func _reshuffle_discard() -> void:
 	discard_pile.clear()
 	shuffle()
 
-## 设想抽 n 张但**不消耗牌堆**(design/solver_roadmap.md:求解器是在"算", 不是在"玩" ——
+## 设想抽 n 张但**不消耗牌堆**(docs/design/solver_roadmap.md:求解器是在"算", 不是在"玩" ——
 ## 真去 draw() 会让求解本身改变游戏状态, 那就不是同一局了)。
 ## **一次调用内不放回**:一副牌里没有两张一样的, 放回抽样会虚构出对子。
 ## 待抽区不够就并上弃牌堆 —— 那正是 draw() 抽空后会洗回来的那批。
@@ -158,7 +158,7 @@ func total() -> int:
 	return draw_pile.size() + discard_pile.size()
 
 
-## 复制一份牌堆给**假想推演**用(design/solving.md 第三部分)。
+## 复制一份牌堆给**假想推演**用(docs/design/solving.md 第三部分)。
 ## ⚠⚠ 必须有**自己的 RNG** —— 推演若用真实牌堆的 rng, 就会消耗真实局的随机数序列,
 ## 于是「算了一下买哪张牌」这个动作本身改变了这一局。那是最恶劣的一种污染:
 ## 不报错, 只是这一局悄悄变成了另一局。

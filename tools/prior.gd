@@ -716,7 +716,7 @@ func _run_shelf() -> void:
 	var jokers: Array = DB.jokers()
 	var eco: Dictionary = DB.economy()
 	var wmap: Dictionary = eco["draft_rarity_weights"]
-	var shops := env_int("SYNC5_PRIOR_SHOPS", 7)          # design/levels.md:一局 7 次商店
+	var shops := env_int("SYNC5_PRIOR_SHOPS", 7)          # docs/design/levels.md:一局 7 次商店
 	var width := env_int("SYNC5_PRIOR_SHELF", 3)          # 货架 3 位
 
 	var w: Array = []

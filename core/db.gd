@@ -1,7 +1,7 @@
 class_name DB
 extends RefCounted
 
-## Data-config loader (design/tech.md). Loads data/*.json once and validates.
+## Data-config loader (docs/design/tech.md). Loads data/*.json once and validates.
 ##
 ## ⚑⚑ **校验是「测试期门禁」,不是运行时拒绝 —— 这是有意的,2026-08-09 拍板。**
 ##
@@ -23,7 +23,7 @@ extends RefCounted
 ## 换成了雪崩。
 ## `_comment` keys (any key starting with "_") are ignored everywhere —
 ## **except faces.json**, which is data-only (2026-08-09): its design prose
-## lives in design/blinds.md, and `_`-prefixed keys are rejected there on
+## lives in docs/design/blinds.md, and `_`-prefixed keys are rejected there on
 ## purpose so the notes cannot silently grow back into the data file.
 
 static var _cache: Dictionary = {}
@@ -130,7 +130,7 @@ static func validate_tickets(d: Dictionary) -> String:
 	return ""
 
 
-## B 轴 · 跨局序列表(design/difficulty.md §3)。`core/director.gd` 是它唯一的消费者。
+## B 轴 · 跨局序列表(docs/design/difficulty.md §3)。`core/director.gd` 是它唯一的消费者。
 static func director() -> Dictionary:
 	return _load("director", func(d): return validate_director(d))
 
@@ -194,7 +194,7 @@ static func validate_run(d: Dictionary) -> String:
 	var ppshop: int = int(d["phrases_per_shop"])
 	if ppshop <= 0 or pps % ppshop != 0:
 		return "phrases_per_section (%d) must be a multiple of phrases_per_shop (%d)" % [pps, ppshop]
-	# 手速预算 (design/solver_roadmap.md): 求解器与模拟器共用的上限, 必须为正。
+	# 手速预算 (docs/design/solver_roadmap.md): 求解器与模拟器共用的上限, 必须为正。
 	# swaps 至少要够把任意「8 选 5」搬进手牌 —— 那需要 cache_cap 次交换,
 	# 少于它, 求解器就够不到部分持法, 上界会被工具而不是被游戏限制。
 	var bb = d["beat_budget"]
@@ -264,7 +264,7 @@ const _BOON_PARAMS := ["score_replay_factor", "spotlight_cards",
 	"previous_raw_factor", "ghost_first_discard"]
 
 
-## faces.json is data-only (2026-08-09: design prose moved to design/blinds.md).
+## faces.json is data-only (2026-08-09: design prose moved to docs/design/blinds.md).
 ## ⚠ Unlike every other data file, `_`-prefixed keys are NOT treated as comments
 ## here — that exemption is exactly how the prose grew to 77.6% of the file
 ## before. Both the root object and each face entry are locked to a whitelist,
@@ -276,7 +276,7 @@ const _FACE_ROOT_KEYS := ["faces", "families", "fixed_tiers", "weak_upper_bound"
 static func validate_faces(d: Dictionary) -> String:
 	for k in d:
 		if not _FACE_ROOT_KEYS.has(k):
-			return "faces.json unknown top-level key '%s' — it is data-only now, design notes belong in design/blinds.md" % k
+			return "faces.json unknown top-level key '%s' — it is data-only now, design notes belong in docs/design/blinds.md" % k
 	if not d.has("faces"):
 		return "wants 'faces'"
 	var ids := {}
@@ -284,7 +284,7 @@ static func validate_faces(d: Dictionary) -> String:
 		for k in e:
 			if not ["id", "name", "cn", "fx", "params", "proof", "tape_required", "tier", "tiers",
 					"min_run"].has(k):
-				return "face '%s' unknown key '%s' — faces.json is data-only now, design notes belong in design/blinds.md §7" % [e.get("id", "?"), k]
+				return "face '%s' unknown key '%s' — faces.json is data-only now, design notes belong in docs/design/blinds.md §7" % [e.get("id", "?"), k]
 		if e.has("tape_required") and not e["tape_required"] is bool:
 			return "face '%s' tape_required wants bool" % e.get("id", "?")
 		if ids.has(e["id"]):
@@ -356,13 +356,13 @@ static func validate_faces(d: Dictionary) -> String:
 	for t in by_tier:
 		var cnt: int = by_tier[t].size()
 		if cnt < 2 and not fixed.has(t):
-			return "tier %d 只有 %d 张脸, 这一轮每局都一样 —— 想固定就写进 fixed_tiers(设计判据见 design/blinds.md §3)" % [t, cnt]
+			return "tier %d 只有 %d 张脸, 这一轮每局都一样 —— 想固定就写进 fixed_tiers(设计判据见 docs/design/blinds.md §3)" % [t, cnt]
 		if cnt > 1 and fixed.has(t):
 			return "tier %d 声明成 fixed 却有 %d 张脸 —— 声明和内容对不上" % [t, cnt]
 	# 覆盖自证的**量级豁免**(2026-08-08 用户拍板 A 案)。判据两条 —— |z|>=3(信不信得过)
 	# **且** 量级>=5%(要不要管);量级不够时允许豁免, 但**必须显式声明**,
 	# 和 `fixed_tiers` 同一条原则:**豁免必须是有意的, 不能是漏掉的**。
-	# ⚠ 声明的是"对**完美玩家**的上界效应小", **不是**"这张脸没用" —— 见 design/blinds.md §5。
+	# ⚠ 声明的是"对**完美玩家**的上界效应小", **不是**"这张脸没用" —— 见 docs/design/blinds.md §5。
 	# ⚠ 拼错 id 会让豁免**静默失效**(门照样红, 所以不至于放行, 但作者会一头雾水), 这里挡掉。
 	# ⚠ 退役的脸留在列表里也挡掉:它是一块过期的遮羞布。
 	for w in d.get("weak_upper_bound", []):
@@ -377,7 +377,7 @@ static func validate_faces(d: Dictionary) -> String:
 	return _validate_face_proof(d, tier_of)
 
 
-## 教学关脚本(design/difficulty.md §4)。`core/tutorial.gd` 是它唯一的消费者。
+## 教学关脚本(docs/design/difficulty.md §4)。`core/tutorial.gd` 是它唯一的消费者。
 ## ⚠ 这里守的是**结构**, 不是内容:拍长多少、教哪几步是设计, 由用户直接改 JSON。
 static func validate_tutorial(d: Dictionary) -> String:
 	for k in d:
@@ -442,7 +442,7 @@ static func validate_tutorial(d: Dictionary) -> String:
 	return ""
 
 
-## ---- B 轴 · Director(design/difficulty.md §3) ----
+## ---- B 轴 · Director(docs/design/difficulty.md §3) ----
 ##
 ## ⚑⚑ **Director 是一张按局数索引、对所有人相同的设计常量表**(2026-08-14 用户拍板:
 ## 「这里不是千人千面的不用读 context」)。所以这里守的是**结构**, 不是内容 ——
@@ -457,16 +457,16 @@ const _DIRECTOR_BIASES := ["mild", "median", "harsh"]
 ## ⚠ 「unknown key」那种错误信息会让作者以为「拼错了, 换个名字就行」, 而这里每一条
 ## 都是**拍过板的边界**, 换个名字照样越界。四类:
 ##   ① 目标分/难度形状 —— 铁律「Director 不许调目标分」(玩家看得见的数不许按局数漂);
-##   ② 价格 —— 定价先过 design/numbers.md 的宪法, 不许从这里绕;
+##   ② 价格 —— 定价先过 docs/design/numbers.md 的宪法, 不许从这里绕;
 ##   ③ 「必定出某张牌」—— 2026-08-06 用户拍板「不应该有任何卡有固定概率」,
 ##      活法是**把保证写在卡面上**(独狼/点唱机), 不是藏进 Director 的掷点;
 ##   ④ 读 context —— 2026-08-14 拍板作废的那三节(Inputs / 行为模型 / 掌握度)。
 const _DIRECTOR_FORBIDDEN := {
-	"target_mult": "铁律「Director 不许调目标分」(design/difficulty.md §3)—— 玩家看得见的数不许按局数漂",
+	"target_mult": "铁律「Director 不许调目标分」(docs/design/difficulty.md §3)—— 玩家看得见的数不许按局数漂",
 	"section_targets": "目标分表在 data/run.json, 它对所有人、对每一局都是同一张",
 	"death_spec": "难度形状是 A 轴的设计常量(data/run.json), 不是 B 轴的手段",
 	"gig_clocks": "拍长玩家感觉得到(时间是唯一压力货币)—— 教学关可以放宽, 正式局不许按局数漂",
-	"joker_prices": "定价先过 design/numbers.md 的三轴框架与六步 SOP, 不许从 Director 绕",
+	"joker_prices": "定价先过 docs/design/numbers.md 的三轴框架与六步 SOP, 不许从 Director 绕",
 	"price_delta": "同上;货架价格增减是卡面效果(赞助), 不是 Director 的口",
 	"reroll": "同上",
 	"joker_upgrade": "同上 —— 升级曲线锚在「一局白剩多少钱」, 见 economy.json 的注释",
@@ -484,7 +484,7 @@ const _DIRECTOR_FORBIDDEN := {
 }
 
 
-## 跨局序列表(design/difficulty.md §3)。`core/director.gd` 是它唯一的消费者。
+## 跨局序列表(docs/design/difficulty.md §3)。`core/director.gd` 是它唯一的消费者。
 ## ⚠ 这里读 `economy()` 拿稀有度名单 —— 不引用 `GameConfig`(它反过来读 DB, 会成环,
 ## 同 `validate_faces` 那条);`validate_economy` 不碰 director, 所以不成环。
 static func validate_director(d: Dictionary) -> String:
@@ -533,7 +533,7 @@ static func validate_director(d: Dictionary) -> String:
 			return "state '%s' wants an object" % sname
 		var ke := _keys_ok(st, _DIRECTOR_STATE_KEYS)
 		if ke != "":
-			return "state '%s': %s —— Director 一局只调两样(脸的排布 + 货架), 见 design/difficulty.md §3" \
+			return "state '%s': %s —— Director 一局只调两样(脸的排布 + 货架), 见 docs/design/difficulty.md §3" \
 				% [sname, ke]
 		if not _DIRECTOR_BIASES.has(String(st["face_bias"])):
 			return "state '%s' 的 face_bias '%s' 不认识, 只能是 %s" \
@@ -619,12 +619,12 @@ static func validate_boons(d: Dictionary) -> String:
 	return ""
 
 
-## 覆盖自证契约(design/gates.md):**一条规则如果进不了模型, 它就不该进池子。**
+## 覆盖自证契约(docs/design/gates.md):**一条规则如果进不了模型, 它就不该进池子。**
 ## 每张进了池子的脸必须声明它在模型里走哪条通路, `tools/gate.gd` 照着这个声明
 ## 给它造配对对照臂。漏声明 = 直接红, 和 `_FACE_PARAMS` 两张表同一个思路:
 ## **强制作者做一次决定, 而不是默认走一条恰好不报错的路。**
 ## ⚠ 声明错通路是**静默**的(门会给它造一条测不到东西的臂然后放过它) —— 这个项目
-## 栽过四次的「规则在游戏里, 不在模型里」全是这个形状。通路的含义见 design/blinds.md §4。
+## 栽过四次的「规则在游戏里, 不在模型里」全是这个形状。通路的含义见 docs/design/blinds.md §4。
 ## ⚠ **选错通路会把结论量反, 而且不报错。** 2026-08-07 第一次全量跑抓到: 用规则 bot 量
 ## freshsheet(翻篇)得到 **+1584 分**(脸让玩家变强!), 换成完美玩家是 **−790**。
 ## 规则 bot 不跨拍养缓存, 洗掉缓存反而帮它甩了烂牌。**攻击跨拍养牌或时间预算的脸必须走 solver。**
@@ -645,7 +645,7 @@ static func _validate_face_proof(d: Dictionary, tier_of: Dictionary) -> String:
 			proofs[e["id"]] = true
 	for fid in tier_of:
 		if not proofs.has(fid):
-			return "face '%s' is in a pool without a `proof` channel — see design/blinds.md §4" % fid
+			return "face '%s' is in a pool without a `proof` channel — see docs/design/blinds.md §4" % fid
 	return ""
 
 
@@ -688,7 +688,7 @@ const _ACQUIRE_KEYS := ["wilds", "deck_rule", "trim_low"]
 const _DECK_RULES := ["shortcut", "fourfingers", "redtone", "blacktone"]
 
 
-## 小丑牌的覆盖自证通路。含义见 `validate_jokers` 里的注释与 design/jokers.md。
+## 小丑牌的覆盖自证通路。含义见 `validate_jokers` 里的注释与 docs/design/jokers.md。
 ## `shop` = 货架结构卡(联票/赞助/点唱机):不产分不产钱, 改的是**商店本身**,
 ## 三条旧通路都量不到 —— 仪器是 kit 的商店行为臂(开商店配对 A/B, 证物按卡声明)。
 const _JOKER_PROOFS := ["score", "solver", "coin", "shop"]
@@ -700,7 +700,7 @@ const _SHELF_KEYS := ["target_weight_mult", "target_guaranteed", "shelf_slots",
 
 ## ⚑ `curve` = 时间形状, support 配额表的记账单位(2026-08-10 用户定分类三题后必填)。
 ## 15→18 张时配额表静默过期, 病根是「这张卡属于哪类」可以被忘掉 ——
-## 和脸的 tier 同一个病同一个药:**强制作者做一次决定**。quota 见 design/jokers_atlas.md §0。
+## 和脸的 tier 同一个病同一个药:**强制作者做一次决定**。quota 见 docs/design/jokers_atlas.md §0。
 const _JOKER_CURVES := ["burst", "fixed", "growth", "floating", "decay"]
 
 
@@ -717,13 +717,13 @@ static func validate_jokers(d: Dictionary) -> String:
 		# 填了等于同一个口径写两处。
 		if String(e.get("kind", "")) == "support":
 			if not e.has("curve"):
-				return "support '%s' 没有 curve 声明(%s)—— 配额表的记账单位, 见 design/jokers_atlas.md" \
+				return "support '%s' 没有 curve 声明(%s)—— 配额表的记账单位, 见 docs/design/jokers_atlas.md" \
 					% [e.get("id", "?"), " / ".join(_JOKER_CURVES)]
 			if not _JOKER_CURVES.has(String(e["curve"])):
 				return "joker '%s' 的 curve '%s' 不认识, 只能是 %s" % [e["id"], e["curve"], str(_JOKER_CURVES)]
 		elif e.has("curve"):
 			return "target '%s' 不该有 curve(Target 不进 support 配额表)" % e.get("id", "?")
-		# ⚠ `proof` = 这张牌**用什么仪器**证明「模型看得见它」(design/jokers.md 验证方案)。
+		# ⚠ `proof` = 这张牌**用什么仪器**证明「模型看得见它」(docs/design/jokers.md 验证方案)。
 		# 和脸的 `proof` 同一个思路,连声明必填这条也一样 —— 漏声明 = 直接红。
 		# **通路是按仪器分的, 不是按机制分的**:
 		#   score  —— 效果直接改分,规则 bot 配对 A/B 就量得到
@@ -733,7 +733,7 @@ static func validate_jokers(d: Dictionary) -> String:
 		#   coin   —— 只给钱不给分,**在分数臂里按定义恒等于 0**。拿分数验它只会得出
 		#             「没接上」—— 和 `raisedbar` 一模一样, 必须走金币臂 + 行为臂。
 		if not e.has("proof"):
-			return "joker '%s' 没有 proof 通路声明 —— 见 design/jokers.md 验证方案" % e.get("id", "?")
+			return "joker '%s' 没有 proof 通路声明 —— 见 docs/design/jokers.md 验证方案" % e.get("id", "?")
 		if not _JOKER_PROOFS.has(String(e["proof"])):
 			return "joker '%s' 的 proof '%s' 不认识, 只能是 %s" % [e["id"], e["proof"], str(_JOKER_PROOFS)]
 		if ids.has(e["id"]):
@@ -795,7 +795,7 @@ static func validate_sim(d: Dictionary) -> String:
 			"lonewolf_value", "ev", "chase", "solver"]:
 		if not d.has(k):
 			return "missing key '%s'" % k
-	# 平衡贪心的权重 (design/solver_roadmap.md)。lam < 0 会把「养牌」变成「主动毁缓存」;
+	# 平衡贪心的权重 (docs/design/solver_roadmap.md)。lam < 0 会把「养牌」变成「主动毁缓存」;
 	# lam_samples < 1 会让 cache_value 恒为 0, 于是 lam 静默失效 —— 那正是最难发现的
 	# 一类失效:参数还在配置里写着, 行为却已经退化成单拍贪心。
 	var sv = d["solver"]
@@ -844,7 +844,7 @@ static func validate_ui(d: Dictionary) -> String:
 	return ""
 
 
-## 起承転結的「同族递进」契约(2026-08-07 用户拍板 A′ 案, 见 design/blinds.md §3)。
+## 起承転結的「同族递进」契约(2026-08-07 用户拍板 A′ 案, 见 docs/design/blinds.md §3)。
 ##
 ## 一个机制先以**软版**出现(起:安全地介绍它), 再以**同族硬版**回来(転:把它扭转)。
 ## 契约 = **软版出现的最后一段 < 硬版出现的第一段**。反过来就是先硬后软, 那不是教学弧,

@@ -2,7 +2,7 @@ class_name Chrome
 extends RefCounted
 
 ## 四屏共用的全局 chrome:首页 + 主角/小丑牌/荣誉三个图鉴页(2026-08-11,
-## resources/主角|小丑牌|荣誉.dc.html 三份设计稿实装时从 home.gd 迁出成单源)。
+## docs/mockups/主角|小丑牌|荣誉.dc.html 三份设计稿实装时从 home.gd 迁出成单源)。
 ## 这里只放「每个页面都要画的那几件」:底部页签轨、页标题栏、货币章、斜雨、
 ## 霓虹字、头像圆盘。页面自己的内容各回各家。
 

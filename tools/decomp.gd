@@ -4,7 +4,7 @@ extends Probe
 ##   godot --headless --path . --script res://tools/decomp.gd
 ##   SYNC5_DECOMP_N=40 godot --headless --path . --script res://tools/decomp.gd
 ##
-## ⚑ **为什么要它**(`design/solving.md` §II-1):`solver_roadmap.md` 定义「难度 = 1/通过率」,
+## ⚑ **为什么要它**(`docs/design/solving.md` §II-1):`solver_roadmap.md` 定义「难度 = 1/通过率」,
 ## 那是个**结果** —— 它回答「多难」, 不回答「难在哪」。而关卡设计要判断的恰恰是
 ## 「**这一级的难, 和上一级是不是同一种难**」。文档写着:
 ## 「**五项的仪器全都已经有了, 而且都在跑 —— 只是从来没有被并排放在一张表上。**」

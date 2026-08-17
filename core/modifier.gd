@@ -1,7 +1,7 @@
 class_name SectionMod
 extends RefCounted
 
-## Boss-face section modifiers — data shell over data/faces.json (design/tech.md).
+## Boss-face section modifiers — data shell over data/faces.json (docs/design/tech.md).
 ## Metadata + numeric params live in data; the apply sites stay where they
 ## were (Settle for the scoring twists, view/phrase.gd for clock & toll).
 ## All are announced in one line at section start (principle A1/A2); card
@@ -37,7 +37,7 @@ static func by_id(p_id: String) -> SectionMod:
 ## 一张脸的**合法轮次集** —— `tiers` 优先, 缺省退回 `[tier]`(单轮)。
 ##
 ## ⚑ **为什么是集合而不是一个数**(2026-08-14 用户:「有大量只有一轮生效的盲注我不喜欢」):
-## `tier` 单值等于宣称「难度是脸的固有属性」, 而 `design/gates.md §6` 早就写了反面 ——
+## `tier` 单值等于宣称「难度是脸的固有属性」, 而 `docs/design/gates.md §6` 早就写了反面 ——
 ## **同一张脸放在 S1 和 S4 难度不一样**(构筑值 4.2 倍)。所以「这张脸属于哪轮」本来就该是
 ## **一个子集**, 不是一个点。
 ## ⚠⚠ 这不是新设计, 是**把 schema 放回它本来的宽度**:`tools/price.gd` 文件头写着
@@ -86,7 +86,7 @@ static func tiers_of(mod_id: String) -> Array:
 	return []
 
 
-## 声明为「固定」的轮次 —— 只有一张脸, 每局都一样。见 design/blinds.md §3:
+## 声明为「固定」的轮次 —— 只有一张脸, 每局都一样。见 docs/design/blinds.md §3:
 ## 固定的代价是新鲜感为零, 所以它**必须是显式声明的, 不能是排漏了**。
 ## ⚠ 不能直接 `.has(tier)` —— JSON 数字全是 float, `[4.0].has(4)` 是 **false** 且不报错。
 static func tier_is_fixed(tier: int) -> bool:
@@ -98,7 +98,7 @@ static func tier_is_fixed(tier: int) -> bool:
 
 ## 这张脸在模型里走哪条通路 —— "score" / "belief" / "target"。
 ## "" = 没声明, 只可能发生在退役的脸上(进池子就必须声明, `DB.validate_faces` 锁着)。
-## `tools/gate.gd` 照这个给每张脸造配对对照臂。见 design/blinds.md §4。
+## `tools/gate.gd` 照这个给每张脸造配对对照臂。见 docs/design/blinds.md §4。
 static func proof(mod_id: String) -> String:
 	for e in DB.faces().get("faces", []):
 		if String(e["id"]) == mod_id:
@@ -122,7 +122,7 @@ static func pooled_ids() -> Array:
 ##
 ## 这条守卫在 2026-08-07 `tier` 收成单值时被删过一次(叫 `arc`), 理由是「一张脸一个 tier
 ## 之后跨段复现在结构上表达不出来, 它守着一个不可能发生的情况」——
-## 而 `design/blinds.md §3` 当场留了后手:**「将来真要让一张脸跨轮出现,
+## 而 `docs/design/blinds.md §3` 当场留了后手:**「将来真要让一张脸跨轮出现,
 ## 把 tier 改成数组并把那条守卫加回来。」** 2026-08-14 放开 `tiers` = 那个「将来」到了。
 ##
 ## ⚠ 没有它会怎样:`roll` 是**每段独立均匀掷**, 一张脸跨轮之后同一局撞两次的概率立刻非零,

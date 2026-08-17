@@ -2,7 +2,7 @@ class_name WaveView
 extends Control
 
 ## Particle sound-wave — ports the canvas routine in
-## resources/Neon Rain Card Game.dc.html (`startWave`).
+## docs/mockups/Neon Rain Card Game.dc.html (`startWave`).
 ##
 ## 150 columns × 7 mirrored dot rows. The envelope is a sum of three drifting
 ## gaussian humps plus a floor; amplitude drives the colour from cyan to pink.

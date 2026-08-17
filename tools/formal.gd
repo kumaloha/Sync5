@@ -6,23 +6,23 @@ extends SceneTree
 ## **正在用的**诊断仪器,而 S3 的下一步大概率还要改它们。
 ## **在仪器还在用的时候改仪器**是本项目吃过亏的形状 —— 别顺手「合并一下」。
 
-## `design/solving.md` 的验证探针 —— 把形式化建模里**现在就能证伪的主张**跑一遍。
+## `docs/design/solving.md` 的验证探针 —— 把形式化建模里**现在就能证伪的主张**跑一遍。
 ##   godot --headless --path . --script res://tools/formal.gd
 ##   SYNC5_FORMAL_ONLY=p|theta|time   只跑其中一组
 ##
 ## **为什么要有它**:上一轮的文档是**先写主张、后补证据**,于是
-## `design/capability.md`(「模型的产出只有一个:分数分布」)和 `design/gates.md`
+## `docs/design/capability.md`(「模型的产出只有一个:分数分布」)和 `docs/design/gates.md`
 ## (「目标函数不是难度,是留存」)互相打架却没人发现。这次反过来:
 ## **能验的先跑,结果回填文档**。
 ##
-## 三组主张(编号对应 design/solving.md):
+## 三组主张(编号对应 docs/design/solving.md):
 ##   主张 7  `P` 的分量是**独立信息** —— 两两相关系数, |r|>0.9 的该合并
 ##   主张 8  `θ=⟨λ,τ,ε,d⟩` 足以刻画能力谱 —— 现在只有 λ 可调, 所以这一组
 ##           回答的是**「λ 一个人够不够」**;不够正是「要加 τ/ε」的证据
 ##   主张 10 时间约束真的 binding —— 交换预算 b 从 0 到 5, 最优切法的分数掉多少
 ##
 ## 口径按项目铁律:**配对(逐局共用种子)、报标准误、样本量显式**。
-## ⚠ 循环骨架是薄的, 所有**转移**都走 `core/beat.gd`(design/tech.md:
+## ⚠ 循环骨架是薄的, 所有**转移**都走 `core/beat.gd`(docs/design/tech.md:
 ## 实时与同步共用不了 `for`, 只能共用转移)。别在这里重写规则。
 
 const K_CONFIGS := 10       # 主张 7:随机脸排布的条数
@@ -41,7 +41,7 @@ var _rng := RandomNumberGenerator.new()
 func _initialize() -> void:
 	var t0 := Time.get_ticks_msec()
 	var only := OS.get_environment("SYNC5_FORMAL_ONLY")
-	print("=== design/solving.md 主张验证 ===")
+	print("=== docs/design/solving.md 主张验证 ===")
 	print("段数 %d × 每段 %d 拍, 缓存 %d, 手牌 %d" % [
 		GameConfig.SECTIONS_PER_RUN, GameConfig.PHRASES_PER_SECTION,
 		GameConfig.CACHE_CAP, GameConfig.HAND_SIZE])
@@ -65,7 +65,7 @@ func _initialize() -> void:
 #   Δ  技巧空间    E[带前瞻] − E[不带前瞻]      (λ=0.2 vs λ=0, 配对)
 #   V  运气占比    Var_牌运 / (Var_牌运 + Var_决策)
 #                  = 「这手牌好不好」相对「你怎么切」的方差占比
-#                  ⚠ 这个口径比 design/gates.md 写的
+#                  ⚠ 这个口径比 docs/design/gates.md 写的
 #                    `Var[得分|决策已定]/Var[得分]` 更可算:56 个切法
 #                    就是完整的决策空间, 不需要"固定决策再重抽"。
 #   G  近失密度    Pr[ 0 <= (目标−段分)/目标 <= 0.30 ]  差一点没过的比例
@@ -109,7 +109,7 @@ func _claim_p() -> void:
 #
 # 规则 bot 与「完美玩家在各个 λ 下」的分数分布对比。
 # 若规则 bot 落在 λ 谱之外(比如比 λ=0 还低很多), 说明 λ 撑不起能力谱,
-# 需要 τ(手速)和 ε(噪声)—— 那正是 design/solving.md 第二部分 主张的内容。
+# 需要 τ(手速)和 ε(噪声)—— 那正是 docs/design/solving.md 第二部分 主张的内容。
 func _claim_theta() -> void:
 	print("\n── 主张 8:λ 一个人够不够刻画能力谱 ──")
 	print("N=%d 局/臂, 全部共用同一批种子(配对)" % N_THETA)
@@ -135,7 +135,7 @@ func _claim_theta() -> void:
 			best_gap = absf(pr["d"])
 			best_lam = lam
 	print("  → 最接近规则 bot 的 λ = %.2f, 仍差 %.0f 分" % [best_lam, best_gap])
-	print("  判据:若任何 λ 都无法逼近规则 bot, 则 λ 撑不起能力谱 → 需要 τ/ε(design/solving.md 第二部分)")
+	print("  判据:若任何 λ 都无法逼近规则 bot, 则 λ 撑不起能力谱 → 需要 τ/ε(docs/design/solving.md 第二部分)")
 
 	# ── ε 扫描:能不能用噪声把完美玩家降到规则 bot 的水平 ──
 	# 判据不是"降下来了"就行 —— 分数对上只是**必要**条件。
@@ -217,7 +217,7 @@ func _claim_time() -> void:
 		print("    %d      %5.1f / %d        %8.1f          %s" % [
 			b, rr, 56, l, ("基准(不 binding)" if l < 0.001 else "−%.1f%%" % (l / maxf(1.0, _mean_abs_best(loss, cap)) * 100.0))])
 	print("  判据:b=%d(=缓存容量)必须损失 0 —— 那正是「现在时间不 binding」的证据;" % cap)
-	print("        b 更小时损失显著 > 0 → 把时间建成代价确实会改变决策(design/solving.md §2.7)")
+	print("        b 更小时损失显著 > 0 → 把时间建成代价确实会改变决策(docs/design/solving.md §2.7)")
 
 
 func _mean_abs_best(loss: Dictionary, cap: int) -> float:
@@ -235,7 +235,7 @@ func _swaps_needed(s, cache: Array) -> int:
 
 
 # ============================================================
-# 共用:一局的薄循环。转移全部走 Beat(design/tech.md)。
+# 共用:一局的薄循环。转移全部走 Beat(docs/design/tech.md)。
 # ============================================================
 
 

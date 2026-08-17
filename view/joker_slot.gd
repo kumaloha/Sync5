@@ -1,7 +1,7 @@
 class_name JokerSlotView
 extends Control
 
-## Joker slot — implements the module in resources/Neon Rain Card Game.dc.html:
+## Joker slot — implements the module in docs/mockups/Neon Rain Card Game.dc.html:
 ## glass panel with a cyan neon frame, header row (CODE + icon box), a dotted
 ## divider, a gridded DISPLAY WINDOW (animated EQ bars for the target slot, a
 ## glyph for supports), then a name chip + multiplier chip and a caption line.

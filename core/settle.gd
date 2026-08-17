@@ -4,7 +4,7 @@ extends RefCounted
 ## Settlement pipeline: pattern result → target joker → support jokers →
 ## protagonist → final score & coins.
 ##
-## Formula (2026-08-05 用户拍板 chips×mult, supersedes design/jokers.md B1):
+## Formula (2026-08-05 用户拍板 chips×mult, supersedes docs/design/jokers.md B1):
 ##   score = (chips + Σ chip-mods) × 牌型mult × target mult × (1 + Σ%) + Σ bonus
 ## `chips` = pattern base chips + rank sum (from Pattern); the pattern's own
 ## MULT seeds the multiplier chain, target jokers stack onto it 符合条件时.

@@ -1,7 +1,7 @@
 class_name PaperCard
 extends Button
 
-## Neon GLASS playing card — implements resources/整副卡牌.dc.html
+## Neon GLASS playing card — implements docs/mockups/整副卡牌.dc.html
 ## (1a 玻璃底 × 2a 传统点阵). Dark translucent body, suit-coloured glowing
 ## frame, 115° sheen sweep, hairline top highlight, cut-corner inner frame.
 ## A–10 use the traditional pip layout, J/Q/K a large centred suit,

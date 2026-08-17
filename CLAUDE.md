@@ -22,14 +22,14 @@ Lumines 的节奏推进 + Balatro 的构筑。**始终用中文回复。**
 > 「起因是我在一局那层抄了 14 份」= **经过**,归 [CHANGELOG.md](CHANGELOG.md);
 > 标题写着「踩过坑,别退回去」= 按定义就是 [LESSONS.md](LESSONS.md)。
 >
-> **美术与渲染的具体做法**(剖面数值、分层顺序、实现细节)归 [`design/ui_meta.md`](design/ui_meta.md);
-> **牌型/经济/关卡的具体数值与推导**归 `design/` 对应那篇(`cards` / `levels` / `jokers` / `blinds`);
-> **难度曲线与节奏**(死亡率形状、脸的轮次集、Director、新手引导)归 [`design/difficulty.md`](design/difficulty.md),
-> 它的**外部依据**在 [`design/research_pacing_retention.md`](design/research_pacing_retention.md)。
-> ⚠ **要「调研业内做法」之前先在 `design/` 里 grep** —— 那篇 27k 的调研已经覆盖
+> **美术与渲染的具体做法**(剖面数值、分层顺序、实现细节)归 [`docs/design/ui_meta.md`](docs/design/ui_meta.md);
+> **牌型/经济/关卡的具体数值与推导**归 `docs/design/` 对应那篇(`cards` / `levels` / `jokers` / `blinds`);
+> **难度曲线与节奏**(死亡率形状、脸的轮次集、Director、新手引导)归 [`docs/design/difficulty.md`](docs/design/difficulty.md),
+> 它的**外部依据**在 [`docs/design/research_pacing_retention.md`](docs/design/research_pacing_retention.md)。
+> ⚠ **要「调研业内做法」之前先在 `docs/design/` 里 grep** —— 那篇 27k 的调研已经覆盖
 > DDA / L4D Director / 心流 / 近失效应 / 短局留存 / 起承転結(踩过,见 [LESSONS.md](LESSONS.md) 八)。
 >
-> 设计规格在 `design/`,建模这条线按 `22 → 23 → 24 → 25` 读。
+> 设计规格在 `docs/design/`,建模这条线按 `22 → 23 → 24 → 25` 读。
 
 ---
 
@@ -64,24 +64,24 @@ godot --headless --path . --import                                         # 新
 ## 架构铁律
 
 - `core/` = 纯逻辑,**引擎无关、不含时钟、不 import view**。所有规则在这里。
-- `view/` = 渲染 + 计时,**组件化**(2026-08-05 拆分,规格=`design/tech.md`):`phrase.gd` 只做对局编排,
+- `view/` = 渲染 + 计时,**组件化**(2026-08-05 拆分,规格=`docs/design/tech.md`):`phrase.gd` 只做对局编排,
   首页=`home.gd`、信息区=`hud.gd`、商店=`shop.gd`、手牌/缓存/两键=`hand.gd`、小部件=`widgets.gd`;推进状态机在
   `core/run.gd`(引擎无关,有直测)。组件对外只发意图信号,**金币/装槽等经济动作只发生在编排器**。
   sim 同构三拆:`tools/sim.gd`(入口)+`bot.gd`(决策+信念)+`report.gd`(账本+报表),RNG 同实例。
 - **⚑⚑ 两层共用,别搞混(2026-08-08)**:`core/beat.gd` 共用**一拍的转移**(游戏 + 探针都用);
   **`tools/runloop.gd`(`RunLoop`)共用一局的循环 —— 只给探针用**,因为游戏是实时异步的、
-  共用不了 `for`(design/tech.md)。`view/phrase.gd` 只碰 `Beat`,不碰 `RunLoop`。
+  共用不了 `for`(docs/design/tech.md)。`view/phrase.gd` 只碰 `Beat`,不碰 `RunLoop`。
   ⚠ **判生死只有这一份**(走 `Run.section_target_for`)——`raisedbar` 事故正是这个形状。
   (14 份 → 1 份的起因与收敛口径见 [CHANGELOG.md](CHANGELOG.md);
   迁移时四个静默坑的完整版见 [LESSONS.md](LESSONS.md)。)
 - 新文件命名**一词化无下划线**(用户拍板)。
-- **数值与内容全部在 `data/*.json`**(2026-08-05 配置化,schema 见 `design/tech.md`):
+- **数值与内容全部在 `data/*.json`**(2026-08-05 配置化,schema 见 `docs/design/tech.md`):
   小丑牌/主角 = 效果 DSL(`core/fx.gd` 解释),Boss 脸 = 参数表,关卡/经济/机器人信念表 = 纯数字,
   打点开关 = `tape.json`。
   改卡改平衡 = 改 JSON;`core/db.gd` 校验,未知键/坏引用**在测试里直接红**
   (`tests/t_db.gd` 断言 `DB.load_error() == ""`)。⚠ **是测试期门禁,运行时不拒绝启动** ——
   理由与「要改成严格该先做什么」写在 `core/db.gd` 文件头。
-  加新 DSL 操作码要过 design/jokers.md 的门槛。
+  加新 DSL 操作码要过 docs/design/jokers.md 的门槛。
   机器人的 `_target_mult` 和卡面数额从 jokers.json **推导**,不许再手抄第二份。
 - **打点只在编排器打**(`view/phrase.gd` 调 `Tape.on()`),和「金币/装槽等经济动作只发生在编排器」
   同一条线——组件各打各的必然打重、打漏。组件要上报就发信号(shop 的 `denied` 就是为此加的)。
@@ -91,19 +91,19 @@ godot --headless --path . --import                                         # 新
   特征是会迭代的,你记录了反而不好做」)。判据:**发生过的判定 = 事实(记);没发生的假设 =
   特征(不记)**。**事实完整性的判据 = 能不能重放出任意时刻的局面**。
   (完整推导、可推导清单、2026-08-06 补齐的四类、四个踩过的坑,全在
-  [`design/telemetry.md`](design/telemetry.md)。)
+  [`docs/design/telemetry.md`](docs/design/telemetry.md)。)
 - 时长一律走 `GameConfig.phrase_duration()` 等钩子,不要在调用方写死
   (`GameConfig` 是 data/ 之上的静态门面,调用方语法不变;`early_settle()` 提前锁定从钩子插入)。
 
 ---
 
-## 已拍板的规则(design/ 01/02/04/05/08/11/12 已同步当前实现;07/09/10 是未实施的前瞻设计)
+## 已拍板的规则(docs/design/ 01/02/04/05/08/11/12 已同步当前实现;07/09/10 是未实施的前瞻设计)
 
 - **候选牌机制作废**。弃牌重抽制:选中手牌/缓存的牌 → 弃牌 → **立刻原位补牌**。
   **⚑ 弃牌免费(2026-08-06 用户拍板,推翻「1 金币/张」)**:「每局可以免费无限制弃牌,
   我们是有时间限制的,取消加大赌性,且取消后续买不起小丑牌的顾虑」。
   **唯一的闸门是 8 秒钟**,金币只剩买牌一个出口
-  (连带的五处变化与模型侧影响见 [`design/cards.md`](design/cards.md))。
+  (连带的五处变化与模型侧影响见 [`docs/design/cards.md`](docs/design/cards.md))。
 - 手牌恒 5 张;**缓存区恒满 3 格**(2 格不好玩)。缓存不存在"存入空位",**拖拽 = 两张对调**;
   拖到弃牌键 = 单张直弃。理牌 = 按点数排序。
 - **点击和拖拽是两种手势, 不许混**(2026-08-06 用户:「点到手牌区的卡和缓存区的卡就直接交换了,
@@ -113,7 +113,7 @@ godot --headless --path . --import                                         # 新
 - **大小王 = 万能牌,只能靠「百搭」小丑牌才有机会拿到**(`Joker.on_acquire` → `Deck.enable_wilds`)。
   牌型判定用暴力代入(每张万能试 52 张,≤2 张万能)。
 - **盲注一律不可跳过**(2026-08-05 用户拍板):Balatro 的 skip-blind/Tag 奖励系统**明确不做,勿再提议**。
-- **关卡结构(2026-08-06 节奏定案,design/levels.md + design/levels.md 为准)**:Run = 巡演 =
+- **关卡结构(2026-08-06 节奏定案,docs/design/levels.md + docs/design/levels.md 为准)**:Run = 巡演 =
   **4 场演出 × 1 盲注 = 4 Section,每盲注 6 个 Phrase**,单拍统一 **8s**
   (走 `phrase_duration()` 钩子)。**一局 ≈ 4.9 分钟**(216s 出牌 + 7 次商店)。
   **4 段全是 BOSS 墙**(用户拍板:「就是异常下来有 4 个阶段性的任务和规则要做,也不做跳过,
@@ -123,20 +123,20 @@ godot --headless --path . --import                                         # 新
   (`phrases_per_shop`),所以 4 个盲注有 **7 次商店**——段中 4 次 + 段末 3 次。
   **段中商店开在盲注进行当中**:不结算、不清分、不判生死,`Run.advance()` 返回 `shop_break`,
   编排器只 `_open_draft()` 不推进 section
-  (为什么值得这么做、以及 7 次商店的实测,见 [`design/levels.md`](design/levels.md))。
+  (为什么值得这么做、以及 7 次商店的实测,见 [`docs/design/levels.md`](docs/design/levels.md))。
   **商店盲注板因此有两态**:段末讲「下一场」,段中讲**这一段的进度**
   (大字 = 还差多少分、副行 = 已得 X/目标 Y、页脚 = 还剩 N 拍)。
   ⚠ **改段数要顺手核对所有按段索引的表**(表长 ≠ 段数会被**静默截断**成放水盘)——
-  清单与锁住它的测试见 [`design/levels.md`](design/levels.md)。
+  清单与锁住它的测试见 [`docs/design/levels.md`](docs/design/levels.md)。
   **盲注公示 = 舞台卡**(2026-08-05 用户:「关卡就是盲注」):
   首页的大玻璃卡与局内盲注板是**同一个对象**(`Widgets.StageCard` 定义外观 + `Widgets.BlindBoard` 是
   局内尺寸),改一处两边同步。商店顶部常驻盲注板(段末讲下一场、段中讲本段进度,见上条);
   无商店的入口(开局/重开)用独立公示卡 `view/intro.gd`(点按跳过,钟在卡消失后才开)。
 - 结算公式(2026-08-05 三次修订,用户拍板 chips×mult):
   **`(chips + Σ改基牌) × 牌型倍率 × target倍率(符合条件) × (1 + Σ%) + Σ奖励分`**。
-  chips = 牌型基础 chips + 五张牌点数和;每个牌型自带 (chips, mult) 双值(表在 design/cards.md),
+  chips = 牌型基础 chips + 五张牌点数和;每个牌型自带 (chips, mult) 双值(表在 docs/design/cards.md),
   **牌型倍率是乘法链第一环**——稀有牌型与小丑牌相乘而不是被替代。
-  (倍率表的三版演进、实测频率、与原作的两处偏离,全在 [`design/cards.md`](design/cards.md)。)
+  (倍率表的三版演进、实测频率、与原作的两处偏离,全在 [`docs/design/cards.md`](docs/design/cards.md)。)
   「改基牌」(VIP、黑胶)加在 chips 上吃全部倍率——必须早抽,后期才值钱;「奖励分」(灯牌/回响/
   尾声/周转/和弦)在乘法**后**落地——前期是神、后期自然过气,这是杀死万能填充牌的 Balatro 机制。
   槽序仍无意义。
@@ -145,12 +145,12 @@ godot --headless --path . --import                                         # 新
   **① 族内统一** —— 同一张 Target 对它覆盖的所有牌型给**同一个倍率**。
   **② 族间按覆盖面标定** —— 统一之后仍不平, 因为**牌型层管「达到某牌型多难」,
   管不了「这个流派的射程覆盖多少拍」**。所以按各自「超出中性基准的部分」反推倍率
-  (覆盖面与终值见 [`design/jokers.md`](design/jokers.md))。
+  (覆盖面与终值见 [`docs/design/jokers.md`](docs/design/jokers.md))。
   ⚠ **新 Target 定价从此只需回答一个数**:「它覆盖的牌型占多少拍, 该给几倍」——
   不用再画一张族内阶梯表。测试里锁了**族内一致**这条结构契约。
   **⚑ ③ 那个数按「牌堆给不给」算,不按「实测打出多少」算(2026-08-14 用户拍板)**:
   难度 = **命中该 Target 条件的组合概率**(零策略、8 选 5 取最优),来源 =
-  [`design/prior.md`](design/prior.md) 的先验层,**不是** sim 或 Tape 的实测频率。
+  [`docs/design/prior.md`](docs/design/prior.md) 的先验层,**不是** sim 或 Tape 的实测频率。
   三条理由,每条都独立成立:
   **(a) 技术溢价必须归玩家** —— 按实测定价等于「你越会玩, 这个牌型给你的倍率越低」,
   把技术奖励又收回去, 与「会玩的卡 EV 必须严格高于保底卡」直接冲突;
@@ -160,8 +160,8 @@ godot --headless --path . --import                                         # 新
   是**玩家没认出来 / 来不及做** —— **倍率治不了它, 该修的是可读性、时间或规则牌**。
   拿倍率去补识别问题, 补出来的是一个会被规则牌叠加放大的永久超模。
 - **小丑牌的三条契约**(roster 现状见 [STATUS.md](STATUS.md),配额表与规则牌见
-  [`design/jokers.md`](design/jokers.md)):
-  设计原则 16 条 + 配额表在 `design/jokers.md`,Balatro 调研在 `design/research_balatro_jokers.md`。
+  [`docs/design/jokers.md`](docs/design/jokers.md)):
+  设计原则 16 条 + 配额表在 `docs/design/jokers.md`,Balatro 调研在 `docs/design/research_balatro_jokers.md`。
   卡面文字**英文 ≤7 词**(1.5 秒读懂,测试里有断言)。钩子契约:`apply/on_acquire/on_discard/on_swap/
   on_phrase_end/on_section_end`,成长牌状态存 `Joker.state`。**成长/重置只挂显式动作(弃牌/时机),
   绝不挂结算牌型内容,零挂机成长**——这三条是铁律,新牌必须过。
@@ -177,21 +177,21 @@ godot --headless --path . --import                                         # 新
   Target 回到**同一个货架池**按稀有度权重出现,已有 Target 时就是一次普通的「买新替旧」。
   **首张 Target 免费三选一保留**(那是开局引导,唯一的特例)。
   ⚠ **bot 侧保留了一条门**:`cfg.target` 强制的队列不许换旗(除非 `cfg.pivot`)——
-  那是**实验者的随机分配**, 是整条 pipeline 唯一干净的因果通道(design/solver_roadmap.md),
+  那是**实验者的随机分配**, 是整条 pipeline 唯一干净的因果通道(docs/design/solver_roadmap.md),
   让 bot 自己换掉就没了。
   收入主干 = **Section 通关工资 +3◆** + 牌型金币(4 段结构下工资点只有 4 个,单次商店购买力下降)。
   所有数字在 `data/economy.json`。
 - **满槽替换 = 拖拽对调**(与缓存区同一手势:「拖拽 = 两张对调」),Target 槽**拒绝**接放
-  (它是取消位);新旧同屏对照的完整交互见 [`design/ui_meta.md`](design/ui_meta.md)
-  与 [`design/levels.md`](design/levels.md) §0.2。
+  (它是取消位);新旧同屏对照的完整交互见 [`docs/design/ui_meta.md`](docs/design/ui_meta.md)
+  与 [`docs/design/levels.md`](docs/design/levels.md) §0.2。
 
 ### 数值的归属(改哪里)
 
 - **小丑牌与主角的平衡数值各在一张表里**:`data/jokers.json` 与
   `core/character.gd::roster()`。改平衡只动那里,别散到代码各处。
 - **⚑ 定价先过宪法**(2026-08-12 用户立规):任何数额/倍率改动走
-  [`design/numbers.md`](design/numbers.md) 的三轴框架与六步 SOP;
-  概率的三列记录(设计/仪器/真人)在 [`design/probbook.md`](design/probbook.md),
+  [`docs/design/numbers.md`](docs/design/numbers.md) 的三轴框架与六步 SOP;
+  概率的三列记录(设计/仪器/真人)在 [`docs/design/probbook.md`](docs/design/probbook.md),
   由 `python3 tools/probbook.py` 重刷 —— **账本是仪器读数,手改无效**。
 - ⚠ **发挥系数(完美玩家尺度 → 真人)不许拍初值** —— 等用户自己的 Tape
   (2026-08-07 用户:「我后面会完整玩很久,你到时候用我的系数」)。
@@ -208,12 +208,12 @@ godot --headless --path . --import                                         # 新
 - 调色:青 `#1effec` / 粉 `#ff328d` / 紫 `#7642ff` / 金 `#ff9b2b` / 红 `#ff3632`
   **改色必须量色相和饱和度,不能只看色值像不像**;
   **主色的权威 = `assets/reference/`,改色先采样,别凭记忆值。**
-  (二次校色的实测数字见 [`design/ui_meta.md`](design/ui_meta.md)。)
+  (二次校色的实测数字见 [`docs/design/ui_meta.md`](docs/design/ui_meta.md)。)
 - **背景 = 黑**(2026-08-06 两轮定稿:先「压暗」→ 用户「卡牌底下那个背景做成黑色吧」):
   局内 `BG0/1/2 = 000000/030308/07070f`,首页底色渐变全归零。
   **画面里的光全部由光效层承担**(激光/探照灯/光斑/霓虹边/扫描线),底色不再贡献任何亮度。
   ⚠ **改底色只做一半会看不出来** —— 大面积柔光会把黑重新染回来
-  (细节见 [`design/ui_meta.md`](design/ui_meta.md))。
+  (细节见 [`docs/design/ui_meta.md`](docs/design/ui_meta.md))。
 - **盲注档位色 = 四档递进 蓝 `#23cdff` → 橙 `#ffb347` → 红 `#ff5f6e` → 粉 `#ff4fa3`**(逐档升温)。
   只在 `Widgets.StageCard.accent_for()` 一处定义,首页舞台卡与局内盲注卡共用。
 - **底部页签区不要加板**:那里本来就是黑的,顶栏靠自己用**半透黑**(`draw_card` 的 `body` 参数)
@@ -235,18 +235,18 @@ godot --headless --path . --import                                         # 新
 **局内盲注 = 一张牌**(`Widgets.BlindCard`):摆在音浪层左边、和右边唱片对称的一张竖牌。
 **分工:HUD 管「当前数值」(分数/目标、金币、第几拍、进度),
 盲注卡管「你在打什么」(档位 + 序号 + 第 N 场 + BOSS 脸预告)。**
-尺寸、返工史与首页布局四条见 [`design/ui_meta.md`](design/ui_meta.md)。
+尺寸、返工史与首页布局四条见 [`docs/design/ui_meta.md`](docs/design/ui_meta.md)。
 
 **判据:同一个部件要不要共用,看的是语境而不是概念** —— 首页大卡和商店公示板是公示板语境,
 可以共用 `StageCard`;手牌旁边那张必须说卡牌的语言。
 
 **对齐类反馈要查「视觉顶端」而不是几何顶端** —— 角标与倒影的光都算进去
-(实例见 [`design/ui_meta.md`](design/ui_meta.md))。
+(实例见 [`docs/design/ui_meta.md`](docs/design/ui_meta.md))。
 
 关键坐标与全部界面文案在 **`data/ui.json`**(stage/hud/shop/hand/banner 五节,2026-08-05 起):
-**改布局改文案 = 改 JSON。** 具体坐标见 [`design/ui_meta.md`](design/ui_meta.md) 与 `data/ui.json` 本身。
+**改布局改文案 = 改 JSON。** 具体坐标见 [`docs/design/ui_meta.md`](docs/design/ui_meta.md) 与 `data/ui.json` 本身。
 
-### 渲染手法 —— 具体做法全在 [`design/ui_meta.md`](design/ui_meta.md)
+### 渲染手法 —— 具体做法全在 [`docs/design/ui_meta.md`](docs/design/ui_meta.md)
 
 剖面数值、分层顺序、玻璃卡三件套、倒影、辉光、光源方向那一整套(近 200 行)都在那篇。
 这里只留五条方法论:
@@ -262,10 +262,10 @@ godot --headless --path . --import                                         # 新
 ## 素材分工
 
 - **用户出**:小丑牌插画(丢进 `assets/jokers/joker_<id>.png` 即插即用)、卡背、主角立绘 + 横向行走小图 + 跳舞帧。
-- **`resources/` 下的 `*.html` 是用户的 Claude Design 设计稿,是对应界面的权威**(当前:`success.html` +
+- **`docs/mockups/` 下的 `*.html` 是用户的 Claude Design 设计稿,是对应界面的权威**(当前:`success.html` +
   `fail.html` = 结算两屏,由 `view/run_end.gd` 实现;`home.html` = 首页,由 `view/home.gd` 实现)。
-  **`resources/godot-handoff/` 的实现手册是舞台卡的权威**(分层顺序、9-slice、主题色梯度都在里面);
-  **`resources/assets/` 是设计稿 html 引用的原始素材**(frame-glass4 / 各色边框 / 四张 A 卡面,
+  **`docs/mockups/godot-handoff/` 的实现手册是舞台卡的权威**(分层顺序、9-slice、主题色梯度都在里面);
+  **`docs/mockups/assets/` 是设计稿 html 引用的原始素材**(frame-glass4 / 各色边框 / 四张 A 卡面,
   2026-08-05 用户补进仓库)。**首页大卡的玻璃壳贴素材**(`assets/frames/glass.png`,
   2026-08-12 用户拍板换素材;当年「抠图坏、不能贴」是放大镜下的误判,反转经过见
   [LESSONS.md](LESSONS.md) 判据 5 与 `assets/frames/README.md`);

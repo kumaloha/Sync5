@@ -1,7 +1,7 @@
 class_name Beat
 extends RefCounted
 
-## 一拍的编排 —— **游戏和模型共用的那一份**(design/tech.md)。
+## 一拍的编排 —— **游戏和模型共用的那一份**(docs/design/tech.md)。
 ##
 ## `core/` 铁律照旧:引擎无关、不含时钟、不 import view。
 ##

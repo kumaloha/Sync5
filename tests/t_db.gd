@@ -1,6 +1,6 @@
 extends RefCounted
 
-# --- Data config (design/tech.md): loader + validation ---
+# --- Data config (docs/design/tech.md): loader + validation ---
 func run(t) -> void:
 	t.eq(DB.load_error(), "", "all data files load clean")
 	t.check(FileAccess.file_exists("res://data/boons.json"),
@@ -35,7 +35,7 @@ func run(t) -> void:
 		"rarity": "common", "curve": "burst", "proof": "score", "fx": "f",
 		"effects": [{"when": {"typo": 1}, "do": {"bonus": 1}}]}]}) != "",
 		"unknown predicate detected")
-	# 小丑牌的覆盖自证通路(design/jokers.md 验证方案)—— 漏声明必须直接红,
+	# 小丑牌的覆盖自证通路(docs/design/jokers.md 验证方案)—— 漏声明必须直接红,
 	# 否则一张新牌可以悄悄绕过 `tools/kit.gd` 那道门。和脸的 `proof` 同一条锁。
 	var good_joker := {"id": "x", "name": "X", "cn": "x", "kind": "support",
 		"rarity": "common", "curve": "burst", "proof": "score", "fx": "f"}
@@ -56,18 +56,18 @@ func run(t) -> void:
 			"joker '%s' declares a known proof channel" % e.get("id", "?"))
 	t.eq(int(DB.sim()["runs"]), 1000, "sim.json runs")
 	t.check(DB.ui().has("stage"), "ui.json has stage")
-	# faces.json 是纯数据表(2026-08-09 散文搬去 design/blinds.md)—— 与其余数据文件不同,
+	# faces.json 是纯数据表(2026-08-09 散文搬去 docs/design/blinds.md)—— 与其余数据文件不同,
 	# `_` 前缀键在这里**不**是免检的注释, 防的是散文悄悄长回来。
 	var good_face := {"id": "x", "name": "X", "cn": "x", "fx": "f",
 		"params": {"target_power": 0.5}, "proof": "score", "tier": 1}
 	t.check(DB.validate_faces({"faces": [good_face]}) != "",
 		"a lone tier with no fixed_tiers declaration is still rejected (sanity check on the fixture)")
 	t.check(DB.validate_faces({"faces": [good_face], "_note": "hello"}) != "",
-		"faces.json rejects an underscore-prefixed top-level key (prose must live in design/blinds.md)")
+		"faces.json rejects an underscore-prefixed top-level key (prose must live in docs/design/blinds.md)")
 	var face_with_why := good_face.duplicate()
 	face_with_why["_why"] = "hello"
 	t.check(DB.validate_faces({"faces": [face_with_why]}) != "",
-		"faces.json rejects a per-face _why key (prose must live in design/blinds.md §7)")
+		"faces.json rejects a per-face _why key (prose must live in docs/design/blinds.md §7)")
 	var tape_face := good_face.duplicate(true)
 	tape_face["proof"] = "tape"
 	t.check(DB.validate_faces({"faces": [tape_face], "fixed_tiers": [1]}) != "",
@@ -79,7 +79,7 @@ func run(t) -> void:
 		"real-time faces keep a model proof and declare tape_required separately")
 
 	# ⚑ 轮次集 `tiers`(2026-08-14 用户:「有大量只有一轮生效的盲注我不喜欢」)。
-	# 规格 = design/difficulty.md §2.1。这几条锁的是 schema 的**边界**, 不是内容。
+	# 规格 = docs/design/difficulty.md §2.1。这几条锁的是 schema 的**边界**, 不是内容。
 	var multi := good_face.duplicate(true)
 	multi["tiers"] = [1, 2]
 	t.eq(DB.validate_faces({"faces": [multi], "fixed_tiers": [1, 2]}), "",

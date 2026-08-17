@@ -1,6 +1,6 @@
 extends RefCounted
 
-## B 轴 · Director 的契约(design/difficulty.md §3 · core/director.gd · data/director.json)。
+## B 轴 · Director 的契约(docs/design/difficulty.md §3 · core/director.gd · data/director.json)。
 ##
 ## ⚠ 锁的是**结构**, 不是内容 —— 第几局走哪个状态、货架偏多少是设计, 用户直接改 JSON。
 ## 所以这里**一个死数字都不抄**:序列长度、循环点、档宽、稀有度名单全部从 DB 推导
@@ -52,7 +52,7 @@ func run(t) -> void:
 		t.check(not Director.entry_for(r).is_empty(), "第 %d 局查得到状态条目" % r)
 
 	# --- ② 只按局数索引:同一个位置永远拿到同一个数 ---
-	# 这是「DDA 必须不可见」那条外部约束的可执行版本(design/difficulty.md §3 末)。
+	# 这是「DDA 必须不可见」那条外部约束的可执行版本(docs/design/difficulty.md §3 末)。
 	# Director 的入口只有 run_index 一个参数, 所以它可以被直接断言:两趟一模一样。
 	var pass1: Array = []
 	for r in range(1, n + span + 1):
@@ -198,7 +198,7 @@ func run(t) -> void:
 
 	# --- schema 门禁:越界的表必须红, 而且要为**正确的理由**红 ---
 	# ⚑ 连错误信息一起断 —— 否则「unknown key」也是非空, 会为了错误的理由变绿
-	#    (design/difficulty.md §5 的教学弧那条就踩过这个)。
+	#    (docs/design/difficulty.md §5 的教学弧那条就踩过这个)。
 	var rar: Array = base.keys()
 	var r0 := String(rar[0])
 	var ok := _cfg({"a": {"face_bias": "mild", "shelf": {}}}, ["a"])
@@ -216,7 +216,7 @@ func run(t) -> void:
 	t.check(DB.validate_director(death).contains("death_spec"), "难度形状被拒")
 	var clocks := _cfg({"a": {"face_bias": "mild", "shelf": {"gig_clocks": [8.0]}}}, ["a"])
 	t.check(DB.validate_director(clocks).contains("gig_clocks"), "拍长被拒")
-	# ② 价格必须走 design/numbers.md 的宪法
+	# ② 价格必须走 docs/design/numbers.md 的宪法
 	var price := _cfg({"a": {"face_bias": "mild", "shelf": {"price_delta": -1}}}, ["a"])
 	t.check(DB.validate_director(price).contains("price_delta"), "价格被拒")
 	# ③ 「必定出某张牌」是卡面效果, 不是 Director 的口

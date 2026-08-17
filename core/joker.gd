@@ -1,7 +1,7 @@
 class_name Joker
 extends RefCounted
 
-## Data shell over data/jokers.json (design/tech.md). Target jokers define WHAT a
+## Data shell over data/jokers.json (docs/design/tech.md). Target jokers define WHAT a
 ## good answer is (pattern-family ×mult); support jokers define HOW to get
 ## there. All passive.
 ##
@@ -15,7 +15,7 @@ extends RefCounted
 ##
 ## Behaviors are DSL effects interpreted by core/fx.gd; growth counters are
 ## fed by the generic hooks reading the entry's `counters` spec. Channel ×
-## rarity binding (principle B2) is a data convention now — see design/jokers.md/13.
+## rarity binding (principle B2) is a data convention now — see docs/design/jokers.md/13.
 
 var id: String
 var name: String        # EN display name (US market)
@@ -78,7 +78,7 @@ func _init(e: Dictionary) -> void:
 	state = Fx.init_state(_counters)
 
 
-## 持有这张牌时, Target 在货架上的权重要乘多少 (design/solver_roadmap.md, 2026-08-06 用户批 A 案)。
+## 持有这张牌时, Target 在货架上的权重要乘多少 (docs/design/solver_roadmap.md, 2026-08-06 用户批 A 案)。
 ##
 ## **为什么是卡面效果而不是暗改概率**:用户既拍板过「不应该有任何卡有固定概率, 大家都是
 ## 一样的」, 又要求「独狼一定要换旗」—— 两者只有一种活法:把那条保证**写到卡上**,
@@ -138,7 +138,7 @@ static func slots_target_mult(slots: Array) -> float:
 	return m
 
 
-## ---- 2026-08-12 流派批二波:货架结构卡的 shelf 键(design/archetypes.md §3.8) ----
+## ---- 2026-08-12 流派批二波:货架结构卡的 shelf 键(docs/design/archetypes.md §3.8) ----
 ## 与 target_guaranteed 同一条原则:保证写在卡面上, 规则出现在动作空间里, 不藏在掷点里。
 ## 读法一律 slots_* 静态口 —— **游戏侧(view/shop.gd)与 bot 侧(tools/bot.gd)必须
 ## 消费同一个口**, 各读各的 shelf 字典就是下一个「游戏里活、模型里死」。

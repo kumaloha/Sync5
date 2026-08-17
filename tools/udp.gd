@@ -6,7 +6,7 @@ extends SceneTree
 ## **正在用的**诊断仪器,而 S3 的下一步大概率还要改它们。
 ## **在仪器还在用的时候改仪器**是本项目吃过亏的形状 —— 别顺手「合并一下」。
 
-## **`U` 表 —— 「还差 g 分、还剩 r 拍，能过的概率」**(design/solving.md 第三部分)。
+## **`U` 表 —— 「还差 g 分、还剩 r 拍，能过的概率」**(docs/design/solving.md 第三部分)。
 ##   godot --headless --path . --script res://tools/udp.gd
 ##
 ## ## 这一步在验什么
@@ -19,7 +19,7 @@ extends SceneTree
 ##     边界: U(g ≤ 0, ·) = 1     U(g > 0, 0) = 0
 ##
 ## **它同时是生成器的全部** —— 目标分 T 只是初始的 g, 所以一次 DP 出整条曲线,
-## 反解 T = U⁻¹(想要的通过率) **是查表, 免费**(design/solver_roadmap.md 原本的理由)。
+## 反解 T = U⁻¹(想要的通过率) **是查表, 免费**(docs/design/solver_roadmap.md 原本的理由)。
 ##
 ## ## ⚠⚠ 这个探针要暴露的是 DP 的核心近似
 ##
@@ -45,7 +45,7 @@ var _rng := RandomNumberGenerator.new()
 
 func _initialize() -> void:
 	var t0 := Time.get_ticks_msec()
-	print("=== U 表:DP 预测 vs 实测(design/solving.md 第三部分) ===")
+	print("=== U 表:DP 预测 vs 实测(docs/design/solving.md 第三部分) ===")
 	print("N=%d 局(不死局), 缺口离散 %d 档" % [N_RUNS, BINS])
 	# 三个场景, 风险从低到高。**一次只加一个变量** —— 混着加就分不清偏差是谁造成的。
 	# ①② 已验过(偏差均值 +0.002, 在噪声内)。这一轮只打 ③ —— 唯一破掉的那个。

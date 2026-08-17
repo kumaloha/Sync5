@@ -14,7 +14,7 @@ var hand: Array[Card] = []
 var cache: Array               # Array[Card], external run-owned reference
 var coins: int
 var discards_used: int = 0     # cards discarded this phrase (analytics)
-# ---- 2026-08-13 引擎波次·子波1 的动作内容记账(设计规格 = design/jokers_atlas.md) ----
+# ---- 2026-08-13 引擎波次·子波1 的动作内容记账(设计规格 = docs/design/jokers_atlas.md) ----
 var discard_batch_max: int = 0   # 单批弃牌张数峰值(断舍离 declutter)
 var faces_discarded: int = 0     # 本拍弃掉的人头牌数(让位 stageexit)
 var swapped_in: Dictionary = {}  # 本拍经交换进入手牌的 Card 集合(串场 segue;对象身份)

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""概率账本生成器(design/numbers.md §1 的记录制度)。
+"""概率账本生成器(docs/design/numbers.md §1 的记录制度)。
 
     python3 tools/probbook.py [sim日志路径]
 
-产出 design/probbook.md:每张支援卡三列概率(设计 p̂ / 仪器 p_bot / 真人 p_人)
+产出 docs/design/probbook.md:每张支援卡三列概率(设计 p̂ / 仪器 p_bot / 真人 p_人)
 + 样本量 + 自动诊断。真人列扫全部合格 Tape;bot 列解析 sim 日志(可选,
 没给路径就留空标注)。**probbook.md 是仪器读数,手改无效** —— 改这里。
 
@@ -195,7 +195,7 @@ def main():
                 cells.append(('%.1f%%' % (hitn / n * 100)) if n else '—')
             out.append('| %s | %s | %d | %s |' % (r if st else '', tag, n, ' | '.join(cells)))
 
-    dst = os.path.join(ROOT, 'design/probbook.md')
+    dst = os.path.join(ROOT, 'docs/design/probbook.md')
     open(dst, 'w', encoding='utf-8').write('\n'.join(out) + '\n')
     print('→ %s(%d 局真人,bot=%s)' % (dst, runs, sim_used or '无'))
 

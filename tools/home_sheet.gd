@@ -1,6 +1,6 @@
 extends SceneTree
 
-## Screenshot probe for the home screen (resources/home.html). Run NON-headless:
+## Screenshot probe for the home screen (docs/mockups/home.html). Run NON-headless:
 ##   godot --path . --script res://tools/home_sheet.gd
 ## Captures _shot_home.png (小盲) and _shot_home_wall.png (BOSS 墙 card).
 

@@ -6,7 +6,7 @@ extends RefCounted
 ## 它原本是 **4 个散落的成员变量**(待装入的卡 / 提示条 / 预览卡 + 三个槽位标志位)
 ## 由 **3 个函数**分头维护(进入 / 取消 / 成交), 没有一个人对「现在到底是不是
 ## 替换态」负责 —— 而 4 个槽在前 4 次商店就填满, **后 3 次商店 100% 走这条路**,
-## 它是主线交互不是边角(design/levels.md)。现在编排器只说 enter() / exit()。
+## 它是主线交互不是边角(docs/design/levels.md)。现在编排器只说 enter() / exit()。
 ##
 ## ⚠ 边界:这里只管 **UI 摆放与状态复位**。钱(`phrase.coins`)与 `Tape.on()`
 ## 一律留在编排器 —— CLAUDE.md 的两条铁律:「打点只在编排器打」、
@@ -79,6 +79,6 @@ func exit() -> void:
 		v.accept_joker_drop = false
 
 
-## data/ui.json stores positions as [x, y] pairs (design/tech.md)
+## data/ui.json stores positions as [x, y] pairs (docs/design/tech.md)
 func _v2(a: Array) -> Vector2:
 	return Vector2(float(a[0]), float(a[1]))

@@ -1,5 +1,5 @@
 {
- "_comment": "UI 布局与文案(design/tech.md)。stage=全局几何;hud/shop/hand/banner 各组件自读一节。blindcard=盲注卡目录文案(assets/design/blind_card_ui.html 的 command/signal,2026-08-11 接入)。",
+ "_comment": "UI 布局与文案(docs/design/tech.md)。stage=全局几何;hud/shop/hand/banner 各组件自读一节。blindcard=盲注卡目录文案(assets/docs/design/blind_card_ui.html 的 command/signal,2026-08-11 接入)。",
  "blindcard": {
   "norepeat": {
    "command": "重复上一拍的牌型,得分减半",
@@ -484,7 +484,8 @@
   "chip_w": 116,
   "chip_h": 42,
   "gap": 8,
-  "armed_text": "加成 ×%.1f 已上"
+  "armed_text": "加成 ×%.1f 已上",
+  "daily_notice": "今日券 · %s"
  },
  "tutor_focus": {
   "_comment": "教学关高亮的**合法区域名白名单**(core/db.gd 校验 + Tutorial.regions())。⚠⚠ **值只是说明, 不是坐标** —— 2026-08-16 这里原本手写着四个矩形, 而手牌行/缓存行/弃牌键的位置是**运行时按 stage 的 card_w/gap/cache_y 算出来的**, 这里那份是目测抄的第二份, 键做窄(key_w)之后更对不上 ⇒ 用户报「高光位置不对、跟原图不对应」。真值现在从活部件取:`Hand.focus_rect()`(hand/cache/discard)与本文件的 `hud.pos`+`hud.size`(hud)。**别再往这里写坐标。**",

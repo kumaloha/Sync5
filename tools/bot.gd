@@ -1,7 +1,7 @@
 class_name Bot
 extends RefCounted
 
-## The sim's player model (design/tech.md split): play decisions, draft EV,
+## The sim's player model (docs/design/tech.md split): play decisions, draft EV,
 ## pivot logic and the beliefs behind them (data/sim.json + derivations
 ## from data/jokers.json). Shares the caller's RNG INSTANCE — consumption
 ## order is the determinism contract, do not reorder calls.
@@ -21,7 +21,7 @@ const DRAFT_BEATS := 6
 const DRAFT_HORIZON := 20.0
 var EV: Dictionary = SIM["ev"]
 var CHASE: Dictionary = SIM["chase"]
-var SOLVER: Dictionary = SIM["solver"]      # 平衡贪心的 lam / lam_samples (design/solver_roadmap.md)
+var SOLVER: Dictionary = SIM["solver"]      # 平衡贪心的 lam / lam_samples (docs/design/solver_roadmap.md)
 ## 「玩家为自己的卡凑弃牌张数」的偏置表(2026-08-13)。id → 想凑到几张。
 ## ⚠ 在 data/ 里而不是代码里 —— 与 `ev.timing` 同一条纪律:加一张吃弃牌张数的卡时
 ## 只改 JSON, 而**忘了改不会报错**(那张卡就成了「玩家从不为它调整打法」的死卡)。
@@ -162,7 +162,7 @@ func _card_ev(id: String, st: Dictionary, slots: Array, phrases_left: int) -> fl
 			return float(p["fixed_rate"]) * _amt(id) * score_mean
 		"rainbow", "nopair", "rehearsal", "fullcast":
 			return float(p["fixed_rate"]) * _amt(id) * mult_mean
-		# ---- 2026-08-12 流派批(design/archetypes.md)。族内件/缓存件/经济件,
+		# ---- 2026-08-12 流派批(docs/design/archetypes.md)。族内件/缓存件/经济件,
 		# 数额照旧 _amt 推导;行为先验(fixed_rate/coin_steps/avg_top/avg_faces)在 ev.cards。----
 		"duo", "triad":     # 族内 chips 件:含对/含三条 × 数额 × 倍率链(additive 吃全倍率)
 			return float(p["fixed_rate"]) * _amt(id) * mult_mean
@@ -174,7 +174,7 @@ func _card_ev(id: String, st: Dictionary, slots: Array, phrases_left: int) -> fl
 			return float(p["avg_top"]) * mult_mean
 		"boxseats":         # 缓存人头 ×1.2/张:边际倍率 × 均分
 			return _amt(id) * float(p["avg_faces"]) * score_mean
-		# ---- 2026-08-13 引擎波次·子波1(design/jokers_atlas.md §2.9/2.12/2.13/2.15)----
+		# ---- 2026-08-13 引擎波次·子波1(docs/design/jokers_atlas.md §2.9/2.12/2.13/2.15)----
 		# ---- 2026-08-13 子波 2:计时族。触发率来自 `ev.timing` 的同一张偏置表 ——
 		# **打法先验与估值先验必须同源**, 否则 bot 会买一张它自己不会去打的卡。----
 		# ---- 2026-08-13 子波 3:商店成长族。成长挂**付费动作**(A4✓), 所以价值
@@ -271,9 +271,9 @@ func _pick_target_ev(st: Dictionary, candidates: Array) -> Joker:
 	return best
 
 
-## ⚠ `cache` / `done_phrases` 是 2026-08-08 为**求解买牌**加的(design/solving.md 第三部分), 默认值维持原行为。
+## ⚠ `cache` / `done_phrases` 是 2026-08-08 为**求解买牌**加的(docs/design/solving.md 第三部分), 默认值维持原行为。
 ## 求解版只在 `cfg["solve_draft"]` 打开时启用 —— **规则 bot 永久保留手写表当回归基线**
-## (`design/history_parametric.md` 的既有决定), 而且它跑 9000 局, 换上去会慢一个量级。
+## (`docs/design/history_parametric.md` 的既有决定), 而且它跑 9000 局, 换上去会慢一个量级。
 func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionary, phrases_left: int, section: int, faces: Dictionary = {}, cache: Array = [], done_phrases: int = 0, run = null) -> int:
 	var want := "target" if slots[0] == null else "support"
 	var owned: Array = []
@@ -283,7 +283,7 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 	# Target 回池(2026-08-06 用户拍板):首张免费三选一是唯一特例, 之后 Target 与
 	# Support **同池**按稀有度抽 —— 换旗的专属骰子(chance/from_section)已删。
 	# ⚠ 强制 target 的队列不许换旗(除非 cfg.pivot):`cfg.target` 是**实验者的随机分配**,
-	# 是整条 pipeline 唯一干净的因果通道(design/solver_roadmap.md), 让 bot 自己换掉就没了。
+	# 是整条 pipeline 唯一干净的因果通道(docs/design/solver_roadmap.md), 让 bot 自己换掉就没了。
 	var allow_target: bool = bool(cfg.get("pivot", false)) \
 		or String(cfg.get("target", "")) == ""
 	var candidates: Array = []
@@ -424,8 +424,8 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 			if j.kind == "target":
 				continue
 			var price := Economy.shelf_price(j, slots)
-			# ⚑ 求解买牌(design/solving.md 第三部分):不查手写表, 直接**在已知的脸序列下算边际价值**。
-			# 前提是「四段的脸开局全可见」(design/solving.md §2.2)—— 用户 2026-08-08:
+			# ⚑ 求解买牌(docs/design/solving.md 第三部分):不查手写表, 直接**在已知的脸序列下算边际价值**。
+			# 前提是「四段的脸开局全可见」(docs/design/solving.md §2.2)—— 用户 2026-08-08:
 			# 「没有脸信息就没有选牌策略」。
 			# ⚠ 量纲:card_value 给的是 M 拍的**总分差**, 而下面按「每拍 EV × horizon」算,
 			# 所以要除以 M。除错了不会报错, 只会让买牌整体变贵或变便宜。
@@ -619,19 +619,19 @@ func _notify_discard(slots: Array, n: int) -> void:
 			j.on_discard(n)
 
 
-## 完美玩家 (design/solver_roadmap.md / §5)。**没有任何手写规矩** —— 直接调数学侧的
+## 完美玩家 (docs/design/solver_roadmap.md / §5)。**没有任何手写规矩** —— 直接调数学侧的
 ## `Solver`, 把 8 张可见牌的最优「计分 5 / 留缓存 3」切法搬进手牌。
 ##
 ## 它存在的唯一理由是**一致性测试**:数学 D 和模拟器必须对同一个局面给出同一个答案。
 ## 两边共用 `Solver` + 真实 `Pattern`/`Settle`, 所以剩下的任何差异都来自
-## 「枚举 vs 采样」和牌堆消耗 —— 那正是 design/solver_roadmap.md 要单独验的近似。
+## 「枚举 vs 采样」和牌堆消耗 —— 那正是 docs/design/solver_roadmap.md 要单独验的近似。
 ##
 ## `lam` = 平衡贪心的权重(2026-08-06 用户拍板取代 DP):
 ##     value(切法) = 本拍得分 + lam · E[下一拍得分 | 留下的 3 张]
 ## lam = 0 就是单拍贪心。**lam 由 `tools/lam.gd` 扫出来, 不许拍脑袋。**
 ##
 ## v1 **不弃牌**(d = 0):弃牌的代价是跨拍的金币影子价。
-## 孤立一拍地看, 最优解永远是把钱花光 —— 那是 `design/history_adversarial.md` §7 警告的幻想区。
+## 孤立一拍地看, 最优解永远是把钱花光 —— 那是 `docs/design/history_adversarial.md` §7 警告的幻想区。
 ## 所以先把「切法」这一维做干净, 弃牌随后同样用影子价接进来。
 ##
 ## ⚠ 已知近似:传给 Settle 的上下文缺 prev_kind / character / 时机旗
@@ -665,7 +665,7 @@ func _play_perfect(p: Phrase, slots: Array, mod: String = "",
 			# **系统性抬高** → ε 越大越狂弃牌。那不是"噪声玩家做了略差的决定",
 			# 而是一个人为偏置, 会把 ε 扫描的读数整个污染。
 			# 两个口径必须一致, 这里取零噪声那一侧。
-			# **建模选择(design/solving.md 第二部分)**:ε 目前只建模「打哪 5 张」的决策噪声,
+			# **建模选择(docs/design/solving.md 第二部分)**:ε 目前只建模「打哪 5 张」的决策噪声,
 			# 不建模「弃不弃牌」的噪声 —— 真人两个都会错, 这是显式声明的近似。
 			var b0 = Solver.best_split(vis0, slots, extra, p.deck.rules, hid0, subs0)
 			if b0 != null:
@@ -989,7 +989,7 @@ var _tmult: Dictionary = {}    # tid -> {kind_int: mult}, derived from data
 
 
 ## What the installed target pays for a settled kind — derived from
-## data/jokers.json effects, killing the hand-copied tier table (design/tech.md).
+## data/jokers.json effects, killing the hand-copied tier table (docs/design/tech.md).
 ## Tiers guarded by extra conditions (lonewolf's discards/top-rank) are NOT
 ## unconditional payouts and are skipped, matching the old table exactly.
 func _target_mult(target_id: String, kind: int) -> float:

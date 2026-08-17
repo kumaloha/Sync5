@@ -1,12 +1,21 @@
 class_name Widgets
 extends RefCounted
 
-## Small self-contained neon widgets (design/tech.md view split). Moved verbatim
+## Small self-contained neon widgets (docs/design/tech.md view split). Moved verbatim
 ## from view/phrase.gd's tail — behavior identical, referenced as
 ## Widgets.GradBar / Widgets.SegPill / Widgets.DJKey.
 
 
-## 教学关的一行提示(design/difficulty.md §4.4)。
+## 高亮区的形状 —— 光层 / 压暗层 / 提亮层**必须共用这一份**(2026-08-18)。
+## 上一版光会画圆、暗只会挖方:圆形光晕外面套一圈没被压暗的方角,
+## 正是用户报的「包了一层形状不对的光晕」。**形状一旦有两份就必然再岔开。**
+## 判据:近正方形(长宽比 <1.3)= 圆钮(弃牌/理牌的 DJ 键)⇒ 按整圆;长条区域 ⇒ 固定圆角。
+static func focus_radius(q: Rect2) -> float:
+	var ratio := maxf(q.size.x, q.size.y) / maxf(1.0, minf(q.size.x, q.size.y))
+	return minf(q.size.x, q.size.y) * 0.5 if ratio < 1.3 else 18.0
+
+
+## 教学关的一行提示(docs/design/difficulty.md §4.4)。
 ##
 ## ⚑ 契约是**不打断**:不暂停、不弹窗、不需要点确认 —— 因为「8 秒是唯一闸门」,
 ## 第一次体验若是暂停态, 真正开始时的手忙脚乱会加倍。
@@ -21,10 +30,11 @@ class TutorHint:
 	## ⚠ **所以哪怕光挪到了 TutorGlow 那一层, 入口仍然只有 `set_hint` 这一个** ——
 	## 拆的是**画在哪一层**, 不是**谁来决定指哪**。glow 由本部件转发, 调用方感知不到它。
 	var _focus: Array = []
-	## 画在手牌/缓存**下面**的那层光, 与画在内容**上面**的那层暗(`Layout.build` 塞进来)。
-	## 可以是 null(测试/探针)。⚑ 三层由本部件统一转发 ⇒ 调用方仍然只有 `set_hint` 一个口。
+	## 画在手牌/缓存**下面**的光、内容**上面**的暗、暗之上的加法**提亮**(`Layout.build` 塞进来)。
+	## 都可以是 null(测试/探针)。⚑ 四层由本部件统一转发 ⇒ 调用方仍然只有 `set_hint` 一个口。
 	var glow = null
 	var dim = null
+	var light = null
 	## 提示条要躲开的矩形(全部可高亮区域)。空 = 不躲(旧行为)。
 	var _avoid: Array = []
 
@@ -41,6 +51,8 @@ class TutorHint:
 			glow.set_focus(focus if cn != "" else [])
 		if dim != null:
 			dim.set_focus(focus if cn != "" else [])
+		if light != null:
+			light.set_focus(focus if cn != "" else [])
 		queue_redraw()
 
 	## 提示条**跟着高亮区走**(2026-08-16 用户:「教学描述放在高亮区附近」)——
@@ -145,17 +157,12 @@ class TutorGlow:
 	func _draw() -> void:
 		for rect in _focus:
 			var q: Rect2 = rect as Rect2
-			# ⚠ **圆角要跟着形状走**(2026-08-17 用户:「弃牌按钮的高亮好丑」)——
-			# 弃牌/理牌是**圆形**的 DJ 键, 罩一个方角白块上去当然丑。
-			# ⇒ 近似正方形(长宽比 <1.3)就按**整圆**画, 长条区域仍用固定圆角。
-			var ratio: float = maxf(q.size.x, q.size.y) / maxf(1.0, minf(q.size.x, q.size.y))
-			var radius: int = int(minf(q.size.x, q.size.y) * 0.5) if ratio < 1.3 else 18
+			# ⚠ 圆角走共用的 `Widgets.focus_radius`(弃牌键是圆的, 方角白块罩上去当然丑;
+			# 而形状只有共用才不会和压暗层岔开 —— 岔开的后果见那个函数头)。
+			var radius: int = int(Widgets.focus_radius(q))
 			# 一层柔白光铺满该区 + 外溢的辉光。零描边 —— 没有任何一条边界线。
-			# ⚠⚠ **亮度必须让被指的东西「更亮」, 不只是让别处「更暗」**
-			# (2026-08-17 用户:「教弃牌那轮, 高亮很奇怪, 反而是变暗了」)。
-			# 起因:光画在**内容下面**(不染花色的代价), 对弃牌键那种小圆钮,
-			# 光只能从背后透一点 ⇒ **按钮本身亮度没变, 而周围被压暗 46%**
-			# ⇒ 观感是「高亮把东西弄暗了」。⇒ 光加倍, 暗收一档(见 TutorDim.ALPHA)。
+			# ⚠ 对不透明小件(弃牌键)它只能从背后透一点 —— **真正的提亮由
+			# `TutorLight`(加法混合, 画在内容之上)负责**, 这层只出外溢的辉光。
 			draw_style_box(StageTheme.box(
 				Color(1, 1, 1, 0.22), Color(0, 0, 0, 0), 0, radius,
 				Color(1, 1, 1, 0.34), 34), q)
@@ -188,21 +195,102 @@ class TutorDim:
 		visible = not focus.is_empty()
 		queue_redraw()
 
+	## 洞比高亮区放宽这么多, 免得暗带压住 glow 的外溢辉光(压住会画出一条硬边 = 又变成框)。
+	const HOLE_GROW := 14.0
+
+	## ⚑⚑ **逐块挖形状洞**(2026-08-18 重写, 用户:「有时候包了一层形状不对的光晕, 怪」)。
+	## 旧版两个毛病同一个根:洞和光的形状是两套逻辑 ——
+	## ① 洞永远是矩形:圆形光晕(弃牌键)外面套一圈没被压暗的**方角**;
+	## ② 多块高亮取**并集**挖一个大洞:手牌与缓存**之间的空当**也跟着亮, 又一圈怪形状。
+	## 现在:每块一个洞, 形状走共用的 `Widgets.focus_radius`(圆就挖圆洞),
+	## 圆角处用「反向圆角补片」把方洞的四个角补成暗的。
+	## ⚠ 洞与洞横向重叠时退回并集(补片会互相涂进对方的洞里);现役四块区域都是纵向排布,
+	## 这个分支只是兜底, 真走到了宁可形状糙也不能把该亮的压暗。
 	func _draw() -> void:
 		if _focus.is_empty():
 			return
-		var u: Rect2 = _focus[0] as Rect2
-		for i in range(1, _focus.size()):
-			u = u.merge(_focus[i] as Rect2)
-		# 洞比高亮区再放宽一点, 免得暗带压住 glow 的外溢辉光(那会画出一条硬边 = 又变成框)。
-		u = u.grow(14.0)
 		var d := Color(0, 0, 0, ALPHA)
 		var w := 720.0
 		var h := 1280.0
-		draw_rect(Rect2(0, 0, w, maxf(0.0, u.position.y)), d)                      # 上
-		draw_rect(Rect2(0, u.end.y, w, maxf(0.0, h - u.end.y)), d)                 # 下
-		draw_rect(Rect2(0, u.position.y, maxf(0.0, u.position.x), u.size.y), d)    # 左
-		draw_rect(Rect2(u.end.x, u.position.y, maxf(0.0, w - u.end.x), u.size.y), d)  # 右
+		var holes: Array[Rect2] = []
+		for rect in _focus:
+			holes.append((rect as Rect2).grow(HOLE_GROW))
+		holes.sort_custom(func(a: Rect2, b: Rect2) -> bool: return a.position.y < b.position.y)
+		for i in range(holes.size() - 1):          # 纵向重叠 ⇒ 并掉, 保证带状分解成立
+			if holes[i].end.y > holes[i + 1].position.y:
+				holes[i + 1] = holes[i].merge(holes[i + 1])
+				holes[i] = Rect2()
+		var live: Array[Rect2] = []
+		for q in holes:
+			if q.size.y > 0.0:
+				live.append(q)
+		# 横向带状分解:洞外的每一横带整幅铺暗, 洞所在的竖向区间只铺左右两侧
+		var y := 0.0
+		for q in live:
+			if q.position.y > y:
+				draw_rect(Rect2(0, y, w, q.position.y - y), d)
+			draw_rect(Rect2(0, q.position.y, maxf(0.0, q.position.x), q.size.y), d)
+			draw_rect(Rect2(q.end.x, q.position.y, maxf(0.0, w - q.end.x), q.size.y), d)
+			_corner_patches(q, d)
+			y = q.end.y
+		if y < h:
+			draw_rect(Rect2(0, y, w, h - y), d)
+
+	## 反向圆角补片:洞是按矩形留空的, 四个角要按共用形状补回暗色 ——
+	## 「角方光圆」正是旧版那圈怪光晕的形状来源。
+	## (定义先于使用即可, 放在 _draw 后面只为让主路径先读到。)
+	func _corner_patches(q: Rect2, d: Color) -> void:
+		var r: float = minf(Widgets.focus_radius(q.grow(-HOLE_GROW)) + HOLE_GROW,
+			minf(q.size.x, q.size.y) * 0.5)
+		if r < 2.0:
+			return
+		const SEGS := 12
+		for c in range(4):
+			var corner := Vector2(
+				q.position.x if c % 2 == 0 else q.end.x,
+				q.position.y if c < 2 else q.end.y)
+			var center := corner + Vector2(r if c % 2 == 0 else -r, r if c < 2 else -r)
+			var pts := PackedVector2Array([corner])
+			for s in range(SEGS + 1):
+				var ang := TAU * 0.25 * float(s) / float(SEGS)
+				# 从「贴着角的水平边」转到「贴着角的竖直边」, 方向随象限翻转
+				var off := Vector2(cos(ang), sin(ang)) * r
+				off.x *= -1.0 if c % 2 == 0 else 1.0
+				off.y *= -1.0 if c < 2 else 1.0
+				pts.append(center + off)
+			draw_colored_polygon(pts, d)
+
+
+## 教学高亮的**提亮层**(2026-08-18, 用户:「其实是需要操作的区域提亮, 其他地方变暗」)。
+##
+## ⚑ **加法混合(BLEND_MODE_ADD), 画在内容之上** —— 这是唯一能把**不透明小件**
+## (弃牌键)真正照亮的位置。历史上两版「最上层加光」都翻车(0.13 青把 ♥♦ 染灰紫 /
+## 零填充大外发光糊成一片), 但那都是**普通混合**:半透明白往上盖 = 往灰里拉。
+## 加法是**加光不加灰**:低值白 add 只抬亮度, 色相基本不动 —— 和翻车的两版不是一回事。
+## ⚠ 数值刻意低(0.12):add 模式下白比什么都亮, 提亮读得出来就够,
+## 「亮」的大头仍由压暗层的**对比**承担。形状走共用的 `Widgets.focus_radius`。
+class TutorLight:
+	extends Control
+	var _focus: Array = []
+
+	func _init() -> void:
+		var m := CanvasItemMaterial.new()
+		m.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+		material = m
+
+	func set_focus(focus: Array) -> void:
+		if focus == _focus:
+			return
+		_focus = focus
+		visible = not focus.is_empty()
+		queue_redraw()
+
+	func _draw() -> void:
+		for rect in _focus:
+			var q: Rect2 = rect as Rect2
+			draw_style_box(StageTheme.box(
+				Color(1, 1, 1, 0.12), Color(0, 0, 0, 0), 0, int(Widgets.focus_radius(q)),
+				Color(1, 1, 1, 0.08), 12), q)
 
 
 class GradBar:
@@ -250,7 +338,7 @@ class SegPill:
 
 
 ## ── shared "stage card" chrome ─────────────────────────────────────────────
-## The home screen's big glass card (resources/home.html) and the in-game
+## The home screen's big glass card (docs/mockups/home.html) and the in-game
 ## blind board are THE SAME OBJECT — a level IS a blind (用户 2026-08-05).
 ## These statics are the one place the look is defined, so the two can never
 ## drift apart.
@@ -266,7 +354,7 @@ class StageCard:
 	extends RefCounted
 
 	## ── 玻璃卡的程序化临摹 ────────────────────────────────────────────────
-	## 参照 resources/godot-handoff/card_glass_full.png 的构成:
+	## 参照 docs/mockups/godot-handoff/card_glass_full.png 的构成:
 	##   半透玻璃体 + 内缩一圈细亮边 + 26px 点阵 + 斜向高光楔 + 底部镜面倒影。
 	## **为什么不直接贴那张图**(用户 2026-08-05 拍板): 素材是 842×1355 固定竖版,
 	## 局内盲注板是 560×276 的扁板, 拉伸会把圆角和边框粗细拽变形; 而且那张 PNG
@@ -281,7 +369,7 @@ class StageCard:
 	const GRID := 26.0            # 交接件: 26px 点阵(用户钦点保留)
 
 	## ── 素材路径 ────────────────────────────────────────────────────────────
-	## `resources/godot-handoff/` 的灰白玻璃图(alpha 已抠), 运行时副本在
+	## `docs/mockups/godot-handoff/` 的灰白玻璃图(alpha 已抠), 运行时副本在
 	## assets/frames/。灰白 = 原图 saturate(0) 预烘焙, 所以能直接用 modulate
 	## 按盲注档位上色 —— 交接件「卡体不带色, 颜色来自灯」在这里落成"给灯上色"。
 	##
@@ -660,7 +748,7 @@ class StageCard:
 	## 的镜像)+ 往下延续的圆角与两侧竖轨 + 淡淡的镜像玻璃体, **1:1 不压扁**,
 	## 随距离渐隐。带高 = 卡高的 13.2%(= home.html 的 height:113.2%)。
 	##
-	## 遮罩必须走 **shader**(design/ui_meta.md 渲染手法):渐隐要统一作用在 StyleBox /
+	## 遮罩必须走 **shader**(docs/design/ui_meta.md 渲染手法):渐隐要统一作用在 StyleBox /
 	## 贴图 / 线条上, 用一张渐变矩形盖上去只能糊住颜色、盖不住 alpha。
 	## 画法与 `PaperCard._mask_material` 同源, 只是这里按屏幕 y 做带状渐隐。
 	## 走过的弯路: 压扁整块玻璃(读成"第二张小卡片")、只画左右两条竖光带
@@ -762,7 +850,7 @@ void fragment() {
 	static var _bar: GradientTexture2D = null
 
 	## 竖向渐变条: 透明 → 主色 → 白芯 → 主色 → 透明。必须建一次并缓存
-	## (每帧 new 的 GradientTexture2D 首帧渲染成白, design/ui_meta.md 渲染手法)。
+	## (每帧 new 的 GradientTexture2D 首帧渲染成白, docs/design/ui_meta.md 渲染手法)。
 	static func bar_tex() -> GradientTexture2D:
 		if _bar != null:
 			return _bar
@@ -800,7 +888,7 @@ void fragment() {
 		return StageTheme.GOLD
 
 	## ★★☆ difficulty read of the blind tier (NOT a save record — meta
-	## progression is design/ui_meta.md and unimplemented). 四档结构下直接是 1..4。
+	## progression is docs/design/ui_meta.md and unimplemented). 四档结构下直接是 1..4。
 	static func tier_stars(section_idx: int) -> int:
 		return clampi(section_idx + 1, 1, GameConfig.SECTIONS_PER_RUN)
 
@@ -834,7 +922,7 @@ class BlindCard:
 		status_text = text
 		queue_redraw()
 
-	## 2026-08-11 换代:照 assets/design/blind_card_ui.html(已批目录「Final Blind
+	## 2026-08-11 换代:照 assets/docs/design/blind_card_ui.html(已批目录「Final Blind
 	## signal deck」)的解剖重写 —— 118×176 设计空间、25 头带(名+槽号)、机制指纹
 	## 信号箱(68×68 SVG 纹理)、43 结果脚(command + SIGNAL 短码/live 状态)。
 	## **压力盲注统一品红、boon 金**(目录页脚:「盲注统一粉红;轮次由编号与标题表达,

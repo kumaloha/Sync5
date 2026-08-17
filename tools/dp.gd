@@ -7,7 +7,7 @@ extends RefCounted
 ## **正在用的**诊断仪器,而 S3 的下一步大概率还要改它们。
 ## **在仪器还在用的时候改仪器**是本项目吃过亏的形状 —— 别顺手「合并一下」。
 
-## **求解器的未来价值表**(规格 = `design/solving.md` 第三部分)。
+## **求解器的未来价值表**(规格 = `docs/design/solving.md` 第三部分)。
 ##
 ## 目标(用户 2026-08-08):「**每段都达标的情况下的最大化平均分**」
 ##
@@ -58,7 +58,7 @@ var _bands := 0
 ## 因为它是观测出来的, 不是推出来的。
 ## **教训:假设不只藏在参数里, 也藏在公式的形状里。卷积长得像数学, 但它是个假设。**
 ##
-## ⚠ 段与段之间的链式转移**保留**(design/solving.md 第三部分)—— 那部分没有独立假设, 是精确的路径展开。
+## ⚠ 段与段之间的链式转移**保留**(docs/design/solving.md 第三部分)—— 那部分没有独立假设, 是精确的路径展开。
 static func build(suffix: Array, trans: Array, targets: Array, k_beats: int) -> DP:
 	var d := DP.new()
 	d._n_sec = targets.size()
@@ -150,7 +150,7 @@ func p(n: int, gap: float, r: int, b: int) -> float:
 
 
 ## 反解:第 n 段要让通关概率等于 target_p, 目标分该定多少。
-## ⚠ **必须从后往前逐段调用**(design/solving.md 第三部分)——`T_{n+1}` 在第 n 段的边界条件里,
+## ⚠ **必须从后往前逐段调用**(docs/design/solving.md 第三部分)——`T_{n+1}` 在第 n 段的边界条件里,
 ## 乱序反解会拿到一张过期的表。
 func solve_target(n: int, target_p: float, b: int) -> float:
 	var arr: Array = _p[_cn(n)][_cb(b)][_k]

@@ -6,7 +6,7 @@ extends SceneTree
 ## **正在用的**诊断仪器,而 S3 的下一步大概率还要改它们。
 ## **在仪器还在用的时候改仪器**是本项目吃过亏的形状 —— 别顺手「合并一下」。
 
-## **DP 表的样本外验证**(规格 = `design/solving.md` 第三部分)。
+## **DP 表的样本外验证**(规格 = `docs/design/solving.md` 第三部分)。
 ##   godot --headless --path . --script res://tools/dpcheck.gd
 ##
 ## 两批数据, **不同种子**:
@@ -37,7 +37,7 @@ func _initialize() -> void:
 	var targets: Array = []
 	for n in range(nsec):
 		targets.append(float(Run.section_target_for(GameConfig.SECTION_TARGETS, n, "")))
-	print("=== DP 表样本外验证(design/solving.md) ===")
+	print("=== DP 表样本外验证(docs/design/solving.md) ===")
 	print("建表 %d 局(不死局) / 验证 %d 局(真判生死) · 构筑 %d 档 · 缺口 %d 档"
 		% [N_BUILD, N_TEST, BANDS, DP.BINS])
 	print("目标分 %s" % str(targets))

@@ -3,7 +3,7 @@ extends RefCounted
 # --- v0.1 joker roster ---
 func run(t) -> void:
 	# roster shape (2026-08-12 流派批: 删 popup/backup, 加族内件×4 + backer/bench/boxseats + trim;
-	# 缘由与增删改清单见 design/archetypes.md §5)
+	# 缘由与增删改清单见 docs/design/archetypes.md §5)
 	var pool := Joker.pool()
 	t.eq(pool.size(), 63, "pool holds 62 jokers(2026-08-16 双色调拆两张 61→62)")
 	var targets := 0
@@ -22,7 +22,7 @@ func run(t) -> void:
 	# 概率线基建(archetypes.md §3.8): fourfingers/twotone 降罕见 —— 规则牌从 5% 池权重解放
 	t.eq(rarities["common"], 23, "twenty-three common supports(快闪 2026-08-16 回池)")
 	# ⚠ **twotone 已于 2026-08-14 升回 rare**(先验层实测它把同花抬 9.8×, 而同价位的
-	# 近道/四指只有 3.1×/3.0× —— 效力差三倍以上;见 design/jokers.md「第三次重锚」)。
+	# 近道/四指只有 3.1×/3.0× —— 效力差三倍以上;见 docs/design/jokers.md「第三次重锚」)。
 	# ⚠⚠ **这撤销了上面那条「规则牌曝光」措施的一半, 是有意的**:先验数据说要救的是
 	# **顺子线**(组合 8.89% 而真人只打出 1.9%), 不是同花线(组合 6.79% / 真人 7.4%, 几乎没差)。
 	# 所以近道/四指**留在 uncommon**, 升回去的只有 twotone。
@@ -35,7 +35,7 @@ func run(t) -> void:
 	t.eq(String(Joker.by_id("blacktone").rarity), "rare", "黑调 rare")
 	t.eq(String(Joker.by_id("redtone").rarity), "rare", "红调 rare")
 	# ⚑ 快闪 2026-08-16 **按用户 08-15 那条原则复活**:「仅限一轮的卡不该删, 该是窗口窄 ⇒ 效果强」。
-	# ⚠ 但**光加数额是假修**(design/jokers.md 原话)—— 它的死因是 `section_eq: 0` 而**商店最早
+	# ⚠ 但**光加数额是假修**(docs/design/jokers.md 原话)—— 它的死因是 `section_eq: 0` 而**商店最早
 	# S1 过半才开**, 玩家根本没机会在第 1 段拥有它(bot 2685 局触发 0%)。
 	# ⇒ 窗口改成**每段第 1 拍**的滚动窗口:每段都有第 1 拍 ⇒ 何时买到都够得着,
 	# 而窗口仍然窄(4/24 = 16.7%)⇒ 效果强(80% 每拍目标, 期望 13.3%/拍, 族内锚 12%)。
@@ -193,7 +193,7 @@ func run(t) -> void:
 	t.eq(Settle.run(flush_res, [null, Joker.by_id("interest"), null, null], {"coins": 40})["coins"],
 		4 + 5, "interest caps at +5")
 
-	# ---- 2026-08-12 流派批(design/archetypes.md §3):族内件 + 缓存件 + 经济件 ----
+	# ---- 2026-08-12 流派批(docs/design/archetypes.md §3):族内件 + 缓存件 + 经济件 ----
 	# 族内件 contains 语义 = kind_in(顺/同花五张点数互异, 天然不含对):
 	# 葫芦必须**同时**吃到对子件和三条件 —— 原作葫芦流 Duo+Trio 双吃的直译, 结构契约。
 	var damt: int = int(t._do_amount("duo", "additive"))
@@ -233,7 +233,7 @@ func run(t) -> void:
 		{"cache_cards": [t._c(7, 2), t._c(5, 1), t._c(2, 0)]})["score"],
 		base, "boxseats silent with no face in cache")
 
-	# ---- 2026-08-13 引擎波次·子波1:动作内容信号(design/jokers_atlas.md)----
+	# ---- 2026-08-13 引擎波次·子波1:动作内容信号(docs/design/jokers_atlas.md)----
 	# 静物:零交换才给 —— 交换是免费动作, 这是「不动手」的那一侧张力(vs 串场)
 	t.eq(Settle.run(flush_res, [null, Joker.by_id("stilllife"), null, null], {"swaps": 0})["score"],
 		base + int(t._bonus("stilllife")), "still life pays a zero-swap phrase")

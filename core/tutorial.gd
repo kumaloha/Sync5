@@ -3,7 +3,7 @@ extends RefCounted
 
 ## 教学关的脚本 —— **纯逻辑,引擎无关、不含时钟、不 import view**(CLAUDE.md 架构铁律)。
 ## 内容全在 `data/tutorial.json`,这里只回答「第 N 拍该多长、该亮什么、该说什么」。
-## 规格 = `design/difficulty.md` §4。
+## 规格 = `docs/design/difficulty.md` §4。
 ##
 ## ⚑ **教学单开一关**(用户 2026-08-07 拍板:「教学总要时间, 但教学只要一次,
 ## 不影响整体节奏」)—— 所以它**不受一局 4.9 分钟约束、不判生死、不进 curve.gd**。
@@ -14,7 +14,7 @@ extends RefCounted
 ##   · v2「主手段是指出区域」(focus 描边)—— **不够**。它解决「这是什么」, 解决不了「我学会了没有」;
 ##   · **v3 = 做中学 + 动作门**。玩家**把这个动作做出来**才推进, 没做就停在这一步。
 ##
-## 依据是外部调研的三条共识(2026-08-16, 见 design/difficulty.md §4):
+## 依据是外部调研的三条共识(2026-08-16, 见 docs/design/difficulty.md §4):
 ##   ① 玩家学会靠**做**不靠读 —— 纯文字步骤会被直接跳过;
 ##   ② 步进该由**动作**驱动, 不该由时间驱动("teach one idea, ask for one action, deliver one response");
 ##   ③ 每个机制要有**练习位** —— 讲下一个之前先让他把这个做一遍。
@@ -31,7 +31,7 @@ extends RefCounted
 ##
 ## ⚑ **软门, 不是硬门**:门只挡**推进**, 不挡玩。玩家照样能出牌、这一拍照常结算,
 ## 只是提示留在原地再说一次。硬门(不做就不许出牌)会与「8 秒是唯一闸门」正面冲突,
-## 而且 design/difficulty.md §4 已把「强制引导」列进明确不做。
+## 而且 docs/design/difficulty.md §4 已把「强制引导」列进明确不做。
 static func require(step: int) -> String:
 	var s := _steps()
 	if step < 0 or step >= s.size():

@@ -1,11 +1,12 @@
 extends SceneTree
 
-## 教学关的目视对账探针(design/difficulty.md §4)。NON-headless 跑:
+## 教学关的目视对账探针(docs/design/difficulty.md §4)。NON-headless 跑:
 ##   godot --path . --script res://tools/tutorsheet.gd
 ## 产物:根目录 `_shot_tutor_step<N>.png`,一步一张。
 ##
-## ⚠ **不依赖 `user://` 存档**:直接把 `run.tutorial` 按上去。
-## 否则这个探针的产物会取决于「这台机器上有没有玩过」—— 那是一个会静默漂的实验条件。
+## ⚠ **不依赖 `user://` 存档**:设 `SYNC5_PROBE_FRESH=1` 走真人同款入口(2026-08-18 起,
+## 旧办法「事后手按 run.tutorial」已废弃 —— 按晚了会截到「教学关冒出 BOSS 脸」的错位假象)。
+## 不走存档是因为探针产物不许取决于「这台机器上有没有玩过」—— 那是会静默漂的实验条件。
 ## ⚑ 骨架走 `Shot`(2026-08-09 收口),排帧是这个实验自己的设计,不共用。
 
 var _scene: Node
@@ -19,14 +20,18 @@ const HOLD := 40
 
 
 func _initialize() -> void:
+	# ⚑ 真路径(2026-08-18):环境变量让 seen_tutorial() 在探针里返回 false ——
+	# choose_character 于是走**和真人一样**的教学分岔(公示卡闸/掷脸教学分支/步进),
+	# 不再需要事后手按 run.tutorial(那正是两次「教学关冒出 BOSS 脸」假象的来源)。
+	OS.set_environment("SYNC5_PROBE_FRESH", "1")
 	_scene = Shot.stage(self)
 
 
 func _process(_delta: float) -> bool:
 	_frames += 1
 	if _frames == 4:
-		_scene.choose_character(1)          # 跳过选角
-		_scene.run.tutorial = true
+		_scene.choose_character(1)          # 跳过选角;教学分岔由 SYNC5_PROBE_FRESH 触发
+		assert(_scene.run.tutorial, "真路径没生效 —— seen_tutorial 的探针口子被动过?")
 		return false
 	if _frames < 120:
 		return false

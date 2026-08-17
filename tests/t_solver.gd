@@ -1,6 +1,6 @@
 extends RefCounted
 
-## 数学 D 的单拍求解器 (design/solver_roadmap.md)。这是新地基, 契约要锁住:
+## 数学 D 的单拍求解器 (docs/design/solver_roadmap.md)。这是新地基, 契约要锁住:
 ## 它是**一致性测试的一半** —— 数学侧和模拟器共用它, 它错了两边会一起错、
 ## 而且 agree.gd 会一致地不报警(共模误差探针抓不到)。
 func run(t) -> void:
@@ -155,7 +155,7 @@ func run(t) -> void:
 		uniq[c] = true
 	t.eq(uniq.size(), 5, "peek_many draws without replacement within one call")
 
-	# ── ε(决策噪声, design/solving.md)──────────────────────────────
+	# ── ε(决策噪声, docs/design/solving.md)──────────────────────────────
 	# ⚠ 这两条是本次改动最重要的断言。ε=0 时若消耗了随机数, 全部历史读数会
 	# 整体漂移**而且不报错** —— `peek_many` 那次就是这个形状, 已撤回。
 	var rng_e := RandomNumberGenerator.new()
@@ -182,7 +182,7 @@ func run(t) -> void:
 			off_argmax += 1
 	t.check(off_argmax > 0, "eps>0 actually deviates from argmax (否则 ε 是装饰品参数)")
 
-	# ── 前瞻的真实跨拍转移(design/solving.md 第三部分 / design/capability.md 缺口 2)──
+	# ── 前瞻的真实跨拍转移(docs/design/solving.md 第三部分 / docs/design/capability.md 缺口 2)──
 	# 现在的 cache_value 假设留下的 3 张会原样留到下一拍, 而 cache_evict 族
 	# 正好拿走它们。判据两条, 缺一不可:
 	#   ① 无脸(evict=0)时**逐位不变** —— 否则历史读数全部漂移;

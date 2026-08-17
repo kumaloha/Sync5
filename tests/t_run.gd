@@ -32,7 +32,7 @@ func _test_run_structure(t) -> void:
 		"7 shops actually happen (the finale section has no end-of-section shop)")
 	t.eq(GameConfig.SECTIONS_PER_RUN * GameConfig.SHOPS_PER_SECTION, 2 * 4,
 		"shops outnumber joker slots 2:1")
-	# venue arc, shown on the home stage card (resources/home.html)
+	# venue arc, shown on the home stage card (docs/mockups/home.html)
 	t.eq(GameConfig.GIG_NAMES.size(), GameConfig.GIGS_PER_RUN, "one venue name per gig")
 	t.check(GameConfig.gig_name(0) != GameConfig.gig_name(3), "the venue changes between gigs")
 	t.eq(GameConfig.gig_name(99), String(GameConfig.GIG_NAMES[-1]), "venue lookup clamps")
@@ -49,7 +49,7 @@ func _test_run_structure(t) -> void:
 	t.eq(GameConfig.gig_of(3), 3, "S4 in gig 4")
 	t.eq(GameConfig.blind_name(0), "BOSS", "every blind is a BOSS")
 	# 2026-08-06 手游节奏: 8 秒乐句 × 6 拍/盲注 × 4 盲注 = 216s 出牌,
-	# 加 8 次商店约 4.9 分钟(用户拍板 5 分钟上限)。见 design/levels.md。
+	# 加 8 次商店约 4.9 分钟(用户拍板 5 分钟上限)。见 docs/design/levels.md。
 	for g in range(GameConfig.GIGS_PER_RUN):
 		t.eq(GameConfig.phrase_duration(g), 8.0, "gig %d clock" % (g + 1))
 	# Target 回池(2026-08-06 用户拍板:「不应该有任何卡有固定概率, 大家都是一样的。
@@ -90,7 +90,7 @@ func _test_run_structure(t) -> void:
 			continue  # post-wall breather may step back (faces carry the wall)
 		t.check(cur > prev, "targets climb at S%d" % (i + 1))
 
-# --- Run state machine (design/tech.md: progression lives in core/run.gd) ---
+# --- Run state machine (docs/design/tech.md: progression lives in core/run.gd) ---
 func _test_run_machine(t) -> void:
 	var r := Run.new()
 	r.reset(7)                                   # seeded face roll, deterministic
@@ -109,7 +109,7 @@ func _test_run_machine(t) -> void:
 	t.eq(r.section_idx, 1, "advance to S2")
 	t.eq(r.section_score, 0, "score resets")
 
-	# --- Beat: 游戏和模型共用的那一份编排 (design/tech.md) ---
+	# --- Beat: 游戏和模型共用的那一份编排 (docs/design/tech.md) ---
 	# ⚠ 这里锁的是**顺序契约**, 不是分数: `first_kind` 必须在 Settle 之后才更新
 	# (setlist 锁的是本段第一拍打的牌型, 而第一拍自己不受锁约束 —— 先更新就把锁
 	# 套在了它自己头上), 而 `prev_kind` 每拍都更新。

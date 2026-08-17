@@ -1,7 +1,7 @@
 class_name Run
 extends RefCounted
 
-## Run progression state machine (design/tech.md): everything about WHERE the
+## Run progression state machine (docs/design/tech.md): everything about WHERE the
 ## run stands lives here, engine-free and directly testable — deck, cache,
 ## section/phrase counters, joker slots, rolled boss faces. view/phrase.gd
 ## keeps only presentation and input orchestration and reads the verdicts
@@ -31,7 +31,7 @@ var character: Character = null
 ## Coins carried across phrases. The Phrase owns them during a phrase (that is
 ## where tolls and discards are charged); this is the carry between phrases, so
 ## that a probe does not have to invent its own coin variable — inventing one is
-## exactly how the six copies of the phrase loop drifted apart (design/tech.md).
+## exactly how the six copies of the phrase loop drifted apart (docs/design/tech.md).
 var coins: int = 0
 
 ## Where this run stands INSIDE a phrase. `Beat` refuses to run a step out of
@@ -82,7 +82,7 @@ func roll_faces(face_seed: int = -1, run_index: int = -1) -> void:
 	else:
 		_blind_rng.randomize()
 	# ⚑ **教学关不掷 Boss 脸** —— 起承転結 的「起」按定义是「安全的地方、**无惩罚**地
-	# 理解机制」(design/research_pacing_retention.md §5.5), 挂一张 Boss 规则直接违背它。
+	# 理解机制」(docs/design/research_pacing_retention.md §5.5), 挂一张 Boss 规则直接违背它。
 	# ⚠ 所以调用方必须**先设 `tutorial` 再调这里**;顺序反了教学关第一拍就带着一张脸。
 	if tutorial:
 		run_faces = {}
@@ -158,7 +158,7 @@ static func request_label(goal: String) -> String:
 ## ⚠ raisedbar is the one face that is HONESTLY a difficulty knob — Balatro
 ## does the same (The Wall 4×, Violet Vessel 6×) and never disguises pure
 ## amount as a rule. Everything else must change the problem, not the bar.
-## ⚑ **教学关模式**(design/difficulty.md §4)—— 用户 2026-08-07 拍板「教学单开一关」。
+## ⚑ **教学关模式**(docs/design/difficulty.md §4)—— 用户 2026-08-07 拍板「教学单开一关」。
 ## 它**不判生死、不进 curve.gd 的分位数反解**, 所以:
 ##   · `target()` 恒 0 ⇒ 分数永远够, 一拍都不会死(起承転結 的「起」= **无惩罚**);
 ##   · `phrase_duration()` 走 `Tutorial` 的脚本(12s 收到 8s), 不走 gig_clocks。
@@ -212,7 +212,7 @@ var _tutorial_acted: Dictionary = {}
 ## 想不到这个操作就无限重复。⚑ 我给**时钟**做了 30 秒兜底(`TUTOR_HOLD_MAX`),
 ## 却忘了给**步进**做 —— 同一个道理漏了一半。
 ## ⚑ 3 拍 = 教一次 + 练两次。到了还没做出来就往前走:**教学关的职责是让他见过, 不是逼他学会**
-## (「强制引导」在 design/difficulty.md §4 里是明确不做的)。
+## (「强制引导」在 docs/design/difficulty.md §4 里是明确不做的)。
 const STEP_MAX_BEATS := 3
 var _tutorial_step_beats := 0
 
@@ -281,7 +281,7 @@ static func section_target_for(table: Array, section: int, mod: String) -> int:
 	return int(round(float(base) * SectionMod.target_mult(mod)))
 
 
-## 曲目税(2026-08-13 裁决 #8, design/blinds_review.md §6):种数配额**不再是硬门**,
+## 曲目税(2026-08-13 裁决 #8, docs/design/blinds_review.md §6):种数配额**不再是硬门**,
 ## 改成「缺一种, 目标升一档」—— 硬门是处决不是税(墙的健康带是 30-60%, 检查表即死
 ## 违反 bent-not-bricked 的手术原则), 且旧硬门只活在 advance() 的 cleared 里,
 ## runloop 的判生死根本没查它 —— 又是半个「游戏里活、模型里死」。

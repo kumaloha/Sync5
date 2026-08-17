@@ -1,6 +1,6 @@
 extends Probe
 
-## λ 扫描 (design/solver_roadmap.md, 2026-08-06 用户拍板「平衡贪心」取代跨拍 DP)。
+## λ 扫描 (docs/design/solver_roadmap.md, 2026-08-06 用户拍板「平衡贪心」取代跨拍 DP)。
 ##   godot --headless --path . --script res://tools/lam.gd
 ##
 ## 平衡贪心把跨拍权衡压成一条式子:

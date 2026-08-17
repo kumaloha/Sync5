@@ -1,7 +1,7 @@
 class_name Hud
 extends Control
 
-## Info bar (design/tech.md view split): 12 grouped pills, coins, score/target,
+## Info bar (docs/design/tech.md view split): 12 grouped pills, coins, score/target,
 ## phrase counter and the progress bar. Geometry from data/ui.json "hud";
 ## refresh(vm) is the only input — the orchestrator never touches the labels.
 ##

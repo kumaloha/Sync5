@@ -66,7 +66,7 @@ func run(t) -> void:
 	p_next.start()
 	t.eq(cache.size(), GameConfig.CACHE_CAP, "existing cache is not overfilled")
 
-	# --- 2026-08-07 脸批次:改「输入」的两张(design/research_balatro_bosses) ---
+	# --- 2026-08-07 脸批次:改「输入」的两张(docs/design/research_balatro_bosses) ---
 	# lostpage/freshsheet: evict at phrase END, refill at next start. The point
 	# is that the cache CONTENT turns over — it is never left short.
 	var ed := Deck.new(99)

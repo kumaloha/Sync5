@@ -1,7 +1,7 @@
 class_name Fx
 extends RefCounted
 
-## Effect-DSL interpreter (design/tech.md). Entities carry
+## Effect-DSL interpreter (docs/design/tech.md). Entities carry
 ## effects: [{when, do}] — `when` predicates AND together, `do` writes one
 ## settle channel. Popup strings are generated per channel, matching the
 ## legacy hand-written formats byte-for-byte (tests enforce it).
@@ -189,7 +189,7 @@ static func _count(d: Dictionary, state: Dictionary, ctx: Dictionary) -> float:
 
 static func _do(d: Dictionary, state: Dictionary, ctx: Dictionary,
 		scale: float = 1.0) -> String:
-	# escape-hatch opcodes first (design/tech.md: the irreducible two)
+	# escape-hatch opcodes first (docs/design/tech.md: the irreducible two)
 	if d.has("mult_from_target_factor"):
 		var tf: float = float(ctx.get("target_factor", 1.0))
 		if tf > 1.0:

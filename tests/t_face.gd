@@ -24,7 +24,7 @@ func run(t) -> void:
 		["rerun", "raisedbar", "trilogy", "blackout", "doubleseal", "patchin", "ration", "switchtrack"],
 		# ⚑ 2026-08-14 用户:「tier4 可以补脸, 只不过都是时间相关的就行」——
 		# 末轮从「固定一张」变成「时间族四张」。六秒仍然始终成立:**每张都自带 time_penalty**,
-		# 所以 design/blinds.md §6 删掉延音的那条理由(把六秒还回去 = 破坏第四轮主机制)不被违反。
+		# 所以 docs/design/blinds.md §6 删掉延音的那条理由(把六秒还回去 = 破坏第四轮主机制)不被违反。
 		["rush", "overtime", "teardown", "closing"],
 	]
 	for idx in range(expected_pools.size()):
@@ -37,7 +37,7 @@ func run(t) -> void:
 	# ⚠ 2026-08-07 二次重构:池子不再手写, **由每张脸的 `tier` 推导**
 	# (用户:「每次都要看塞在哪个轮次合适, 这也是脸的一个基础属性」)。
 	# 连带作废的是 `arc`(同一张脸跨段复现)—— 一张脸一个 tier 之后那件事
-	# 在结构上表达不出来, 守一个不可能发生的情况是死代码。教训留在 design/gates.md。
+	# 在结构上表达不出来, 守一个不可能发生的情况是死代码。教训留在 docs/design/gates.md。
 	for m in SectionMod.roster():
 		var tier := SectionMod.tier_of(m.id)
 		if tier == 0:
@@ -54,7 +54,7 @@ func run(t) -> void:
 				"S%d 只有一张脸, 必须在 fixed_tiers 里显式声明" % (idx + 1))
 	# ⚑⚑ 末轮的契约从「固定一张」换成「**全员时间族**」(2026-08-14 用户:
 	# 「tier4 可以补脸, 只不过都是时间相关的就行」)。
-	# ⚠ 六秒是第四轮的**主机制** —— design/blinds.md §6 删掉「延音」的理由就是
+	# ⚠ 六秒是第四轮的**主机制** —— docs/design/blinds.md §6 删掉「延音」的理由就是
 	# 「把六秒恢复到七至八秒, 破坏第四轮主机制」。所以末轮每张脸都必须自带 time_penalty,
 	# 否则掷到它那一局的终章会**变软**, 正是延音被删的同一个错。
 	for id in SectionMod.pool_for(GameConfig.SECTIONS_PER_RUN - 1):
@@ -109,7 +109,7 @@ func run(t) -> void:
 	_t["faces"][0]["tier"] = 0
 	t.check(DB.validate_faces(_t) != "", "tier 0 被拒(轮次从 1 起)")
 
-	# --- 覆盖自证契约 (design/gates.md):进池子就要声明模型里的通路 ---
+	# --- 覆盖自证契约 (docs/design/gates.md):进池子就要声明模型里的通路 ---
 	# 一条规则如果进不了模型, 它就不该进池子。tools/gate.gd 照这个声明造对照臂,
 	# 所以漏声明 / 声明了个不认识的通路都必须当场红 —— 否则门会给它造一条
 	# 测不到东西的臂然后放行, 而那正是这道门要拦的形状。
@@ -183,18 +183,18 @@ func run(t) -> void:
 	for idx in GameConfig.WALL_SECTIONS:
 		for id in SectionMod.pool_for(idx):
 			placed[id] = true
-	# ⚠ `cover` was briefly on this list and it was a mistake — see design/blinds.md §4
+	# ⚠ `cover` was briefly on this list and it was a mistake — see docs/design/blinds.md §4
 	# ("别读代码下结论") / tools/coin.gd. Only rotation is genuinely dead.
 	# 没有 tier = 没入池。这必须是**有意的**, 所以退役清单显式写死:
 	#   rotation —— 弃牌免费后随手弃一张零成本免疫, 代价为零。
 	# ⚑ **`raisedbar` 2026-08-09 由用户拍板进第三轮**(原话:「适合第三轮, 放第二轮会无聊」)
 	#   —— 「転」那一段本就该是节奏变化处, 放第二轮只是把「承」变成单纯加量。
 	#   它曾在这张清单上, 理由是「不改玩法、只把目标分 ×1.5, 是难度靠抽签的极端形态」;
-	#   那**从来不是退役, 是待拍板**(design/blinds.md 里一直写着「要放回来, 告诉我放哪一轮」)。
+	#   那**从来不是退役, 是待拍板**(docs/design/blinds.md 里一直写着「要放回来, 告诉我放哪一轮」)。
 	const RETIRED := ["unplugged", "static", "rotation", "cover", "freshsheet"]
 	for m in SectionMod.roster():
 		if RETIRED.has(m.id):
-			t.check(not placed.has(m.id), "%s 保持退役(见 design/blinds.md §5)" % m.id)
+			t.check(not placed.has(m.id), "%s 保持退役(见 docs/design/blinds.md §5)" % m.id)
 		else:
 			t.check(placed.has(m.id), "face %s 有 tier, 进了某一轮的池子" % m.id)
 	var rng := RandomNumberGenerator.new()
@@ -202,7 +202,7 @@ func run(t) -> void:
 	t.check(SectionMod.roll(1, rng) in SectionMod.pool_for(1), "roll draws from the pool")
 	t.eq(SectionMod.roll(99, rng), "", "no roll outside the table")
 	# ⚑ 「重复必须是有意的, 不能是偶然的」——`exclude` 守卫(2026-08-14 随 `tiers` 加回,
-	# design/blinds.md §3 当年删它时就留了这句后手)。这里直接测原语, 不依赖数据里真有跨轮的脸。
+	# docs/design/blinds.md §3 当年删它时就留了这句后手)。这里直接测原语, 不依赖数据里真有跨轮的脸。
 	var p1: Array = SectionMod.pool_for(1)
 	var keep: String = String(p1[0])
 	var others: Array = p1.slice(1)
@@ -241,7 +241,7 @@ func run(t) -> void:
 	t.check(SectionMod.bonus_disabled("static"), "static disables bonuses")
 	t.eq(SectionMod.repeat_factor("norepeat"), 0.5, "norepeat factor from data")
 	t.eq(SectionMod.zero_discard_factor("rotation"), 0.5, "rotation factor from data")
-	# --- 2026-08-07 批次:改「输入」的脸(design/research_balatro_bosses) ---
+	# --- 2026-08-07 批次:改「输入」的脸(docs/design/research_balatro_bosses) ---
 	t.eq(SectionMod.cache_evict("lostpage"), 1, "lostpage drops 1 cache card")
 	t.eq(SectionMod.cache_evict("freshsheet"), GameConfig.CACHE_CAP, "freshsheet wipes the cache")
 	t.eq(SectionMod.cache_evict(""), 0, "no face -> no eviction")

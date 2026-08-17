@@ -1,12 +1,12 @@
 class_name Solver
 extends RefCounted
 
-## 数学 D 的单拍核心 (design/solver_roadmap.md)。
+## 数学 D 的单拍核心 (docs/design/solver_roadmap.md)。
 ##
 ## **铁律:计分绝不在这里重新实现。** 本模块只做模拟器不做的两件事 ——
 ## **枚举**牌面(而非随机抽)、**求最优**(而非照手写规矩打);算分一律调
 ## `core/pattern.gd` + `core/settle.gd`。两边共用同一份计分代码, 是「数学与模拟
-## 不分家」的唯一保证(design/solver_roadmap.md), 也是一致性测试能成立的前提。
+## 不分家」的唯一保证(docs/design/solver_roadmap.md), 也是一致性测试能成立的前提。
 ##
 ## 一拍的决策在真实规则下塌缩成两步:
 ##   ① 选一个弃牌子集 S ⊆ 8 张可见 (|S| ≤ 金币), 花 |S| 金币, 弃掉的位置随机补牌
@@ -195,7 +195,7 @@ static func best_blind_score(visible: Array, slots: Array, extra: Dictionary,
 ## 抽 `count` 组替身, 每组 `n_hidden` 张。牌从**牌堆 + 弃牌堆**里设想抽取
 ## (`peek_many` 不消耗牌堆), 也就是「所有不在我手上/缓存里的牌」。
 ##
-## ⚠ **显式近似**(design/solver_roadmap.md):真正的信念应当是「所有我看不见的牌」, 那还包括
+## ⚠ **显式近似**(docs/design/solver_roadmap.md):真正的信念应当是「所有我看不见的牌」, 那还包括
 ## 盖着的那几张自己 —— 它们物理上在手里, 所以不在 peek 的池子里。后果是求解器
 ## **永远猜不中真值**, 它对自己的估计因此偏保守。|hidden| ≤ 5 而池子 ≈44,
 ## 偏差在个位数百分比, 但它是**单向**的, 记在这里别忘了。
@@ -211,7 +211,7 @@ static func make_subs(deck: Deck, rng: RandomNumberGenerator, n_hidden: int,
 	return out
 
 
-## 在候选值上加噪声再取 argmax —— **决策质量**这一维(design/solving.md 第二部分)。
+## 在候选值上加噪声再取 argmax —— **决策质量**这一维(docs/design/solving.md 第二部分)。
 ##
 ## ε 是**无量纲**的:噪声尺度 = ε × 这一拍候选值的标准差, 所以同一个 ε 在
 ## 不同配置、不同分数量级下含义相同 —— 这是它能跨配置比较的前提。
@@ -343,7 +343,7 @@ static func cache_value(keep: Array, slots: Array, extra: Dictionary,
 		futures: Array, rules: Dictionary = {}) -> float:
 	if futures.is_empty():
 		return 0.0
-	# ⚑ **真实跨拍转移**(design/solving.md 第三部分):留下的 3 张**不一定**留到下一拍 ——
+	# ⚑ **真实跨拍转移**(docs/design/solving.md 第三部分):留下的 3 张**不一定**留到下一拍 ——
 	# `Beat.phrase_end` → `Phrase.cleanup()` 会按 cache_evict 随机弃掉 n 张,
 	# 下一拍开局补满。前瞻假设它们原样留着, 就会在缓存驱逐族下**高估缓存**,
 	# 而那正是 2026-08-07 把「丢谱测出正分」误读成「这张脸没用」的根。
@@ -408,7 +408,7 @@ static func _survivor_sets(keep: Array, evict: int) -> Array:
 ##     value(切法) = 本拍得分 + λ · E[下一拍得分 | 留下的 3 张]
 ## λ = 0 就退化成单拍贪心(现在的 v1);λ 越大越"养牌"。
 ## ⚠ **λ 不许拍脑袋** —— 用 `tools/lam.gd` 扫出来, 判据是探针里那条 −3.8% 的缺口
-## 收窄到多少(design/solver_roadmap.md 的近似 3b)。λ 还应随剩余拍数衰减:最后一拍缓存一文不值。
+## 收窄到多少(docs/design/solver_roadmap.md 的近似 3b)。λ 还应随剩余拍数衰减:最后一拍缓存一文不值。
 ##
 ## **盖牌(不完全信息)**:排序、剪枝、取 argmax 一律走 `belief`;返回值里的
 ## `score` 是真值, 由调用方记账。⚠ **缓存潜力那一层不受盖牌影响** ——
@@ -509,17 +509,17 @@ static var ORACLE := false
 ## ⚠ **只有探针能开它**(同 `ORACLE`):生产路径必须保持 false。
 ## 留着它唯一的理由是**做配对 A/B 量这次扩枚举值多少分** —— **不是给性能开的后门**。
 ## CLAUDE.md:「不许为性能去砍这个数 —— 那是拿平衡换速度。」
-## ⚠ 候选剪枝那条提速路已被实测否掉(`design/prior.md` §5.6d:M=6 只提速 2.9× 就丢 3.26%)。
+## ⚠ 候选剪枝那条提速路已被实测否掉(`docs/design/prior.md` §5.6d:M=6 只提速 2.9× 就丢 3.26%)。
 static var NARROW_DISCARD := OS.get_environment("SYNC5_NARROW_DISCARD") == "1"
 
 
-## 弃牌头 (design/solver_roadmap.md ①)。返回该弃掉哪几张(**下标, 相对 `visible`**)。
+## 弃牌头 (docs/design/solver_roadmap.md ①)。返回该弃掉哪几张(**下标, 相对 `visible`**)。
 ##
 ## ⚠⚠ **2026-08-14:枚举空间从 `base.keep`(3 张)扩到全部可见的 8 张,返回值语义随之改变。**
 ## 旧注释的理由是「计分的 5 张是当前最优解, 弃掉它们等于自伤」——
 ## **那条理由是错的**, 而且错多少已经量到了:`base` 是**不弃牌时**的最优切法,
 ## 弃掉其中只贡献 rank_sum 的废牌去搏更大的牌型经常更好。
-## 先验层配对实测(`design/prior.md` §5.6b,400 手):窄枚举系统性低估最优分
+## 先验层配对实测(`docs/design/prior.md` §5.6b,400 手):窄枚举系统性低估最优分
 ## **+26.6 ±1.7 · z=15.5 · 量级 9.3%** —— 项目两条判据都过。
 ## ⚠ 连带:窄枚举**结构上弃不了 4 张**(keep 只有 3 张), 而真人实测一拍最多弃 4,
 ## `beat_budget.discards` 早已按此校准到 4 —— **配置允许的动作,求解器做不出来**。
@@ -529,7 +529,7 @@ static var NARROW_DISCARD := OS.get_environment("SYNC5_NARROW_DISCARD") == "1"
 ## 两份各对一半;现在正确的枚举空间与正确的随机数合到了这一份里。
 ##
 ## ⚠ **`coin_value`(κ, 金币影子价)不能省。** 孤立一拍地看金币没有下一拍, 最优解永远是
-## 把钱花光 —— 那正是 `design/history_adversarial.md` §7 亲口警告的幻想区(一拍弃 8 张要 8◆, 一局总收入才 45-70◆)。
+## 把钱花光 —— 那正是 `docs/design/history_adversarial.md` §7 亲口警告的幻想区(一拍弃 8 张要 8◆, 一局总收入才 45-70◆)。
 ## κ 和 λ 一样**扫出来**, 不许拍。
 ##
 ## futures_per: 每个子集采样几组补牌。**同一批补牌给所有子集共用**(公共随机数)——
@@ -637,7 +637,7 @@ static func _subsets(n: int) -> Array:
 ## 一拍的完整最优(含弃牌), 期望值靠采样补牌。
 ##
 ## ⚠ **`coin_value` 不能省。** 单拍孤立地看, 金币没有下一拍, 最优解永远是「把钱花光」
-## —— 那正是 `design/history_adversarial.md` §7 警告的幻想区(一拍弃 8 张要 8◆, 一局总收入才 45-70◆)。
+## —— 那正是 `docs/design/history_adversarial.md` §7 警告的幻想区(一拍弃 8 张要 8◆, 一局总收入才 45-70◆)。
 ## 金币的真实价值是**跨拍的**, 由 DP 给出影子价; 这里以「每 1◆ 值多少分」传进来。
 ## coin_value = 0 就是"钱不要钱"的上界, 只应在诊断时用。
 ##

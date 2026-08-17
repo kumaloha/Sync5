@@ -1,7 +1,7 @@
 class_name HomeScreen
 extends Control
 
-## The game's front page, 1:1 from the user's mock in resources/home.html
+## The game's front page, 1:1 from the user's mock in docs/mockups/home.html
 ## (the authority for this screen, like success/fail.html are for the result
 ## screens).
 ##
@@ -37,7 +37,7 @@ const CARD_INSET := 24.0                  # 霓虹轨距外框(玻璃的可见�
 # 页签轨几何在 Chrome(2026-08-11 三个图鉴页实装时迁出成四屏单源);
 # 下缝 51 比上缝多 3px 的理由不变:抵消倒影的光填缝带来的偏紧观感。
 
-# meta-progression placeholders: design/ui_meta.md is NOT implemented, so the profile
+# meta-progression placeholders: docs/design/ui_meta.md is NOT implemented, so the profile
 # numbers are static here on purpose — one dict, clearly fake, easy to wire up
 # once a save system exists.
 const PROFILE := {"name": "NEON PLAYER", "title": "雨夜俱乐部 VIP", "level": 12,
@@ -65,7 +65,7 @@ var _tail: Control = null
 
 
 ## 倒影层。必须是**独立子节点 + shader 遮罩**: 渐隐要统一作用在 StyleBox 上,
-## 盖一张渐变矩形只能糊颜色、盖不住 alpha(design/ui_meta.md 渲染手法)。
+## 盖一张渐变矩形只能糊颜色、盖不住 alpha(docs/design/ui_meta.md 渲染手法)。
 ## 注意 z_index 不能设成负的: 子节点会因此画在父节点 _draw() **之前**,
 ## 而 _draw_bg() 是铺满整屏的, 会把倒影整个盖掉(踩过)。留默认值即可 ——
 ## 子节点本来就画在 _draw() 之后, 倒影很淡, 盖在页签上正是设计稿的样子。

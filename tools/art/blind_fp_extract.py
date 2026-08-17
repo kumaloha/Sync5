@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""盲注机制指纹抽取:assets/design/blind_card_ui.html 的 29 个 <symbol>
+"""盲注机制指纹抽取:assets/docs/design/blind_card_ui.html 的 29 个 <symbol>
 → assets/blinds/fp_<id>.svg(烤定色,Godot 原生导入当纹理)。
 
 来源是已批准的目录(README「Final Blind signal deck」),这里只做机械转换:
@@ -11,7 +11,7 @@ import re
 import pathlib
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-SRC = ROOT / "assets/design/blind_card_ui.html"
+SRC = ROOT / "assets/docs/design/blind_card_ui.html"
 OUT = ROOT / "assets/blinds"
 BOONS = {"doubleset", "spotlight", "afterglow", "encore"}
 PRESSURE, BOON, HOT = "#ff328d", "#ffd36e", "#f8f5ff"

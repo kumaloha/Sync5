@@ -1,7 +1,7 @@
 class_name BlindBanner
 extends Control
 
-## Light strip for non-boss blind clears (design/levels.md 关卡重构): the full
+## Light strip for non-boss blind clears (docs/design/levels.md 关卡重构): the full
 ## 演出成功 celebration is reserved for gig walls — small/big blinds get a
 ## sub-second banner (target ✓ + wage) that never blocks input; the shop
 ## opens beneath it while it slides away.

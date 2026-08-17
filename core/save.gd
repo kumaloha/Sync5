@@ -35,16 +35,23 @@ static var _loaded := false
 ##
 ## 判据用 `--script`:**每个探针都是 `godot --script res://tools/xxx.gd` 起的,
 ## 而真游戏是 `godot --path .`(主场景)** —— 一个显式、可 grep、不会被忘掉的分界。
-## ⚠ 代价写明白:**教学关这条路径因此没有探针覆盖**。要覆盖就像 `tools/tutorsheet.gd`
-## 那样**直接把 `run.tutorial` 按上去**, 别去依赖存档状态。
+## ⚠ 代价写明白:**教学关这条路径缺省没有探针覆盖**。要覆盖就设 `SYNC5_PROBE_FRESH=1`
+## (见 seen_tutorial 的口子, 2026-08-18)—— 它让探针走真人同款入口, 且仍不碰存档。
+## ~~直接把 run.tutorial 按上去~~ 已废弃:按晚了会拿到「教学关冒出 BOSS 脸」的错位假象。
 static func _is_probe() -> bool:
 	return OS.get_cmdline_args().has("--script")
 
 
 ## 教学关看过没有。⚠ 读不到 / 解析失败 = false(当新玩家), 见文件头。
+##
+## ⚑ 探针缺省当「看过」(不进教学关), **`SYNC5_PROBE_FRESH=1` 时当新玩家**(2026-08-18)——
+## 教学关真路径探针要走和真人一样的入口(公示卡闸/掷脸的教学分支/步进都在 choose_character
+## 里按 seen_tutorial 分岔), 在编排器外面手按 `run.tutorial` 的探针拿到的是错位的假象
+## (交接里两次「教学关截图冒出 BOSS 脸」正是按晚了)。⚠ 只影响这一个读数,
+## 券/存档的探针闸不动 —— 教学关本来就不该依赖它们。
 static func seen_tutorial() -> bool:
 	if _is_probe():
-		return true
+		return OS.get_environment("SYNC5_PROBE_FRESH") != "1"
 	return bool(_data().get("seen_tutorial", false))
 
 
@@ -60,7 +67,7 @@ static func mark_tutorial_seen() -> void:
 ##
 ## ⚠⚠ **UI 上还没有入口, 这是有意的**(2026-08-15):三个可能的落点全都是用户的地盘 ——
 ## 页签轨的几何锁死在「四屏单源」(`Chrome.TAB_W = (672-88)/4`, 加第 5 个会改动全部四个)·
-## 荣誉页以 `resources/荣誉.dc.html` 为权威 · 首页用户明确否过加东西(「别加东西了」)。
+## 荣誉页以 `docs/mockups/荣誉.dc.html` 为权威 · 首页用户明确否过加东西(「别加东西了」)。
 ## **放哪是口味决定, 不该由我替他拍**, 所以先只留机制:接到哪个按钮上都是一行。
 ## ⚠ 用户对这件事本身的判断是「**教一把就会了**」—— 所以别默认它一定要有入口。
 static func clear_tutorial() -> void:

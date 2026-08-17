@@ -4,7 +4,7 @@ extends RefCounted
 ## 游玩打点(telemetry)。一次 run = 一条事件流,落盘成 JSONL(一行一条)。
 ##
 ## **为什么要**:sim 打的是机器人,而 SECTION_TARGETS 2026-08-05 起已经换成
-## **人锚**——真人这一侧至今没有账本。G/D 对抗校准(`design/history_adversarial.md`/17)的 loss 要拿
+## **人锚**——真人这一侧至今没有账本。G/D 对抗校准(`docs/design/history_adversarial.md`/17)的 loss 要拿
 ## 真人实测跟预测对账,这个模块就是那份实测数据的来源。第二用途是流程 QA:
 ## flow_probe 只能在 headless 里守不变量,真人手里的异常(连点跳段那类)只能
 ## 靠事件序列回看。第三是经济/手感调参——弃了几张、什么时候动手、想买没买起。
@@ -17,9 +17,9 @@ extends RefCounted
 ## **不打什么**:每帧计时、动画、渲染、指针移动。只打**决策与状态转移**,
 ## 一局 ≈ 75-200 行 ≈ 11-30KB。密度高一档就再也没人愿意长期开着它。
 ##
-## 与既有规格的对账:事件表覆盖 design/telemetry.md 的 Phrase/Section/Run 三级清单
+## 与既有规格的对账:事件表覆盖 docs/design/telemetry.md 的 Phrase/Section/Run 三级清单
 ## (「候选牌去向」不适用——机制已作废;「near miss 类型」没做,那要现算差一张
-## 能成什么, 太重, 需要时从 hand + best0 离线补算)。`design/history_parametric.md` §4 表一是 **sim 侧**
+## 能成什么, 太重, 需要时从 hand + best0 离线补算)。`docs/design/history_parametric.md` §4 表一是 **sim 侧**
 ## 机器人遥测, 不是这条流;但字段可对上:三桶里的 chips 加法和 = base − chips、
 ## 奖励分和 = bonus、log-mult 和 = ln(mult), 段级量从 sec_end 直接读。
 ##

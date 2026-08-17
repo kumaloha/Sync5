@@ -6,7 +6,7 @@ extends SceneTree
 ## **正在用的**诊断仪器,而 S3 的下一步大概率还要改它们。
 ## **在仪器还在用的时候改仪器**是本项目吃过亏的形状 —— 别顺手「合并一下」。
 
-## **诊断:构筑档内还缺哪一维**(design/solving_history.md 之后)。
+## **诊断:构筑档内还缺哪一维**(docs/design/solving_history.md 之后)。
 ##   godot --headless --path . --script res://tools/dpdiag.gd
 ##
 ## ## 问题

@@ -1,7 +1,7 @@
 class_name Hand
 extends Control
 
-## Hand row + cache row + the two DJ keys (design/tech.md view split). Owns the
+## Hand row + cache row + the two DJ keys (docs/design/tech.md view split). Owns the
 ## pure view state — selection, last-seen cards for flip detection, the
 ## deal flip — and emits intent signals; the orchestrator validates against
 ## the Phrase and calls refresh(vm) back. Geometry/copy from data/ui.json.
@@ -340,7 +340,7 @@ func focus_rect(region: String) -> Rect2:
 			# 拿矩形去照亮就得到一个比按钮高一倍的方角光块。
 			# ⇒ 取矩形内**居中的正方形**(边 = 短边), 高亮层看到长宽比 1.0 就会画成整圆。
 			# ⚑ 判据:**高亮该贴合「玩家看到的形状」, 不是「控件的碰撞盒」** ——
-			# 同 design/ui_meta.md 那句「对齐类反馈要查视觉顶端而不是几何顶端」。
+			# 同 docs/design/ui_meta.md 那句「对齐类反馈要查视觉顶端而不是几何顶端」。
 			var side: float = minf(discard_key.size.x, discard_key.size.y)
 			return Rect2(discard_key.position
 				+ (discard_key.size - Vector2(side, side)) * 0.5,

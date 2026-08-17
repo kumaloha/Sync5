@@ -5,7 +5,7 @@ extends RefCounted
 ##
 ## ## 为什么有这个文件
 ##
-## `design/tech.md` 把**一拍**的编排从六份合成了一份(`core/beat.gd`),然后我转头在
+## `docs/design/tech.md` 把**一拍**的编排从六份合成了一份(`core/beat.gd`),然后我转头在
 ## **一局**这一层又抄了一遍 —— 实测**14 份**:
 ##   sim · curve · coin · blind · addit · price 各 1,**gate 3**,**formal 6**。
 ## (formal 那 6 份是 2026-08-08 我自己加的。写着「别在这里重写规则」的注释,
@@ -17,14 +17,14 @@ extends RefCounted
 ## ## 和 `Beat` 的分工
 ##
 ## `Beat` 共用的是**转移**(一拍怎么走完),因为游戏是实时异步、探针是同步,
-## **共用不了 `for` 循环**(design/tech.md)。
+## **共用不了 `for` 循环**(docs/design/tech.md)。
 ## 本文件共用的是**循环**,所以它**只给探针用** —— `view/phrase.gd` 不碰它,
 ## 它照旧从时钟回调里按顺序调 `Beat`。
 ##
 ## ## ⚠ 验收判据
 ##
 ## **每换一份, 那份探针的输出必须逐字节不变**(除耗时那一行)。
-## 手法见 design/tech.md:把原版拷成 `tools/_base_X.gd` 再改原版,两版各跑一次对拍,用完删掉。
+## 手法见 docs/design/tech.md:把原版拷成 `tools/_base_X.gd` 再改原版,两版各跑一次对拍,用完删掉。
 ## 仓库不是 git 库,所以不依赖 VCS。
 
 
@@ -44,7 +44,7 @@ class Opts extends RefCounted:
 	##     名字容易误读, 别照字面理解。
 	var player: String = "perfect"
 	var lam: float = 0.0                # player=perfect 时的跨拍权重
-	var eps: float = 0.0                # 决策噪声(design/solving.md 第二部分)
+	var eps: float = 0.0                # 决策噪声(docs/design/solving.md 第二部分)
 	var lam_samples: int = 3
 	var cfg: Dictionary = {}            # 传给 Bot 的队列配置(player=adaptive 用)
 	## 这一局的**行为账本**(买牌算法拿它给卡定价)。留空则内部新建一份。
@@ -125,7 +125,7 @@ static func play(o: Opts, bot: Bot) -> Dictionary:
 				o.on_beat.call(run, p, outcome,
 					{"flags": flags, "prev_kind": prev_kind_before})
 			Beat.phrase_end(run, p, flags)
-			# 段中商店:每 PHRASES_PER_SHOP 拍一次, **不结算不判生死**(design/levels.md)
+			# 段中商店:每 PHRASES_PER_SHOP 拍一次, **不结算不判生死**(docs/design/levels.md)
 			var done := pidx + 1
 			if o.shop and done % GameConfig.PHRASES_PER_SHOP == 0 \
 					and done < GameConfig.PHRASES_PER_SECTION:
@@ -199,7 +199,7 @@ static func _tally(st: Dictionary, outcome: Dictionary, tally_score: bool = true
 		st["kinds"][kk] = float(st["kinds"].get(kk, 0.0)) + 1.0
 
 
-## **把一局 fork 一份给假想推演用**(design/solving.md 第三部分)。
+## **把一局 fork 一份给假想推演用**(docs/design/solving.md 第三部分)。
 ##
 ## ⚠⚠ 推演**绝不能碰真实局**。三处会被污染, 每一处都不报错:
 ##   ① **牌堆** —— fork 出来的 Deck 有自己的 RNG(`Deck.fork`), 否则"算一下买哪张牌"

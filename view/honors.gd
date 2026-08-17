@@ -1,7 +1,7 @@
 class_name HonorsScreen
 extends Control
 
-## 荣誉页(成就 + 排行双子页),自 resources/荣誉.dc.html(该屏权威)。
+## 荣誉页(成就 + 排行双子页),自 docs/mockups/荣誉.dc.html(该屏权威)。
 ## ⚠ 这是一页**壳**:成就要存档系统、排行要联网,两者都不存在,所以列表
 ## 数据是清清楚楚的占位 mock(同 home.gd 的 PROFILE 先例)—— 但词汇全部
 ## 对齐真游戏:成就说的是真机制(60 张小丑牌/8 位主角/4 场巡演),排行的

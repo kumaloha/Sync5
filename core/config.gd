@@ -1,7 +1,7 @@
 class_name GameConfig
 extends RefCounted
 
-## Facade over data/run.json + data/economy.json (design/tech.md). Every name
+## Facade over data/run.json + data/economy.json (docs/design/tech.md). Every name
 ## keeps its old call-site syntax — the numbers just live in data/ now.
 ## 边做边改：手感/节奏数值全部在 data/,时长仍走 phrase_duration() 等钩子。
 
@@ -34,7 +34,7 @@ static var FINAL_ACT_WINDOW: float = float(_run["final_act_window"])
 static var EARLY_DISCARD_WINDOW: float = float(_run["early_discard_window"])
 ## 「点唱片提前收工」的最小时间(2026-08-13 用户拍板加的主动锁定)。
 ## ⚠ 存在的理由是**防手滑**:开局第一下就点到唱片会直接结束这一拍。
-## 2 秒这个值来自 design/jokers.md 里 Punk 主角的原始设计(「2 秒后可以提前锁定」)——
+## 2 秒这个值来自 docs/design/jokers.md 里 Punk 主角的原始设计(「2 秒后可以提前锁定」)——
 ## 那条设计早就写着, 只是从未实装。
 static var EARLY_LOCK_MIN: float = float(_run["early_lock_min"])
 static var EARLY_FINISH_TIME: float = float(_run["early_finish_time"])
@@ -44,7 +44,7 @@ static var HAND_SIZE: int = int(_run["hand_size"])
 static var CACHE_CAP: int = int(_run["cache_cap"])
 static var CACHE_MAX: int = CACHE_CAP
 
-# --- 手速预算 (design/solver_roadmap.md) ---
+# --- 手速预算 (docs/design/solver_roadmap.md) ---
 # 真人一拍(8s)物理上做得完几个动作。⚠ **故意不由 core/phrase.gd 强制**:
 # 真人在游戏里只被时钟限制, 加一个硬计数器等于改游戏规则(用户没要这个)。
 # 它的用途是让**求解器与模拟器共用同一个上限** —— 数学 D 在预算内求最优、

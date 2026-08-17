@@ -1,17 +1,17 @@
 extends Probe
 
-## 数学 G:通过率曲线 → 反解目标分 (design/solver_roadmap.md ①)。
+## 数学 G:通过率曲线 → 反解目标分 (docs/design/solver_roadmap.md ①)。
 ##   godot --headless --path . --script res://tools/curve.gd
 ##
 ## **为什么一次就能算出整条曲线**:平衡贪心**不看缺口**(它只比「本拍得分 + λ·缓存潜力」),
 ## 所以分数分布**与目标分无关** —— 录一次分数, 任意目标分的通过率都能在同一批数据上算出来。
-## 这就是 design/solver_roadmap.md 说的「反解是免费的」:不是迭代求根, 是**查分位数**。
+## 这就是 docs/design/solver_roadmap.md 说的「反解是免费的」:不是迭代求根, 是**查分位数**。
 ## ⚠ 代价(显式声明):真人**会**看缺口(「差得多就赌」), 贪心不会。所以这条曲线描述的是
 ## 「一个不会临场改打法的强玩家」。等真人数据进来, 这一项归进发挥系数。
 ##
 ## **不死局**:打满 24 拍、不判生死。这样任意一组候选目标都能在**同一批录好的数据**上重放,
 ## 跨段的幸存者条件因此是**精确**的(死者不进下一段的分位数), 不需要段间独立假设 ——
-## `design/history_parametric.md` (F9) 那条「必定低估生还」的系统性偏差在这里结构性地不存在。
+## `docs/design/history_parametric.md` (F9) 那条「必定低估生还」的系统性偏差在这里结构性地不存在。
 ## 段末工资照发(假定通过), 这是不死局的记账约定。
 
 # ⚠ 求解器每拍要跑 ~1400 次 Pattern+Settle, 8 队列 × 200 局跑不完 10 分钟。
@@ -34,7 +34,7 @@ var BOT: String = OS.get_environment("SYNC5_CURVE_BOT") \
 
 ## 设计难度谱:每段「到达者中的死亡率」。**2026-08-07 用户拍板挪进 `data/run.json`** ——
 ## 目标函数已换成「留存最大化」, 所以这条曲线的形状是**待搜索的参数**, 不是我拍的常量。
-## 原值 [0.10,0.30,0.45,0.60](来自 `design/history_adversarial.md` §1.2, 乘积 ≈ 13.9% 通关率)留作搜索起点。
+## 原值 [0.10,0.30,0.45,0.60](来自 `docs/design/history_adversarial.md` §1.2, 乘积 ≈ 13.9% 通关率)留作搜索起点。
 var DEATH_SPEC: Array = DB.run()["death_spec"]
 
 var _rng := RandomNumberGenerator.new()
@@ -54,7 +54,7 @@ func _initialize() -> void:
 		all_rows.append({"name": String(c["name"]), "rows": rows})
 		_report(String(c["name"]), rows)
 
-	# 混合人群:各队列等权(⚠ 真实权重要等真人数据, design/solver_roadmap.md R4)
+	# 混合人群:各队列等权(⚠ 真实权重要等真人数据, docs/design/solver_roadmap.md R4)
 	var mixed: Array = []
 	for e in all_rows:
 		mixed.append_array(e["rows"])

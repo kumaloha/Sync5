@@ -3,7 +3,7 @@ extends Probe
 ## 可加性检验 —— **脸的难度能不能相加?**
 ##   godot --headless --path . --script res://tools/addit.gd
 ##
-## 规格 = `design/gates.md`。这是**排布搜索的地基**, 而我预判它会破。
+## 规格 = `docs/design/gates.md`。这是**排布搜索的地基**, 而我预判它会破。
 ##
 ## ## 为什么这件事是地基
 ##
@@ -105,7 +105,7 @@ func _initialize() -> void:
 	var n_solver := Probe.env_int("SYNC5_ADDIT_N", N_SOLVER)
 	# solver 臂是完美玩家(0.37 秒/局), 给 score 通路加样本时不该陪跑。0 = 整条通路跳过。
 	n_solver = Probe.env_int("SYNC5_ADDIT_NSOLVER", n_solver)
-	print("\n=== 可加性检验 (design/gates.md) ===")
+	print("\n=== 可加性检验 (docs/design/gates.md) ===")
 	print("  队列 %s · score %d 局/臂 · solver %d 局/臂 · 判据 |z| >= %.1f"
 		% [cfg.get("name", "?"), n_score, n_solver, Z_MIN])
 	print("  问题:**12 张脸的价格能不能相加成 840 种排布的难度?**")

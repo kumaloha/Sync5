@@ -1,6 +1,6 @@
 extends RefCounted
 
-## 教学关脚本的契约(design/difficulty.md §4 · core/tutorial.gd)。
+## 教学关脚本的契约(docs/design/difficulty.md §4 · core/tutorial.gd)。
 ## ⚠ 锁的是**结构**, 不是内容 —— 拍长多少、教哪几步是设计, 用户直接改 data/tutorial.json。
 ## 所以这里一个死数字都不抄:全部从 DB 推导(CLAUDE.md 的老教训 ——
 ## 抄死的断言等于给每次调参加一道无意义的返工)。

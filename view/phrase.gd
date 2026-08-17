@@ -119,7 +119,7 @@ func _notification(what: int) -> void:
 			Tape.on("focus", {"on": true, "at": elapsed})
 
 
-## The front page (resources/home.html). Like the picker it holds the clock —
+## The front page (docs/mockups/home.html). Like the picker it holds the clock —
 ## _process would otherwise tick against a null phrase.
 func _open_home() -> void:
 	set_process(false)
@@ -147,7 +147,7 @@ func _on_home_start() -> void:
 	_open_picker()
 
 
-## 三个图鉴页(2026-08-11 resources/主角|小丑牌|荣誉.dc.html 实装)。
+## 三个图鉴页(2026-08-11 docs/mockups/主角|小丑牌|荣誉.dc.html 实装)。
 ## 页面之间互切也走这里 —— 每页的页签轨发同一个 menu_pressed(idx),
 ## idx 0 = 回首页(首页一直活在下面,关掉覆盖层即可)。
 func _open_menu(idx: int) -> void:
@@ -226,7 +226,7 @@ func choose_character(i: int) -> void:
 	# 打点从这里开流 —— 主角与四面墙都定了, 这一局的初始条件已经完整
 	# ⚠⚠ 教学关**照样打点, 但必须打上标记**:它是一局假局(6 拍、目标分 0、不判生死),
 	# 混进 Tape 会污染 `tools/probbook.py` 的「合格真人局」分拣。
-	# 不干脆不打点, 是因为 design/difficulty.md §4 明写着要量的东西正在这里 ——
+	# 不干脆不打点, 是因为 docs/design/difficulty.md §4 明写着要量的东西正在这里 ——
 	# **新手的动作时刻分布**(12 秒够不够), 而那正是现有 Tape 全是熟练玩家所以缺的那一块。
 	# ⚑ 会话边界(D4)——「一次坐下玩几局 / 隔多久回来」。目标函数换成留存之后,
 	# **这是唯一能直接观测目标的量**。它跨局, 而 Tape 一局一个文件, 所以只能进 meta。
@@ -376,7 +376,7 @@ func _start_phrase() -> void:
 		# 那比没有更糟:玩家会以为这一关有个规则而他没看懂。(截图看出来的)
 		blind_card.visible = not run.tutorial
 	# 规则全在这一句里:解析脸 → 发牌(缓存容量在 start() 生效)→ 收入场费 → 推进计数器。
-	# 这三样曾经在六个文件里各写一遍, 而入场费那份我一度还判断错了它有没有用(design/tech.md)。
+	# 这三样曾经在六个文件里各写一遍, 而入场费那份我一度还判断错了它有没有用(docs/design/tech.md)。
 	phrase = Beat.begin(run)
 	state = St.DECISION
 	elapsed = 0.0
@@ -392,6 +392,11 @@ func _start_phrase() -> void:
 	_swap_gate_open = _swap_open()
 	_boost_mult = 1.0
 	_refresh_tray()
+	# 今日发的券在**第一拍**报一声 —— 此前是静默发放, 玩家只有碰巧看托盘才知道
+	# (「冻结是看不见的」同一课:没人报的赠品和没发过长得一样)。一个应用会话只报一次。
+	if run.phrase_index == 0 and _daily_ticket != "" and not run.tutorial:
+		_show_daily_notice(_daily_ticket)
+		_daily_ticket = ""
 	# 教学关的一行提示 + 分区指向 —— 正式局 hint 是空串, TutorHint 整块隐身。
 	# ⚠ 区域名 → 矩形的翻译在**编排器**这一侧:`core/` 不认识像素(坐标归 ui.json)。
 	var h := run.tutorial_hint()
@@ -420,7 +425,7 @@ func _start_phrase() -> void:
 				# ⚠ 往上放宽 44px —— 「手 牌 区」「缓 存 区」那两个标签画在**容器矩形之外**
 				# (上方 ~35px), 只躲容器会让条正好压住标签。第一版就是这么漏的:
 				# 卡片不压了, 标签仍然被盖。**可高亮区 ≠ 它的视觉范围**, 差的正是这一条
-				# —— 同 design/ui_meta.md 那句「对齐类反馈要查视觉顶端而不是几何顶端」。
+				# —— 同 docs/design/ui_meta.md 那句「对齐类反馈要查视觉顶端而不是几何顶端」。
 				avoid.append(Rect2(aq.position - Vector2(0, 44), aq.size + Vector2(0, 44)))
 	tutor.set_hint(String(h["command"]), String(h["signal"]), rects, avoid)
 	# 跨区多选在教学关第 5 步才解锁 —— 在那之前每次只能选一张。
@@ -476,7 +481,7 @@ func _process(delta: float) -> void:
 
 
 func _settle() -> void:
-	# ⚠ 2026-08-07: 这一拍的规则部分整个搬进了 `Core/Beat`(design/tech.md)——
+	# ⚠ 2026-08-07: 这一拍的规则部分整个搬进了 `Core/Beat`(docs/design/tech.md)——
 	# 游戏和模拟器共用同一份编排, 因为「一拍怎么走完」曾经被写了六遍, 而五次
 	# 「规则在游戏里、不在模型里」的事故有三次直接出自那些副本。
 	# 这里只剩表现:Tape 打点 / 三段式结算动画 / popup。
@@ -698,7 +703,7 @@ func _on_end_retry() -> void:
 		return
 	Tape.on("nav", {"to": "retry"})
 	run_end.close()
-	_reset_run(true)      # 再来一次 keeps the protagonist, per design/levels.md
+	_reset_run(true)      # 再来一次 keeps the protagonist, per docs/design/levels.md
 	# 重开 = 新的一局, 得开新流, 否则两局的事件会串在同一条时间轴上
 	Tape.begin({"char": run.character.idx, "cn": run.character.cn_name,
 		"faces": run.run_faces.duplicate(), "targets": GameConfig.SECTION_TARGETS,
@@ -758,7 +763,7 @@ func _open_draft() -> void:
 		run.target(),      # ⚠ 加码脸乘过的那个目标, 不是原始表(2026-08-09)
 		BlindBoon.by_id(run.boon()))
 	# 段中/段末两态要分开统计:段中是「已知缺口下的解题」, 段末是「对下一场下注」,
-	# 购买行为本来就不该混在一起看(design/levels.md 的核心论证)
+	# 购买行为本来就不该混在一起看(docs/design/levels.md 的核心论证)
 	Tape.on("shop", {"mid": mid, "sec": run.section_idx, "coins": phrase.coins,
 		"offer": shop.offers(), "slots": Tape.slots(run.joker_slots),
 		"left": run.phrases_left() if mid else -1,
@@ -900,6 +905,14 @@ func _on_shop_reroll_ticket() -> void:
 
 
 # ============================== 券(拍内) ==============================
+
+## 今日发券的提示(纯表现)。拆成方法是给截图探针一个注入口 ——
+## 探针拿不到真券(`_is_probe` 闸), 但提示的视觉必须能目视。
+func _show_daily_notice(tid: String) -> void:
+	var cn := String(Ticket.by_id(tid).get("cn", tid))
+	var at := tray.position + Vector2(tray.size.x * 0.5, -34.0) if tray.visible \
+		else Vector2(500.0, 600.0)   # 兜底:发的是 run/shop 券时托盘可能不显示
+	fx.float_text(String(DB.ui()["tickets"]["daily_notice"]) % cn, at, StageTheme.GOLD)
 
 ## 托盘重画:数据从 SaveState 读、**只在编排器读**(组件注入制;探针闸也因此只挡这里)。
 ## 教学关不显示 —— 券是局外系统, 混进教学会多一个要解释的东西。
@@ -1081,7 +1094,7 @@ func _on_hand_swap(hand_i: int, cache_i: int) -> void:
 
 
 ## Central action feedback: wave blip + timing marks (Finale / Momentum read
-## these — the only clock-derived joker signals, per design/jokers.md A2).
+## these — the only clock-derived joker signals, per docs/design/jokers.md A2).
 ## ⚠ 名字叫 feedback, 但它**不是**表现层, 所以没跟着搬去 view/feedback.gd:
 ## 它写 last_action_time / acted_late, 而那两个值 _settle 要打进日志、_advance
 ## 要拿来判「提前完成」。真正的表现只有最后那一行。

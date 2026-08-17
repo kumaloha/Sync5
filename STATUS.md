@@ -2,7 +2,7 @@
 
 > **这份文档只回答一件事:现在是什么样。**
 > 待办看 [TODO.md](TODO.md) · 变更史看 [CHANGELOG.md](CHANGELOG.md) · 经验看 [LESSONS.md](LESSONS.md)
-> 规则与美术的**原则**在 [CLAUDE.md](CLAUDE.md) · 设计规格在 `design/`
+> 规则与美术的**原则**在 [CLAUDE.md](CLAUDE.md) · 设计规格在 `docs/design/`
 >
 > **最后更新:2026-08-17**(08-09 之后的增量见文末「增量快照」节,数字冲突以那节为准)
 
@@ -43,7 +43,7 @@ Lumines 的节奏推进 + Balatro 的构筑。一局 4 段 × 6 拍 × 8 秒 ≈
 | 结构 | 4 段 × 6 拍 × 8 秒,每 3 拍一次商店 |
 
 **UI/美术已完成并暂告段落**(霓虹舞台风格已锁定)。唯一未达标的是玻璃卡的**光影**
-—— 用户 2026-08-06 明确表示不满意后中止,现状与根因记在 `design/` 与记忆里。
+—— 用户 2026-08-06 明确表示不满意后中止,现状与根因记在 `docs/design/` 与记忆里。
 
 ### ② 模型(求解器) —— **能跑,但绝对值不可信**
 
@@ -59,7 +59,7 @@ tools/bot.gd                   玩家策略(完美玩家 / 规则 bot)
 **跨拍是 λ-平衡贪心**(近似)。**构筑是手写规则**(最粗)。
 
 ⚠⚠ **当前最重要的限制:通关率的绝对值系统性低估约 8.4 个百分点**(z≈−3.5,
-加样本加档数都修不掉)。原因已部分定位(见 [LESSONS.md](LESSONS.md) 与 `design/solving_history.md`),
+加样本加档数都修不掉)。原因已部分定位(见 [LESSONS.md](LESSONS.md) 与 `docs/design/solving_history.md`),
 **但主因仍未完全找到**。
 
 > **所以:模型给出的相对排序可信,绝对难度不可信。**
@@ -91,7 +91,7 @@ tools/bot.gd                   玩家策略(完美玩家 / 规则 bot)
 | 文件 | 管什么 |
 |---|---|
 | `jokers.json` | 小丑牌(效果 DSL,`core/fx.gd` 解释) |
-| `faces.json` | Boss 脸(参数表 + `tier` + `proof` 通路 + `weak_upper_bound`)。**纯数据,散文一律在 `design/blinds.md`,`db.gd` 拒绝散文键** |
+| `faces.json` | Boss 脸(参数表 + `tier` + `proof` 通路 + `weak_upper_bound`)。**纯数据,散文一律在 `docs/design/blinds.md`,`db.gd` 拒绝散文键** |
 | `run.json` | 关卡结构 · 目标分 · `death_spec` · `beat_budget` |
 | `economy.json` `characters.json` `sim.json` `ui.json` `tape.json` | 经济 / 主角 / 机器人信念 / 界面坐标文案 / 打点开关 |
 
@@ -106,13 +106,13 @@ tools/bot.gd                   玩家策略(完美玩家 / 规则 bot)
 | **`gate.sh`** ⚑ | **加了内容就要过的门**(测试+脸覆盖自证+**小丑牌覆盖自证**+单调性+哨兵+流程+打点+重放+尺子) | ⚠⚠ **实测 ~4.5 小时**(2026-08-15 逐步计时,见下)。~~15 分钟~~ 那个数是 **S10 之前**的,**过期了一个数量级** |
 | `pair.gd` | 守「求解器 = 游戏代码」,三关递进 | ~3 分钟 |
 | `curve.gd` | 生成器:录分 → 反解目标分 | — |
-| **`prior.gd`** ⚑ | **先验层(2026-08-14 新)· 三个模式**:①(默认)牌型分布 / 谓词 `p̂` / **规则牌 Δp**;② `SYNC5_PRIOR_MODE=discard` **弃牌兑换率**(b=0→4 期望分 +82%)+ 求解器弃牌盲区;③ `SYNC5_PRIOR_MODE=shelf` **货架曝光**(解析零采样)。判定/谓词/抽卡**一律不重写**,全部调 `core/pattern.gd` + `core/fx.gd`,或对实现做解析求解。自带闭式自检、快慢路径逐次对账、跨模式交叉自检。规格 = [`design/prior.md`](design/prior.md) | ①~440s @20万 · ②~150s @400手 · ③ 秒级 |
+| **`prior.gd`** ⚑ | **先验层(2026-08-14 新)· 三个模式**:①(默认)牌型分布 / 谓词 `p̂` / **规则牌 Δp**;② `SYNC5_PRIOR_MODE=discard` **弃牌兑换率**(b=0→4 期望分 +82%)+ 求解器弃牌盲区;③ `SYNC5_PRIOR_MODE=shelf` **货架曝光**(解析零采样)。判定/谓词/抽卡**一律不重写**,全部调 `core/pattern.gd` + `core/fx.gd`,或对实现做解析求解。自带闭式自检、快慢路径逐次对账、跨模式交叉自检。规格 = [`docs/design/prior.md`](docs/design/prior.md) | ①~440s @20万 · ②~150s @400手 · ③ 秒级 |
 | `sim.gd` | 全队列通关率,**自带尺子自检**(非零退出) | ~107s |
 | `price.gd` | 每(脸, 轮)一个价 | — |
 | `addit.gd` | 可加性检验(脸能不能相加) | ~10 分钟 |
 | `coin.gd` `blind.gd` `warm.gd` `lam.gd` `attrib.gd` | 金币影子价 / 盖牌族 / 养牌价值 / λ 扫描 / 分数归因 | — |
 | **`decomp.gd`** ⚑ | **五项难度分解(2026-08-14 新)**:回答「**难在哪**」而不是「多难」。四臂共用随机数(基准/无脸/ε 退化/λ=0/ORACLE),① 数值压力 ② 上界压缩 ③ 技巧惩罚 ④ 信息惩罚 ⑤ 运气暴露 **第一次并排在一张表上**。⚠ 表只让形状可见,**不说好坏**(判断权在设计者) | ~70s/局 × 5 臂 |
-| `formal.gd` `dp.gd` `dpcheck.gd` `dpdiag.gd` `udp.gd` | `design/solving.md` 的建模验证 | 各 10-25 分钟 |
+| `formal.gd` `dp.gd` `dpcheck.gd` `dpdiag.gd` `udp.gd` | `docs/design/solving.md` 的建模验证 | 各 10-25 分钟 |
 | `replay.gd` | **L2 决策重放门**(建模侧完整性) | 秒级 |
 | 各 `*_sheet.gd` `shoot.gd` `glass.gd` | 截图探针 | — |
 
@@ -157,7 +157,7 @@ tools/bot.gd                   玩家策略(完美玩家 / 规则 bot)
 
 ## 设计文档地图
 
-**目录页 = [`design/README.md`](design/README.md)。**
+**目录页 = [`docs/design/README.md`](docs/design/README.md)。**
 
 2026-08-09 按用户定的结构重组完成:**30 篇 → 20 篇,编号全部去掉,按主题命名,
 每一篇自带自己的验证节**。
@@ -198,7 +198,7 @@ cards       牌与牌型            telemetry 打点
   **版本切分(用户拍板)**:1.0 = 纯游戏体验(门 → 用户验 → 出包);
   1.1 = 商业化 + 英文化 + 音乐(发行三件用户已自办 · 防沉迷 SDK 不做 · 正式发行目标美国)。
 
-- **2026-08-14(晚)· 难度与节奏立卷** —— 规格 = 新的 [`design/difficulty.md`](design/difficulty.md)。
+- **2026-08-14(晚)· 难度与节奏立卷** —— 规格 = 新的 [`docs/design/difficulty.md`](docs/design/difficulty.md)。
   **三个索引之前被混成了一个词「关卡」**:局内段(~70s)/ 跨局序列(~5min)/ 解锁进度(天)。
   - `death_spec` **[0.10,0.30,0.45,0.60] → [0.05,0.28,0.50,0.60]**(通关 13.9%→**13.7%**,持平);
   - 脸的轮次 **单值 `tier` → 集合 `tiers`**(缺省 `[tier]`,**30 张脸一行没改、行为逐字节不变**);
@@ -217,7 +217,7 @@ cards       牌与牌型            telemetry 打点
 
 - **2026-08-13(夜)· 引擎波次子波 1**:小丑牌 **54 张现役 / 68 冻结**。
   入池 6(定格/静物/串场/让位/分成/穷开心),**2 张挂仪器债**(断舍离/打包)。
-  **四个仪器修正**(经过在 `design/jokers.md`,判据在 LESSONS):
+  **四个仪器修正**(经过在 `docs/design/jokers.md`,判据在 LESSONS):
   ① bot 试探性交换污染动作计数(静物触发 0%→21%;连带**单换/岔轨/限流三张脸
   的历史强度是方向性高估**)· ② 求解器算得出的量必须进 ctx(两张卡从 0 变有值,
   没改卡)· ③ 两处判据从魔法数换具名豁免表(`SOLVER_BLIND` / `WEAK_MAGNITUDE`)·
@@ -240,8 +240,8 @@ cards       牌与牌型            telemetry 打点
   盲注 **24 压力 + 赶场 + 4 boon** 全实装,`gate.sh` 上次全量绿在盲注批(08-11)。
 - **真人数据**:**不再是零** —— 2013 份 Tape 里分拣出 **11 局合格真人局**
   (分拣判据与账本见 `tools/probbook.py`),已用于 Target 重锚与 bonus 族定价。
-- **数值制度**:定价宪法 `design/numbers.md`(三轴模型+六步 SOP)+ 概率账本
-  `design/probbook.md`(设计/仪器/真人三列,`python3 tools/probbook.py <sim日志>` 重刷)。
+- **数值制度**:定价宪法 `docs/design/numbers.md`(三轴模型+六步 SOP)+ 概率账本
+  `docs/design/probbook.md`(设计/仪器/真人三列,`python3 tools/probbook.py <sim日志>` 重刷)。
   bonus 族已按 v2 落地(支配序:会玩>保底>赌狗);**复审名单:快闪/伴唱/排练**(结构死卡)。
 - **美术**:全部接线(主角八人立绘/行走/舞步、小丑牌 source 原画直出、盲注指纹卡、
   首页玻璃素材壳+顶栏膜);previews/cards 两目录已退役不进包。
@@ -254,12 +254,12 @@ cards       牌与牌型            telemetry 打点
   **零权限**、竖屏。调试签名 + 占位包名 `com.sync5.dev`(上传 TapTap 前要换正式包名 +
   发布 keystore,见 TODO)。工具链四处修正已留注释(editor_settings 两处路径、
   project.godot 的 `handheld/orientation` 与 `import_etc2_astc`)。
-  **TapTap 路线定案**:[design/taptap.md](design/taptap.md) —— 离线+无内购走
+  **TapTap 路线定案**:[docs/design/taptap.md](docs/design/taptap.md) —— 离线+无内购走
   「正式上线(试玩版)」,免版号/软著/ICP;硬门槛 = 防沉迷 SDK(要包 Godot Android
   插件)+ 隐私政策页。
 - **新工具**:`tools/probbook.py`(概率账本)· `tools/art/fontsubset.sh`(Web 中文字体子集,
   文案加新字要重跑)· `tools/art/glassprobe.gd` / `glassfilm.gd` / `blind_fp_extract.py`。
-- **数值 v3 已落地**(08-12 晚,`design/numbers.md` §8):宪法修订(玩家两条成长线
+- **数值 v3 已落地**(08-12 晚,`docs/design/numbers.md` §8):宪法修订(玩家两条成长线
   入纲:彩票 = 不存在买得到的 Δp;规则牌 = 概率放大器按 Δp×流派价值)→ 未过刀族
   全部过刀:8 张动(开场+150%/复读+80%/贵宾20/低音谱15 ↑;铁粉 cap15%/暖冷色+3/
   黑胶+1 ↓)、4 张带内不动、coins 族暂缓(S9)、规则牌封锁(真人持有 0 拍)。
@@ -274,8 +274,8 @@ cards       牌与牌型            telemetry 打点
   **不是反馈缺失,是这个玩家动作从来没被实现过** —— 钩子在、三张卡等着它、bot 会用它,
   而玩家没有任何办法触发。用户拍板 = **点唱片**(金环呼吸 + 中央剩余秒数)。
   ⚠ 真人早锁率 8% 这个读数**从此作废**:它测的是「一个不存在的动作」的使用率。
-- **流派批第一波已落地**(08-12 夜,`design/archetypes.md`;原作 42 流派全目录 =
-  `design/research_balatro_builds.md`):增 8(族内件对唱/二重唱/三和弦/三重 +
+- **流派批第一波已落地**(08-12 夜,`docs/design/archetypes.md`;原作 42 流派全目录 =
+  `docs/design/research_balatro_builds.md`):增 8(族内件对唱/二重唱/三和弦/三重 +
   后台/替补/包厢 + 修剪)· 删 2(快闪/伴唱)· 改 2(四指/双色调降罕见)。
   **过门读数**:tests **979/0** · kit **8/8 量到**(trim +1319 z=6.22;仪器新增
   `*score` 牌堆手术判据,旧 witness 路径抽验 ✓)· pair **+0.0** · sim 自检 ✓
