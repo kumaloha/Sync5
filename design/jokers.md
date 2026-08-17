@@ -129,6 +129,14 @@ currency, never just inflates the number):
 - **C6 — One copy card, Rare.** With 4 slots it is a fifth virtual slot and
   scales with the build, so it can't be independently broken. No
   ally-destroying or pure-placeholder cards in v0.1 (25% slot tax is brutal).
+- **C7 — 窗口窄 ⇒ 效果强(2026-08-15 用户拍板,08-17 补入)。**
+  「不是应该删除,而是**如果仅限一轮,效果就要比较强**;如果是累计效果的,效果保留现状。」
+  一轮/单拍限定的卡不因窗口窄而删,**补偿倍数 ≈ 它比常驻卡少覆盖多少拍**
+  (例:每段第 1 拍 = 4/24 拍 ⇒ 名义数额要摊到每拍后仍有竞争力)。
+  ⚠ 两个前提:① 先确认死因真的是「窗口窄」——快闪的死因其实是**窗口×商店时机错位**,
+  救它的是改窗口形状,不是加数额(「加数额是假修」);伴唱死于重复、三重唱死于条件不发生,
+  这条原则救不了它们。② 窗口卡的数额走加分通道时要用 `bonus_target_pct`(跟随尺度),
+  固定数额在 13 倍的每拍需求跨度下没有任何一个取值同时成立(TODO「A 案唯一解」的推导)。
 
 ### D. Engineering and readability
 
