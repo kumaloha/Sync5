@@ -19,7 +19,7 @@ const DOMAINS := [
 	"t_boon", "t_joker", "t_character", "t_solver", "t_draft", "t_tape",
 	# ⚠ 新域一律**追加在末尾** —— 上面那条「顺序即契约」说的是小丑牌的成长计数器跨用例
 	# 累积, 插在中间会静默改分。t_tutorial 自己不碰任何共享状态, 追加是安全的。
-	"t_tutorial", "t_director",
+	"t_tutorial", "t_director", "t_ticket",
 ]
 
 var _pass := 0

@@ -150,6 +150,11 @@ func _draw() -> void:
 	var w := size.x
 	var h := size.y
 	var s := h / 172.0            # design module is 172 tall
+	# pop 动画起始几帧 scale≈0:`int(17.0*s)` 会把字号算成 0, 文本服务器每字段刷一条
+	# `p_size <= 0` ERROR —— 每次开店 4+ 条, 白白污染门日志的 `^ERROR` 判据。
+	# 这个尺寸的卡本来就小到看不见, 整帧不画。
+	if s < 0.08:
+		return
 	if joker == null:
 		_draw_empty(w, h, s)
 		return
@@ -362,6 +367,8 @@ func _glyph_for(id: String) -> String:
 		"shortcut": return "⤳"
 		"fourfingers": return "☰"
 		"twotone": return "◑"
+		"blacktone": return "◐"
+		"redtone": return "◑"
 		"bassline": return "∿"
 		"mirror": return "⧉"
 		"wildcard": return "★"
@@ -391,6 +398,8 @@ func _mult_for(id: String) -> String:
 		"shortcut": return "±1"
 		"fourfingers": return "4+"
 		"twotone": return "2C"
+		"blacktone": return "♠♣"
+		"redtone": return "♥♦"
 		"bassline": return "×↗"
 		"mirror": return "COPY"
 		"wildcard": return "WILD"

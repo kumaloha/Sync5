@@ -117,6 +117,17 @@ static func settle(run: Run, p: Phrase, flags: Dictionary = {}) -> Dictionary:
 	outcome["raw_score"] = raw_score
 	outcome["boon_bonus"] = boon_bonus
 	outcome["score"] = raw_score + boon_bonus
+	# ---- 局外乘子(券 boost)· 2026-08-17 ----
+	# ⚑ 券不进模型:探针拿不到券(SaveState 的探针闸), 也就永远不传这个 flag ——
+	# 缺省 1.0 = 全部既有调用方逐字节不变。放在 boon 之后:它是**局外浮层**,
+	# 吃完整的拍分;raw_score 保持不动(复读/回放读的是无浮层的原始分)。
+	# ⚠ 记分必须留在这里而不是 view —— 「判生死只有一份」的同一条线:
+	# view 自己乘再加回 section_score, 就是第二份记分。
+	var meta_mult := float(flags.get("meta_mult", 1.0))
+	if meta_mult != 1.0:
+		var meta_bonus := int(round(float(outcome["score"]) * (meta_mult - 1.0)))
+		outcome["meta_bonus"] = meta_bonus
+		outcome["score"] = int(outcome["score"]) + meta_bonus
 	run.previous_raw_score = raw_score
 	if run.phrase_in_section == 0:
 		run.first_kind = int(res.get("kind", -99))

@@ -3,7 +3,7 @@ extends SceneTree
 const IDS := [
 	"twin", "stair", "mono", "triplet", "lonewolf", "kaleido", "shredder", "wrecker",
 	"encore", "finale", "turnover", "tipjar", "chord", "neonsign", "vinyl", "chorus",
-	"interest", "momentum", "vip", "glowstick", "shortcut", "fourfingers", "blacktone", "redtone",
+	"interest", "momentum", "vip", "glowstick", "shortcut", "fourfingers", "blacktone",
 	"bassline", "mirror", "wildcard", "variation", "reprise", "fullcast", "superfan",
 	"opener", "popup", "rainbow", "nopair", "backup", "rehearsal", "trio", "bassclef",
 	"warmtone", "cooltone", "undertone", "curtain", "stopwatch", "freeze", "earlyout",
@@ -13,6 +13,10 @@ const IDS := [
 	# wrecker 先例)。⚠ 这 7 张的 source/prompt/成卡素材尚未出图 —— 本工具在出图前对
 	# 它们报缺是**正确读数**(待办信号),不是门坏了。
 	"duo", "duet", "triad", "triplebill", "backer", "bench", "boxseats", "jukebox",
+	# 2026-08-17 twotone 拆分收尾:黑调占 twotone 的旧位(S-15), 红调**追加在队尾**而不是
+	# 排在黑调旁边 —— code 是按下标推导的(`_expected_code`), 插在中间会让 bassline 起
+	# 40+ 张全体改号, 而 code 已经冻结在既有素材与 prompt 里。
+	"redtone",
 ]
 const REQUIRED := ["id", "cn", "code", "kind", "rarity", "trigger_zh", "amount", "art_subject"]
 const VALID_KIND := ["target", "support"]

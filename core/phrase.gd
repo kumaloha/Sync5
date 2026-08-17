@@ -203,6 +203,30 @@ func discard_selected(hand_indices: Array, cache_indices: Array = []) -> bool:
 		action_track = "discard"
 	return true
 
+
+## 补牌券(redeal):整手重发一次。⚠⚠ **这不是弃牌** —— 2026-08-17 券的使用入口。
+##
+## 不计 `discards_used`/批量峰值/人头数、不占 `discard_budget`、不开 `action_track`、
+## 不触发首弃幽灵(boon)。券是**局外道具**, 让它冒充玩家的弃牌动作, 周转/早弃/断舍离
+## 这些「挂在弃牌上」的小丑牌就会被一张券白喂 —— 成长/触发只挂显式动作是铁律。
+## ⚠ 封印的手牌(sealed)**不换** —— 弃牌换不掉它(can_discard_selected 挡着),
+## 券绕过去就成了「破解脸规则的道具」, 而关卡是按无券设计的。
+## ⚠ 盖牌脸(hide_refill)照常盖新牌:券给的是「换一手」, 不是「掀桌上的规则」。
+func redeal_hand() -> bool:
+	if locked:
+		return false
+	var blind_refill := SectionMod.hide_refill(mod)
+	for i in range(hand.size()):
+		if hand[i] == null or hand[i] == sealed_hand_card:
+			continue
+		hidden.erase(hand[i])
+		deck.discard(hand[i])
+		hand[i] = _draw_refill()
+		if blind_refill and hand[i] != null:
+			hidden[hand[i]] = true
+	return true
+
+
 ## Swap a hand card with a cache card (free; time is the cost).
 ##
 ## `probe = true` = **假想交换**:牌真的对调(调用方要拿它算 EV), 但**不计入动作数**。

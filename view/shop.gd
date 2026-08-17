@@ -11,6 +11,7 @@ signal bought(j, price: int)          # affordable pick — orchestrator deducts
 signal replace_requested(j)           # full slots: orchestrator runs the replace flow
 signal skipped()                      # orchestrator pays the skip reward
 signal reroll_paid(cost: int)         # orchestrator deducts, then calls redeal()
+signal reroll_ticket()                # 点唱券的免费刷新:编排器消耗券后调 redeal()
 signal denied(why: String)            # 想买/想刷但钱不够 — 编排器打点(购买力压力)
 ## 升级第 i 个已装槽位。⚠ **只发信号, 不动钱也不动等级** —— 与「金币/装槽等经济动作
 ## 只发生在编排器」那条铁律同一条线(CLAUDE.md 架构铁律)。
@@ -28,6 +29,8 @@ var _reroll_btn: Button
 var _skip_btn: Button
 var _candidates: Array = []
 var _reroll_count := 0
+## 点唱券的免费刷新余额 —— **编排器注入**(开店时 + 每次消耗后), shop 自己不读存档。
+var _free_rerolls := 0
 var _upgrade_btns: Array = []
 var _slots: Array = []
 var _coins := 0
@@ -274,7 +277,12 @@ func _render(popin: bool) -> void:
 		else:
 			_views[i].visible = false
 			_price_labels[i].visible = false
-	_reroll_btn.text = String(_cfg["reroll_text"]) % Economy.reroll_cost(_reroll_count)
+	# 点唱券优先展示:玩家手里有券时, 按钮念的是「这次不花钱」——
+	# 价格阶梯(_reroll_count)在券用完之前不动, 文案与分流必须同一个条件。
+	if _free_rerolls > 0:
+		_reroll_btn.text = String(_cfg["reroll_ticket_text"]) % _free_rerolls
+	else:
+		_reroll_btn.text = String(_cfg["reroll_text"]) % Economy.reroll_cost(_reroll_count)
 	_layer.visible = true
 
 
@@ -402,8 +410,24 @@ func _has_slot_for(j) -> bool:
 	return Joker.has_room_for(_slots, String(j.kind))
 
 
+func set_free_rerolls(n: int) -> void:
+	_free_rerolls = maxi(0, n)
+	# 开着店时余额变了(刚用掉一张)要立刻改按钮念词, 下一次 redeal 不够快
+	if _layer != null and _layer.visible and _reroll_btn != null:
+		if _free_rerolls > 0:
+			_reroll_btn.text = String(_cfg["reroll_ticket_text"]) % _free_rerolls
+		else:
+			_reroll_btn.text = String(_cfg["reroll_text"]) % Economy.reroll_cost(_reroll_count)
+
+
 func _on_reroll() -> void:
 	if not _layer.visible:
+		return
+	# 有点唱券先走券(**不推付费阶梯**):shop 只分流, 消耗与打点在编排器 ——
+	# 余额也由编排器在消耗后用 set_free_rerolls 重新注入, 这里不自减,
+	# 否则「消耗失败但余额已减」会白吞玩家一次免费态。
+	if _free_rerolls > 0:
+		reroll_ticket.emit()
 		return
 	var cost := Economy.reroll_cost(_reroll_count)
 	if _coins < cost:

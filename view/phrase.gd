@@ -76,6 +76,11 @@ var banner: BlindBanner
 var tutor: Widgets.TutorHint      # 教学关的一行提示;正式局整块隐身
 var blind_card: Widgets.BlindCard
 var intro: BlindIntro
+var tray: TicketTray         # 局内券托盘(拍内 scope 的使用入口, view/tray.gd)
+## boost 券给本拍上的局外乘子(用一张 ×一次, 可叠)。每拍在 _start_phrase 归 1;
+## 结算时经 flags 的 `meta_mult` 交给 core/beat.gd —— **记分必须留在 core**(唯一真相),
+## view 只负责「什么时候上、上多少」。
+var _boost_mult := 1.0
 var fx: StageFeedback        # 屏震/弹跳/飘字 —— 纯表现, view/feedback.gd
 var _shown_score := 0        # what the HUD prints; counts up to run.section_score
 
@@ -276,6 +281,7 @@ func _build_ui() -> void:
 	banner = n["banner"]
 	tutor = n["tutor"]
 	intro = n["intro"]
+	tray = n["tray"]
 
 	for i in range(joker_views.size()):
 		joker_views[i].tapped.connect(_on_slot_tapped.bind(i))  # only live in replace mode
@@ -292,7 +298,9 @@ func _build_ui() -> void:
 	shop.replace_requested.connect(_on_shop_replace)
 	shop.skipped.connect(_on_shop_skipped)
 	shop.reroll_paid.connect(_on_shop_reroll)
+	shop.reroll_ticket.connect(_on_shop_reroll_ticket)
 	shop.upgrade_requested.connect(_on_shop_upgrade)
+	tray.use.connect(_on_ticket_use)
 	shop.denied.connect(func(why: String) -> void: Tape.on("deny", {"why": why}))
 	settle_fx.burst_started.connect(_on_settle_burst)
 	run_end.next_pressed.connect(_on_end_next)
@@ -382,6 +390,8 @@ func _start_phrase() -> void:
 	cur_lock = GameConfig.lock_time(cur_duration)
 	_discard_gate_open = _discard_open()
 	_swap_gate_open = _swap_open()
+	_boost_mult = 1.0
+	_refresh_tray()
 	# 教学关的一行提示 + 分区指向 —— 正式局 hint 是空串, TutorHint 整块隐身。
 	# ⚠ 区域名 → 矩形的翻译在**编排器**这一侧:`core/` 不认识像素(坐标归 ui.json)。
 	var h := run.tutorial_hint()
@@ -486,7 +496,10 @@ func _settle() -> void:
 		"secs_left": maxf(0.0, cur_lock - elapsed),
 		"early_discards": last_discard_time >= 0.0 \
 			and last_discard_time <= GameConfig.EARLY_DISCARD_WINDOW,
+		# 券(boost)的局外乘子 —— 缺省 1.0, 只有真用了券才 ≠1(core/beat.gd 兑现)
+		"meta_mult": _boost_mult,
 	})
+	tray.visible = false    # 结算/商店期间收掉;下一拍 _start_phrase 重开
 	var res: Dictionary = outcome["res"]
 	var gained_score := int(outcome["score"])
 	var gained_coins := int(outcome["coins"])
@@ -736,6 +749,8 @@ func _open_draft() -> void:
 	# section-end one opens at phrase 0 of the blind being entered
 	var mid: bool = run.phrase_in_section > 0 \
 		and run.phrase_in_section < GameConfig.PHRASES_PER_SECTION
+	# 点唱券:免费刷新的**余额**在开店时注入(shop 只管显示与分流, 消耗在编排器)
+	shop.set_free_rerolls(SaveState.tickets_held("juketicket"))
 	shop.open(run.joker_slots, phrase.coins, run.section_idx,
 		SectionMod.by_id(String(run.run_faces.get(run.section_idx, ""))),
 		run.section_score if mid else -1,
@@ -866,6 +881,71 @@ func _on_shop_reroll(cost: int) -> void:
 	Joker.notify_shop(run.joker_slots, "reroll")     # 淘碟:刷新是付费动作(A4✓)
 	Tape.on("rerl", {"k": shop.reroll_count(), "cost": cost, "coins": phrase.coins})
 	shop.redeal(run.joker_slots, phrase.coins, run.section_idx)
+
+
+## 点唱券的刷新:钱不动, 券**在这里**消耗(经济动作只发生在编排器 —— 券是第四种货币)。
+## ⚠ 不推 `_reroll_count` 的付费阶梯:券买的是「多看一次」, 不该抬后面付费刷新的价。
+## ⚠ 淘碟照常喂:刷新真的发生了, 代价是一张券 —— A4 的「零挂机成长」看的是有没有代价。
+func _on_shop_reroll_ticket() -> void:
+	if state != St.DRAFT or replace.pick != null:
+		return
+	if not SaveState.consume_ticket("juketicket"):
+		# shop 手里的余额和存档失配(理论上只在多端同存档时发生)—— 收回免费态, 别白刷
+		shop.set_free_rerolls(0)
+		return
+	shop.set_free_rerolls(SaveState.tickets_held("juketicket"))
+	Joker.notify_shop(run.joker_slots, "reroll")
+	Tape.on("ticket", {"id": "juketicket", "k": shop.reroll_count(), "coins": phrase.coins})
+	shop.redeal(run.joker_slots, phrase.coins, run.section_idx)
+
+
+# ============================== 券(拍内) ==============================
+
+## 托盘重画:数据从 SaveState 读、**只在编排器读**(组件注入制;探针闸也因此只挡这里)。
+## 教学关不显示 —— 券是局外系统, 混进教学会多一个要解释的东西。
+func _refresh_tray() -> void:
+	if run.tutorial or state != St.DECISION:
+		tray.visible = false
+		return
+	var armed := ""
+	if _boost_mult > 1.0:
+		armed = String(DB.ui()["tickets"]["armed_text"]) % _boost_mult
+	tray.show_tickets(SaveState.tickets(), SaveState.ticket_roll("boost"), armed)
+
+
+## 用一张拍内券。⚑ 顺序守则:**效果可能失败的先做效果再消耗**(redeal), 效果必然成立的
+## 先消耗再兑现(overtime/boost, seedmoney 同款)—— 两个方向都为了同一件事:
+## 券和效果要么都发生, 要么都不发生。
+func _on_ticket_use(tid: String) -> void:
+	if state != St.DECISION or run.tutorial or phrase == null or phrase.locked:
+		return
+	match tid:
+		"overtime":
+			if not SaveState.consume_ticket("overtime"):
+				return
+			# 三个钟一起长, 且**走同一套钩子推导** —— 手加三个数就是第二份时长公式
+			cur_duration += Ticket.param("overtime", "seconds")
+			cur_warning = GameConfig.warning_time(cur_duration)
+			cur_lock = GameConfig.lock_time(cur_duration)
+			Tape.on("ticket", {"id": "overtime", "at": elapsed, "dur": cur_duration})
+		"redeal":
+			if SaveState.tickets_held("redeal") <= 0 or not phrase.redeal_hand():
+				return
+			SaveState.consume_ticket("redeal")
+			hand.clear_selection()
+			hand.deal_flip()
+			Tape.on("ticket", {"id": "redeal", "at": elapsed,
+				"hand": Tape.cards(phrase.hand)})
+			_refresh()
+		"boost":
+			var m := SaveState.ticket_roll("boost")
+			if m <= 0.0 or not SaveState.consume_ticket("boost"):
+				return
+			_boost_mult *= m    # 可叠:每张都是真代价, 叠乘没有挂机空间
+			wave.on_action()
+			Tape.on("ticket", {"id": "boost", "at": elapsed, "mult": m,
+				"total": _boost_mult})
+	_refresh_tray()
 
 
 ## 成交(或取消)。⚠ 钱与打点必须留在这里 —— replace.gd 只复位 UI。

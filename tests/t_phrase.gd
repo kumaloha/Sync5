@@ -410,3 +410,32 @@ func run(t) -> void:
 	t.check(sw.swap_with_cache(0, 0), "swap it straight back (bot probes do this)")
 	t.eq(sw.swapped_scoring_count([original]), 0,
 		"a swap-and-revert leaves no phantom credit —— 试探不算换入")
+
+	# --- 补牌券 redeal_hand(2026-08-17 券使用入口):**不是弃牌** ---
+	# 它冒充弃牌的话, 周转/早弃/断舍离这些挂在弃牌上的卡会被一张券白喂(零挂机成长铁律)。
+	var rd := Phrase.new(Deck.new(777), [], 9)
+	rd.start()
+	var rd_old: Array = rd.hand.duplicate()
+	var rd_cache0: Card = rd.cache[0]
+	var rd_coins := rd.coins
+	t.check(rd.redeal_hand(), "redeal lands")
+	t.eq(rd.hand.size(), 5, "hand still holds exactly 5")
+	for i in range(5):
+		t.check(rd.hand[i] != rd_old[i], "redeal replaces slot %d" % i)
+	t.eq(rd.discards_used, 0, "redeal is NOT a discard: discards_used untouched")
+	t.eq(rd.discard_batch_max, 0, "…no batch peak")
+	t.eq(rd.faces_discarded, 0, "…no face-discard credit")
+	t.eq(rd.discard_actions_used, 0, "…no discard action")
+	t.eq(rd.action_track, "", "…and it does not open the action track (switchtrack)")
+	t.eq(rd.coins, rd_coins, "redeal is free (the ticket is the price)")
+	t.check(rd.cache[0] == rd_cache0, "cache untouched — the ticket says HAND")
+	t.check(rd.deck.discard_pile.size() >= 5, "old hand reached the discard pile")
+	# 封印的手牌不换:弃牌换不掉它, 券绕过去就成了「破解脸规则的道具」
+	var rd2 := Phrase.new(Deck.new(778), [], 9)
+	rd2.start()
+	rd2.sealed_hand_card = rd2.hand[2]
+	var rd2_sealed: Card = rd2.hand[2]
+	t.check(rd2.redeal_hand(), "redeal with a sealed card still lands")
+	t.check(rd2.hand[2] == rd2_sealed, "…but the sealed slot keeps its card")
+	rd2.lock_and_settle()
+	t.check(not rd2.redeal_hand(), "a locked phrase refuses the redeal")

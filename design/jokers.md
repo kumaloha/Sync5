@@ -223,7 +223,8 @@ see the calibration note below).
 | Bassline | 贝斯线 | Rare | growth | card flow | Every 12 discards: ×0.25 forever |
 | Shortcut | 近道 | Uncommon | fixed | rule | Straights may skip one rank |
 | Four Fingers | 四指 | Rare | fixed | rule | Four-card straights count |
-| Two-Tone | 双色调 | Rare | fixed | rule | Flushes need only matching colors |
+| Black Tone | 黑调 | Rare | fixed | rule | Black suits count as one |
+| Red Tone | 红调 | Rare | fixed | rule | Red suits count as one |
 | Mirror | 镜面 | Rare | floating | copy | Copies your Target at half power |
 | Wildcard | 百搭 | Rare | fixed | rule | Two wild cards join your deck |
 

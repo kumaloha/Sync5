@@ -290,3 +290,26 @@ func _test_run_machine(t) -> void:
 	r.phrase_in_section = GameConfig.PHRASES_PER_SECTION - 1
 	out = r.advance()
 	t.check(bool(out["finale"]), "the last section is the finale")
+
+	# --- 券(boost)的局外乘子 meta_mult(2026-08-17)---
+	# 探针拿不到券(SaveState 闸)⇒ 永远不传这个 flag ⇒ 缺省必须逐字节等于没有这个通道。
+	var mm_run := Run.new()
+	mm_run.reset(818)
+	var mm_p1 := Beat.begin(mm_run)
+	var mm_plain := Beat.settle(mm_run, mm_p1)
+	t.check(not mm_plain.has("meta_bonus"), "no flag → no meta_bonus key (探针路径零痕迹)")
+	t.eq(int(mm_plain["score"]), int(mm_plain["raw_score"]) + int(mm_plain["boon_bonus"]),
+		"no flag → score is exactly raw + boon")
+	Beat.phrase_end(mm_run, mm_p1)
+	mm_run.phrase_in_section = 1
+	var mm_p2 := Beat.begin(mm_run)
+	var mm_o := Beat.settle(mm_run, mm_p2, {"meta_mult": 1.5})
+	var mm_base := int(mm_o["raw_score"]) + int(mm_o["boon_bonus"])
+	t.eq(int(mm_o["meta_bonus"]), int(round(mm_base * 0.5)),
+		"boost adds (mult-1) of the full beat score, after boons")
+	t.eq(int(mm_o["score"]), mm_base + int(mm_o["meta_bonus"]),
+		"boosted score lands in the section ledger via the ONE scoring path")
+	t.check(int(mm_o["score"]) > mm_base,
+		"boost lifted the ledger score but raw/boon stayed un-boosted(复读/回放读原始分)")
+	t.eq(mm_run.previous_raw_score, int(mm_o["raw_score"]),
+		"afterglow chain keeps reading the raw score, not the boosted one")

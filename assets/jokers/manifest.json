@@ -234,14 +234,14 @@
    "art_subject": "一只清楚可数的四指手套"
   },
   {
-   "id": "twotone",
-   "cn": "双色调",
+   "id": "blacktone",
+   "cn": "黑调",
    "code": "S-15",
    "kind": "support",
    "rarity": "rare",
-   "trigger_zh": "同色即可组成同花",
+   "trigger_zh": "黑色两花色视为同一花色",
    "amount": "RULE",
-   "art_subject": "半红半黑的双色舞台灯"
+   "art_subject": "一盏只打青蓝黑光的单色舞台灯(黑桃与梅花在光束里交汇)"
   },
   {
    "id": "bassline",
@@ -692,6 +692,16 @@
    "trigger_zh": "商店必有一张规则牌",
    "amount": "RULE",
    "art_subject": "自动换碟的霓虹点唱机"
+  },
+  {
+   "id": "redtone",
+   "cn": "红调",
+   "code": "S-61",
+   "kind": "support",
+   "rarity": "rare",
+   "trigger_zh": "红色两花色视为同一花色",
+   "amount": "RULE",
+   "art_subject": "一盏只打红粉光的单色舞台灯(红心与方块在光束里交汇)"
   }
  ]
 }

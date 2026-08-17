@@ -73,8 +73,8 @@ At Phrase end:
 | 3 | Two Pair | 20 | ×3 | 20 ×2 ← **偏离** | 2 |
 | 4 | Three of a Kind | 30 | ×3 | 30 ×3 | 3 |
 | 5 | Straight | 30 | ×4 | 30 ×4 | 4 |
-| 6 | Flush | 35 | ×4 | 35 ×4 | 4 |
-| 7 | Full House | 40 | ×4 | 40 ×4 | 6 |
+| 6 | Flush | 35 | ×5 | 35 ×4 ← **偏离** | 4 |
+| 7 | Full House | 40 | ×6 | 40 ×4 ← **偏离** | 6 |
 | 8 | Four of a Kind | 60 | ×7 | 60 ×7 | 8 |
 | 9 | Straight Flush | 100 | ×8 | 100 ×8 | 12 |
 | 10 | Royal Flush | 140 | ×8 | **100** ×8 ← **偏离** | 15 |
@@ -92,14 +92,16 @@ carries the value difference on **chips alone**. Mult is the scarce resource
 reserved for jokers: spend it early on the mid hands and there is no headroom
 left at the top.
 
-We deviate in exactly two places:
+We deviate from Balatro L1 in four places (终版表 `1/2/3/3/4/5/6/7/8/8`):
 
-> ⚠⚠ **下面第 1 条已被推翻(2026-08-09 外部审查发现文档与代码不符)。**
-> `Pattern.BASE_MULT[TWO_PAIR]` 的现值是 **×2**,与终版表 `1/2/2/3/4/5/6/7/8/8` 一致。
-> 把它抬到 ×3 是 2026-08-06 白天的决定,当晚按 `P(≥牌型)` 累计频率重定价时就被覆盖了 ——
-> **这一段是历史,不是现状**。上面那张表的「ours」列(`20 ×2`)才是对的。
+> ⚑ **第 1 条经历了一次「推翻的推翻」,账要记全**:
+> ×3 是 2026-08-06 白天用户的拍板;当晚按 `P(≥牌型)` **实测**累计重定价时被覆盖回 ×2
+> (算出 2.47);**2026-08-17 恢复 ×3** —— 因为 08-14 用户已把定价口径换成**组合**,
+> 同一套 0.75 幂压缩在组合累计上 = 2 × (92.88/53.22)^0.75 ≈ **3.04**,
+> 与用户当初的拍板相符。覆盖它的那把尺子已经被换掉了,拍板回到原位。
+> (Flush ×5 / Full ×6 是 08-06 晚那次重定价的**存活**部分,一并列为偏离。)
 
-1. ~~**Two Pair ×2 → ×3.**~~ The user's own catch (「two pair 和 pair 怎么是一个倍率」).
+1. **Two Pair ×2 → ×3.** The user's own catch (「two pair 和 pair 怎么是一个倍率」).
    Balatro puts Two Pair's entire premium into doubled chips (10→20), paying
    ~25% more for a hand that is **8.9× rarer**. Balatro can afford that — it is
    turn-based and you have time to push toward a better hand. An 8-second live
@@ -210,9 +212,10 @@ The system cannot modify already revealed cards to manufacture a near miss.
   (`tests/runner.gd::_tmult`)——平衡数值要反复调,手抄断言等于给每次调参加一道返工。**
   **原作有意让多个牌型共享同一个 mult**(2,2 / 4,4,4 / 8,8),
   价值差全靠 chips 拉开——mult 是留给小丑牌的稀缺资源,中段发完顶端就没梯度了。
-  **我们只偏离两处**:① ~~**Two Pair 2→3**~~ ⚠ **已被推翻,现值仍是 ×2**
-  (2026-08-09 外部审查发现:当晚按 `P(≥牌型)` 重定价时覆盖了它,而这段文字没跟着改。
-  代码 `Pattern.BASE_MULT[TWO_PAIR] = 2` 是权威)。原始理由留档如下 ——
+  **我们偏离四处**(Two Pair ×3 · Flush ×5 · Full ×6 · Royal chips 140):
+  ① **Two Pair 2→3** ⚑ **经历了一次「推翻的推翻」**
+  (08-06 白天拍板 ×3 → 当晚按实测累计覆盖回 ×2 → **2026-08-17 恢复 ×3**:
+  08-14 口径换成组合后,同一套压缩算出 ≈3.04,当年覆盖它的尺子已被换掉)。原始理由 ——
   (用户提的:「two pair 和 pair 怎么是一个倍率」——
   原作把它的溢价全放在 chips 翻倍上,实算只高 25% 而它稀有 8.9 倍;原作是回合制有时间往
   高牌型走,我们 8 秒实时里 Two Pair 常常就是能拿到的最好结果。仍低于 Three Kind,扑克序不倒挂);

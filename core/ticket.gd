@@ -85,6 +85,7 @@ static func reset_if_new_day(data: Dictionary, today: int) -> bool:
 		return false
 	data["tickets_day"] = today
 	data["tickets"] = {}
+	data["ticket_rolls"] = {}    # 掷值跟着券走:券清了值还留着, 下一张同名券会继承旧值
 	return true
 
 
@@ -113,6 +114,65 @@ static func consume_from(held: Dictionary, tid: String) -> bool:
 	else:
 		held[tid] = cur - 1
 	return true
+
+
+## ---- 获得时掷值(boost)· 2026-08-17 ----
+##
+## ⚑ **随机放在「获得时」而不是「使用时」**(用户 2026-08-16 拍板, 写在 tickets.json):
+## 拿到手就知道是 ×1.2 还是 ×2.5 ⇒ 随机产生的是**决策**(留到哪一拍), 不是结果。
+## ⇒ 存储必须**每张一个值**:`data["ticket_rolls"] = {tid: [先领先用的值...]}`。
+## 不变量 = **rolls 的长度 == 持有张数**(只对可掷值的券), `t_ticket` 锁着它。
+## ⚠ 消耗是 FIFO —— UI 展示的「下一张」就是队首, 用掉的必须正是看到的那张。
+
+
+## 这张券获得时要不要掷值。判据 = params 带 `mult_min`/`mult_max` 一对。
+static func rollable(tid: String) -> bool:
+	var p: Dictionary = by_id(tid).get("params", {})
+	return p.has("mult_min") and p.has("mult_max")
+
+
+## 掷一个值(0.1 粒度 —— 卡面要念得出「×1.7」, 三位小数念不出来)。不可掷值的券返回 0。
+static func roll_for(tid: String, rng: RandomNumberGenerator) -> float:
+	if not rollable(tid):
+		return 0.0
+	return snappedf(rng.randf_range(param(tid, "mult_min"), param(tid, "mult_max")), 0.1)
+
+
+## 发券 + 掷值, **一个入口**(两条发放路径 —— 每日/手动 —— 都必须走这里)。
+## 拆开走 `grant_into` 再自己补掷值, 迟早有一条路径忘补 ⇒ 不变量静默破掉。
+static func grant_with_roll(data: Dictionary, tid: String, n: int, rng: RandomNumberGenerator) -> int:
+	var held: Dictionary = data.get("tickets", {})
+	var got := grant_into(held, tid, n)
+	data["tickets"] = held
+	if got > 0 and rollable(tid):
+		var rolls: Dictionary = data.get("ticket_rolls", {})
+		var lst: Array = rolls.get(tid, [])
+		for _i in range(got):          # 只给**实际发到**的张数掷 —— 满仓截断的不掷
+			lst.append(roll_for(tid, rng))
+		rolls[tid] = lst
+		data["ticket_rolls"] = rolls
+	return got
+
+
+## 队首的掷值(下一张会用到的那张)。没有 = 0.0。
+static func peek_roll(data: Dictionary, tid: String) -> float:
+	var lst: Array = data.get("ticket_rolls", {}).get(tid, [])
+	return float(lst[0]) if not lst.is_empty() else 0.0
+
+
+## 弹出队首掷值(与 `consume_from` 配对调用, 维持「长度 == 张数」)。
+static func pop_roll(data: Dictionary, tid: String) -> float:
+	var rolls: Dictionary = data.get("ticket_rolls", {})
+	var lst: Array = rolls.get(tid, [])
+	if lst.is_empty():
+		return 0.0
+	var v := float(lst.pop_front())
+	if lst.is_empty():
+		rolls.erase(tid)               # 同 consume_from:不留空列表, 统计才数得对
+	else:
+		rolls[tid] = lst
+	data["ticket_rolls"] = rolls
+	return v
 
 
 ## ---- 每日发放 · 2026-08-17 ----
@@ -146,8 +206,6 @@ static func settle_daily_grant(data: Dictionary, today: int, rng: RandomNumberGe
 	var pick := daily_pick(data, today, rng)
 	if pick == "":
 		return ""
-	var held: Dictionary = data.get("tickets", {})
-	var got := grant_into(held, pick, 1)
-	data["tickets"] = held
+	var got := grant_with_roll(data, pick, 1, rng)    # 发放一律走这一个入口(掷值不变量)
 	data["grant_day"] = today          # ⚠ 满仓也要记账, 否则同一天会反复掷点
 	return pick if got > 0 else ""

@@ -837,8 +837,9 @@ static func validate_ui(d: Dictionary) -> String:
 		# `tutor_focus` = 教学关的分区指向矩形(2026-08-15)。⚑ 它进 ui.json 而不是
 		# tutorial.json, 因为**坐标归 ui.json** 是既定铁律(改布局改文案 = 改 JSON);
 		# tutorial.json 里只放**区域名**, `core/tutorial.gd` 也因此不认识像素。
+		# `tickets` = 局内券托盘的坐标与文案(2026-08-17 券使用入口)。
 		if not ["stage", "hud", "shop", "hand", "banner", "blindcard", "jokercard",
-				"tutor_focus"].has(k):
+				"tutor_focus", "tickets"].has(k):
 			return "unknown section '%s'" % k
 	return ""
 

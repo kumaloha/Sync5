@@ -155,15 +155,24 @@ static func tickets_held(tid: String) -> int:
 static func grant_ticket(tid: String, n: int = 1) -> int:
 	if _is_probe():
 		return 0
-	var held := tickets()          # ← 顺带结算跨天
-	var got := Ticket.grant_into(held, tid, n)
+	tickets()                      # ← 顺带结算跨天
+	var rng := RandomNumberGenerator.new()
+	rng.randomize()
+	var got := Ticket.grant_with_roll(_data(), tid, n, rng)
 	if got > 0:
-		_data()["tickets"] = held
 		_flush()
 	return got
 
 
+## 队首掷值(boost 的「下一张是 ×几」)。UI 展示与使用前的确认都读这里。
+static func ticket_roll(tid: String) -> float:
+	if _is_probe():
+		return 0.0
+	return Ticket.peek_roll(_data(), tid)
+
+
 ## 用掉一张。返回是否真的用掉了。
+## ⚑ 掷值与张数**必须同步弹**(FIFO)—— 只减张数不弹值, 下一张会「继承」用掉那张的值。
 static func consume_ticket(tid: String) -> bool:
 	if _is_probe():
 		return false
@@ -171,6 +180,7 @@ static func consume_ticket(tid: String) -> bool:
 	if not Ticket.consume_from(held, tid):
 		return false
 	_data()["tickets"] = held
+	Ticket.pop_roll(_data(), tid)
 	_flush()
 	return true
 
