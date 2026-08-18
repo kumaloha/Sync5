@@ -163,9 +163,11 @@ class TutorGlow:
 			# 一层柔白光铺满该区 + 外溢的辉光。零描边 —— 没有任何一条边界线。
 			# ⚠ 对不透明小件(弃牌键)它只能从背后透一点 —— **真正的提亮由
 			# `TutorLight`(加法混合, 画在内容之上)负责**, 这层只出外溢的辉光。
+			# 0.22/34 → 0.16/22(2026-08-18 用户:「光感太模糊了不舒服」)——
+			# 大而软的辉光在手机上读作雾;收紧后边界感回来, 「亮」交给对比与提亮层。
 			draw_style_box(StageTheme.box(
-				Color(1, 1, 1, 0.22), Color(0, 0, 0, 0), 0, radius,
-				Color(1, 1, 1, 0.34), 34), q)
+				Color(1, 1, 1, 0.16), Color(0, 0, 0, 0), 0, radius,
+				Color(1, 1, 1, 0.28), 22), q)
 
 
 ## 教学关的**压暗层** —— 高亮区之外整屏压暗(2026-08-16 用户:「高光打起来的时候,
@@ -288,9 +290,14 @@ class TutorLight:
 	func _draw() -> void:
 		for rect in _focus:
 			var q: Rect2 = rect as Rect2
+			# ⚑ 分级提亮(2026-08-18 用户:「光感太模糊了不舒服」)—— 整片加法白盖在
+			# **大区域**上读作雾:均匀抬亮 = 对比被压平 = 「模糊」。大区域有压暗层的
+			# 对比就够醒目, 雾撤到近零;真正需要抬亮的只有小件(DJ 键那类不透明钮)。
+			var small: bool = minf(q.size.x, q.size.y) < 140.0
 			draw_style_box(StageTheme.box(
-				Color(1, 1, 1, 0.12), Color(0, 0, 0, 0), 0, int(Widgets.focus_radius(q)),
-				Color(1, 1, 1, 0.08), 12), q)
+				Color(1, 1, 1, 0.14 if small else 0.05), Color(0, 0, 0, 0), 0,
+				int(Widgets.focus_radius(q)),
+				Color(1, 1, 1, 0.10 if small else 0.05), 8), q)
 
 
 class GradBar:

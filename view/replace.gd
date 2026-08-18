@@ -15,10 +15,16 @@ extends RefCounted
 ## Joker awaiting a slot choice; null = 不在替换态(编排器就是靠它判的)
 var pick = null
 
+## 显式放弃(2026-08-18 用户:「第五张想弃掉, 好像没有操作办法」)——
+## 取消原本只挂在「点 Target 槽」上, 一个**没写进任何提示**的暗手势。
+## 钱与打点仍在编排器(本文件的边界注释), 这里只发信号。
+signal canceled
+
 var _views: Array               # 四个槽的视图, 0 号是 Target 槽 = 取消位
 var _cfg: Dictionary
 var _prompt: Label
 var _preview: JokerSlotView     # the incoming card, pinned + draggable
+var _cancel_btn: Button
 
 
 func _init(host: Control = null, views: Array = []) -> void:
@@ -46,6 +52,26 @@ func _init(host: Control = null, views: Array = []) -> void:
 	_preview.visible = false
 	host.add_child(_preview)
 
+	# 放弃按钮:钉在预览卡正下方。不做成预览卡自身的点击 —— 预览卡要拖拽,
+	# 而 JokerSlotView 的 tapped 在**按下**就触发, 一按就取消等于拖不了。
+	_cancel_btn = Button.new()
+	_cancel_btn.text = String(_cfg["replace_cancel_text"])
+	_cancel_btn.add_theme_font_override("font", StageTheme.zh())
+	_cancel_btn.add_theme_font_size_override("font_size", 18)
+	_cancel_btn.custom_minimum_size = Vector2(float(_cfg["replace_preview_size"][0]), 38)
+	# 摆在**提示行之下**而不是预览卡正下方 —— 提示行(replace_prompt_pos y=592)本来就
+	# 贴在预览卡下沿, 按钮再占那里会把它整行盖住。38 高止步 ~670, 不进手牌框(672)。
+	_cancel_btn.position = Vector2(_v2(_cfg["replace_preview_pos"]).x,
+		_v2(_cfg["replace_prompt_pos"]).y + 40.0)
+	_cancel_btn.focus_mode = Control.FOCUS_NONE
+	var csb := StageTheme.box(Color(0.30, 0.10, 0.14, 0.9), Color(1.0, 0.37, 0.49, 0.55), 1, 12)
+	for st in ["normal", "hover", "pressed"]:
+		_cancel_btn.add_theme_stylebox_override(st, csb)
+	_cancel_btn.add_theme_color_override("font_color", Color("ffb9c6"))
+	_cancel_btn.visible = false
+	_cancel_btn.pressed.connect(func() -> void: canceled.emit())
+	host.add_child(_cancel_btn)
+
 
 ## 进入替换态:提示条带上买入价(商店一关, 玩家就看不到价了), 新卡钉出来,
 ## 四个槽开始接点击/拖放。
@@ -58,6 +84,7 @@ func enter(j, price: int = -1) -> void:
 	_preview.set_joker(j)
 	_preview.drag_joker = j
 	_preview.visible = true
+	_cancel_btn.visible = true
 	for k in range(_views.size()):
 		_views[k].tappable = true
 		# 0 号是 Target 槽 = 取消; 1..3 是可替换的 Support
@@ -71,6 +98,7 @@ func exit() -> void:
 	pick = null
 	_prompt.visible = false
 	_preview.visible = false
+	_cancel_btn.visible = false
 	_preview.drag_joker = null
 	_preview.set_joker(null)
 	for v in _views:

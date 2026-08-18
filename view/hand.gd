@@ -445,6 +445,12 @@ func refresh(vm: Dictionary) -> void:
 		if _swap_blocked_cache.has(cache_card):
 			cache_mark = "锁" if cache_mark != "" else "换"
 		pc.set_blocked(cache_mark)
+		# 选中抬升(2026-08-18 用户:「缓存牌盖住了, 点击不会抬高一点」)——
+		# 手牌选中会抬, 缓存原本只有光效:被压暗层/提示条半掩时选没选根本看不见。
+		# 同一手势同一反馈;抬升差值与手牌同源(LIFT_SELECTED − LIFT_BASE), 基线是 0。
+		var cty := (LIFT_SELECTED - LIFT_BASE) if sel_cache.has(i) else 0.0
+		var ctw := create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		ctw.tween_property(pc, "position:y", cty, 0.18)
 		var cache_can_swap := _can_swap and not _swap_blocked_cache.has(cache_card)
 		pc.drag_payload = {"zone": "cache", "index": i,
 			"discard_blocked": _discard_blocked_cache.has(cache_card),

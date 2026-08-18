@@ -312,6 +312,9 @@ func _build_ui() -> void:
 	add_child(fx)
 	# 替换态的两个部件挂在最上层:选槽时商店已经关了, 它们要盖住小丑牌行以外的一切
 	replace = ReplaceFlow.new(self, joker_views)
+	# ⚠ 必须连在构造**之后** —— 第一版插进了 _build_ui 的信号块(那时 replace 还是 null),
+	# 整个 _ready 当场断掉, headless 套件测不到 view, 是截图探针抓到的。
+	replace.canceled.connect(_on_replace_canceled)
 
 
 # ============================== FLOW ==============================
@@ -397,6 +400,25 @@ func _start_phrase() -> void:
 	if run.phrase_index == 0 and _daily_ticket != "" and not run.tutorial:
 		_show_daily_notice(_daily_ticket)
 		_daily_ticket = ""
+	_apply_tutor_hint()
+	orbit.set_mode("walk")
+	hand.clear_selection()
+	hand.deal_flip()
+	# 手牌/缓存快照 —— 只记发到手里的牌本身。
+	# 曾经在这里记过 best0(「不动手会是什么牌型」), 已删:那是**反事实不是事实**,
+	# 能从 hand 推出来, 而且它的值依赖当时的牌型表和 Deck.rules —— 表一改
+	# (2026-08-06 抄 Balatro 那次), 老日志的 best0 就和同一行的 hand 打架, 且不会报错。
+	Tape.on("beat", {"i": run.phrase_index, "p": run.phrase_in_section,
+		"dur": cur_duration, "coins": phrase.coins,
+		"hand": Tape.cards(phrase.hand), "cache": Tape.cards(run.cache),
+		"boon": run.boon(), "request": phrase.request_goal,
+		"spotlight": "" if phrase.spotlight_card == null else phrase.spotlight_card.label()})
+	_refresh()
+
+
+## 教学关的一行提示 + 分区指向 + 多选解锁。抽成函数是为了**拍中推进后立刻重放**
+## (2026-08-18 用户:「应该消失, 进入下一个提示」)。正式局 hint 空串 ⇒ 整块隐身。
+func _apply_tutor_hint() -> void:
 	# 教学关的一行提示 + 分区指向 —— 正式局 hint 是空串, TutorHint 整块隐身。
 	# ⚠ 区域名 → 矩形的翻译在**编排器**这一侧:`core/` 不认识像素(坐标归 ui.json)。
 	var h := run.tutorial_hint()
@@ -432,19 +454,16 @@ func _start_phrase() -> void:
 	# ⚠ 组件不认识教学关(铁律:组件只发意图, 状态由编排器给), 所以这里翻译成
 	# 它听得懂的话:`multi_select`。正式局恒 true。
 	hand.multi_select = run.tutorial_unlocked("multiselect")
-	orbit.set_mode("walk")
-	hand.clear_selection()
-	hand.deal_flip()
-	# 手牌/缓存快照 —— 只记发到手里的牌本身。
-	# 曾经在这里记过 best0(「不动手会是什么牌型」), 已删:那是**反事实不是事实**,
-	# 能从 hand 推出来, 而且它的值依赖当时的牌型表和 Deck.rules —— 表一改
-	# (2026-08-06 抄 Balatro 那次), 老日志的 best0 就和同一行的 hand 打架, 且不会报错。
-	Tape.on("beat", {"i": run.phrase_index, "p": run.phrase_in_section,
-		"dur": cur_duration, "coins": phrase.coins,
-		"hand": Tape.cards(phrase.hand), "cache": Tape.cards(run.cache),
-		"boon": run.boon(), "request": phrase.request_goal,
-		"spotlight": "" if phrase.spotlight_card == null else phrase.spotlight_card.label()})
-	_refresh()
+
+
+## 编排器报教学动作 + **拍中推进**:做完动作提示当场换, 不等这拍(10~12s)走完 ——
+## 等拍末才换, 玩家眼里是「照做了但提示没消失」。play 不走这里(它只在拍末发生)。
+## 弃牌/交换的可用门不用在这里补:`_process` 每帧都在对 `_discard_open/_swap_open`
+## 做增量刷新, 拍中解锁下一帧就生效。
+func _note_tutorial(action: String) -> void:
+	run.tutorial_note(action)
+	if run.tutorial_advance_if_done():
+		_apply_tutor_hint()
 
 
 func _process(delta: float) -> void:
@@ -783,7 +802,7 @@ func _on_shop_bought(j, price: int) -> void:
 	phrase.coins -= price
 	Tape.on("buy", {"id": String(j.id), "kind": String(j.kind),
 		"price": price, "coins": phrase.coins})
-	run.tutorial_note("buy")
+	_note_tutorial("buy")
 	# 收藏家:每买一张。⚠ **在装卡之前发** —— 否则刚买的这张会给自己记一次,
 	# 「每买 1 张 +15」就凭空多了第一次(转型同理:换旗不该给新旗自己记一次)。
 	Joker.notify_shop(run.joker_slots, "buy")
@@ -962,14 +981,22 @@ func _on_ticket_use(tid: String) -> void:
 
 
 ## 成交(或取消)。⚠ 钱与打点必须留在这里 —— replace.gd 只复位 UI。
+## 放弃替换 —— 显式按钮与「点 Target 槽」两条路走同一个函数(判定一份真相)。
+## ⚠ 未付款:成交那一刻才扣钱, 放弃无需退款, 新卡留在货架上可反悔再拿。
+func _on_replace_canceled() -> void:
+	if state != St.DRAFT or replace.pick == null:
+		return
+	Tape.on("repl_off", {"id": String(replace.pick.id), "coins": phrase.coins})
+	replace.exit()
+	shop.show_board()
+
+
 func _on_slot_tapped(k: int) -> void:
 	if state != St.DRAFT or replace.pick == null:
 		return
 	var new_j = replace.pick
 	if k == 0:
-		Tape.on("repl_off", {"id": String(new_j.id), "coins": phrase.coins})
-		replace.exit()               # tapping the target cancels
-		shop.show_board()
+		_on_replace_canceled()       # tapping the target cancels(与按钮同源)
 		return
 	var old = run.joker_slots[k]
 	var price := Economy.shelf_price(new_j, run.joker_slots)
@@ -1085,7 +1112,7 @@ func _on_hand_swap(hand_i: int, cache_i: int) -> void:
 		return
 	if phrase.swap_with_cache(hand_i, cache_i):
 		Tape.on("swap", {"h": hand_i, "c": cache_i, "at": elapsed})
-		run.tutorial_note("swap")
+		_note_tutorial("swap")
 		_action_feedback()
 	else:
 		Tape.on("deny", {"why": "blind_swap", "h": hand_i, "c": cache_i, "at": elapsed})
@@ -1212,11 +1239,11 @@ func _on_hand_discard(sel_h: Array, sel_c: Array) -> void:
 		Tape.on("disc", {"k": total, "h": sel_h.size(), "c": sel_c.size(),
 			"cost": Economy.discard_cost(total), "coins": phrase.coins,
 			"cards": gone, "got": _refilled(sel_h, sel_c), "at": elapsed})
-		run.tutorial_note("discard")
+		_note_tutorial("discard")
 		# 跨区多选 = 手牌和缓存**同时**选中过 —— 教学关第 6 步教的正是这个,
 		# 而它只有在这里才看得出来(组件只报选了哪些下标, 不报「这算不算跨区」)。
 		if sel_h.size() > 0 and sel_c.size() > 0:
-			run.tutorial_note("multiselect")
+			_note_tutorial("multiselect")
 		_notify_discard(total)
 		hand.clear_selection()
 		vinyl.spin_boost()
@@ -1261,7 +1288,7 @@ func _on_hand_single_discard(zone: String, idx: int) -> void:
 	if succeeded:
 		# ⚑ 拖到弃牌键的单张直弃也算数 —— 教学关第 2/3 步问的是「弃没弃」,
 		# 不是「用哪个手势弃的」。只记多选那条路会让拖拽玩家永远推进不了。
-		run.tutorial_note("discard")
+		_note_tutorial("discard")
 		hand.clear_selection()
 		vinyl.spin_boost()
 		_action_feedback()

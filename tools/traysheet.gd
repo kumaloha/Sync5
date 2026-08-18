@@ -43,5 +43,11 @@ func _process(_delta: float) -> bool:
 		148:
 			Shot.save(self, "tray_shop")
 			print("tray_shop: reroll button reads the juke ticket")
+		152:
+			# 替换态 + 放弃按钮(2026-08-18 用户:「第五张想弃掉, 好像没有操作办法」)
+			_scene.replace.enter(Joker.pool()[10], 6)
+		164:
+			Shot.save(self, "replace_cancel")
+			print("replace_cancel: 预览卡 + 提示行 + ✕ 不换了按钮")
 			return true
 	return false

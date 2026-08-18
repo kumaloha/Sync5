@@ -242,6 +242,24 @@ func tutorial_try_advance() -> bool:
 	return ok
 
 
+## 拍中推进(2026-08-18 用户:「应该消失, 进入下一个提示」)—— 动作一做出来提示就该换,
+## 等拍末才换在玩家眼里是「照做了但提示没消失」。与拍末那份(`tutorial_try_advance`)的分工:
+## · 这里**只认真做到的**:空门(play 语义 = 把一拍打完)不在拍中放行, 留给拍末;
+## · **不吃兜底**:拍数账(`_tutorial_step_beats`)不动, 超时放行仍然只属于拍末;
+## · 推进时**清动作账** —— 第 3/4 步都是 swap, 不清的话一次交换会在拍末再顶一步,
+##   把「再换一次」的练习位整个吞掉(t_tutorial 锁着这条)。
+func tutorial_advance_if_done() -> bool:
+	if not tutorial:
+		return false
+	var need := Tutorial.require(tutorial_step)
+	if need == "" or not bool(_tutorial_acted.get(need, false)):
+		return false
+	tutorial_step += 1
+	_tutorial_step_beats = 0
+	_tutorial_acted.clear()
+	return true
+
+
 ## 这一步还欠什么动作 —— 空串 = 不欠。给编排器做「再说一次」的反馈用。
 func tutorial_pending() -> String:
 	if not tutorial:

@@ -171,6 +171,16 @@ func run(t) -> void:
 	t.check(g.tutorial_try_advance(), "本拍做过 ⇒ 过")
 	g.tutorial_step = gated
 	t.check(not g.tutorial_try_advance(), "上一拍做过不算数 —— 动作账每拍清空")
+	# --- 拍中推进(2026-08-18 用户:「应该消失, 进入下一个提示」)---
+	g.tutorial_step = gated
+	t.check(not g.tutorial_advance_if_done(), "没做动作 ⇒ 拍中不推进")
+	g.tutorial_note(want)
+	t.check(g.tutorial_advance_if_done(), "做了动作 ⇒ 拍中立即推进(提示当场换)")
+	t.eq(g.tutorial_step, gated + 1, "拍中推进正好一步")
+	t.check(not g.tutorial_advance_if_done(),
+		"同一个动作不许替下一步的门买单 —— 拍中推进时清动作账(练习位不被吞)")
+	t.check(not g.tutorial_advance_if_done() and Tutorial.require(99) == "",
+		"越界步 require 为空 ⇒ 拍中永不放行(空门语义 = 把一拍打完, 归拍末)")
 	# require 全部在白名单里, 否则那一步**永远推进不了且不报错**(玩家卡死在教学关)
 	for s2 in range(Tutorial.steps()):
 		var rq := Tutorial.require(s2)
@@ -184,6 +194,7 @@ func run(t) -> void:
 	q.reset(1)
 	q.tutorial_note("discard")
 	t.check(not q.tutorial_try_advance(), "正式局 try_advance 恒 false")
+	t.check(not q.tutorial_advance_if_done(), "正式局拍中推进恒 false")
 	t.eq(q.tutorial_step, 0, "正式局步骤下标不动")
 	# ⚠ 正式局必须**逐字节不受影响** —— 这是「加功能不许改既有行为」的机器可读版本。
 	var n := Run.new()
