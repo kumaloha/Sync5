@@ -151,14 +151,16 @@ func run(t) -> void:
 	g.tutorial = true
 	g.reset(1)
 	var need := Tutorial.require(0)
-	t.eq(need, "play", "第 1 步的门 = 把一拍打完")
+	# 4 轮版(2026-08-18 用户重排):第 1 轮教「自动结算 + 弃牌」, 结算是自动发生的,
+	# **弃牌才是这一轮要做出来的动作** —— 门从 play 改为 discard。
+	t.eq(need, "discard", "第 1 步的门 = 弃一次牌(结算自动发生, 弃牌是要做的那件)")
 	# 找一个真的设了非 play 门的步骤, 用它验「不做就不推进」
 	var gated := -1
 	for s in range(Tutorial.steps()):
 		if Tutorial.require(s) != "" and Tutorial.require(s) != "play":
 			gated = s
 			break
-	t.check(gated > 0, "脚本里至少有一步设了动作门(不然做中学这条没落地)")
+	t.check(gated >= 0, "脚本里至少有一步设了动作门(不然做中学这条没落地)")
 	g.tutorial_step = gated
 	var want := Tutorial.require(gated)
 	t.check(not g.tutorial_try_advance(), "没做那个动作 ⇒ 不推进")

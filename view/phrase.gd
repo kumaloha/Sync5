@@ -487,6 +487,8 @@ func _apply_tutor_hint() -> void:
 				var hp: Array = DB.ui()["hud"]["pos"]
 				var hs: Array = DB.ui()["hud"]["size"]
 				q = Rect2(float(hp[0]), float(hp[1]), float(hs[0]), float(hs[1]))
+			elif name == "blind":
+				q = Rect2(blind_card.position, blind_card.size)
 			elif name == "jokers":
 				# 小丑牌四槽的并集 —— 从活部件取(与 hand.focus_rect 同一条纪律)
 				q = Rect2(joker_views[0].position, joker_views[0].size)
@@ -508,11 +510,37 @@ func _apply_tutor_hint() -> void:
 				# 卡片不压了, 标签仍然被盖。**可高亮区 ≠ 它的视觉范围**, 差的正是这一条
 				# —— 同 docs/design/ui_meta.md 那句「对齐类反馈要查视觉顶端而不是几何顶端」。
 				avoid.append(Rect2(aq.position - Vector2(0, 44), aq.size + Vector2(0, 44)))
+	if run.tutorial:
+		_stage_tutor_props()
 	tutor.set_hint(String(h["command"]), String(h["signal"]), rects, avoid)
 	# 能力全程全开(用户拍板「取消全部能力压制」;5 步版 unlock 第一步即全解锁)。
 	# ⚠ 组件不认识教学关(铁律:组件只发意图, 状态由编排器给), 所以这里翻译成
 	# 它听得懂的话:`multi_select`。正式局恒 true, 教学关第一步起也恒 true。
 	hand.multi_select = run.tutorial_unlocked("multiselect")
+
+
+var _tutor_blind_shown := false
+
+## 教学的示范道具(2026-08-18 用户:「给一些代表性的盲注+小丑牌, 打开玩家想象力」)。
+## 第 3 轮:四槽装**借展样品** —— 倍率(三连音)/加成(开场)/基础分(贵宾)/奖励分(灯牌)
+## 各一张, 与结算分解框的四个乘区一一对应:结算里见过的词, 槽位上就有实物。
+## 特意避开规则牌当样品 —— 规则牌要挂 deck 旗, 借展收回时还得拆旗, 不值得。
+## 第 4 轮:盲注卡亮样例脸(禁回)+ 放一次特写 —— 盲注的登场时刻本身就是教学。
+## 样品与样例都在段边界收回(tutorial_done 那段):免费四张带进正式局会送掉首局构筑。
+func _stage_tutor_props() -> void:
+	if run.tutorial_step >= 2 and run.joker_slots[0] == null:
+		var ids := ["triplet", "opener", "vip", "neonsign"]
+		for i in range(4):
+			run.joker_slots[i] = Joker.by_id(ids[i])
+			# ⚠ 槽位视图不走 _refresh 镜像(只在买入/重置点显式写)—— 借展也要自己写
+			joker_views[i].set_joker(run.joker_slots[i])
+			fx.pop(joker_views[i])
+	if run.tutorial_step >= 3 and not _tutor_blind_shown:
+		_tutor_blind_shown = true
+		blind_card.setup(0, SectionMod.by_id("norepeat"), null)
+		blind_card.visible = true
+		if not SaveState.is_probe():
+			_play_blind_closeup()
 
 
 ## 编排器报教学动作 + **拍中推进**:做完动作提示当场换, 不等这拍(10~12s)走完 ——
@@ -714,11 +742,18 @@ func _advance() -> void:
 	#      不补掷的话后面三段全都没有 Boss;
 	#   ③ 收起提示条。
 	# ⚠ **不再 `Tape.close`** —— 这一局还没完, 关掉打点会把后三段的数据丢光。
-	if run.tutorial_done():
+	# ⚠ 2026-08-18 改 4 轮后步数(4)< 段拍数(6):**转正式必须仍卡在段边界** ——
+	# 第 5-6 拍是无提示的自由拍(样品还在手, 随便试), 提示自己隐身(步过界 hint 为空)。
+	if run.tutorial and run.tutorial_done() and bool(out["section_done"]):
 		SaveState.mark_tutorial_seen()
 		run.tutorial = false
 		run.roll_faces(-1, SaveState.runs_total())
 		tutor.set_hint("", "")
+		# 借展道具收回:样品四张 + 样例盲注(理由在 _stage_tutor_props 头)
+		for i in range(run.joker_slots.size()):
+			run.joker_slots[i] = null
+			joker_views[i].set_joker(null)
+		_tutor_blind_shown = false
 		Tape.on("tutorial_done", {"beat": run.phrase_index})
 	if bool(out["section_done"]):
 		state = St.END
