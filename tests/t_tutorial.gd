@@ -9,10 +9,12 @@ func run(t) -> void:
 	var steps: Array = DB.tutorial()["steps"]
 	t.eq(Tutorial.steps(), steps.size(), "steps() 跟着 data/tutorial.json 走")
 
-	# --- 给时间:拍长必须收敛到正式局的 8 秒, 而且一路不回头 ---
-	# ⚑ 这是教学关的主手段(新手的敌人是「8 秒内来不及想」), 所以它是契约不是装饰。
+	# --- 拍长:全程 = 正式局的 8 秒(2026-08-18 用户拍板「教学关也按 8 秒」)---
+	# ⚑ 旧契约是「第一拍更长 = 给时间」—— 那是没有新手数据支撑的待测假设,
+	# 用户用自己的手感推翻了它。读提示的时间由**步进兜底**给(做不出来这一步重来),
+	# 不再由拍长给。这条断言从此锁「统一 8 秒」, 谁想放宽先过用户。
 	var normal := GameConfig.phrase_duration(0)
-	t.check(Tutorial.seconds(0) > normal, "第一拍比正式局长 —— 教学关的主手段是给时间")
+	t.check(Tutorial.seconds(0) == normal, "教学关第一拍 = 正式局拍长(全程 8 秒拍板)")
 	t.eq(Tutorial.seconds(steps.size() - 1), normal,
 		"最后一拍已经收到正式局的拍长(过渡发生在教学关之内, 不留错误的肌肉记忆)")
 	for i in range(1, steps.size()):
