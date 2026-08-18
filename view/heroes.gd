@@ -34,6 +34,8 @@ func _ready() -> void:
 	size = Vector2(W, H)
 	z_index = 85              # 首页 80 之上
 	_roster = Character.roster()
+	# ⚑ 本页就是唯一的选角处(2026-08-18)—— 进页先对齐存档, 点选即落盘。
+	sel = clampi(SaveState.hero(), 0, _roster.size() - 1)
 	_colors.resize(_roster.size())
 	_crops.resize(_roster.size())
 	_avatars.resize(_roster.size())
@@ -96,6 +98,7 @@ func _gui_input(ev: InputEvent) -> void:
 	for i in range(_cell_rects.size()):
 		if (_cell_rects[i] as Rect2).has_point(p):
 			sel = i
+			SaveState.set_hero(i)    # 点了谁, 开局就是谁(唯一的选角动作)
 			return
 	var tabs := Chrome.tab_rects()
 	for i in range(tabs.size()):
@@ -108,7 +111,7 @@ func _draw() -> void:
 	draw_rect(Rect2(0, 0, W, H), Color("000000"), true)
 	var acc: Color = _colors[sel]
 	var hero: Character = _roster[sel]
-	Chrome.page_bar(self, "主 角 图 鉴", "%d 位主角 · 全员可登台" % _roster.size(), acc,
+	Chrome.page_bar(self, "主 角 图 鉴", "%d 位主角 · 点选即上场" % _roster.size(), acc,
 		int(HomeScreen.PROFILE["gems"]))
 	_draw_detail(acc, hero)
 	_draw_grid()

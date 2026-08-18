@@ -194,6 +194,22 @@ static func consume_ticket(tid: String) -> bool:
 	return true
 
 
+## 当前主角(2026-08-18 用户拍板:「不要在局内开局选角色, 在角色页面选了谁就是谁」)。
+## 角色页每次点选即落盘;开局直接读这里, 局内选角屏(PickWalker)从流程上退役。
+## ⚠ 探针返回 1 —— 历史上所有探针都 choose_character(1), 探针世界保持逐字节不变。
+static func hero() -> int:
+	if _is_probe():
+		return 1
+	return int(_data().get("hero", 0))
+
+
+static func set_hero(i: int) -> void:
+	if _is_probe():
+		return
+	_data()["hero"] = i
+	_flush()
+
+
 static func note_run_started() -> void:
 	if _is_probe():
 		return

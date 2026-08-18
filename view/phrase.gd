@@ -145,7 +145,10 @@ func _on_home_start() -> void:
 	if _home != null and is_instance_valid(_home):
 		_home.queue_free()
 	_home = null
-	_open_picker()
+	# ⚑ 开局不再弹选角(2026-08-18 用户拍板:「在角色页面选了谁就是谁」)——
+	# 主角是**身份**, 在角色页定;每局再选一遍是把身份当成了手牌。
+	# PickWalker 类保留(_open_picker 无人调, 关开关不删代码的同款先例)。
+	choose_character(clampi(SaveState.hero(), 0, Character.roster().size() - 1))
 
 
 ## 三个图鉴页(2026-08-11 docs/mockups/主角|小丑牌|荣誉.dc.html 实装)。
