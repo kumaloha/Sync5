@@ -195,7 +195,7 @@
    "trigger": "顺子可以跳过一个点数"
   },
   "fourfingers": {
-   "trigger": "四张连号也算顺子"
+   "trigger": "顺子和同花,四张就够"
   },
   "bassline": {
    "trigger": "每累计弃 12 张:倍率+0.25,永久"
@@ -497,7 +497,8 @@
   "hud": "顶栏(分数/金币/拍数)",
   "hand": "手牌行 5 张",
   "cache": "缓存行 3 格",
-  "discard": "弃牌键"
+  "discard": "弃牌键",
+  "jokers": "小丑牌四槽(矩形由编排器从 joker_views 活算)"
  },
  "patterns": {
   "_comment": "牌型中文名, 按 Pattern.Kind 下标。结算分解框(settle_fx)与其他要念牌型名的地方共用这一份。",

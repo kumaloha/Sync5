@@ -230,7 +230,7 @@ see the calibration note below).
 | Glow Stick | 荧光棒 | Uncommon | decay | timing | +60%, fades 6% each phrase |
 | Bassline | 贝斯线 | Rare | growth | card flow | Every 12 discards: ×0.25 forever |
 | Shortcut | 近道 | Uncommon | fixed | rule | Straights may skip one rank |
-| Four Fingers | 四指 | Rare | fixed | rule | Four-card straights count |
+| Four Fingers | 四指 | Rare | fixed | rule | Four cards make straights and flushes |
 | Black Tone | 黑调 | Rare | fixed | rule | Black suits count as one |
 | Red Tone | 红调 | Rare | fixed | rule | Red suits count as one |
 | Mirror | 镜面 | Rare | floating | copy | Copies your Target at half power |

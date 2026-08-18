@@ -78,6 +78,7 @@ var tutor: Widgets.TutorHint      # 教学关的一行提示;正式局整块隐�
 var blind_card: Widgets.BlindCard
 var intro: BlindIntro
 var tray: TicketTray         # 局内券托盘(拍内 scope 的使用入口, view/tray.gd)
+var music: Music             # 每段一首的 8 秒循环(view/music.gd, 2026-08-18)
 ## boost 券给本拍上的局外乘子(用一张 ×一次, 可叠)。每拍在 _start_phrase 归 1;
 ## 结算时经 flags 的 `meta_mult` 交给 core/beat.gd —— **记分必须留在 core**(唯一真相),
 ## view 只负责「什么时候上、上多少」。
@@ -123,6 +124,8 @@ func _notification(what: int) -> void:
 ## The front page (docs/mockups/home.html). Like the picker it holds the clock —
 ## _process would otherwise tick against a null phrase.
 func _open_home() -> void:
+	if music != null:
+		music.stop_music()   # 首页静音(1.1 再谈首页音景)
 	set_process(false)
 	state = St.FRONT
 	_front_latch = false        # 回到前端 = 新的选角会话(V3 闩锁复位)
@@ -286,6 +289,8 @@ func _build_ui() -> void:
 	tutor = n["tutor"]
 	intro = n["intro"]
 	tray = n["tray"]
+	music = Music.new()
+	add_child(music)
 
 	for i in range(joker_views.size()):
 		joker_views[i].tapped.connect(_on_slot_tapped.bind(i))  # only live in replace mode
@@ -337,11 +342,11 @@ func _enter_section() -> void:
 		_tape_section()
 		_start_phrase()
 		return
-	state = St.INTRO
-	var m := SectionMod.by_id(String(run.run_faces.get(run.section_idx, "")))
-	var boon := BlindBoon.by_id(run.boon())
+	# ⚑ 公示卡(BlindIntro)2026-08-18 从流程退役 —— 盲注特写接任公示:
+	# 「进场的时候以及每次更换盲注的时候, 盲注特写一下, 2 秒钟」(用户原话)。
+	# 特写挂在 _start_phrase 的「段首拍」分支上, 开局/重开/段间三条路自然全覆盖。
 	_tape_section()
-	intro.open(run.section_idx, run.target(), m, boon)
+	_start_phrase()
 
 
 ## 进段打点。两个入口:_enter_section(开局/重开)与 _next_section(段间),
@@ -357,6 +362,43 @@ func _tape_section() -> void:
 		# `run` 首事件里另有起始金币, 所以日志内部自相矛盾, 按段分析会被污染。
 		# 2026-08-09 外部审查发现。
 		"coins": run.coins if phrase == null else phrase.coins})
+
+
+## 盲注特写(2026-08-18 用户:「一边翻转一边移到屏幕中间放大」, 定长 2 秒)。
+## 动的是 blind_card **真身** —— 副本和本体迟早字对不上。期间 state=INTRO:
+## 钟不走、手牌不吃点击, 与旧公示卡同一道闸。0.5s 飞入(|cos| 翻面)+ 1.1s 定格 + 0.4s 归位。
+func _play_blind_closeup() -> void:
+	state = St.INTRO
+	Tape.on("intro", {"closeup": true})
+	var home: Vector2 = blind_card.position
+	var hz: int = blind_card.z_index
+	blind_card.z_index = 210
+	blind_card.pivot_offset = blind_card.size * 0.5
+	var center: Vector2 = Vector2(360.0, 600.0) - blind_card.size * 0.5
+	var tw := create_tween()
+	var leg := tw.tween_method(_closeup_fly.bind(home, center, true), 0.0, 1.0, 0.5)
+	leg.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tw.tween_interval(1.1)
+	leg = tw.tween_method(_closeup_fly.bind(center, home, false), 1.0, 0.0, 0.4)
+	leg.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	tw.tween_callback(_closeup_done.bind(home, hz))
+
+
+func _closeup_done(home: Vector2, hz: int) -> void:
+	blind_card.z_index = hz
+	blind_card.scale = Vector2.ONE
+	blind_card.position = home
+	if state == St.INTRO:
+		state = St.DECISION      # 钟从这一刻才开始走(elapsed 已在 _start_phrase 归零)
+
+
+## t 在 a_pos→b_pos 间插值飞行;flip=true 时 x 轴按 |cos| 做一次翻面(卡牌翻面同一 idiom)。
+## 去程 t 0→1、回程 t 1→0 共用同一条几何, 不抄第二份。
+func _closeup_fly(t: float, a_pos: Vector2, b_pos: Vector2, flip: bool) -> void:
+	var k: float = t if flip else (1.0 - t)
+	blind_card.position = a_pos.lerp(b_pos, k)
+	var s: float = lerpf(1.0, 2.4, t)
+	blind_card.scale = Vector2(s * (absf(cos(PI * t)) if flip else 1.0), s)
 
 
 func _on_intro_done() -> void:
@@ -418,6 +460,14 @@ func _start_phrase() -> void:
 		"boon": run.boon(), "request": phrase.request_goal,
 		"spotlight": "" if phrase.spotlight_card == null else phrase.spotlight_card.label()})
 	_refresh()
+	# 盲注特写:段首拍(开局 + 每次换盲注)。教学关与探针不进 ——
+	# 教学关无脸无目标是空卡;探针的帧预算不该为纯表现买单。
+	# ⚑ 特写期间 state=INTRO ⇒ **8 秒的钟不走**(用户:「特写的 2 秒不要跑那个 8 秒节奏」),
+	# _process 只在 DECISION 计时, elapsed 在特写收尾才开始累加。
+	if run.phrase_in_section == 0:
+		music.play_section(run.section_idx)   # 每关一首(探针在 Music 里自静音)
+	if run.phrase_in_section == 0 and not run.tutorial and not SaveState.is_probe():
+		_play_blind_closeup()
 
 
 ## 教学关的一行提示 + 分区指向 + 多选解锁。抽成函数是为了**拍中推进后立刻重放**
@@ -437,6 +487,11 @@ func _apply_tutor_hint() -> void:
 				var hp: Array = DB.ui()["hud"]["pos"]
 				var hs: Array = DB.ui()["hud"]["size"]
 				q = Rect2(float(hp[0]), float(hp[1]), float(hs[0]), float(hs[1]))
+			elif name == "jokers":
+				# 小丑牌四槽的并集 —— 从活部件取(与 hand.focus_rect 同一条纪律)
+				q = Rect2(joker_views[0].position, joker_views[0].size)
+				for jv in joker_views:
+					q = q.merge(Rect2(jv.position, jv.size))
 			else:
 				q = hand.focus_rect(name)
 			if q.size.x > 0.0:
@@ -454,9 +509,9 @@ func _apply_tutor_hint() -> void:
 				# —— 同 docs/design/ui_meta.md 那句「对齐类反馈要查视觉顶端而不是几何顶端」。
 				avoid.append(Rect2(aq.position - Vector2(0, 44), aq.size + Vector2(0, 44)))
 	tutor.set_hint(String(h["command"]), String(h["signal"]), rects, avoid)
-	# 跨区多选在教学关第 5 步才解锁 —— 在那之前每次只能选一张。
+	# 能力全程全开(用户拍板「取消全部能力压制」;5 步版 unlock 第一步即全解锁)。
 	# ⚠ 组件不认识教学关(铁律:组件只发意图, 状态由编排器给), 所以这里翻译成
-	# 它听得懂的话:`multi_select`。正式局恒 true。
+	# 它听得懂的话:`multi_select`。正式局恒 true, 教学关第一步起也恒 true。
 	hand.multi_select = run.tutorial_unlocked("multiselect")
 
 

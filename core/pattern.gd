@@ -143,7 +143,7 @@ const BASE_COINS := {
 ## Evaluate the best five-card combination out of the given cards.
 ## 大王/小王 are WILD: each stands in for whatever card scores highest.
 ## `rules` are the run's rule flags (Deck.rules): shortcut (straights may
-## skip one rank), fourfingers (four-card straights count), twotone
+## skip one rank), fourfingers (four cards make straights AND flushes), twotone
 ## (flushes by color, not suit).
 ## Returns {} when fewer than 5 cards, else
 ## {kind, name, cards, base_score, rank_sum, score, coins, wilds}.
@@ -358,6 +358,26 @@ static func _classify_ref(five: Array, rules: Dictionary = {}) -> int:
 			# 五张同色才谈得上;然后看这一色的那张卡装了没有。
 			if colors.size() == 1:
 				is_flush = red_on if colors.has(true) else black_on
+	# ⚑ **四指的同花半边**(2026-08-18 补上):原作 Four Fingers 本来就是「4 张即可成
+	# 同花/顺子」, 首版只实装了顺子那半 —— 砍掉的恰好是它与近道的**区别**, 用户在
+	# 货架上看到的是两张几乎一样的卡(「这俩太像了」)。判据 = 五张里**任一花色 ≥4 张**;
+	# 黑调/红调在场时按**颜色类**合并计数(与五张路径同一套口径, 组合不加特例)。
+	# ⚠ 已知近似:四张顺与四张花可以是**不同**的四张, 也会读成同花顺 —— 对玩家有利的
+	# 罕见角落, 模型与游戏共用本函数, 不会分叉。
+	if not is_flush and rules.get("fourfingers", false):
+		var tally := {}
+		for c in five:
+			var key: String
+			if rules.get("redtone", false) and c.is_red():
+				key = "red"
+			elif rules.get("blacktone", false) and not c.is_red():
+				key = "black"
+			else:
+				key = str(c.suit)
+			tally[key] = int(tally.get(key, 0)) + 1
+			if int(tally[key]) >= 4:
+				is_flush = true
+				break
 	var is_straight: bool = _is_straight(ranks, rules)
 	var counts: Array = rank_count.values()
 	counts.sort()

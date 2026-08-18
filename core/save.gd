@@ -42,6 +42,11 @@ static func _is_probe() -> bool:
 	return OS.get_cmdline_args().has("--script")
 
 
+## 公开读口(view 的纯表现分支用:盲注特写这类动画, 探针不该等)。
+static func is_probe() -> bool:
+	return _is_probe()
+
+
 ## 教学关看过没有。⚠ 读不到 / 解析失败 = false(当新玩家), 见文件头。
 ##
 ## ⚑ 探针缺省当「看过」(不进教学关), **`SYNC5_PROBE_FRESH=1` 时当新玩家**(2026-08-18)——

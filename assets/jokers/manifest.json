@@ -229,7 +229,7 @@
    "code": "S-14",
    "kind": "support",
    "rarity": "uncommon",
-   "trigger_zh": "四张牌也算顺子",
+   "trigger_zh": "顺子/同花只需四张",
    "amount": "RULE",
    "art_subject": "一只清楚可数的四指手套"
   },

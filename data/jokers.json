@@ -452,7 +452,7 @@
    "rarity": "uncommon",
    "curve": "fixed",
    "proof": "solver",
-   "fx": "Four-card straights count",
+   "fx": "Four cards make straights and flushes",
    "acquire": {
     "deck_rule": "fourfingers"
    }
