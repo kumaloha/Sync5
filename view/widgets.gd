@@ -230,22 +230,28 @@ class TutorDim:
 			draw_rect(Rect2(0, q.position.y, maxf(0.0, q.position.x), q.size.y), d)
 			draw_rect(Rect2(q.end.x, q.position.y, maxf(0.0, w - q.end.x), q.size.y), d)
 			_corner_patches(q, d)
-			_rim(q)
+			_beam(q)
 			y = q.end.y
 		if y < h:
 			draw_rect(Rect2(0, y, w, h - y), d)
 
-	## 洞边光圈(2026-08-18 第三版)—— 「明亮」的来源。霓虹的亮从来不是铺光,
-	## 是**暗底上一条锐利的发光边**(这套美术自己的母语:主色描边 + 外发光)。
-	## 两笔:先一条 6px 的低透白当底晕, 再一条 2px 的高亮白压在上面 —— 有锐度才有「亮」。
-	## ⚠ StyleBoxFlat 的 border 往**内**画, 光圈正好压在洞缘未压暗的一侧, 不吃暗带。
-	func _rim(q: Rect2) -> void:
-		var r: int = int(minf(Widgets.focus_radius(q.grow(-HOLE_GROW)) + HOLE_GROW,
-			minf(q.size.x, q.size.y) * 0.5))
-		draw_style_box(StageTheme.box(
-			Color(0, 0, 0, 0), Color(1, 1, 1, 0.20), 6, r), q)
-		draw_style_box(StageTheme.box(
-			Color(0, 0, 0, 0), Color(1, 1, 1, 0.85), 2, r), q)
+	## 舞台追光(2026-08-18 第四版, 用户:「其实不要光圈, 就是有舞台光打过去的感觉」)。
+	## 前三版的教训串起来看:柔光铺在区域上 = 雾;锐利光圈 = 和面板自带的描边打架
+	## (「框中框」)。而这套美术的母语本来就有**追光** —— 背景层一直在画光锥。
+	## 做法:从画面上方打一束三层嵌套的软白光锥到洞口, **落点的亮由洞本身承担**
+	## (不压暗 = 内容原样), 光锥只negotiates「光从哪来」。舞台光不管面板边界,
+	## 「光落在牌上而框还在暗处」从此是叙事的一部分, 不是对齐 bug。
+	func _beam(q: Rect2) -> void:
+		if q.position.y < 80.0:
+			return          # 贴着屏幕顶的区域(HUD)没有「从上方打过去」的空间
+		var cx: float = q.position.x + q.size.x * 0.5
+		for layer in [[1.0, 0.045], [0.66, 0.05], [0.4, 0.06]]:
+			var wt: float = q.size.x * float(layer[0]) * 0.5      # 落点半宽
+			var ws: float = wt * 0.3                              # 源头半宽(顶部收束)
+			var pts := PackedVector2Array([
+				Vector2(cx - ws, 0.0), Vector2(cx + ws, 0.0),
+				Vector2(cx + wt, q.position.y + 6.0), Vector2(cx - wt, q.position.y + 6.0)])
+			draw_colored_polygon(pts, Color(1, 1, 1, float(layer[1])))
 
 
 	## 反向圆角补片:洞是按矩形留空的, 四个角要按共用形状补回暗色 ——
