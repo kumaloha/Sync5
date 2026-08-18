@@ -56,6 +56,7 @@ var _drag_from := -1.0        # x where the current drag started, -1 = idle
 var _drag_dx := 0.0
 var _toast := ""
 var _toast_t := 0.0
+var _stamp := ""          # build_stamp.txt(commit+时间), 没有就空 = 不画
 var _btn_rect := Rect2()
 var _dot_rects: Array = []
 var _tab_rects: Array = []
@@ -80,6 +81,10 @@ class TailLayer:
 func _ready() -> void:
 	position = Vector2.ZERO
 	size = Vector2(W, H)
+	var sf := FileAccess.open("res://build_stamp.txt", FileAccess.READ)
+	if sf != null:
+		_stamp = sf.get_as_text().strip_edges()
+		sf.close()
 	# above the battle scene's own z_index users — the hand-frame Walker sits
 	# at 20 and would otherwise walk across the front page
 	z_index = 80
@@ -169,6 +174,11 @@ func _draw() -> void:
 	_draw_card()
 	_draw_tabs()
 	Chrome.rain(self, _t)
+	# 构建戳:一天十个包的节奏下「手机跑的是哪一版」必须一眼可对 ——
+	# 「改了但变化不大」的头号嫌疑是浏览器缓存的陈旧 pck, 有戳才分得清。
+	if _stamp != "":
+		draw_string(StageTheme.num("Medium"), Vector2(10.0, H - 8.0), _stamp,
+			HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(1, 1, 1, 0.25))
 	if _toast_t > 0.0:
 		var a: float = minf(1.0, _toast_t / 0.4)
 		draw_string(StageTheme.zh(), Vector2(0, Chrome.TAB_Y - 30.0), _toast,
