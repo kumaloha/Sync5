@@ -66,6 +66,14 @@ func play(base: int, mult: float, final_score: int, score_pos: Vector2, bonus: i
 	queue_redraw()
 
 
+## 立刻收场(2026-08-18):商店从拍中弹出时结算面板还在飘 —— 分解框现在铺满一整条带,
+## 正好压在货架上, 用户看到的是「进商店后有 1-2 秒页面不对」。谁抢走屏幕谁负责掐掉它。
+func dismiss() -> void:
+	_phase = ""
+	visible = false
+	set_process(false)
+
+
 func _process(delta: float) -> void:
 	_t += delta
 	match _phase:

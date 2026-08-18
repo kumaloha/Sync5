@@ -824,6 +824,7 @@ func _reset_run(keep_character: bool) -> void:
 
 func _open_draft() -> void:
 	state = St.DRAFT
+	settle_fx.dismiss()   # 分解面板铺在货架带上, 商店一开必须立刻让位(2026-08-18)
 	# ⚠ **进商店先收掉教学提示条**(2026-08-17 试玩报的:「选小丑牌了, 前面的提示怎么还在」)。
 	# 它只在 `_start_phrase` 设, 而商店是**从拍中间弹出来的全屏层** —— 没人负责清它,
 	# 于是上一拍那句话就压在货架上。
