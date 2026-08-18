@@ -48,7 +48,7 @@ def ensure_cert(ip: str) -> None:
     print('自签证书已生成 → %s' % CERTDIR)
 
 
-class NoCacheHandler(NoCacheHandler):
+class NoCacheHandler(http.server.SimpleHTTPRequestHandler):
     """禁缓存(2026-08-18):一天十个包的迭代节奏下, 手机浏览器按启发式缓存 88MB 的
     pck 会连续给用户端上陈旧版本 ——「改了但手机上变化不大」的头号嫌疑。
     no-cache = 每次都回源验证(有 Last-Modified, 未变仍 304, 流量不吃亏)。"""
