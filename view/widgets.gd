@@ -230,28 +230,15 @@ class TutorDim:
 			draw_rect(Rect2(0, q.position.y, maxf(0.0, q.position.x), q.size.y), d)
 			draw_rect(Rect2(q.end.x, q.position.y, maxf(0.0, w - q.end.x), q.size.y), d)
 			_corner_patches(q, d)
-			_beam(q)
 			y = q.end.y
 		if y < h:
 			draw_rect(Rect2(0, y, w, h - y), d)
 
-	## 舞台追光(2026-08-18 第四版, 用户:「其实不要光圈, 就是有舞台光打过去的感觉」)。
-	## 前三版的教训串起来看:柔光铺在区域上 = 雾;锐利光圈 = 和面板自带的描边打架
-	## (「框中框」)。而这套美术的母语本来就有**追光** —— 背景层一直在画光锥。
-	## 做法:从画面上方打一束三层嵌套的软白光锥到洞口, **落点的亮由洞本身承担**
-	## (不压暗 = 内容原样), 光锥只negotiates「光从哪来」。舞台光不管面板边界,
-	## 「光落在牌上而框还在暗处」从此是叙事的一部分, 不是对齐 bug。
-	func _beam(q: Rect2) -> void:
-		if q.position.y < 80.0:
-			return          # 贴着屏幕顶的区域(HUD)没有「从上方打过去」的空间
-		var cx: float = q.position.x + q.size.x * 0.5
-		for layer in [[1.0, 0.045], [0.66, 0.05], [0.4, 0.06]]:
-			var wt: float = q.size.x * float(layer[0]) * 0.5      # 落点半宽
-			var ws: float = wt * 0.3                              # 源头半宽(顶部收束)
-			var pts := PackedVector2Array([
-				Vector2(cx - ws, 0.0), Vector2(cx + ws, 0.0),
-				Vector2(cx + wt, q.position.y + 6.0), Vector2(cx - wt, q.position.y + 6.0)])
-			draw_colored_polygon(pts, Color(1, 1, 1, float(layer[1])))
+	## ⚑⚑ 第五版 = **纯对比, 零白色**(2026-08-18 用户第三次报「朦胧/模糊」后终于听懂):
+	## v1/v2 柔光、v3 光圈、v4 光锥 —— 四版的共同点是**都往画面上叠半透明的白**,
+	## 而白色叠在内容上就是雾, 无论把它叫什么。追光的「感觉」不需要画光:
+	## **其余压暗 + 该操作的区域一个像素不动**, 对比本身就是打光。
+	## 判据从此一句话:**教学高亮层不许画任何非黑色。**
 
 
 	## 反向圆角补片:洞是按矩形留空的, 四个角要按共用形状补回暗色 ——
@@ -304,18 +291,8 @@ class TutorLight:
 		queue_redraw()
 
 	func _draw() -> void:
-		for rect in _focus:
-			var q: Rect2 = rect as Rect2
-			# ⚑ 分级提亮(2026-08-18 用户:「光感太模糊了不舒服」)—— 整片加法白盖在
-			# **大区域**上读作雾:均匀抬亮 = 对比被压平 = 「模糊」。大区域有压暗层的
-			# 对比就够醒目, 雾撤到近零;真正需要抬亮的只有小件(DJ 键那类不透明钮)。
-			var small: bool = minf(q.size.x, q.size.y) < 140.0
-			if not small:
-				continue    # 大区域零提亮(第三版):内容不碰 = 最清晰, 亮交给光圈与对比
-			draw_style_box(StageTheme.box(
-				Color(1, 1, 1, 0.14), Color(0, 0, 0, 0), 0,
-				int(Widgets.focus_radius(q)),
-				Color(1, 1, 1, 0.10), 8), q)
+		pass    # 第五版:零白色(判据在 TutorDim:教学高亮层不许画任何非黑色)。
+		        # 类与接线保留, 未来要单独照亮某步先过那条判据再议。
 
 
 class GradBar:
