@@ -155,19 +155,13 @@ class TutorGlow:
 	## 再拿它当追光等于在一堆青里再加一块青, **艳而不显**。白是这套配色里唯一没被占用的,
 	## 所以它反而最跳。⚠ **白在同 alpha 下比任何主色都亮**, 所以数值要压低(0.22 → 0.10)。
 	func _draw() -> void:
-		for rect in _focus:
-			var q: Rect2 = rect as Rect2
-			# ⚠ 圆角走共用的 `Widgets.focus_radius`(弃牌键是圆的, 方角白块罩上去当然丑;
-			# 而形状只有共用才不会和压暗层岔开 —— 岔开的后果见那个函数头)。
-			var radius: int = int(Widgets.focus_radius(q))
-			# 一层柔白光铺满该区 + 外溢的辉光。零描边 —— 没有任何一条边界线。
-			# ⚠ 对不透明小件(弃牌键)它只能从背后透一点 —— **真正的提亮由
-			# `TutorLight`(加法混合, 画在内容之上)负责**, 这层只出外溢的辉光。
-			# 0.22/34 → 0.16/22(2026-08-18 用户:「光感太模糊了不舒服」)——
-			# 大而软的辉光在手机上读作雾;收紧后边界感回来, 「亮」交给对比与提亮层。
-			draw_style_box(StageTheme.box(
-				Color(1, 1, 1, 0.16), Color(0, 0, 0, 0), 0, radius,
-				Color(1, 1, 1, 0.28), 22), q)
+		# ⚑⚑ **第三版:什么都不画**(2026-08-18 用户两次报「模糊」后)。
+		# 前两版都在用「柔光」做亮 —— 软洗光垫在半透明面板**后面**, 物理上就是雾:
+		# 白光透过暗玻璃 = 灰蒙蒙的一层, 收多紧都是雾。撤掉之后高亮区的内容
+		# **一个像素不被碰** = 能达到的最大清晰度;「亮」由 TutorDim 的对比 +
+		# 洞边一条锐利的光圈线承担(见 TutorDim._rim)。
+		# 类和接线都留着:形状语言若再变(比如想给某步单独加光), 口子还在。
+		pass
 
 
 ## 教学关的**压暗层** —— 高亮区之外整屏压暗(2026-08-16 用户:「高光打起来的时候,
@@ -187,7 +181,9 @@ class TutorDim:
 	extends Control
 	## ⚠ 0.46 → 0.38:压暗是**对比手段**不是主角。太重会让「被指的那块」显得更暗
 	## (2026-08-17 用户报的)—— 光是加法, 暗只是背景, 两者一起调才对。
-	const ALPHA := 0.38
+	## 0.38 → 0.50(2026-08-18 第三版):洗光撤掉后, 「亮」完全由**对比**承担 ——
+	## 暗得不够, 追光就立不起来。
+	const ALPHA := 0.50
 	var _focus: Array = []
 
 	func set_focus(focus: Array) -> void:
@@ -234,9 +230,23 @@ class TutorDim:
 			draw_rect(Rect2(0, q.position.y, maxf(0.0, q.position.x), q.size.y), d)
 			draw_rect(Rect2(q.end.x, q.position.y, maxf(0.0, w - q.end.x), q.size.y), d)
 			_corner_patches(q, d)
+			_rim(q)
 			y = q.end.y
 		if y < h:
 			draw_rect(Rect2(0, y, w, h - y), d)
+
+	## 洞边光圈(2026-08-18 第三版)—— 「明亮」的来源。霓虹的亮从来不是铺光,
+	## 是**暗底上一条锐利的发光边**(这套美术自己的母语:主色描边 + 外发光)。
+	## 两笔:先一条 6px 的低透白当底晕, 再一条 2px 的高亮白压在上面 —— 有锐度才有「亮」。
+	## ⚠ StyleBoxFlat 的 border 往**内**画, 光圈正好压在洞缘未压暗的一侧, 不吃暗带。
+	func _rim(q: Rect2) -> void:
+		var r: int = int(minf(Widgets.focus_radius(q.grow(-HOLE_GROW)) + HOLE_GROW,
+			minf(q.size.x, q.size.y) * 0.5))
+		draw_style_box(StageTheme.box(
+			Color(0, 0, 0, 0), Color(1, 1, 1, 0.20), 6, r), q)
+		draw_style_box(StageTheme.box(
+			Color(0, 0, 0, 0), Color(1, 1, 1, 0.85), 2, r), q)
+
 
 	## 反向圆角补片:洞是按矩形留空的, 四个角要按共用形状补回暗色 ——
 	## 「角方光圆」正是旧版那圈怪光晕的形状来源。
@@ -294,10 +304,12 @@ class TutorLight:
 			# **大区域**上读作雾:均匀抬亮 = 对比被压平 = 「模糊」。大区域有压暗层的
 			# 对比就够醒目, 雾撤到近零;真正需要抬亮的只有小件(DJ 键那类不透明钮)。
 			var small: bool = minf(q.size.x, q.size.y) < 140.0
+			if not small:
+				continue    # 大区域零提亮(第三版):内容不碰 = 最清晰, 亮交给光圈与对比
 			draw_style_box(StageTheme.box(
-				Color(1, 1, 1, 0.14 if small else 0.05), Color(0, 0, 0, 0), 0,
+				Color(1, 1, 1, 0.14), Color(0, 0, 0, 0), 0,
 				int(Widgets.focus_radius(q)),
-				Color(1, 1, 1, 0.10 if small else 0.05), 8), q)
+				Color(1, 1, 1, 0.10), 8), q)
 
 
 class GradBar:

@@ -327,10 +327,10 @@
    "trigger": "弃牌前先看到将补的牌"
   },
   "blacktone": {
-   "trigger": "颜色相同就算同花"
+   "trigger": "♠♣ 算同一花色(黑同花)"
   },
   "redtone": {
-   "trigger": "颜色相同就算同花"
+   "trigger": "♥♦ 算同一花色(红同花)"
   }
  },
  "stage": {
