@@ -137,7 +137,15 @@ static func run(result: Dictionary, slots: Array, extra: Dictionary) -> Dictiona
 		score = int(score * qf)
 	var coins := int(round(float(int(result.get("coins", 0)))
 		* float(ctx.get("coins_factor", 1.0)))) + int(ctx.coins_bonus)
+	# ---- 乘区分解(2026-08-18 用户:「我打了 8 万分但不能理解 …… 得了解规则」)----
+	# 展示层要把等式拆开念:基础 × 牌型 × 小丑 × (1+加成%) + 奖励 = 分。
+	# `pattern_mult` = 牌型种子;`joker_mult` = 链上其余乘子合并(Target 条件倍率 +
+	# 乘子类 support + patch 半效后的实效);两者相乘恰好 = ctx.mult(等式必须真)。
+	var pat_mult: float = float(result.get("pmult", 1))
+	var joker_mult: float = (float(ctx.mult) / pat_mult) if pat_mult > 0.0 else 1.0
 	return {
 		"score": score, "coins": coins, "popups": popups,
 		"base": eff_chips, "mult": total_mult, "bonus": int(ctx.bonus),
+		"pattern_mult": pat_mult, "joker_mult": joker_mult,
+		"bonus_pct": float(ctx.bonus_pct),
 	}

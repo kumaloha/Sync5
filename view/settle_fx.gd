@@ -23,6 +23,10 @@ var _phase := ""
 var _t := 0.0
 var _base := 0
 var _mult := 1.0
+var _pattern_mult := 0.0    # 0 = 调用方没给分解, 退回单框「乘数」老画法
+var _joker_mult := 1.0
+var _pct := 0.0
+var _kind := -1
 var _bonus := 0
 var _final := 0
 var _shards: Array = []       # [pos, vel_target, size, delay]
@@ -38,10 +42,19 @@ func _ready() -> void:
 	set_process(false)
 
 
-func play(base: int, mult: float, final_score: int, score_pos: Vector2, bonus: int = 0) -> void:
+## 乘区分解版(2026-08-18 用户:「我打了 8 万分但不能理解 …… 用户得了解规则」)。
+## 等式逐区念:基础 × 牌型 × 小丑 × 加成% + 奖励 = 分。`mult` 仍收总乘数
+## (老口径, 打点与探针在用), 分解三项只管展示;为 1/为 0 的区**不上台**。
+func play(base: int, mult: float, final_score: int, score_pos: Vector2, bonus: int = 0,
+		pattern_mult: float = 0.0, joker_mult: float = 1.0, pct: float = 0.0,
+		kind: int = -1) -> void:
 	_base = base
 	_mult = mult
 	_bonus = bonus
+	_pattern_mult = pattern_mult
+	_joker_mult = joker_mult
+	_pct = pct
+	_kind = kind
 	_final = final_score
 	_target = score_pos
 	_phase = "fly"
@@ -105,31 +118,61 @@ func _draw() -> void:
 		return
 
 	var cx := size.x * 0.5
-	var boxes := [
+	# ---- 乘区逐个上台(为 1/为 0 的不占位, 玩家看到的每一框都真的参与了这拍)----
+	var boxes: Array = [
 		{"cap": "基础分", "val": str(_base), "col": Color("ff9ecb"),
 			"frame": Color(1.0, 79.0 / 255, 163.0 / 255, 0.85), "bg": Color(26.0 / 255, 8.0 / 255, 20.0 / 255, 0.94),
-			"w": 108.0, "fs": 32, "delay": 0.0},
-		{"cap": "乘数", "val": "×%s" % _fmt_mult(), "col": Color("8ff5ee"),
+			"w": 96.0, "fs": 30, "delay": 0.0}]
+	var syms: Array = []
+	if _pattern_mult > 0.0:
+		var pat_name := String(DB.ui().get("patterns", {}).get(str(_kind), "牌型"))
+		syms.append("×")
+		boxes.append({"cap": pat_name, "val": "×%s" % _fmt(_pattern_mult), "col": Color("8ff5ee"),
 			"frame": Color(53.0 / 255, 232.0 / 255, 224.0 / 255, 0.85), "bg": Color(6.0 / 255, 20.0 / 255, 24.0 / 255, 0.94),
-			"w": 108.0, "fs": 32, "delay": 0.06},
-	]
+			"w": 88.0, "fs": 28, "delay": 0.06})
+		if absf(_joker_mult - 1.0) > 0.01:
+			syms.append("×")
+			boxes.append({"cap": "小丑牌", "val": "×%s" % _fmt(_joker_mult), "col": Color("7ee6a1"),
+				"frame": Color(0.35, 0.9, 0.55, 0.85), "bg": Color(0.02, 0.09, 0.05, 0.94),
+				"w": 88.0, "fs": 28, "delay": 0.12})
+		if _pct > 0.004:
+			syms.append("×")
+			boxes.append({"cap": "加成", "val": "+%d%%" % int(round(_pct * 100.0)), "col": Color("ffd9a0"),
+				"frame": Color(1.0, 0.61, 0.17, 0.85), "bg": Color(0.12, 0.07, 0.02, 0.94),
+				"w": 88.0, "fs": 26, "delay": 0.18})
+	else:
+		# 旧调用方(没给分解)退回单框总乘数
+		syms.append("×")
+		boxes.append({"cap": "乘数", "val": "×%s" % _fmt(_mult), "col": Color("8ff5ee"),
+			"frame": Color(53.0 / 255, 232.0 / 255, 224.0 / 255, 0.85), "bg": Color(6.0 / 255, 20.0 / 255, 24.0 / 255, 0.94),
+			"w": 100.0, "fs": 30, "delay": 0.06})
 	if _bonus > 0:
 		# flat rewards land after the multiplier — they get their own beat
+		syms.append("+")
 		boxes.append({"cap": "奖励分", "val": "+%d" % _bonus, "col": Color("cfa9ff"),
 			"frame": Color(165.0 / 255, 107.0 / 255, 1.0, 0.85), "bg": Color(18.0 / 255, 10.0 / 255, 30.0 / 255, 0.94),
-			"w": 92.0, "fs": 28, "delay": 0.12})
+			"w": 84.0, "fs": 26, "delay": 0.22})
+	syms.append("=")
 	boxes.append({"cap": "最终分数", "val": (str(_final) if _phase == "merge" else "?"), "col": Color("ffe9c9"),
 		"frame": Color(1.0, 179.0 / 255, 71.0 / 255, 0.9), "bg": Color(30.0 / 255, 18.0 / 255, 4.0 / 255, 0.94),
-		"w": 140.0, "fs": 36, "delay": 0.18 if _bonus > 0 else 0.12})
+		"w": 124.0, "fs": 32, "delay": 0.06 * float(boxes.size() + 1)})
 
-	# lay the row out: [box] × [box] (+ [box]) = [box]
-	var syms: Array = ["×", "+", "="] if _bonus > 0 else ["×", "="]
-	var gap := 14.0 if _bonus <= 0 else 10.0
-	var sep_w := 26.0 if _bonus <= 0 else 22.0
+	var gap := 10.0
+	var sep_w := 20.0
 	var total := 0.0
 	for b in boxes:
 		total += float(b["w"])
-	total += gap * 4.0 + sep_w * 2.0
+	total += (gap * 2.0 + sep_w) * float(syms.size())
+	# 乘区多的拍(基础×牌型×小丑×加成+奖励=分共 6 框)一行放不下就整排等比缩 ——
+	# 缩的是框, 不是砍区:玩家问的就是「有几个乘区」, 一个都不许藏。
+	var fit: float = minf(1.0, 664.0 / total)
+	if fit < 1.0:
+		for b in boxes:
+			b["w"] = float(b["w"]) * fit
+			b["fs"] = int(float(b["fs"]) * maxf(fit, 0.72))
+		gap *= fit
+		sep_w *= fit
+		total *= fit
 	var x := cx - total * 0.5
 
 	# backdrop: the row has to read over the wave and the vinyl disc
@@ -204,7 +247,7 @@ func _draw_shards() -> void:
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
-func _fmt_mult() -> String:
-	if absf(_mult - round(_mult)) < 0.01:
-		return str(int(round(_mult)))
-	return "%.1f" % _mult
+func _fmt(v: float) -> String:
+	if absf(v - round(v)) < 0.01:
+		return str(int(round(v)))
+	return "%.1f" % v

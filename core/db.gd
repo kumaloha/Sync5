@@ -839,7 +839,7 @@ static func validate_ui(d: Dictionary) -> String:
 		# tutorial.json 里只放**区域名**, `core/tutorial.gd` 也因此不认识像素。
 		# `tickets` = 局内券托盘的坐标与文案(2026-08-17 券使用入口)。
 		if not ["stage", "hud", "shop", "hand", "banner", "blindcard", "jokercard",
-				"tutor_focus", "tickets"].has(k):
+				"tutor_focus", "tickets", "patterns"].has(k):
 			return "unknown section '%s'" % k
 	return ""
 

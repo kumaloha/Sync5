@@ -35,7 +35,8 @@ var _daily_ticket := ""
 ## 「给你时间」和「卡住了」在屏幕上长得一模一样, 而后者更像默认解释。
 ## ⇒ 一个**需要解释才成立**的贴心, 在没有解释的地方就是 bug。
 ##
-## ⚑ 而读的时间**本来就给了**:教学关拍长是 12/12/10/10/8/8/8 秒, 正式局才 8 秒。
+## ⚑ 拍长统一 8 秒(2026-08-18 用户拍板「教学关也按 8 秒」—— 12/10 放宽本是
+## 没有新手数据支撑的待测假设, 用户用自己的手感否了它)。读的时间靠步进兜底给。
 ## 冻结只是第二层保险, 它的代价(看起来卡死)比收益大。
 # per-phrase timing (always taken from the GameConfig hooks — plans plug in there)
 var cur_duration := 12.0
@@ -553,7 +554,9 @@ func _settle() -> void:
 
 	# three-phase settle: 基础分 × 乘数 = 分数 → shatter → count up
 	settle_fx.play(int(outcome["base"]), float(outcome["mult"]), gained_score,
-		hud.score_anchor() + Vector2(24, 26), int(outcome.get("bonus", 0)))
+		hud.score_anchor() + Vector2(24, 26), int(outcome.get("bonus", 0)),
+		float(outcome.get("pattern_mult", 0.0)), float(outcome.get("joker_mult", 1.0)),
+		float(outcome.get("bonus_pct", 0.0)), int(res.get("kind", -1)))
 	# the merge beat lands at 450ms: shake the screen and kick the wave then
 	var merge_tw := create_tween()
 	merge_tw.tween_interval(0.45)
