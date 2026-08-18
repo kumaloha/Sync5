@@ -33,6 +33,12 @@ var _reroll_count := 0
 var _free_rerolls := 0
 ## 升级栏开关 —— 编排器注入(教学段 false:栏里只会是借展样品)。
 var _upgrades_on := true
+## Director 的稀有度乘数 —— 编排器开店时注入(探针一律 {} = 中性, 掷法逐字节不变)。
+var _rarity_mult: Dictionary = {}
+
+
+func set_shelf_rarity_mult(m: Dictionary) -> void:
+	_rarity_mult = m
 
 
 func set_upgrades_on(on: bool) -> void:
@@ -373,7 +379,7 @@ func _affordable(j) -> bool:
 ## **它自己就是第二份**。
 func _weighted_pick(candidates: Array, count: int) -> Array:
 	# 卡面声明的货架加成(现在只有独狼的 "more Targets")—— 两边都读 `Joker.slots_target_mult`。
-	return Economy.weighted_pick(candidates, count, Joker.slots_target_mult(_slots))
+	return Economy.weighted_pick(candidates, count, Joker.slots_target_mult(_slots), null, _rarity_mult)
 
 
 func _on_pick(i: int) -> void:

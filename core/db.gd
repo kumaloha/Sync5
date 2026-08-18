@@ -54,6 +54,7 @@ static func load_error() -> String:
 	tutorial()
 	director()
 	tickets()
+	ranking()
 	return _err
 
 
@@ -127,6 +128,43 @@ static func validate_tickets(d: Dictionary) -> String:
 			return "ticket '%s' scope 必须是 phrase/shop/run" % tid
 		if String(t.get("fx", "")).split(" ", false).size() > 7:
 			return "ticket '%s' 卡面超过 7 词(与小丑牌同一条 1.5 秒规矩)" % tid
+	return ""
+
+
+## 脸难度排序(Director 的输入, 2026-08-18 接线)。⚑ **这是仪器输出不是设计常量**:
+## 由 `tools/price.gd` 出数、脚本重刷, **手改无效**(probbook 同款纪律)。
+## 校验是硬的:四段齐全、每段非空、id 都是活脸 —— 脸的池子一变这里就红,
+## 「排序表过期」因此是测试期红灯而不是静默的旧导演。
+static func ranking() -> Dictionary:
+	return _load("ranking", func(d): return validate_ranking(d))
+
+
+## 给 Run.face_ranking 的形状:{段号(int): [由易到难的 face_id]}。
+static func ranking_tiers() -> Dictionary:
+	var out := {}
+	for k in ranking():
+		if String(k).begins_with("_"):
+			continue
+		out[int(String(k))] = ranking()[k]
+	return out
+
+
+static func validate_ranking(d: Dictionary) -> String:
+	var ids := {}
+	for f in faces().get("faces", []):
+		ids[String(f["id"])] = true
+	for sec in ["0", "1", "2", "3"]:
+		if not d.has(sec):
+			return "ranking 缺第 %s 段(Director 1.0 必须喂满, 用户拍板)" % sec
+		var lst = d[sec]
+		if typeof(lst) != TYPE_ARRAY or lst.is_empty():
+			return "ranking 第 %s 段必须是非空数组" % sec
+		for fid in lst:
+			if not ids.has(String(fid)):
+				return "ranking 第 %s 段有未知脸 '%s'(脸池变了 ⇒ 重跑 tools/price.gd 重刷)" % [sec, fid]
+	for k in d:
+		if not String(k).begins_with("_") and not ["0", "1", "2", "3"].has(String(k)):
+			return "ranking 未知键 '%s'" % k
 	return ""
 
 

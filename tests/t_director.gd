@@ -271,6 +271,13 @@ func run(t) -> void:
 	t.check(DB.validate_director(extra) != "", "shelf 里不认识的键被拒")
 	var missing := {"sequence": ["a"], "states": {"a": {"face_bias": "mild", "shelf": {}}}}
 	t.check(DB.validate_director(missing) != "", "缺顶层键被拒")
+	# ⚑ 1.0 必须带导演(2026-08-18 用户拍板「director 是必须的」):
+	# 排序表四段齐全非空 —— 这条红 = 要么忘了跑 tools/price.gd 重刷 ranking.json,
+	# 要么脸池变了(db 的 validate_ranking 会先红并指路)。
+	var rk := DB.ranking_tiers()
+	for sec in range(4):
+		t.check(rk.has(sec) and not (rk[sec] as Array).is_empty(),
+			"ranking 第 %d 段必须喂满(空表 = 没有导演, 只是随机)" % sec)
 
 
 func _cfg(states: Dictionary, seq: Array, lf: int = 0, bf: float = 0.5) -> Dictionary:

@@ -229,7 +229,9 @@ func choose_character(i: int) -> void:
 	# ⚑ **游戏是唯一传真实局数的地方**(探针一律走缺省 = 全解锁, 理由在 SectionMod.unlocked_at)。
 	# ⚠ `+1` 是因为掷脸发生在 `note_run_started()` **之前** —— 存档里的 `runs_total`
 	# 此刻还是「以前玩过几局」, 而这一局是第 `runs_total + 1` 局。
-	run.roll_faces(-1, SaveState.runs_total() + 1)
+	_run_index = 1 if SaveState.is_probe() else SaveState.runs_total() + 1
+	_feed_director()
+	run.roll_faces(-1, _run_index)
 	# 打点从这里开流 —— 主角与四面墙都定了, 这一局的初始条件已经完整
 	# ⚠⚠ 教学关**照样打点, 但必须打上标记**:它是一局假局(6 拍、目标分 0、不判生死),
 	# 混进 Tape 会污染 `tools/probbook.py` 的「合格真人局」分拣。
@@ -525,6 +527,15 @@ func _apply_tutor_hint() -> void:
 
 
 var _tutor_blind_shown := false
+## 本局是第几局(1 起)。探针恒 1 且喂空排序 —— 探针世界的掷法逐字节不变。
+var _run_index := 1
+
+
+## 给 Director 喂数(2026-08-18 用户拍板「director 是必须的」):
+## 脸排序来自 data/ranking.json(tools/price.gd 的仪器输出, DB 校验四段齐全)。
+## 探针喂空 {} ⇒ roll_run 逐字节退回旧掷法(director.gd 的承诺), 仪器复现性不漂。
+func _feed_director() -> void:
+	run.face_ranking = {} if SaveState.is_probe() else DB.ranking_tiers()
 
 ## 教学的示范道具(2026-08-18 用户:「给一些代表性的盲注+小丑牌, 打开玩家想象力」)。
 ## 第 3 轮:四槽装**借展样品** —— 倍率(三连音)/加成(开场)/基础分(贵宾)/奖励分(灯牌)
@@ -752,6 +763,7 @@ func _advance() -> void:
 	if run.tutorial and run.tutorial_done() and bool(out["section_done"]):
 		SaveState.mark_tutorial_seen()
 		run.tutorial = false
+		_feed_director()
 		run.roll_faces(-1, SaveState.runs_total())
 		tutor.set_hint("", "")
 		# 借展道具收回:样品四张 + 样例盲注(理由在 _stage_tutor_props 头)
@@ -878,6 +890,8 @@ func _open_draft() -> void:
 	# 教学段商店不摆升级栏(2026-08-18 用户:「下面 4 个是干嘛, 不应该要」——
 	# 栏里列的是借展样品, 给要收回的卡挂升级报价既误导又花钱打水漂;教学商店只教「买」)
 	shop.set_upgrades_on(not run.tutorial)
+	# Director 的货架偏置(establish 抬 common / experiment 抬 rare…):探针中性
+	shop.set_shelf_rarity_mult({} if SaveState.is_probe() else Director.shelf_rarity_mult(_run_index))
 	# 点唱券:免费刷新的**余额**在开店时注入(shop 只管显示与分流, 消耗在编排器)
 	shop.set_free_rerolls(SaveState.tickets_held("juketicket"))
 	shop.open(run.joker_slots, phrase.coins, run.section_idx,

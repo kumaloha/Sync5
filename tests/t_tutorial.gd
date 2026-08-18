@@ -151,9 +151,9 @@ func run(t) -> void:
 	g.tutorial = true
 	g.reset(1)
 	var need := Tutorial.require(0)
-	# 4 轮版(2026-08-18 用户重排):第 1 轮教「自动结算 + 弃牌」, 结算是自动发生的,
-	# **弃牌才是这一轮要做出来的动作** —— 门从 play 改为 discard。
-	t.eq(need, "discard", "第 1 步的门 = 弃一次牌(结算自动发生, 弃牌是要做的那件)")
+	# 2026-08-19 用户拍板:「教学第一段, 不点弃牌不结束」是 bug ——
+	# **只要结算一次, 第一段就算过**。弃牌在第 1 轮只作讲解, 门槛回到 play。
+	t.eq(need, "play", "第 1 步的门 = 结算一次就过(弃牌只讲不考)")
 	# 找一个真的设了非 play 门的步骤, 用它验「不做就不推进」
 	var gated := -1
 	for s in range(Tutorial.steps()):
@@ -163,18 +163,14 @@ func run(t) -> void:
 	t.check(gated >= 0, "脚本里至少有一步设了动作门(不然做中学这条没落地)")
 	g.tutorial_step = gated
 	var want := Tutorial.require(gated)
-	t.check(not g.tutorial_try_advance(), "没做那个动作 ⇒ 不推进")
-	t.eq(g.tutorial_step, gated, "不推进 = 停在原地, 不是跳过")
-	t.eq(g.tutorial_hint()["command"], Tutorial.hint(gated)["command"], "停在原地时提示原样再说一遍")
+	# 2026-08-19 用户拍板:「任何教学最多一次结算都要过」—— 拍末一律放行,
+	# 返回值仍是**真实的**「做到没有」(打点/分析要分「学会了」和「放行」)。
+	t.check(not g.tutorial_try_advance(), "没做动作 ⇒ 返回 false(如实)")
+	t.eq(g.tutorial_step, gated + 1, "……但步子照走 —— 最多一次结算必过")
+	g.tutorial_step = gated
 	g.tutorial_note(want)
-	t.check(g.tutorial_try_advance(), "做了那个动作 ⇒ 推进")
+	t.check(g.tutorial_try_advance(), "做了那个动作 ⇒ 返回 true")
 	t.eq(g.tutorial_step, gated + 1, "推进正好一步")
-	# 动作账是**这一拍**的, 不是整关的 —— 上一拍弃过牌不该替这一拍的门买单
-	g.tutorial_step = gated
-	g.tutorial_note(want)
-	t.check(g.tutorial_try_advance(), "本拍做过 ⇒ 过")
-	g.tutorial_step = gated
-	t.check(not g.tutorial_try_advance(), "上一拍做过不算数 —— 动作账每拍清空")
 	# --- 拍中推进(2026-08-18 用户:「应该消失, 进入下一个提示」)---
 	g.tutorial_step = gated
 	t.check(not g.tutorial_advance_if_done(), "没做动作 ⇒ 拍中不推进")

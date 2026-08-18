@@ -11,7 +11,7 @@
  "steps": [
   {
    "seconds": 8.0,
-   "require": "discard",
+   "require": "play",
    "unlock": [
     "hand",
     "discard",
@@ -23,7 +23,7 @@
     "hand",
     "discard"
    ],
-   "command": "点选五张,8 秒自动结算;不要的点弃牌键换新",
+   "command": "点选五张,8 秒自动结算;不要的可点弃牌键换新",
    "signal": "AUTO SETTLE · DISCARD"
   },
   {

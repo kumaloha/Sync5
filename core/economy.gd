@@ -81,22 +81,27 @@ static func sell_value(j: Joker) -> int:
 ##
 ## ⚑ 2026-08-15 曝光轴改动(70/25/5 → 35/30/25)**正好流经这两份** ——
 ## 保持同步比以前更要紧, 这也是现在才收口的理由。
-static func shelf_weight(j, target_mult: float) -> int:
+## `rarity_mult` = Director 的稀有度乘数(局外节奏, 2026-08-18 接线)。
+## 缺省 {} = 逐字节等于旧行为 —— bot 与全部既有调用方不传, 只有真商店传
+## (「接上 Director 不改变现状」的机器可读版, 与 director.gd 的承诺同一条)。
+static func shelf_weight(j, target_mult: float, rarity_mult: Dictionary = {}) -> int:
 	var w := int(GameConfig.DRAFT_RARITY_WEIGHTS.get(j.rarity, 1))
 	if j.kind == "target":
 		w = int(round(float(w) * target_mult))
+	if not rarity_mult.is_empty():
+		w = int(round(float(w) * float(rarity_mult.get(j.rarity, 1.0))))
 	return maxi(1, w)
 
 
 ## 按每卡权重**不放回**抽 `count` 张。⚠ `rng = null` ⇒ 全局 `randi_range`。
 static func weighted_pick(candidates: Array, count: int, target_mult: float,
-		rng: RandomNumberGenerator = null) -> Array:
+		rng: RandomNumberGenerator = null, rarity_mult: Dictionary = {}) -> Array:
 	var pool := candidates.duplicate()
 	var picked: Array = []
 	while picked.size() < count and not pool.is_empty():
 		var total := 0
 		for j in pool:
-			total += shelf_weight(j, target_mult)
+			total += shelf_weight(j, target_mult, rarity_mult)
 		# ⚠⚠ **刻意不用三元表达式**:第一版写成 `(A if rng != null else B)`,
 		# sim 九个队列里有一个从 41.9% 变成 41.8%(1000 局翻了 1 局)。sim 是**确定性**的
 		# (`_rng.seed = 90000 + r`), 所以那不是噪声 —— 唯一的嫌疑就是**没被走到的那一支
@@ -108,7 +113,7 @@ static func weighted_pick(candidates: Array, count: int, target_mult: float,
 		else:
 			roll = randi_range(1, maxi(1, total))
 		for k in range(pool.size()):
-			roll -= shelf_weight(pool[k], target_mult)
+			roll -= shelf_weight(pool[k], target_mult, rarity_mult)
 			if roll <= 0:
 				picked.append(pool[k])
 				pool.remove_at(k)

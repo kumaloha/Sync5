@@ -1,0 +1,39 @@
+{
+ "_comment": "⚑ 仪器输出(tools/price.gd → tools/rankgen.py), 手改无效。每段由易到难;时间族与 raisedbar 是设计性覆盖(理由在本脚本头与 blinds.md 仪器盲区节)。core/db.gd::validate_ranking 守四段齐全 + id 都是活脸 —— 脸池一变这里就红。",
+ "0": [
+  "facedown",
+  "onetake",
+  "lostpage",
+  "smallstage",
+  "oneswap",
+  "norepeat",
+  "lastcall",
+  "lockup"
+ ],
+ "1": [
+  "blindspot",
+  "wetink",
+  "lowend",
+  "request",
+  "throttle",
+  "handseal",
+  "redlight",
+  "setlist"
+ ],
+ "2": [
+  "blackout",
+  "trilogy",
+  "ration",
+  "patchin",
+  "doubleseal",
+  "switchtrack",
+  "rerun",
+  "raisedbar"
+ ],
+ "3": [
+  "rush",
+  "overtime",
+  "teardown",
+  "closing"
+ ]
+}
