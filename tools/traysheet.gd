@@ -37,6 +37,11 @@ func _process(_delta: float) -> bool:
 		132:
 			Shot.save(self, "tray_armed")
 			print("tray_armed: overtime chip + armed badge")
+		134:
+			# 装四张可升级的卡 —— 让升级商品位(2026-08-18)有货可上
+			for i in range(4):
+				_scene.run.joker_slots[i] = Joker.by_id(
+					["triplet", "opener", "vip", "neonsign"][i])
 		136:
 			_scene._open_draft()
 			_scene.shop.set_free_rerolls(2)

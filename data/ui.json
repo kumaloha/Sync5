@@ -446,6 +446,7 @@
   "upgrade_w": 160,
   "upgrade_gap": 12,
   "upgrade_text": "%s\nLv%d ▸ ◆%d",
+  "upgrade_shelf_text": "升级 · Lv%d ▸ ◆%d",
   "upgrade_maxed": "%s\n满级",
   "upgrade_locked": "%s\n规则牌不可升",
   "upgrade_empty": "空槽",

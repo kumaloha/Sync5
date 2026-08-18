@@ -369,6 +369,10 @@ func _tape_section() -> void:
 ## 钟不走、手牌不吃点击, 与旧公示卡同一道闸。0.5s 飞入(|cos| 翻面)+ 1.1s 定格 + 0.4s 归位。
 func _play_blind_closeup() -> void:
 	state = St.INTRO
+	# ⚠ 状态一变就要刷组件快照(hand 的 decide 是快照不是活查询):
+	# 教学第 4 轮的特写在 _start_phrase 中途触发, 其后的 _refresh 在 INTRO 下把手牌
+	# 禁用了一整拍 —— 用户:「特写后无法操作, 等到下一轮才能动」。起止各刷一次。
+	_refresh()
 	Tape.on("intro", {"closeup": true})
 	var home: Vector2 = blind_card.position
 	var hz: int = blind_card.z_index
@@ -390,6 +394,7 @@ func _closeup_done(home: Vector2, hz: int) -> void:
 	blind_card.position = home
 	if state == St.INTRO:
 		state = St.DECISION      # 钟从这一刻才开始走(elapsed 已在 _start_phrase 归零)
+		_refresh()               # 把 hand 的 decide 快照刷回可操作(卡死 bug 的另一半)
 
 
 ## t 在 a_pos→b_pos 间插值飞行;flip=true 时 x 轴按 |cos| 做一次翻面(卡牌翻面同一 idiom)。
@@ -870,6 +875,9 @@ func _open_draft() -> void:
 	# section-end one opens at phrase 0 of the blind being entered
 	var mid: bool = run.phrase_in_section > 0 \
 		and run.phrase_in_section < GameConfig.PHRASES_PER_SECTION
+	# 教学段商店不摆升级栏(2026-08-18 用户:「下面 4 个是干嘛, 不应该要」——
+	# 栏里列的是借展样品, 给要收回的卡挂升级报价既误导又花钱打水漂;教学商店只教「买」)
+	shop.set_upgrades_on(not run.tutorial)
 	# 点唱券:免费刷新的**余额**在开店时注入(shop 只管显示与分流, 消耗在编排器)
 	shop.set_free_rerolls(SaveState.tickets_held("juketicket"))
 	shop.open(run.joker_slots, phrase.coins, run.section_idx,
