@@ -5,9 +5,16 @@ extends RefCounted
 ## 内容全在 `data/director.json`,这里只回答三件事:
 ## **第 r 局走哪个状态 · 脸该怎么挑 · 货架该怎么偏**。规格 = `docs/design/difficulty.md` §3。
 ##
-## ⚑⚑ **它不读任何玩家行为**(2026-08-14 用户拍板:「这里不是千人千面的不用读 context。
-## 真正千人千面的只有随机出来的小丑牌(控制难度的)」)。所以这个文件里**只有一个输入**:
-## `run_index`(第几局,1 起)。多一个参数就是多一条 DDA 的口子。
+## ⚠⚠ **「不读 context」的拍板已被推翻**(2026-08-14:「不用读 context」→
+## 2026-08-19 用户新需求:「基于 context 生成关卡」的能力)。现在有**两个**输入:
+## `run_index` + 可选的 `ctx`(玩家状态向量 m 的切片, generating.md §3 层 2)。
+## 推翻不等于放开:**`ctx` 是显式入参、缺省空 = 逐字节退回旧掷法**(min_run 同一条先例,
+## 探针零影响);它能拧的两个旋钮各有一道数据开关(data/director.json 的 `context` 节):
+## · `novelty`(缺省开)—— 同一档内偏向**见得最少**的脸。这是 N 轴(新鲜感)的实现,
+##   generating.md §1 判它是「求解器天然感受不到、必须外部编码」的唯一分量, 不是 DDA;
+## · `streak_shift`(**开**, 2026-08-19 晚用户拍板:「开, 就是要千人千面, 但不要被察觉」)
+##   —— 连败降档 / 连胜升档(改排布不改数值, L4D 认可的形状)。
+##   「不被察觉」的保障就是上一行:它只换**哪张脸上场**, 目标分/规则/数值/UI 全不动。
 ##
 ## ⚑ **铁律:Director 不许调目标分。** 它能调的只有 `face_bias` 与 `shelf` 两样。
 ## 依据是外部调研(`docs/design/research_pacing_retention.md` §1):**约束的本体是「可不可见」**——
@@ -93,6 +100,79 @@ static func shelf(run_index: int) -> Dictionary:
 	return entry_for(run_index).get("shelf", {})
 
 
+## ---- context(2026-08-19, 玩家状态 m 的消费端)----
+
+static func ctx_cfg() -> Dictionary:
+	return _cfg().get("context", {})
+
+
+static func novelty_on() -> bool:
+	return bool(ctx_cfg().get("novelty", false))
+
+
+static func streak_shift_on() -> bool:
+	return bool(ctx_cfg().get("streak_shift", false))
+
+
+## 回归局(context.md §2):隔了很久回来的第一局 = 温和档 + 熟脸(重建手感, 不给新东西)。
+static func returning_on() -> bool:
+	return bool(ctx_cfg().get("returning", false))
+
+
+## 探索型货架(context.md §3 岔 #1 批「探索型 ≤1.5×」):没玩过的 Target 权重上浮。
+## 消费端在 view/shop.gd —— Director 只当开关的家, 让四个 context 旋钮住同一个屋檐。
+static func explore_on() -> bool:
+	return bool(ctx_cfg().get("explore_shelf", false))
+
+
+## context 的阈值(data/director.json `context_tuning`;缺省 = 08-19 的设计值)。
+static func tuning() -> Dictionary:
+	return _cfg().get("context_tuning", {})
+
+
+static func explore_mult() -> float:
+	return float(tuning().get("explore_mult", 1.5))
+
+
+static func return_gap_s() -> int:
+	return int(tuning().get("return_gap_days", 3)) * 86400
+
+
+## 探索型货架的 boost 字典:候选里「没用过」的 Target → explore_mult。
+## ⚑ **纯函数**:`used` 由编排器从存档读了传进来(探针 / 零历史 ⇒ 空 ⇒ 返回空 = 掷法逐字节不变),
+## shop 自己不碰存档(2026-08-21 评审:此前 shop 直接读 SaveState, 破了它自己的注入制)。
+static func explore_boost(candidates: Array, used: Dictionary) -> Dictionary:
+	var boost := {}
+	if used.is_empty() or not explore_on():
+		return boost
+	for j in candidates:
+		if j.kind == "target" and not used.has(String(j.id)):
+			boost[String(j.id)] = explore_mult()
+	return boost
+
+
+## 连败降一档 / 连胜升一档 —— **纯函数**(不读 DB), 开关由 `bias_with_ctx` 把门。
+## 阈值不对称是有意的:连败 2 局就该松手(挫败流失快), 连胜要 3 局才收紧
+## (研究篇:紧的代价大于松的代价, 玩家对「变难」远比「变简单」敏感)。
+static func shift_bias(bias: String, streak: int, lose := 2, win := 3) -> String:
+	var i := BIASES.find(bias)
+	if i < 0:
+		return bias
+	if streak <= -lose:
+		i = maxi(0, i - 1)
+	elif streak >= win:
+		i = mini(BIASES.size() - 1, i + 1)
+	return BIASES[i]
+
+
+static func bias_with_ctx(bias: String, ctx: Dictionary) -> String:
+	if ctx.is_empty() or not streak_shift_on():
+		return bias
+	var tn := tuning()
+	return shift_bias(bias, int(ctx.get("streak", 0)),
+		int(tn.get("lose_streak", 2)), int(tn.get("win_streak", 3)))
+
+
 ## 这一局的稀有度权重**乘数**,按 `data/economy.json` 的稀有度补齐(缺省 1.0)。
 static func shelf_rarity_mult(run_index: int) -> Dictionary:
 	var m: Dictionary = shelf(run_index).get("rarity_weight_mult", {})
@@ -148,8 +228,12 @@ static func band(ranked: Array, bias: String) -> Array:
 ## ⚑ `exclude` 与 `SectionMod.roll` 同一条守卫:**重复必须是有意的,不能是偶然的**。
 ## ⚠ 一档被 `exclude` 排空时**退回整档**而不是返回 ""(同 `SectionMod.roll` 排空退回全池):
 ## 「排布挤不下了」用「漏一堵墙」来表达会静默改变游戏,宁可重复。
+## `seen` = {face_id: 见过几次}(玩家状态 m 的新鲜感切片)。非空且 novelty 开着时,
+## 候选收缩到**见得最少**的那批 —— N 轴的实现:没见过的脸优先登场。
+## `familiar = true`(回归局)时**反向**:收缩到见得**最多**的那批 —— 重建手感用熟脸。
+## ⚠ 无论收不收缩, **恰好消耗一次 `randi_range`** 的不变量不动(探针复现性靠它)。
 static func pick_face(ranked: Array, bias: String, rng: RandomNumberGenerator,
-		exclude: Array = []) -> String:
+		exclude: Array = [], seen: Dictionary = {}, familiar: bool = false) -> String:
 	var b := band(ranked, bias)
 	if b.is_empty():
 		return ""
@@ -159,6 +243,19 @@ static func pick_face(ranked: Array, bias: String, rng: RandomNumberGenerator,
 			fresh.append(id)
 	if fresh.is_empty():
 		fresh = b
+	# familiar(回归局)不受 novelty 开关管 —— 它是 returning 开关的事(评审:关 novelty 会吞掉熟脸)
+	if not seen.is_empty() and (novelty_on() or familiar):
+		var kept: Array = []
+		var best := -1
+		for id in fresh:
+			var c := int(seen.get(String(id), 0))
+			var wins: bool = (c > best) if familiar else (best < 0 or c < best)
+			if wins:
+				best = c
+				kept = [id]
+			elif c == best:
+				kept.append(id)
+		fresh = kept
 	return String(fresh[rng.randi_range(0, fresh.size() - 1)])
 
 
@@ -170,9 +267,14 @@ static func pick_face(ranked: Array, bias: String, rng: RandomNumberGenerator,
 ##
 ## ⚠ 排序表必须与池子取交:它是仪器输出,可能带着一张这一轮不出现的脸
 ## (同一张脸在别的轮里也排过价)。不取交就会掷出一张不属于这一段的脸,而且不报错。
+## `ctx` = 玩家状态 m 的切片:{"streak": int(连胜正/连败负), "seen": {face: 次数}}。
+## **缺省 {} 时与旧签名逐字节等价**(输出与 RNG 消耗都一样)—— 探针/hundred 验证不漂。
 static func roll_run(run_index: int, rng: RandomNumberGenerator,
-		ranking: Dictionary = {}) -> Dictionary:
-	var bias := face_bias(run_index)
+		ranking: Dictionary = {}, ctx: Dictionary = {}) -> Dictionary:
+	# 回归局压过 streak:隔了很久回来, 上次的连败/连胜早不是这次的状态了
+	var returning := returning_on() and bool(ctx.get("returning", false))
+	var bias := "mild" if returning else bias_with_ctx(face_bias(run_index), ctx)
+	var seen: Dictionary = ctx.get("seen", {})
 	var out := {}
 	var drawn: Array = []
 	for w in GameConfig.WALL_SECTIONS:
@@ -184,7 +286,7 @@ static func roll_run(run_index: int, rng: RandomNumberGenerator,
 			# (禁回会在第 1 局重新冒出来, 而且不报错)。2026-08-16 接线时当场抓到。
 			f = SectionMod.roll(idx, rng, drawn, run_index)
 		else:
-			f = pick_face(ranked, bias, rng, drawn)
+			f = pick_face(ranked, bias, rng, drawn, seen, returning)
 		out[idx] = f
 		if f != "":
 			drawn.append(f)

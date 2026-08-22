@@ -12,7 +12,16 @@ extends RefCounted
 ## (测试没法造「明天」), 而每日清零这种东西不测就等于没写。
 
 
-## 券系统的总开关(1.0 = false, 用户 2026-08-18 拍板「第一版去掉券」;1.1 商业化时翻 true)。
+## ⚠⚠ **券不是纯配置化的**(2026-08-21 评审 R10 如实写下):一张券「怎么用」写在代码里 ——
+## `view/tray.gd` 的托盘顺序与 `view/phrase.gd::_on_ticket_use` 的 match 按 id 字面量接线;
+## `data/tickets.json` 的 `scope` 与 `params.rerolls/hands` 目前**没有消费端**。所以这里登记
+## 「代码真正接了的 id」, `db.gd::validate_tickets` 据此硬校验:往 JSON 加一张没接线的券 = 红,
+## 而不是每日发到玩家手里、占着仓位、托盘不显示、点不了、不报错。
+## 要加新券:先在这里登记 + tray/phrase 接线, 再进 JSON。
+const WIRED := ["overtime", "juketicket", "redeal", "boost", "seedmoney"]
+
+
+## 券系统的总开关(1.0 关 / 1.1 起开, 见 data/tickets.json 的 _comment_enabled)。
 ## ⚠ 闸在 SaveState 的入口层, 不在这里的纯函数 —— 纯函数要继续被 t_ticket 背书。
 static func enabled() -> bool:
 	return bool(DB.tickets().get("enabled", false))

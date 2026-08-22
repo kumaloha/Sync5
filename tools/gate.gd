@@ -565,13 +565,19 @@ func _play_runs(cfg: Dictionary, mod: String, coin_delta: int, n: int,
 			st["disc"] += float(p.discards_used)
 		var res := RunLoop.play(o, bot)
 		var all_secs: Array = res["sec_scores"]
+		var all_kinds: Array = res.get("sec_kinds", [])
 		var cleared := 0
 		var sec_scores: Array = []
 		var dead := false
 		for section in range(all_secs.size()):
 			var section_score: int = int(all_secs[section])
 			sec_scores.append(section_score)
-			var target := int(round(float(Run.section_target_for(table, section, mod)) * target_scale))
+			# ⚠⚠ 事后判生死也要乘曲目税(2026-08-21 评审 R5):这里是第三份判生死, 此前漏乘
+			# `Run.variety_mult` ⇒ trilogy 的行为臂与基准臂逐位相同, 「实测 0.0」是结构性恒零,
+			# 还被写进了 weak_upper_bound。种数由 RunLoop 按段带回(sec_kinds)。
+			var kinds: int = int(all_kinds[section]) if section < all_kinds.size() else 0
+			var target := int(round(float(Run.section_target_for(table, section, mod))
+				* target_scale * Run.variety_mult(mod, kinds)))
 			if judge and section_score < target:
 				dead = true
 				break

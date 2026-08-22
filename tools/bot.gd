@@ -11,7 +11,6 @@ var _rep: Report
 
 var SIM: Dictionary = DB.sim()
 var KIND_PRIOR: Dictionary = _int_keys(SIM["kind_prior"])
-var TARGET_TF: Dictionary = SIM["target_tf"]
 var COUNTERFACTUAL_TV: Dictionary = SIM["counterfactual_tv"]
 ## 求解买牌往前推演几拍。实测 M=6 约 0.48 秒/局(M=3 是 0.23s, M=12 是 0.95s)。
 ## ⚠ 截断是显式近似:远期牌堆状态本来就不可信, 而且两条臂共用补牌, 差里噪声成对抵消。
@@ -107,6 +106,9 @@ func _mirror_power() -> float:
 ## Formula shapes are the bot's brain (code); priors/weights come from
 ## sim.json, card amounts from jokers.json (multiplication order kept
 ## exactly — the A/B identity check is byte-strict).
+var _no_arm_warned: Dictionary = {}
+
+
 func _card_ev(id: String, st: Dictionary, slots: Array, phrases_left: int) -> float:
 	var bw: float = float(EV["blend_w"])
 	var n: float = maxf(1.0, float(st["n"]))
@@ -140,7 +142,9 @@ func _card_ev(id: String, st: Dictionary, slots: Array, phrases_left: int) -> fl
 		"bassline":
 			return _amt(id) * (_rate(st, String(p["rate"]), float(p["prior"])) * future * gh / 12.0) * score_mean
 		"mirror":
-			var tf: float = float(TARGET_TF.get(tid, 1.0))
+			# 2026-08-21 评审:此前读 sim.json 的 target_tf —— Target 倍率**过期的第二份**
+			# (twin 3.5 vs 真值 6, 且 wrecker 缺失 ⇒ 镜面在 bot 眼里一文不值)。改从 jokers.json 推导。
+			var tf: float = _target_peak(tid)
 			return _rate(st, String(p["rate"]), float(p["prior"])) * (tf - 1.0) * _mirror_power() * score_mean
 		"shortcut", "fourfingers", "redtone", "blacktone", "trim":
 			var ot: Array = p["on_target"]
@@ -160,7 +164,7 @@ func _card_ev(id: String, st: Dictionary, slots: Array, phrases_left: int) -> fl
 			return _rate(st, String(p["rate"]), float(p["prior"])) * _amt(id) * score_mean
 		"opener":
 			return float(p["fixed_rate"]) * _amt(id) * score_mean
-		"rainbow", "nopair", "rehearsal", "fullcast":
+		"rainbow", "nopair", "rehearsal", "fullcast", "popup":
 			return float(p["fixed_rate"]) * _amt(id) * mult_mean
 		# ---- 2026-08-12 流派批(docs/design/archetypes.md)。族内件/缓存件/经济件,
 		# 数额照旧 _amt 推导;行为先验(fixed_rate/coin_steps/avg_top/avg_faces)在 ev.cards。----
@@ -228,6 +232,12 @@ func _card_ev(id: String, st: Dictionary, slots: Array, phrases_left: int) -> fl
 			return _amt(id) * float(p["hits"]) * mult_mean
 		"bassclef":
 			return (_amt(id) - float(p["avg_low_rank"])) * float(p["hits"]) * mult_mean
+	# ⚠ 落到这里 = 这张卡在 bot 眼里**一文不值**, 永远不买 ⇒ 尺子里从不存在(2026-08-21 评审:
+	# 快闪就这么隐身了一周)。shop/coin 通路的卡本就不走这条(求解器/货架臂各有去处);
+	# score/solver 通路缺臂就响一声 —— 但只响一次, 别把 sim 日志灌满。
+	if not _no_arm_warned.has(id):
+		_no_arm_warned[id] = true
+		push_warning("[bot] _card_ev 缺臂: '%s' 估值恒 0, 这张卡在尺子里永远不会被买" % id)
 	return 0.0
 
 
@@ -992,6 +1002,15 @@ var _tmult: Dictionary = {}    # tid -> {kind_int: mult}, derived from data
 ## data/jokers.json effects, killing the hand-copied tier table (docs/design/tech.md).
 ## Tiers guarded by extra conditions (lonewolf's discards/top-rank) are NOT
 ## unconditional payouts and are skipped, matching the old table exactly.
+## 一张 Target 的**峰值**倍率(它覆盖的牌型里最高的那档)—— 镜面估值用。从 _target_mult 推导,
+## 不再读 sim.json 的手抄表(那张表 08-21 已删:同一口径的第二份必过期)。
+func _target_peak(target_id: String) -> float:
+	var best := 1.0
+	for k in Pattern.Kind.values():
+		best = maxf(best, _target_mult(target_id, int(k)))
+	return best
+
+
 func _target_mult(target_id: String, kind: int) -> float:
 	if _tmult.is_empty():
 		for e in DB.jokers():

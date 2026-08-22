@@ -37,25 +37,21 @@ const CARD_INSET := 24.0                  # 霓虹轨距外框(玻璃的可见�
 # 页签轨几何在 Chrome(2026-08-11 三个图鉴页实装时迁出成四屏单源);
 # 下缝 51 比上缝多 3px 的理由不变:抵消倒影的光填缝带来的偏紧观感。
 
-# meta-progression placeholders: docs/design/ui_meta.md is NOT implemented, so the profile
-# numbers are static here on purpose — one dict, clearly fake, easy to wire up
-# once a save system exists.
-const PROFILE := {"name": "NEON PLAYER", "title": "雨夜俱乐部 VIP", "level": 12,
-	"xp": 340, "xp_max": 500, "coins": 2480, "gems": 86}
+# 档案栏(2026-08-22 用户拍板, meta.md §8):**没有一个数是 mock** ——
+# 头像 + 名字 = 当前主角(角色页选了谁就是谁)· LV / 经验条 / 称号 = 参与度等级(`SaveState.profile()`,
+# 累计通关段数推, 零数值, 表在 data/assets.json profile)· ◈ = 真钱包;◆ 跨局金币不存在, chip 已删。
 
 var section_idx := 0          # which blind the card is showing
 var tab := 0
 
 var _t := 0.0
-var _avatar_tex: Texture2D = null   # 职业头像(512×512 圆裁);档案栏 mock 期跟 DJ 走
-var _avatar_tried := false
+var _avatar_tex: Texture2D = null   # 当前主角的头像(512×512 圆裁), 按 SaveState.hero() 懒加载
+var _avatar_hero := -1              # 已加载的是哪位;选角变了就重载
 ## manifest 的 avatar_crop([x,y,w,h] 归一化)——头像是四分之三身像,脸区窗口由美术线
 ## 在 assets/characters/manifest.json 里给,运行时只读。圆盘取窗口内最大内切圆保纵横比。
 var _avatar_crop := Rect2(0.0, 0.0, 1.0, 1.0)
 var _drag_from := -1.0        # x where the current drag started, -1 = idle
 var _drag_dx := 0.0
-var _toast := ""
-var _toast_t := 0.0
 var _stamp := ""          # build_stamp.txt(commit+时间), 没有就空 = 不画
 var _btn_rect := Rect2()
 var _dot_rects: Array = []
@@ -63,6 +59,9 @@ var _tab_rects: Array = []
 
 static var _bg: GradientTexture2D = null
 var _tail: Control = null
+var _fx: Control = null          # 动效层:雨 / 均衡器 / 脉冲按钮 / 扫描线(唯一每帧重画的层)
+var _eq_rect := Rect2()          # 静态层排版时记下, 动效层照着画
+var _key: Dictionary = {}        # 静态层上次重画时的状态键(Chrome.dirty)
 
 
 ## 倒影层。必须是**独立子节点 + shader 遮罩**: 渐隐要统一作用在 StyleBox 上,
@@ -76,6 +75,18 @@ class TailLayer:
 	func _draw() -> void:
 		if home != null:
 			home.draw_tail(self)
+
+
+## 动效层(2026-08-21 评审:首页此前每帧整屏重画 —— 程序化玻璃 + 3 个 neon + ~40 次 draw_string
+## 每秒 60 遍, 而真正在动的只有雨 / 均衡器 / 按钮脉冲 / 扫描线。手机上首页是停留最久的屏)。
+## 这四样搬到这层每帧画;本体只在状态键变了才重画(`_process` 里的 `Chrome.dirty`)。
+## ⚠ 层序:它加在倒影层之后 ⇒ 雨压在倒影上(此前雨在倒影下), 倒影极淡、肉眼不可辨。
+class FxLayer:
+	extends Control
+	var home: HomeScreen = null
+	func _draw() -> void:
+		if home != null:
+			home.draw_fx(self)
 
 
 func _ready() -> void:
@@ -101,19 +112,27 @@ func _ready() -> void:
 		_tail.material = Widgets.StageCard.mirror_material(
 			CARD.end.y - CARD_INSET, CARD.size.y * Widgets.StageCard.TAIL_RATIO, 0.62)
 		add_child(_tail)
+	_fx = FxLayer.new()
+	_fx.home = self
+	_fx.position = Vector2.ZERO
+	_fx.size = Vector2(W, H)
+	_fx.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_fx)
 	set_process(true)
 
 
 func _process(delta: float) -> void:
 	_t += delta
-	if _tail != null:
-		_tail.queue_redraw()
-	if _toast_t > 0.0:
-		_toast_t = maxf(0.0, _toast_t - delta)
 	# the swipe eases back once released
 	if _drag_from < 0.0 and absf(_drag_dx) > 0.5:
 		_drag_dx = lerpf(_drag_dx, 0.0, minf(1.0, delta * 14.0))
-	queue_redraw()
+	if _fx != null:
+		_fx.queue_redraw()
+	# 静态层与倒影:状态键变了才重画。键里放的是 _draw 读到的全部可变量(漏一个 = 那个量变了不刷新)
+	if Chrome.dirty(_key, [section_idx, tab, snappedf(_drag_dx, 0.25), SaveState.gems(), SaveState.hero(), SaveState.stats().get("sections", 0), _stamp]):
+		queue_redraw()
+		if _tail != null:
+			_tail.queue_redraw()
 
 
 # ============================== INPUT ==============================
@@ -161,11 +180,6 @@ func _tap(p: Vector2) -> void:
 		return
 
 
-func _float(msg: String) -> void:
-	_toast = msg
-	_toast_t = 1.6
-
-
 # ============================== DRAW ==============================
 
 func _draw() -> void:
@@ -173,16 +187,11 @@ func _draw() -> void:
 	_draw_player_bar()
 	_draw_card()
 	_draw_tabs()
-	Chrome.rain(self, _t)
 	# 构建戳:一天十个包的节奏下「手机跑的是哪一版」必须一眼可对 ——
 	# 「改了但变化不大」的头号嫌疑是浏览器缓存的陈旧 pck, 有戳才分得清。
 	if _stamp != "":
 		draw_string(StageTheme.num("Medium"), Vector2(10.0, H - 8.0), _stamp,
 			HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(1, 1, 1, 0.25))
-	if _toast_t > 0.0:
-		var a: float = minf(1.0, _toast_t / 0.4)
-		draw_string(StageTheme.zh(), Vector2(0, Chrome.TAB_Y - 30.0), _toast,
-			HORIZONTAL_ALIGNMENT_CENTER, W, 18, Color(1.0, 0.72, 0.82, a))
 
 
 ## Vertical night gradient + three corner glows + the 115° sheen sweep.
@@ -204,11 +213,6 @@ func _draw_bg() -> void:
 	draw_texture_rect(_bg, Rect2(0, 0, W, H), false)
 	# 2026-08-06 用户:「柔光层全部给我去掉」—— 角落柔光、档位色柔光、全屏 sheen
 	# 三层**全部删除**。背景就是纯黑, 画面里的光只来自卡片自己那条霓虹边。
-
-
-func _glow(at: Vector2, sz: Vector2, col: Color, a: float) -> void:
-	draw_texture_rect(PaperCard.glow_tex(), Rect2(at - sz * 0.5, sz), false,
-		Color(col.r, col.g, col.b, a))
 
 
 ## (柔光层已于 2026-08-06 整体删除:「柔光层全部给我去掉」。
@@ -255,15 +259,19 @@ func _draw_player_bar() -> void:
 	var cy := r.position.y + r.size.y * 0.5
 
 	# avatar disc —— 2026-08-11 起贴职业头像(512×512 圆裁贴多边形 UV);
-	# 档案栏还是 mock(NEON PLAYER/LV),头像跟着 mock 的 DJ 走,选角接入后由所选主角驱动。
-	# 缺图退回字母盘 —— 无素材环境的截图探针照跑。
+	# 2026-08-22 起跟**当前主角**走(角色页选了谁就是谁)。缺图退回首字母盘 —— 无素材环境的截图探针照跑。
 	var c := Vector2(r.position.x + 56.0, cy)
 	draw_circle(c, 34.0, Color(0.055, 0.09, 0.16, 0.9))
 	var num := StageTheme.num("Bold")
 	var zh := StageTheme.zh()
-	if _avatar_tex == null and not _avatar_tried:
-		_avatar_tried = true
-		var ap := "res://assets/characters/dj/avatar.png"
+	var roster := Character.roster()
+	var hero_idx := clampi(SaveState.hero(), 0, roster.size() - 1)
+	var hero: Character = roster[hero_idx]
+	if _avatar_hero != hero_idx:
+		_avatar_hero = hero_idx
+		_avatar_tex = null
+		_avatar_crop = Rect2(0.0, 0.0, 1.0, 1.0)
+		var ap := "res://assets/characters/%s/avatar.png" % Walker.IDS[hero_idx]
 		if ResourceLoader.exists(ap):
 			_avatar_tex = load(ap)
 			var mf := FileAccess.open("res://assets/characters/manifest.json", FileAccess.READ)
@@ -272,36 +280,39 @@ func _draw_player_bar() -> void:
 				mf.close()
 				if md is Dictionary:
 					for ch in md.get("characters", []):
-						if String(ch.get("id", "")) == "dj" and ch.has("avatar_crop"):
+						if int(ch.get("idx", -1)) == hero_idx and ch.has("avatar_crop"):
 							var cr: Array = ch["avatar_crop"]
 							_avatar_crop = Rect2(float(cr[0]), float(cr[1]), float(cr[2]), float(cr[3]))
 	if _avatar_tex != null:
 		Chrome.avatar_disc(self, c, 33.0, _avatar_tex, _avatar_crop)
 	else:
-		var aw := num.get_string_size("DJ", HORIZONTAL_ALIGNMENT_LEFT, -1, 26).x
-		draw_string(num, c + Vector2(-aw * 0.5, 9.0), "DJ", HORIZONTAL_ALIGNMENT_LEFT, -1, 26,
+		var initial := Lingo.t(hero.cn_name).left(2)
+		var aw := num.get_string_size(initial, HORIZONTAL_ALIGNMENT_LEFT, -1, 26).x
+		draw_string(num, c + Vector2(-aw * 0.5, 9.0), initial, HORIZONTAL_ALIGNMENT_LEFT, -1, 26,
 			Color("8ff5ee"))
 	draw_arc(c, 34.0, 0, TAU, 56, Color(StageTheme.CYAN.r, StageTheme.CYAN.g, StageTheme.CYAN.b, 0.8), 1.8, true)
-	var lv := "LV.%d" % int(PROFILE["level"])
+	var prof := SaveState.profile()
+	var lv := "LV.%d" % int(prof["level"])
 	var lw := num.get_string_size(lv, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x
 	var lb := Rect2(c.x - lw * 0.5 - 10.0, c.y + 27.0, lw + 20.0, 19.0)
 	draw_style_box(StageTheme.box(StageTheme.CYAN, Color(0, 0, 0, 0), 0, 8), lb)
 	draw_string(num, Vector2(lb.position.x, lb.position.y + 14.5), lv,
 		HORIZONTAL_ALIGNMENT_CENTER, lb.size.x, 13, Color("03302c"))
 
-	# name + title
+	# name = 当前主角;title = 参与度等级的称号(data/assets.json profile.levels)
 	var tx := r.position.x + 104.0
-	draw_string(num, Vector2(tx, cy - 10.0), String(PROFILE["name"]),
-		HORIZONTAL_ALIGNMENT_LEFT, -1, 23, Color("eaf6ff"))
-	var nw := num.get_string_size(String(PROFILE["name"]), HORIZONTAL_ALIGNMENT_LEFT, -1, 23).x
-	draw_string(zh, Vector2(tx + nw + 10.0, cy - 8.0), String(PROFILE["title"]),
+	var hname := Lingo.t(hero.cn_name)
+	draw_string(zh, Vector2(tx, cy - 10.0), hname, HORIZONTAL_ALIGNMENT_LEFT, -1, 23, Color("eaf6ff"))
+	var nw := zh.get_string_size(hname, HORIZONTAL_ALIGNMENT_LEFT, -1, 23).x
+	draw_string(zh, Vector2(tx + nw + 10.0, cy - 8.0), Lingo.pick(prof.get("title", {})),
 		HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("7487ac"))
 
 	# xp track
 	var bar := Rect2(tx, cy + 8.0, 300.0, 8.0)
 	draw_style_box(StageTheme.box(Color(0.078, 0.10, 0.21, 0.9),
 		Color(0.47, 0.59, 0.78, 0.18), 1, 4), bar)
-	var frac: float = float(PROFILE["xp"]) / float(PROFILE["xp_max"])
+	var xp_max := int(prof["xp_max"])
+	var frac: float = 1.0 if xp_max <= 0 else clampf(float(prof["xp"]) / float(xp_max), 0.0, 1.0)   # 顶级 = 满格
 	var fill := Rect2(bar.position, Vector2(bar.size.x * frac, bar.size.y))
 	draw_style_box(StageTheme.box(StageTheme.CYAN, Color(0, 0, 0, 0), 0, 4), fill)
 	draw_style_box(StageTheme.box(Color(StageTheme.VIOLET.r, StageTheme.VIOLET.g,
@@ -309,14 +320,13 @@ func _draw_player_bar() -> void:
 		Rect2(fill.position + Vector2(fill.size.x * 0.55, 0),
 			Vector2(fill.size.x * 0.45, fill.size.y)))
 	draw_string(num, Vector2(bar.end.x + 10.0, bar.end.y + 4.0),
-		"%d/%d" % [int(PROFILE["xp"]), int(PROFILE["xp_max"])],
+		("%d/%d" % [int(prof["xp"]), xp_max]) if xp_max > 0 else "MAX",
 		HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("66799f"))
 
-	# currency chips
-	Chrome.chip(self, Rect2(r.end.x - 152.0, cy - 36.0, 144.0, 31.0), StageTheme.AMBER,
-		"◆", "%d" % int(PROFILE["coins"]), Color("ffd9a0"))
-	Chrome.chip(self, Rect2(r.end.x - 152.0, cy + 5.0, 144.0, 31.0), StageTheme.VIOLET,
-		"◈", "%d" % int(PROFILE["gems"]), Color("cdb2ff"))
+	# currency chip:只有 ◈ 宝石(真钱包)。◆ 跨局金币 2026-08-22 用户拍板删掉 —— 那个系统不存在,
+	# 局内金币每局清零是资产循环的红线;单 chip 居中到原来两枚的中线。
+	Chrome.chip(self, Rect2(r.end.x - 152.0, cy - 15.0, 144.0, 31.0), StageTheme.VIOLET,
+		"◈", "%d" % SaveState.gems(), Color("cdb2ff"))
 
 
 ## The stage card — one blind of the tour, in the same glass language the
@@ -358,7 +368,7 @@ func _draw_card() -> void:
 		GameConfig.SECTIONS_PER_RUN], HORIZONTAL_ALIGNMENT_RIGHT, cw, 14, dim)
 	# blind tier chip under the name
 	y += 56.0
-	var tier := "BOSS 墙" if is_wall else GameConfig.blind_name(section_idx)
+	var tier := Lingo.t("BOSS 墙") if is_wall else GameConfig.blind_name(section_idx)
 	var tw := zh.get_string_size(tier, HORIZONTAL_ALIGNMENT_LEFT, -1, 17).x
 	var chip := Rect2(x, y, tw + 24.0, 30.0)
 	draw_style_box(StageTheme.box(Color(acc.r, acc.g, acc.b, 0.16),
@@ -366,35 +376,38 @@ func _draw_card() -> void:
 	draw_string(zh, Vector2(chip.position.x, chip.position.y + 21.0), tier,
 		HORIZONTAL_ALIGNMENT_CENTER, chip.size.x, 17, Color("f2fbff"))
 	draw_string(zh, Vector2(chip.end.x + 12.0, chip.position.y + 21.0),
-		"第 %d 场演出" % [GameConfig.gig_of(section_idx) + 1],
+		Lingo.t("第 %d 场演出") % [GameConfig.gig_of(section_idx) + 1],
 		HORIZONTAL_ALIGNMENT_LEFT, cw, 15, StageTheme.DIM)
 	y += 38.0
 	Widgets.StageCard.rule_line(self, x, y, cw, acc)
 
 	# the equaliser: the card's biggest visual, exactly as the mock has it
 	y += 10.0
-	Widgets.StageCard.eq_band(self, Rect2(x, y, cw, 372.0), acc, _t, section_idx, 34)
+	_eq_rect = Rect2(x, y, cw, 372.0)        # 均衡器在动效层画(draw_fx)
 	y += 372.0 + 14.0
 
 	# target + reward
 	var ttxt := StageTheme.fmt_thousands(GameConfig.section_target(section_idx))
 	Chrome.neon(self, num, ttxt, Vector2(x, y + 36.0), 40, Color("ffffff"), acc)
 	var tnw := num.get_string_size(ttxt, HORIZONTAL_ALIGNMENT_LEFT, -1, 40).x
-	draw_string(zh, Vector2(x + tnw + 10.0, y + 36.0), "目标分",
+	draw_string(zh, Vector2(x + tnw + 10.0, y + 36.0), Lingo.t("目标分"),
 		HORIZONTAL_ALIGNMENT_LEFT, cw, 16, StageTheme.DIM)
-	draw_string(med, Vector2(x, y + 34.0), "奖励 ◆%d" % GameConfig.SECTION_CLEAR_REWARD,
+	draw_string(med, Vector2(x, y + 34.0), Lingo.t("奖励 ◆%d") % GameConfig.SECTION_CLEAR_REWARD,
 		HORIZONTAL_ALIGNMENT_RIGHT, cw, 17,
 		Color(StageTheme.GOLD.r, StageTheme.GOLD.g, StageTheme.GOLD.b, 0.95))
 
 	# limits + difficulty stars (tier read, not a save record)
 	y += 54.0
-	draw_string(zh, Vector2(x, y), "%d 乐句 · %.0f 秒/句 · 弃牌 ◆%d/张" %
-		[GameConfig.PHRASES_PER_SECTION, GameConfig.phrase_duration(section_idx),
-		GameConfig.DISCARD_COST], HORIZONTAL_ALIGNMENT_LEFT, cw, 16, StageTheme.DIM)
+	# 弃牌免费(08-06 拍板)—— 此前这里公示「弃牌 ◆0/张」, 是收费时代的遗物(评审)
+	draw_string(zh, Vector2(x, y), Lingo.t("%d 乐句 · %.0f 秒/句 · 弃牌免费") %
+		[GameConfig.PHRASES_PER_SECTION, GameConfig.phrase_duration(section_idx)],
+		HORIZONTAL_ALIGNMENT_LEFT, cw, 16, StageTheme.DIM)
+	# 星数 = 段数(tier_stars 返回 1..N);此前写死 3 颗, 第 3/4 段都是 ★★★, 递进断了一档
 	var stars := Widgets.StageCard.tier_stars(section_idx)
-	for i in range(3):
+	var n_star := GameConfig.SECTIONS_PER_RUN
+	for i in range(n_star):
 		var sc: Color = StageTheme.GOLD if i < stars else Color(0.47, 0.59, 0.78, 0.3)
-		draw_string(zh, Vector2(x + cw - 68.0 + float(i) * 23.0, y), "★",
+		draw_string(zh, Vector2(x + cw - 23.0 * float(n_star) + 1.0 + float(i) * 23.0, y), "★",
 			HORIZONTAL_ALIGNMENT_LEFT, -1, 22, sc)
 	y += 12.0
 	Widgets.StageCard.rule_line(self, x, y, cw, acc, true)
@@ -408,11 +421,11 @@ func _draw_card() -> void:
 		var bh: float = [8.0, 16.0, 12.0][i]
 		draw_rect(Rect2(ib.position.x + 11.0 + float(i) * 7.0, ib.end.y - 9.0 - bh, 5.0, bh),
 			acc, true)
-	draw_string(med, Vector2(x + 54.0, y + 14.0), "BOSS 规则",
+	draw_string(med, Vector2(x + 54.0, y + 14.0), Lingo.t("BOSS 规则"),
 		HORIZONTAL_ALIGNMENT_LEFT, cw - 160.0, 13, dim)
 	# the run's faces are rolled at run start and previewed one blind ahead —
 	# at home the honest answer is the mechanism, not a fabricated face
-	var rule := "开局掷定 · 前一盲注公示预告" if is_wall else "无 · 常规盲注"
+	var rule := Lingo.t("开局掷定 · 前一盲注公示预告") if is_wall else Lingo.t("无 · 常规盲注")
 	draw_string(zh, Vector2(x + 54.0, y + 36.0), rule,
 		HORIZONTAL_ALIGNMENT_LEFT, cw - 160.0, 19, Color("f4f0ff"))
 	var c1 := Vector2(x + cw - 63.0, y + 21.0)
@@ -426,16 +439,7 @@ func _draw_card() -> void:
 
 	# 开始游戏 — the mock's pulsing primary
 	y += 58.0
-	_btn_rect = Rect2(x, y, cw, 76.0)
-	var pulse: float = 0.86 + 0.14 * (0.5 - 0.5 * cos(_t * TAU / 2.4))
-	draw_style_box(StageTheme.box(Color(acc.r * 0.28, acc.g * 0.28, acc.b * 0.28, 0.45),
-		Color(acc.r, acc.g, acc.b, 0.7 * pulse), 2, 14,
-		Color(acc.r, acc.g, acc.b, 0.34 * pulse), 18), _btn_rect)
-	draw_line(_btn_rect.position + Vector2(14, 1.0), _btn_rect.position + Vector2(cw - 14, 1.0),
-		Color(1, 1, 1, 0.8), 1.5)
-	Chrome.neon(self, zh, "开 始 游 戏", Vector2(x, y + 40.0), 28, Color("ffffff"), acc, cw)
-	draw_string(med, Vector2(x, y + 62.0), "⚡ 全新巡演 · 从 BLIND 01 开始",
-		HORIZONTAL_ALIGNMENT_CENTER, cw, 14, dim)
+	_btn_rect = Rect2(x, y, cw, 76.0)        # 脉冲按钮在动效层画(draw_fx);这里只记点击区
 
 	# blind dots (12) — tap to browse, they never gate the start
 	y += 89.0
@@ -456,7 +460,7 @@ func _draw_card() -> void:
 			dc = Color(StageTheme.PINK.r, StageTheme.PINK.g, StageTheme.PINK.b, 0.45)
 		draw_style_box(StageTheme.box(dc, Color(0, 0, 0, 0), 0, 4), dr)
 		dx += wid + gap
-	draw_string(StageTheme.zh(), Vector2(x, y + 26.0), "← 左右滑动查看整轮赛程 →",
+	draw_string(StageTheme.zh(), Vector2(x, y + 26.0), Lingo.t("← 左右滑动查看整轮赛程 →"),
 		HORIZONTAL_ALIGNMENT_CENTER, cw, 13, Color(0.47, 0.59, 0.78, 0.45))
 
 	# tech footer
@@ -476,12 +480,6 @@ func _draw_card() -> void:
 		draw_string(med, Vector2(x, y + float(i) * 15.0), lines_r[i],
 			HORIZONTAL_ALIGNMENT_RIGHT, cw, 10, foot)
 
-	# scan sweep across the card (dcscan)
-	var su: float = fmod(_t / 5.5, 1.0)
-	var sy: float = card.position.y + card.size.y * (0.04 + 0.90 * su)
-	var sa: float = 0.6 * sin(PI * su)
-	draw_line(Vector2(card.position.x + 24.0, sy), Vector2(card.end.x - 24.0, sy),
-		Color(acc.r, acc.g, acc.b, sa), 2.0)
 
 
 ## 倒影层的内容: 把卡片 1:1 翻转画到下方, 渐隐由本层的 shader 遮罩负责。
@@ -489,6 +487,40 @@ func draw_tail(ci: CanvasItem) -> void:
 	var acc := Widgets.StageCard.accent_for(section_idx)
 	var card := Rect2(CARD.position + Vector2(_drag_dx, 0.0), CARD.size)
 	Widgets.StageCard.draw_mirror(ci, card, acc, 26.0, CARD_INSET)
+
+
+## 动效层的内容(每帧):均衡器 · 脉冲按钮 · 扫描线 · 雨。位置全部沿用静态层排版时记下的矩形,
+## 所以两层永远对得上;静态层还没画过(首帧)就什么都不画。
+func draw_fx(ci: CanvasItem) -> void:
+	if _eq_rect.size.x <= 0.0:
+		return
+	var acc := Widgets.StageCard.accent_for(section_idx)
+	var card := Rect2(CARD.position + Vector2(_drag_dx, 0.0), CARD.size)
+	var zh := StageTheme.zh()
+	var med := StageTheme.num("Medium")
+	var dim := Color(acc.r, acc.g, acc.b, 0.62)   # 与 _draw_card 同一支笔
+	# the equaliser: the card's biggest visual, exactly as the mock has it
+	Widgets.StageCard.eq_band(ci, _eq_rect, acc, _t, section_idx, 34)
+	# 开始游戏 — the mock's pulsing primary
+	var x := _btn_rect.position.x
+	var y := _btn_rect.position.y
+	var cw := _btn_rect.size.x
+	var pulse: float = 0.86 + 0.14 * (0.5 - 0.5 * cos(_t * TAU / 2.4))
+	ci.draw_style_box(StageTheme.box(Color(acc.r * 0.28, acc.g * 0.28, acc.b * 0.28, 0.45),
+		Color(acc.r, acc.g, acc.b, 0.7 * pulse), 2, 14,
+		Color(acc.r, acc.g, acc.b, 0.34 * pulse), 18), _btn_rect)
+	ci.draw_line(_btn_rect.position + Vector2(14, 1.0), _btn_rect.position + Vector2(cw - 14, 1.0),
+		Color(1, 1, 1, 0.8), 1.5)
+	Chrome.neon(ci, zh, Lingo.t("开 始 游 戏"), Vector2(x, y + 40.0), 28, Color("ffffff"), acc, cw)
+	ci.draw_string(med, Vector2(x, y + 62.0), Lingo.t("⚡ 全新巡演 · 从 BLIND 01 开始"),
+		HORIZONTAL_ALIGNMENT_CENTER, cw, 14, dim)
+	# scan sweep across the card (dcscan)
+	var su: float = fmod(_t / 5.5, 1.0)
+	var sy: float = card.position.y + card.size.y * (0.04 + 0.90 * su)
+	var sa: float = 0.6 * sin(PI * su)
+	ci.draw_line(Vector2(card.position.x + 24.0, sy), Vector2(card.end.x - 24.0, sy),
+		Color(acc.r, acc.g, acc.b, sa), 2.0)
+	Chrome.rain(ci, _t)
 
 
 ## Bottom rail: 关卡 / 主角 / 小丑牌 / 荣誉。画法在 Chrome(四屏单源);

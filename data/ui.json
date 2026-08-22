@@ -254,9 +254,6 @@
   "trim": {
    "trigger": "牌库移除全部 2 和 3"
   },
-  "trio": {
-   "trigger": "缓存三张点数相同"
-  },
   "bassclef": {
    "trigger": "2~5 的小牌按 15 点计入基础分"
   },
@@ -281,23 +278,14 @@
   "earlyout": {
    "trigger": "弃牌全部在前 4 秒:奖励分+目标分的19%"
   },
-  "crescendo": {
-   "trigger": "得分超过上一拍"
-  },
   "segue": {
    "trigger": "每张换入且计分的牌:奖励分+目标分的10%"
   },
   "stilllife": {
    "trigger": "整拍零交换:奖励分+目标分的14%"
   },
-  "declutter": {
-   "trigger": "一次弃掉 4 张牌"
-  },
   "stageexit": {
    "trigger": "每弃 1 张人头牌:奖励分+目标分的7%"
-  },
-  "doggybag": {
-   "trigger": "得分达到目标的两倍"
   },
   "royalty": {
    "trigger": "牌型自带的金币翻倍"
@@ -322,9 +310,6 @@
   },
   "rebrand": {
    "trigger": "每换一次 Target:加成+40%,永久"
-  },
-  "xray": {
-   "trigger": "弃牌前先看到会补的牌"
   },
   "blacktone": {
    "trigger": "♠♣ 算同一花色(黑同花)"

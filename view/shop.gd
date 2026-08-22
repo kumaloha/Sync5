@@ -35,6 +35,13 @@ var _free_rerolls := 0
 var _upgrades_on := true
 ## Director 的稀有度乘数 —— 编排器开店时注入(探针一律 {} = 中性, 掷法逐字节不变)。
 var _rarity_mult: Dictionary = {}
+## 探索型货架用的「玩家用过的 Target」—— 编排器开店时注入(探针 / 零历史 = {} ⇒ 不偏置)。
+## ⚠ shop 自己不读存档(2026-08-21 评审:此前在 _weighted_pick 里直接读 SaveState, 破了注入制)。
+var _explore_used: Dictionary = {}
+
+
+func set_explore_used(used: Dictionary) -> void:
+	_explore_used = used
 
 
 func set_shelf_rarity_mult(m: Dictionary) -> void:
@@ -113,18 +120,21 @@ func _layout(count: int) -> void:
 		_price_labels[i].size = Vector2(dw, 30)
 
 	var by: float = float(_cfg["btn_y"])
-	_reroll_btn = _button("")
+	# ⚠ 按钮只建一次(2026-08-21 审查:此前每次 _render → _layout 都 new 一对, 旧的不删 ——
+	# 一局几十个泄漏节点叠在同一矩形, 0.9 alpha 底板透出下层旧价签)。08-13 把摆位抽成
+	# _layout 时把原本只在 _ready 跑的创建块一起卷了进来。
+	if _reroll_btn == null:
+		_reroll_btn = _button("")
+		_reroll_btn.pressed.connect(_on_reroll)
+		_layer.add_child(_reroll_btn)
+		# 2026-08-06 用户:「还看到有跳过按钮, 不要, 只需要刷新」—— 跳过**奖励**已删,
+		# 但这个按钮本身是商店的**唯一免费出口**: 买不起又刷不起时没有它会卡死在商店里,
+		# 所以它留下来, 只是不再是一笔收入, 措辞也从「跳过」改成「继续」。
+		_skip_btn = _button(String(_cfg["skip_text"]))
+		_skip_btn.pressed.connect(_on_skip)
+		_layer.add_child(_skip_btn)
 	_reroll_btn.position = Vector2(360.0 - 220.0 - 12.0, by)
-	_reroll_btn.pressed.connect(_on_reroll)
-	_layer.add_child(_reroll_btn)
-
-	# 2026-08-06 用户:「还看到有跳过按钮, 不要, 只需要刷新」—— 跳过**奖励**已删,
-	# 但这个按钮本身是商店的**唯一免费出口**: 买不起又刷不起时没有它会卡死在商店里,
-	# 所以它留下来, 只是不再是一笔收入, 措辞也从「跳过」改成「继续」。
-	_skip_btn = _button(String(_cfg["skip_text"]))
 	_skip_btn.position = Vector2(360.0 + 12.0, by)
-	_skip_btn.pressed.connect(_on_skip)
-	_layer.add_child(_skip_btn)
 
 
 func _v2(a: Array) -> Vector2:
@@ -162,7 +172,7 @@ func open(slots: Array, coins: int, section_idx: int, mod = null,
 		target if target >= 0 else Run.section_target_for(
 			GameConfig.SECTION_TARGETS, section_idx,
 			"" if mod == null else String(mod.id)),
-		mod, "下一场", score, left, boon)
+		mod, Lingo.t("下一场"), score, left, boon)
 	redeal(slots, coins, section_idx)
 
 
@@ -260,8 +270,17 @@ func _deal() -> void:
 			if _slots[si] != null and _slots[si].can_upgrade():
 				ups.append(si)
 		if not ups.is_empty():
-			_candidates[randi_range(0, _candidates.size() - 1)] = {
-				"up_slot": int(ups[randi_range(0, ups.size() - 1)])}
+			# ⚠ 不许覆盖「必定出」钉住的位(2026-08-21 审查):Target 保底钉末位、规则牌保底钉首位,
+			# 随机覆写有 1/3 概率把卡面承诺吃掉。只从没被钉的下标里挑;全被钉住就不上升级。
+			var free: Array = []
+			for ci in range(_candidates.size()):
+				var pinned := (Joker.slots_guarantee_target(_slots) and ci == _candidates.size() - 1) \
+					or (Joker.slots_rule_guaranteed(_slots) and ci == 0)
+				if not pinned:
+					free.append(ci)
+			if not free.is_empty():
+				_candidates[int(free[randi_range(0, free.size() - 1)])] = {
+					"up_slot": int(ups[randi_range(0, ups.size() - 1)])}
 	_render(true)
 
 
@@ -379,7 +398,10 @@ func _affordable(j) -> bool:
 ## **它自己就是第二份**。
 func _weighted_pick(candidates: Array, count: int) -> Array:
 	# 卡面声明的货架加成(现在只有独狼的 "more Targets")—— 两边都读 `Joker.slots_target_mult`。
-	return Economy.weighted_pick(candidates, count, Joker.slots_target_mult(_slots), null, _rarity_mult)
+	# 探索型货架(context.md 岔 #1, 批「探索型 ≤1.5×」):你**没用过**的 Target 权重上浮。
+	# 三道闸都在编排器/Director:数据开关 · 探针恒空(截图/回归稳定)· 零历史的新玩家不动。
+	return Economy.weighted_pick(candidates, count, Joker.slots_target_mult(_slots), null,
+		_rarity_mult, Director.explore_boost(candidates, _explore_used))
 
 
 func _on_pick(i: int) -> void:

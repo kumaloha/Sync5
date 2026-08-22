@@ -1,5 +1,7 @@
 extends Probe
 
+var _diverged: Array = []   # |z| ≥ 3 的关(退出码的依据, 2026-08-21)
+
 ## 配对诊断:同一副牌、同一个策略, 数学侧的复刻 vs 真实游戏代码路径, **逐手对比**。
 ##   godot --headless --path . --script res://tools/pair.gd
 ##
@@ -64,6 +66,10 @@ func _initialize() -> void:
 	var dmax := GameConfig.BEAT_DISCARDS
 	_stage("第二关:开弃牌, 不前瞻", dmax, 0.0, rng, slots, extra)
 	_stage("第三关:弃牌 + 前瞻(实战配置)", dmax, float(DB.sim()["solver"]["lam"]), rng, slots, extra)
+	if diff0 > 0 or not _diverged.is_empty():
+		print("\n❌ pair: 求解器与游戏代码分叉 —— 第一关不一致 %d 手, 显著分叉的关: %s" % [diff0, str(_diverged)])
+		quit(1)
+	print("\n✅ pair: 三关一致")
 	quit(0)
 
 
@@ -173,6 +179,10 @@ func _stage(label: String, d_max: int, lam: float, rng: RandomNumberGenerator,
 	print("  ⭐ 配对差 %+.1f ± %.1f   z = %+.2f   %s"
 		% [mean_d, se, mean_d / maxf(0.001, se),
 			"显著" if absf(mean_d) > 2.0 * se else "**不显著 —— 之前那个 6.7% 是噪声**"])
+	# 2026-08-21 评审:这条门此前**永远 quit(0)**, 三关只 print ✅/❌ —— CLAUDE.md 把它叫
+	# 「守『求解器 = 游戏代码』」, 而它的退出码从不说话。|z| ≥ 3 = 分叉, 记到 _diverged。
+	if absf(mean_d) > 3.0 * se:
+		_diverged.append(label)
 
 
 func _lbl(cards: Array) -> String:

@@ -97,9 +97,24 @@ func _sync_mirror() -> void:
 ## Fades the mirror out with distance from the seam. Done in a shader because
 ## the mask has to apply uniformly to every primitive the card draws —
 ## styleboxes, glyphs, textures — not be threaded through each call.
+## ⚑ Shader **只编译一份**(2026-08-21 评审:此前每张卡 / 每次弃牌的幽灵卡 / 每个小丑槽 /
+## 拖拽预览各 `Shader.new()` 一份同样的代码 —— 弃牌免费无限, 一拍内能触发多次编译)。
+## 材质仍按实例 new(uniform 各不同), 共享的只是 Shader 对象。
+static var _mask_shader: Shader
+
 static func _mask_material(h: float, fade: float, peak: float) -> ShaderMaterial:
-	var sh := Shader.new()
-	sh.code = """
+	if _mask_shader == null:
+		_mask_shader = Shader.new()
+		_mask_shader.code = _MASK_CODE
+	var m := ShaderMaterial.new()
+	m.shader = _mask_shader
+	m.set_shader_parameter("card_h", h)
+	m.set_shader_parameter("fade", fade)
+	m.set_shader_parameter("peak", peak)
+	return m
+
+
+const _MASK_CODE := """
 shader_type canvas_item;
 uniform float card_h = 170.0;
 uniform float fade = 0.22;   // visible fraction of the mirror, from the seam
@@ -113,12 +128,6 @@ void fragment() {
 	COLOR.a *= peak * pow(clamp(1.0 - t, 0.0, 1.0), 1.5);
 }
 """
-	var m := ShaderMaterial.new()
-	m.shader = sh
-	m.set_shader_parameter("card_h", h)
-	m.set_shader_parameter("fade", fade)
-	m.set_shader_parameter("peak", peak)
-	return m
 
 func _get_drag_data(_pos: Vector2) -> Variant:
 	if drag_payload.is_empty() or card == null:
@@ -338,7 +347,7 @@ func _draw_wild(w: float, h: float, acc: Color) -> void:
 	_neon_line(PackedVector2Array([
 		c + Vector2(-16 * u, 34 * u), c + Vector2(-8 * u, 26 * u), c + Vector2(0, 34 * u),
 		c + Vector2(8 * u, 26 * u), c + Vector2(16 * u, 34 * u)]), acc, 2.0 * s)
-	var lbl := "大王" if card.is_big_joker() else "小王"
+	var lbl := Lingo.t("大王") if card.is_big_joker() else Lingo.t("小王")
 	var zh_font := StageTheme.zh()
 	var lbl_fs := int(12.0 * s)
 	var lbl_w := zh_font.get_string_size(lbl, HORIZONTAL_ALIGNMENT_LEFT, -1, lbl_fs).x
@@ -375,7 +384,7 @@ func _draw_tag(w: float) -> void:
 	sb.shadow_color = Color(StageTheme.MARKED.r, StageTheme.MARKED.g, StageTheme.MARKED.b, 0.7)
 	sb.shadow_size = 10
 	draw_style_box(sb, tag)
-	draw_string(StageTheme.zh(), Vector2(tag.position.x, tag.position.y + 17.0 * s), "待弃",
+	draw_string(StageTheme.zh(), Vector2(tag.position.x, tag.position.y + 17.0 * s), Lingo.t("待弃"),
 		HORIZONTAL_ALIGNMENT_CENTER, tw, int(14.0 * s), Color("3a2200"))
 
 

@@ -4,7 +4,7 @@
 > 待办看 [TODO.md](TODO.md) · 变更史看 [CHANGELOG.md](CHANGELOG.md) · 经验看 [LESSONS.md](LESSONS.md)
 > 规则与美术的**原则**在 [CLAUDE.md](CLAUDE.md) · 设计规格在 `docs/design/`
 >
-> **最后更新:2026-08-17**(08-09 之后的增量见文末「增量快照」节,数字冲突以那节为准)
+> **最后更新:2026-08-21**(08-09 之后的增量见文末「增量快照」节,数字冲突以那节为准)
 
 ---
 
@@ -19,7 +19,8 @@ Lumines 的节奏推进 + Balatro 的构筑。一局 4 段 × 6 拍 × 8 秒 ≈
 
 | 项 | 状态 | 命令 |
 |---|---|---|
-| 单元测试 | **1868 passed / 0 failed**(2026-08-17,~12.5 分钟;四判据全满足) | `godot --headless --path . --script res://tests/runner.gd` |
+| 单元测试 | **2479 passed / 0 failed**(2026-08-22,~13 分钟;四判据全满足,`^ERROR` 6 条全在白名单) | `./tools/unittest.sh`(四判据唯一一份;裸跑 = `godot --headless --path . --script res://tests/runner.gd`) |
+| CI | `.github/workflows/tests.yml`(push/PR 跑 `--import` + `unittest.sh`;**尚未在 GitHub 上验证过一次**,首跑可能要调 Godot 下载链接) | 推送即触发 |
 | 小丑牌覆盖门 | 63 张,由全量门覆盖(单卡 ~12 分钟起,含全量单测) | `SYNC5_KIT_ID=<id> godot --headless --path . --script res://tools/kit.gd` |
 | 内容门 | **2026-08-17 晚在跑**(⚠ 实测 ~4.5 小时,不是表里旧的 910s;上一次全绿 = 08-16 14:51,之后改了 14 处) | `./tools/gate.sh` |
 | 求解器一致性 | **三关配对差 +0.0**(08-16 分级门) | `godot --headless --path . --script res://tools/pair.gd` |
@@ -38,7 +39,7 @@ Lumines 的节奏推进 + Balatro 的构筑。一局 4 段 × 6 拍 × 8 秒 ≈
 | | 现役 |
 |---|---|
 | 小丑牌 | **63 张**(2026-08-16 twotone 拆黑调/红调后;⚠ 曾长期写着 23/61,以 `data/jokers.json` 计数为准) |
-| Boss 脸 | **29 张**在池(`raisedbar` 2026-08-09 由用户拍板进第三轮);另有 1 张退役(`rotation`) |
+| Boss 脸 | **28 张在池**(按 `tier` 计 8/8/8/4,以 `faces.json` 有无 `tier` 为准)+ 5 张无 tier 未入池(unplugged/static/rotation/cover/freshsheet)。⚠ 此前三处写着 29/30/28 打架(2026-08-21 评审),以本行为准 |
 | 主角 | 8 个,被动数值是初稿 |
 | 结构 | 4 段 × 6 拍 × 8 秒,每 3 拍一次商店 |
 
@@ -75,8 +76,9 @@ tools/bot.gd                   玩家策略(完美玩家 / 规则 bot)
 (能用 3 次,真人只用 1.01)——**净方向要实测,不能从这两个数直接推**。
 仍零数据:`λ` 前瞻 · `ε` 分布形状 · `d` 深度。
 
-⚠⚠ **`run.json section_targets` 与 `sim.json bot_targets` 是占位,不是定稿。**
-整套目标分体系要跟着新目标函数(留存最大化)重新设计。**别把它们当待修的 bug。**
+⚠⚠ **`sim.json bot_targets` 是仪器刻度(占位),`run.json section_targets` 08-15~17 已按真人试玩重锚**
+(`[420,1500,3100,5600]`,这是「目标分由生成器算」的显式例外,增量快照有账)。
+整套目标分体系仍要跟着新目标函数(留存最大化)重新设计 —— 但**别再说「真人数据为零」**。
 
 而配置 `c` 的其余维度(脸的排布、经济、货架)**全是手写的** —— 那是**设计**,
 不是待自动化的技术债(用户 2026-08-08 明确)。
@@ -93,17 +95,24 @@ tools/bot.gd                   玩家策略(完美玩家 / 规则 bot)
 | `jokers.json` | 小丑牌(效果 DSL,`core/fx.gd` 解释) |
 | `faces.json` | Boss 脸(参数表 + `tier` + `proof` 通路 + `weak_upper_bound`)。**纯数据,散文一律在 `docs/design/blinds.md`,`db.gd` 拒绝散文键** |
 | `run.json` | 关卡结构 · 目标分 · `death_spec` · `beat_budget` |
-| `economy.json` `characters.json` `sim.json` `ui.json` `tape.json` | 经济 / 主角 / 机器人信念 / 界面坐标文案 / 打点开关 |
+| `economy.json` `characters.json` `sim.json` `ui.json` `tape.json` | 经济(含 `joker_upgrade` 升级曲线)/ 主角 / 机器人信念 / 界面坐标文案(blindcard·jokercard 与脸·卡**交叉校验**)/ 打点开关(含 `upload` 回传节) |
+| `tickets.json` | 券(消耗品层,日清零;id 必须在 `core/ticket.gd WIRED` 登记 —— 券的用法在代码里接线) |
+| `assets.json` | META 资产(唱片/声势/合约;价格升序即阶梯;`season_now` 赛季脚手架) |
+| `director.json` | B 轴剧本 + `context` 四开关(novelty/streak_shift/returning/explore_shelf) |
+| `ranking.json` | **仪器输出**(`price.gd` → `rankgen.py`),手改无效;校验守池脸完备性 |
+| `lingo.json` | 中→英对照表(**改英文文案改这里**;`t_lingo` 守完整性) |
+| `tutorial.json` `boons.json` | 教学脚本(4 步,`require` 动作门)/ 盲注 boon |
 
 **改卡改平衡 = 改 JSON**,不用动代码。
 
 ---
 
-## 工具链(`tools/`,41 个文件)
+## 工具链(`tools/`,55 个 .gd + 4 .py + 1 .sh)
 
 | 工具 | 干什么 | 耗时 |
 |---|---|---|
 | **`gate.sh`** ⚑ | **加了内容就要过的门**(测试+脸覆盖自证+**小丑牌覆盖自证**+单调性+哨兵+流程+打点+重放+尺子) | ⚠⚠ **实测 ~4.5 小时**(2026-08-15 逐步计时,见下)。~~15 分钟~~ 那个数是 **S10 之前**的,**过期了一个数量级** |
+| **`unittest.sh`** | 全量单测 + **四判据唯一一份**(exit 0 · 0 failed · SCRIPT ERROR 0 · 非白名单 ^ERROR 0 · 通过数 ≥ 2400);gate.sh 与 CI 都调它 | ~13 分钟 |
 | `pair.gd` | 守「求解器 = 游戏代码」,三关递进 | ~3 分钟 |
 | `curve.gd` | 生成器:录分 → 反解目标分 | — |
 | **`prior.gd`** ⚑ | **先验层(2026-08-14 新)· 三个模式**:①(默认)牌型分布 / 谓词 `p̂` / **规则牌 Δp**;② `SYNC5_PRIOR_MODE=discard` **弃牌兑换率**(b=0→4 期望分 +82%)+ 求解器弃牌盲区;③ `SYNC5_PRIOR_MODE=shelf` **货架曝光**(解析零采样)。判定/谓词/抽卡**一律不重写**,全部调 `core/pattern.gd` + `core/fx.gd`,或对实现做解析求解。自带闭式自检、快慢路径逐次对账、跨模式交叉自检。规格 = [`docs/design/prior.md`](docs/design/prior.md) | ①~440s @20万 · ②~150s @400手 · ③ 秒级 |
@@ -114,6 +123,10 @@ tools/bot.gd                   玩家策略(完美玩家 / 规则 bot)
 | **`decomp.gd`** ⚑ | **五项难度分解(2026-08-14 新)**:回答「**难在哪**」而不是「多难」。四臂共用随机数(基准/无脸/ε 退化/λ=0/ORACLE),① 数值压力 ② 上界压缩 ③ 技巧惩罚 ④ 信息惩罚 ⑤ 运气暴露 **第一次并排在一张表上**。⚠ 表只让形状可见,**不说好坏**(判断权在设计者) | ~70s/局 × 5 臂 |
 | `formal.gd` `dp.gd` `dpcheck.gd` `dpdiag.gd` `udp.gd` | `docs/design/solving.md` 的建模验证 | 各 10-25 分钟 |
 | `replay.gd` | **L2 决策重放门**(建模侧完整性) | 秒级 |
+| **`hundred.gd`** | Director 100 关 × 4 墙验证(不重复/池内/min_run/非空) | 分钟级 |
+| **`rankgen.py`** | `ranking.json` 的**唯一合法来源**(吃 `price.gd` 日志;时间族/改目标分族设计性压最狠端 + 池脸兜底) | 秒级 |
+| `probbook.py` | 概率账本重刷(⚠ 仪器债:不产出曝光列,分母恒为持有拍) | 秒级 |
+| `tapeserver.py` / `webserve.py` | Tape 回传参考接收端 / 手机试玩 HTTPS 服务(会话级进程,要重起) | — |
 | 各 `*_sheet.gd` `shoot.gd` `glass.gd` | 截图探针 | — |
 
 ### ⚠⚠ 门的实测耗时(2026-08-15 逐步计时)—— **上表的秒数整体过期,别信**
@@ -159,30 +172,68 @@ tools/bot.gd                   玩家策略(完美玩家 / 规则 bot)
 
 **目录页 = [`docs/design/README.md`](docs/design/README.md)。**
 
-2026-08-09 按用户定的结构重组完成:**30 篇 → 20 篇,编号全部去掉,按主题命名,
-每一篇自带自己的验证节**。
-
-```
-README      导览                jokers   小丑牌与主角      blinds    盲注(Boss 脸)
-generating  生成方案            solving  求解方案          ui_meta   UI 与 META(前瞻)
-levels      关卡 + 经济商店      tech     分层与 schema     vision    初衷与玩法逻辑
-cards       牌与牌型            telemetry 打点
-—— 支撑 ——  gates(那道门的规格) · capability(模型能看见什么、打得多好) · research_* ×3
-—— 历史 ——  solving_history · solver_roadmap · history_adversarial · history_parametric
-```
+2026-08-09 去号按主题命名;现 35 篇,**完整表只在 README 里维护**(这里不再抄第二份——
+2026-08-21 评审时这里的地图已漏 9 篇并把已实施的 META 标成前瞻)。
+⚠ 评审结论:`levels.md`(经济)/ `tech.md`(schema)/ `difficulty.md`(Director 状态)三篇落后 1-3 代,
+修订前**以代码与 `data/*.json` 为准**,见 `docs/review_20260821.md`。
 
 ---
 
 ## 三条一眼就该知道的现状
 
-1. **目标分表是占位** —— 别当待修的 bug,它是整套重新设计的产物。
-2. **模型绝对值不可信,只信相对排序** —— 通关率低估 8.4 个百分点,主因未完全定位。
-3. **真人数据为零** —— 所有「等真人 Tape」的事项都卡在这里,而这一条只有用户能解。
+1. **`run.json section_targets` 是真人试玩重锚的值(08-15~17,`[420,1500,3100,5600]`),`sim.json bot_targets` 是仪器刻度** ——
+   两张表不是一回事,**别用 sim 验前者**(它结构上读的是后者)。死亡率形状 `death_spec` 是设计常量。
+2. **模型绝对值不可信,只信相对排序** —— 通关率低估 8.4 个百分点,主因未完全定位;S4 的读数还在一个**没有 boon 的探针世界**里
+   量的(2026-08-21 评审 R6,修复中)。
+3. **真人样本薄**(用户本人十来局,新手零局)—— 发挥系数仍禁拍初值、禁用机器人代算;回传通道已建但端点未部署。
+   ⚠ 本节 2026-08-21 重写:旧版三条(「目标分占位 / 真人数据为零」)已被同文件下文推翻却没打标。
 
 
 ---
 
-## 增量快照(2026-08-10 ~ 08-14,与上文冲突时以本节为准)
+## 增量快照(2026-08-10 ~ 08-19,与上文冲突时以本节为准)
+
+- **2026-08-21 · 全面评审 + 按批次修复**(细账 CHANGELOG 08-21;评审报告 `docs/review_20260821.md`):
+  A 玩家可见 ✅(8 张卡升级无效 · 重开绕过 Director/min_run · 教学商店没收 · 资产页错位 · 四小件)·
+  B 发布线代码侧 ✅(导出过滤 + .gdignore;**签名/包名/版本归用户**)· D 校验补洞 ✅ · C 仪器 ✅(gate.sh 四判据 ·
+  gate.gd 曲目税 · trilogy 摘豁免 · RunLoop boon 入参/播种 · pair 退出码)· E 文档 ✅(TODO 776→254)· **F 性能未动**。
+  批 A+D 宽探针 1976/0;**全量门仍未跑 —— C 批改了门与 RunLoop,下一次全量门是新基线,不可与旧读数直接比**。
+- **2026-08-21 深夜 · 外部审查逐条复核修完**(细账 CHANGELOG 同日晚节):HIGH 四条属实全修(`Run.reset_section_state()` 一份 ·
+  `fork()` 补全 + 逐字段断言 · `upload` 可选 · 五处文档矛盾 + tech.md 四个旧示例块删)· H5 CI 补上 · MEDIUM 全修(tapeserver 路径门 ·
+  存档原子写/.bak/版本键 · probbook/replay 扫 sent/ · shop 升级槽钉位 + 按钮只建一次 · gate.sh 正则与未跟踪文件)。
+  **四判据抽成 `tools/unittest.sh` 唯一一份**;全量单测 **2445/0**。全量门仍未跑。
+- **2026-08-22 · 「能修的修完了吗」批**(细账 CHANGELOG 08-22):F 性能 ✅(首页/图鉴/荣誉/盲注板拆「静态层 + 动效层」,Shader 只编译一份)·
+  探针世界有 boon(`RunLoop.Opts.boon` 缺省掷;**所有仪器新基线**)· replay 只取真人局 + 真注入(此前几天验的是机器局空集)·
+  popup 补臂 + 反向校验 · context 四阈值进 `director.json context_tuning` · 商店 boost 改注入 · 分数滚动复活。
+  首页档案栏**全真**(08-22 拍板落地):参与度等级(`assets.json profile.levels`,零数值校验锁)· 称号 · 头像/名字跟当前主角 · ◈ 真钱包;
+  ◆ 跨局金币 chip 删;成就页读终身计数 `SaveState.stats()`。meta.md §8 已从待拍转为实装记录。
+- **2026-08-20 · 设计稿推荐项全落地**(用户:「一切先按你的设计来,我的工作是试玩」):
+  回归局(≥3 天回来首局 = 温和+熟脸)· Boon novelty · 探索型货架(没用过的 Target ×1.5,
+  weighted_pick 空 boost 逐字节不变有断言)· 点唱机资产(首页音景)· 赛季脚手架
+  (下架≠没收)· META 快照进 Tape.begin。四开关全开。探针 1028/0。
+  **price 全表已出**(20.6h,26 放置实测,ranking.json 已重刷精修版;顺手抓出并修掉
+  trilogy 静默丢脸 —— rankgen 兜底规则 + validate_ranking 反向完备性);
+  全量门仍未跑(试玩后)。
+- **2026-08-19 深夜 · 两条拍板**:streak_shift **开**(「就是要千人千面,但不要被察觉」)·
+  **资产 v2 推倒重做**(「没有回本周期…买了你就想玩,玩了你就想买」——
+  分红删掉,资产 = 唱片×6(场馆歌单加曲)/彩带机/应援团/券合约×2;
+  `Music.track_pool` 收口为免费首曲+已购唱片)。探针 1020/0,资产页 v2 截图 ✓。
+- **2026-08-19 晚 · 追加两件(用户当日新需求)**:**Director 读 context**
+  (SaveState 战绩圈 + faces_seen → `roll_run(..., ctx)`;novelty 开 / streak_shift 关;
+  推翻 08-14 拍板已就地标注;新断言在 t_director)· **META 资产循环**
+  (`data/assets.json` + `core/asset.gd` + 荣誉页资产子页 + 结算收入行;宝石/券双出口,
+  不碰局内金币;新测试域 `t_asset`)。批次探针 1011/0,资产页/结算行截图 ✓。
+  全量门与全量单测**仍未跑**(累积三批,等用户喊)。
+- **2026-08-19 · 进入 1.1,一批四件全落地**(细账在 [CHANGELOG.md](CHANGELOG.md) 08-19 节):
+  **券上线**(`tickets.json enabled: true`)· **音乐卡拍 v2**(`Music.sync_beat()`,
+  波形实测 10/10)· **英文化**(`core/lingo.gd` + `data/lingo.json` ~300 条,
+  探针钉死 cn,`SYNC5_LANG=en` 强制;新测试域 `t_lingo`)· **回传通道**
+  (`core/uplink.gd` + `view/beacon.gd` + `tools/tapeserver.py`,**缺省关**等端点;
+  新测试域 `t_uplink`;`SaveState.install_id()` 新键)。
+  ⚠ **本批只跑了秒级验证**(快速探针 455/0 · 英文 7 屏 + 中文对照目视):
+  单测全量套件与门都没跑(批次纪律,等用户喊)——上面回归表的 1868/0 是 08-17 的数,
+  两个新域会让它变大。⚠ en 模式 `DB.ui()/tutorial()/run()` 返回**翻译副本**,
+  cn/探针原样 —— 拿 DB 数据做逐字节对照的探针不受影响(探针恒 cn)。
 
 - **2026-08-15 ~ 17 · 教学关重做 + 升级系统 + 券 + 三处重锚**(细账在 [TODO.md](TODO.md)
   「2026-08-17 交接」与 [CHANGELOG.md](CHANGELOG.md),此处只留读数):
@@ -251,12 +302,11 @@ cards       牌与牌型            telemetry 打点
   访问此网站;Chrome:高级→继续前往);换 WiFi 后删 `build/cert/` 重跑。包 147MB(pck 116MB;瘦身后账:立绘转 WebP)。
 - **Android**:**裸包已通**(08-12 晚):`godot --headless --path . --export-debug
   "Android" build/sync5-dev.apk` → 115MB,arm64-v8a、minSdk 24 / targetSdk 35、
-  **零权限**、竖屏。调试签名 + 占位包名 `com.sync5.dev`(上传 TapTap 前要换正式包名 +
-  发布 keystore,见 TODO)。工具链四处修正已留注释(editor_settings 两处路径、
-  project.godot 的 `handheld/orientation` 与 `import_etc2_astc`)。
-  **TapTap 路线定案**:[docs/design/taptap.md](docs/design/taptap.md) —— 离线+无内购走
-  「正式上线(试玩版)」,免版号/软著/ICP;硬门槛 = 防沉迷 SDK(要包 Godot Android
-  插件)+ 隐私政策页。
+  **零权限**、竖屏。⚠ **1.0 实际以 debug 签名 + 占位包名 `com.sync5.dev` + `0.1.0-dev` 出货**(`build/sync5-taptap.apk`,08-19);
+  传 TapTap 前必须换 release keystore(凭据操作归用户)+ 正式包名 + 版本号 —— **包名上传后不可改**。
+  **发行口径(2026-08-17/19 拍板,取代 taptap.md 旧结论)**:TapTap 只是**给朋友试玩**的渠道,正式发行走**美国**;
+  **防沉迷 SDK 不做**;国内试玩需要 **App 备案**(用户自办)+ 软著(材料包我可出),版号不需要(免费试玩、无内购)。
+  工具链四处修正已留注释(editor_settings 两处路径、project.godot 的 `handheld/orientation` 与 `import_etc2_astc`)。
 - **新工具**:`tools/probbook.py`(概率账本)· `tools/art/fontsubset.sh`(Web 中文字体子集,
   文案加新字要重跑)· `tools/art/glassprobe.gd` / `glassfilm.gd` / `blind_fp_extract.py`。
 - **数值 v3 已落地**(08-12 晚,`docs/design/numbers.md` §8):宪法修订(玩家两条成长线

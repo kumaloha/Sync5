@@ -404,3 +404,45 @@ func _t_upgrade(t) -> void:
 	t.check(not up.can_upgrade(), "满级不可再升")
 	t.eq(up.upgrade_cost(), -1, "满级 upgrade_cost() = −1, 不是 0 —— 0 会被读成「免费」")
 	up.level = 1
+	# ---- 2026-08-21 评审 R1:六个逃生口操作码此前在放大段之前就 return ——
+	# 8 张卡的升级是纯扣钱。下面逐个操作码做 A/B:满级 ≠ Lv1(且 ≥ Lv1)。
+	var faces := [Card.new(11, 0), Card.new(12, 1), Card.new(13, 2), Card.new(2, 3), Card.new(4, 0)]
+	var esc := {
+		"additive_face_value": {"do": {"additive_face_value": 20}},
+		"additive_low_value": {"do": {"additive_low_value": 15}},
+		"additive_cache_top": {"do": {"additive_cache_top": 1}},
+		"chips_per_card(red)": {"do": {"chips_per_card": 3, "card_filter": "red"}},
+		"chips_per_card(black)": {"do": {"chips_per_card": 3, "card_filter": "black"}},
+		"chips_per_card(rank_lte_5)": {"do": {"chips_per_card": 9, "card_filter": "rank_lte_5"}},
+	}
+	for name in esc:
+		var a1 := base.duplicate()
+		a1["scoring_cards"] = faces
+		a1["cache_cards"] = faces
+		var a2 := a1.duplicate()
+		Fx.apply_effects([esc[name]], {}, a1, 1.0)
+		Fx.apply_effects([esc[name]], {}, a2, 2.0)
+		t.check(int(a1["additive"]) > 0, "%s fires at Lv1 (fixture sanity)" % name)
+		t.eq(int(a2["additive"]), int(a1["additive"]) * 2,
+			"%s doubles at max level (escape hatch must scale like the rest)" % name)
+	var m1 := base.duplicate()
+	m1["target_factor"] = 12.0
+	var m2 := m1.duplicate()
+	Fx.apply_effects([{"do": {"mult_from_target_factor": 0.5}}], {}, m1, 1.0)
+	Fx.apply_effects([{"do": {"mult_from_target_factor": 0.5}}], {}, m2, 2.0)
+	t.check(absf(float(m1["mult"]) - 6.5) < 0.001, "mirror Lv1: 1 + 11×0.5 = ×6.5")
+	t.check(absf(float(m2["mult"]) - 12.0) < 0.001, "mirror max: 1 + 5.5×2 = ×12 (increment scaled)")
+	# 金币倍增器不放大, 且只有金币通道的卡**不许挂升级报价**(卖空气)
+	var r1 := base.duplicate()
+	var r2 := base.duplicate()
+	Fx.apply_effects([{"do": {"coins_factor": 2}}], {}, r1, 1.0)
+	Fx.apply_effects([{"do": {"coins_factor": 2}}], {}, r2, 2.0)
+	t.eq(float(r1["coins_factor"]), float(r2["coins_factor"]), "coins_factor never scales")
+	var royalty := Joker.by_id("royalty")
+	t.check(royalty != null and not royalty.can_upgrade(),
+		"coin-only card (royalty) is not upgradable — an upgrade that changes nothing is a scam")
+	# 全 roster:凡可升级的卡, 它的 do 里必须有一个会吃放大的通道(结构契约)
+	for e in DB.jokers():
+		var j := Joker.new(e)
+		if j.can_upgrade():
+			t.check(j.has_scalable_effect(), "%s: upgradable ⇒ has a scalable channel" % j.id)

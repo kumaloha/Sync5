@@ -770,9 +770,20 @@ class StageCard:
 	## 下方贴死会不对称(用户 2026-08-05 提的)。
 	const TAIL_GAP := 12.0
 
+	static var _mirror_shader: Shader   # 只编译一份(同 PaperCard._mask_shader)
+
 	static func mirror_material(y0: float, band: float, peak: float) -> ShaderMaterial:
-		var sh := Shader.new()
-		sh.code = """
+		if _mirror_shader == null:
+			_mirror_shader = Shader.new()
+			_mirror_shader.code = _MIRROR_CODE
+		var m := ShaderMaterial.new()
+		m.shader = _mirror_shader
+		m.set_shader_parameter("y0", y0)
+		m.set_shader_parameter("band", band)
+		m.set_shader_parameter("peak", peak)
+		return m
+
+	const _MIRROR_CODE := """
 shader_type canvas_item;
 uniform float y0 = 0.0;
 uniform float band = 128.0;
@@ -784,12 +795,6 @@ void fragment() {
 	COLOR.a *= peak * pow(1.0 - t, 1.35);
 }
 """
-		var m := ShaderMaterial.new()
-		m.shader = sh
-		m.set_shader_parameter("y0", y0)
-		m.set_shader_parameter("band", band)
-		m.set_shader_parameter("peak", peak)
-		return m
 
 
 	## 在 `ci` 上把 `card` 这块玻璃 1:1 翻转画到下方(调用方负责挂遮罩材质)。
@@ -1068,13 +1073,31 @@ class BlindBoard:
 	var score := -1
 	var phrases_left := -1
 	var _t := 0.0
+	var _eq: Control = null        # 均衡器层 —— 板上唯一在动的东西, 只有它每帧重画
+	var _eq_rect := Rect2()        # 静态层排版时记下, 均衡器层照着画
+
+	## 2026-08-21 评审:此前整块玻璃(背光 + 程序化玻璃 + 两个字号自适应 while 循环)每帧重画,
+	## 而只有均衡器在动。静态部分现在只在 setup() 时重画。
+	class EqLayer:
+		extends Control
+		var board = null
+		func _draw() -> void:
+			if board != null and board._eq_rect.size.x > 0.0:
+				StageCard.eq_band(self, board._eq_rect, StageCard.accent_for(board.section_idx),
+					board._t, board.section_idx, 26)
 
 	func _ready() -> void:
+		_eq = EqLayer.new()
+		_eq.board = self
+		_eq.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_eq.set_anchors_preset(Control.PRESET_FULL_RECT)
+		add_child(_eq)
 		set_process(true)
 
 	func _process(delta: float) -> void:
 		_t += delta
-		queue_redraw()
+		if _eq != null:
+			_eq.queue_redraw()
 
 	func setup(p_section: int, p_target: int, p_mod, p_prefix: String,
 			p_score: int = -1, p_left: int = -1, p_boon = null) -> void:
@@ -1112,7 +1135,7 @@ class BlindBoard:
 		# header: MODE line + the blind's index in the tour
 		var head := "MODE: %s" % ("BOSS WALL" if is_wall else "BLIND")
 		if in_progress():
-			head = "本场进行中 · %s" % head
+			head = Lingo.t("本场进行中 · %s") % head
 		elif prefix != "":
 			head = "%s · %s" % [prefix, head]
 		draw_string(med, Vector2(pad, 48), head, HORIZONTAL_ALIGNMENT_LEFT, cw, 14,
@@ -1125,7 +1148,7 @@ class BlindBoard:
 		var venue := GameConfig.gig_name(section_idx)
 		draw_string(zh, Vector2(pad, 94), venue, HORIZONTAL_ALIGNMENT_LEFT, cw, 34,
 			Color("ffffff"))
-		var tier := "BOSS 墙" if is_wall else GameConfig.blind_name(section_idx)
+		var tier := Lingo.t("BOSS 墙") if is_wall else GameConfig.blind_name(section_idx)
 		var tw := zh.get_string_size(tier, HORIZONTAL_ALIGNMENT_LEFT, -1, 17).x
 		var chip := Rect2(w - pad - tw - 22.0, 66, tw + 22.0, 30)
 		draw_style_box(StageTheme.box(Color(acc.r, acc.g, acc.b, 0.16),
@@ -1134,8 +1157,8 @@ class BlindBoard:
 			HORIZONTAL_ALIGNMENT_CENTER, chip.size.x, 17, Color("f2fbff"))
 		StageCard.rule_line(self, pad, 110, cw, acc)
 
-		# the equaliser band — the card's heartbeat
-		StageCard.eq_band(self, Rect2(pad, 118, cw, 44), acc, _t, section_idx, 26)
+		# the equaliser band — the card's heartbeat(在 EqLayer 每帧画, 这里只记矩形)
+		_eq_rect = Rect2(pad, 118, cw, 44)
 
 		# hero number. 段末商店讲目标分; 段中商店讲**还差多少** —— 那才是这一刻
 		# 要做的决策所依赖的数(用户 2026-08-06:「买牌时看着目标买」)。
@@ -1144,38 +1167,39 @@ class BlindBoard:
 		var ttxt := StageTheme.fmt_thousands(deficit if in_progress() else target)
 		var tcol := StageTheme.GOLD if met else Color("ffffff")
 		if met:
-			ttxt = "已达标"
+			ttxt = Lingo.t("已达标")
 		draw_string(num if not met else zh, Vector2(pad, 202), ttxt,
 			HORIZONTAL_ALIGNMENT_LEFT, cw, 42 if not met else 32, tcol)
 		var tnw := (num if not met else zh).get_string_size(
 			ttxt, HORIZONTAL_ALIGNMENT_LEFT, -1, 42 if not met else 32).x
 		if not met:
 			draw_string(zh, Vector2(pad + tnw + 10.0, 202),
-				"还差" if in_progress() else "目标分",
+				Lingo.t("还差") if in_progress() else Lingo.t("目标分"),
 				HORIZONTAL_ALIGNMENT_LEFT, cw, 15, StageTheme.DIM)
 		if in_progress():
 			# the running score sits where the wage chip does on the next-blind board
-			draw_string(med, Vector2(pad, 202), "已得 %s / %s"
+			draw_string(med, Vector2(pad, 202), Lingo.t("已得 %s / %s")
 				% [StageTheme.fmt_thousands(score), StageTheme.fmt_thousands(target)],
 				HORIZONTAL_ALIGNMENT_RIGHT, cw, 17, StageTheme.DIM)
 		else:
-			draw_string(med, Vector2(pad, 202), "奖励 ◆%d" % GameConfig.SECTION_CLEAR_REWARD,
+			draw_string(med, Vector2(pad, 202), Lingo.t("奖励 ◆%d") % GameConfig.SECTION_CLEAR_REWARD,
 				HORIZONTAL_ALIGNMENT_RIGHT, cw, 17,
 				Color(StageTheme.GOLD.r, StageTheme.GOLD.g, StageTheme.GOLD.b, 0.95))
 
 		# footer: play limits on the left, boss rule (or its absence) right
-		var limits := "%d 乐句 · %.0f 秒/句" % [GameConfig.PHRASES_PER_SECTION,
+		var limits := Lingo.t("%d 乐句 · %.0f 秒/句") % [GameConfig.PHRASES_PER_SECTION,
 			GameConfig.phrase_duration(section_idx)]
 		if in_progress():
-			limits = "还剩 %d 拍 · %.0f 秒/句" % [phrases_left,
+			limits = Lingo.t("还剩 %d 拍 · %.0f 秒/句") % [phrases_left,
 				GameConfig.phrase_duration(section_idx)]
 		var limits_color: Color = StageTheme.DIM if not in_progress() else Color(acc.r, acc.g, acc.b, 0.92)
 		if boon != null:
 			limits = "✦ %s · %s" % [boon.cn_name, String(DB.ui().get("blindcard", {})
 				.get(String(boon.id), {}).get("command", boon.fx_text))]
 			limits_color = StageCard.boon_accent()
-		draw_string(zh, Vector2(pad, 232), limits,
-			HORIZONTAL_ALIGNMENT_LEFT, cw, 15, limits_color)
+		# ⚠ 脸胶囊**先算后画**, limits 行的可用宽度让给它 —— 两者同一条视觉带,
+		# 中文短看不出来, 英文一长就叠(2026-08-19 en 截图抓到 boon 行被胶囊压字)。
+		var limits_w := cw
 		if mod != null:
 			# 脸说明走 ui.json 的中文 command(2026-08-12 截图抓到公示板还在
 			# 说英文 fx —— 上一轮文案汉化漏了这两行), 英文 fx 只做兜底
@@ -1191,6 +1215,13 @@ class BlindBoard:
 				Color(StageTheme.PINK.r, StageTheme.PINK.g, StageTheme.PINK.b, 0.60), 1, 9), fr)
 			draw_string(med, Vector2(fr.position.x, fr.position.y + 20.0), ftxt,
 				HORIZONTAL_ALIGNMENT_CENTER, fr.size.x, ffs, Color("ffa8c6"))
+			limits_w = maxf(0.0, fr.position.x - pad - 10.0)
+		var lfs := 15
+		while lfs > 10 and zh.get_string_size(limits,
+				HORIZONTAL_ALIGNMENT_LEFT, -1, lfs).x > limits_w:
+			lfs -= 1
+		draw_string(zh, Vector2(pad, 232), limits,
+			HORIZONTAL_ALIGNMENT_LEFT, limits_w, lfs, limits_color)
 
 
 class DJKey:

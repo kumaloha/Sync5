@@ -16,7 +16,7 @@ var fx_text: String
 func _init(e: Dictionary) -> void:
 	id = String(e["id"])
 	name = String(e["name"])
-	cn_name = String(e["cn"])
+	cn_name = Lingo.pick(e)   # 名字带语言(1.1 英文化):en 挑现成的 name 字段
 	fx_text = String(e["fx"])
 
 

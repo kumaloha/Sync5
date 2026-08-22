@@ -46,17 +46,12 @@ func reset(face_seed: int = -1) -> void:
 	deck = Deck.new()
 	cache.clear()
 	section_idx = 0
-	phrase_in_section = 0
-	section_score = 0
+	reset_section_state()     # 段内状态的清单只在那一处维护
 	phrase_index = 0
 	joker_slots = [null, null, null, null]
 	prev_kind = -99
-	first_kind = -99
-	section_discards_used = 0
-	section_kinds.clear()
 	cache_meta = {"ages": {}, "next": 0}
 	previous_raw_score = 0
-	request_last = ""
 	character = null
 	coins = GameConfig.STARTING_COINS
 	stage = Stage.DECISION
@@ -95,8 +90,8 @@ func roll_faces(face_seed: int = -1, run_index: int = -1) -> void:
 	# `SectionMod.roll`(Director 文件头承诺的), 所以现在接上**不改变任何掷法**,
 	# 也不改 RNG 消耗 —— 排序表(tools/price.gd 的仪器输出)到位后才真正生效。
 	# ⚠ 排序是**仪器读数不是设计常量**, 所以它是入参, 不进 data/(会过期)。
-	run_faces = Director.roll_run(run_index, _blind_rng, face_ranking)
-	run_boon = BlindBoon.roll(_blind_rng)
+	run_faces = Director.roll_run(run_index, _blind_rng, face_ranking, director_ctx)
+	run_boon = BlindBoon.roll(_blind_rng, director_ctx.get("boons_seen", {}))
 
 
 ## This section's Boss face id ("" = none).
@@ -147,10 +142,10 @@ func next_request_goal(p: Phrase = null) -> String:
 
 static func request_label(goal: String) -> String:
 	match goal:
-		"color_mix": return "红黑同台"
-		"face_or_ace": return "含 J/Q/K/A"
-		"initial_cache": return "用初始缓存"
-		"fresh_kind": return "更换牌型"
+		"color_mix": return Lingo.t("红黑同台")
+		"face_or_ace": return Lingo.t("含 J/Q/K/A")
+		"initial_cache": return Lingo.t("用初始缓存")
+		"fresh_kind": return Lingo.t("更换牌型")
 	return ""
 
 
@@ -170,6 +165,9 @@ var tutorial := false
 ## 空 = Director 退回原掷法(见 roll_faces)。**别把它搬进 data/**:它是仪器读数,
 ## 抄进配置就会过期, 而「同一个口径抄第二份」是这个项目最贵的一类错。
 var face_ranking: Dictionary = {}
+## 玩家状态 m 的切片({streak, seen}, 2026-08-19「基于 context」)。与 face_ranking
+## 同一条纪律:**编排器传入, core 不偷读存档**;缺省空 = 掷法逐字节不变。
+var director_ctx: Dictionary = {}
 
 
 func target() -> int:
@@ -356,6 +354,14 @@ var last_section_phrases := 0
 func next_section() -> void:
 	last_section_phrases = phrase_in_section
 	section_idx = mini(section_idx + 1, GameConfig.SECTIONS_PER_RUN - 1)
+	reset_section_state()
+
+
+## 进一段时要清的**全部**段内状态 —— 游戏(next_section)与探针(RunLoop 的段循环)共用这一份。
+## 2026-08-21 外部审查:RunLoop 开新段只清了 section_score 与 first_kind, section_kinds /
+## section_discards_used / request_last 跨段继承 ⇒ 曲目税、配给预算、点歌在模型里与游戏分叉
+## (「规则在游戏里不在模型里」又一例)。清单只许在这里维护。
+func reset_section_state() -> void:
 	phrase_in_section = 0
 	section_score = 0
 	# the lock is per-SECTION: a new blind opens with nothing locked

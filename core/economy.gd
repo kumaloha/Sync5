@@ -94,14 +94,18 @@ static func shelf_weight(j, target_mult: float, rarity_mult: Dictionary = {}) ->
 
 
 ## 按每卡权重**不放回**抽 `count` 张。⚠ `rng = null` ⇒ 全局 `randi_range`。
+## `boost` = {joker_id: 乘数}(探索型货架, context.md 岔 #1)—— **缺省空 = 逐字节不变**:
+## 空表时连乘法都不做(sim/bot/探针都不传, 它们的随机流一位都不能漂, 下面那条 41.9% 的
+## 事故注释就是理由)。只有 view/shop.gd 给真人传非空表。
 static func weighted_pick(candidates: Array, count: int, target_mult: float,
-		rng: RandomNumberGenerator = null, rarity_mult: Dictionary = {}) -> Array:
+		rng: RandomNumberGenerator = null, rarity_mult: Dictionary = {},
+		boost: Dictionary = {}) -> Array:
 	var pool := candidates.duplicate()
 	var picked: Array = []
 	while picked.size() < count and not pool.is_empty():
 		var total := 0
 		for j in pool:
-			total += shelf_weight(j, target_mult, rarity_mult)
+			total += _boosted(j, target_mult, rarity_mult, boost)
 		# ⚠⚠ **刻意不用三元表达式**:第一版写成 `(A if rng != null else B)`,
 		# sim 九个队列里有一个从 41.9% 变成 41.8%(1000 局翻了 1 局)。sim 是**确定性**的
 		# (`_rng.seed = 90000 + r`), 所以那不是噪声 —— 唯一的嫌疑就是**没被走到的那一支
@@ -113,12 +117,19 @@ static func weighted_pick(candidates: Array, count: int, target_mult: float,
 		else:
 			roll = randi_range(1, maxi(1, total))
 		for k in range(pool.size()):
-			roll -= shelf_weight(pool[k], target_mult, rarity_mult)
+			roll -= _boosted(pool[k], target_mult, rarity_mult, boost)
 			if roll <= 0:
 				picked.append(pool[k])
 				pool.remove_at(k)
 				break
 	return picked
+
+
+static func _boosted(j, target_mult: float, rarity_mult: Dictionary, boost: Dictionary) -> int:
+	var w := shelf_weight(j, target_mult, rarity_mult)
+	if boost.is_empty():
+		return w
+	return maxi(1, int(round(float(w) * float(boost.get(String(j.id), 1.0)))))
 
 
 static func reroll_cost(n: int) -> int:

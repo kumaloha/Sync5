@@ -7,10 +7,10 @@ extends RefCounted
 # 本文件测的就是那一层。⚠ 2026-08-17 查证:交接里写的「券 18+24 条断言」**从未存在过**,
 # 本文件是第一份 —— 假账的教训记在 LESSONS。
 func run(t) -> void:
-	# ---- 总开关:1.0 不上券(用户 2026-08-18:「第一版去掉券, 第二版商业化的时候加」)----
-	# 这条锁的是**发行决策**:谁在 1.1 之前把开关翻回 true, 这里会响。
-	# ⚠ 下面的纯函数照常全测 —— 关的是玩家入口, 不是实现。
-	t.check(not Ticket.enabled(), "1.0 ships WITHOUT tickets (flip data/tickets.json enabled in 1.1)")
+	# ---- 总开关:1.1 券上线(2026-08-19 进入 1.1, 兑现 08-18 拍板「第二版商业化的时候加」)----
+	# 这条锁的仍是**发行决策**, 只是口径翻面:1.1 起谁把开关关回 false, 这里会响。
+	# (1.0 期间它锁的是反向:「1.0 ships WITHOUT tickets」。)
+	t.check(Ticket.enabled(), "1.1 ships WITH tickets (flipped 2026-08-19; was locked off for 1.0)")
 
 	# ---- 数据面 ----
 	var ids := Ticket.ids()

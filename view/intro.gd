@@ -39,7 +39,7 @@ func _ready() -> void:
 	_board.size = Vector2(560, 276)
 	add_child(_board)
 
-	_hint_label = StageTheme.label("点按开始", StageTheme.zh(), 15, StageTheme.rim(0.5), HORIZONTAL_ALIGNMENT_CENTER)
+	_hint_label = StageTheme.label(Lingo.t("点按开始"), StageTheme.zh(), 15, StageTheme.rim(0.5), HORIZONTAL_ALIGNMENT_CENTER)
 	_hint_label.position = Vector2(0, 762)
 	_hint_label.size = Vector2(720, 22)
 	add_child(_hint_label)

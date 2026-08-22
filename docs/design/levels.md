@@ -3,7 +3,7 @@
 > **这一篇管:一局是什么形状 —— 几段、几拍、几次商店、钱从哪来花到哪去。**
 >
 > 一局 = 巡演 = **4 场演出 × 1 盲注 = 4 Section,每盲注 6 个 Phrase**,单拍 8s,
-> 每 3 拍一次商店(8 次)。**4 段全是 BOSS 墙**,不可跳过。
+> 每 3 拍一次商店(**7 次**:段中 4 + 段末 3,末段没有段末商店)。**4 段全是 BOSS 墙**,不可跳过。
 >
 > **经济/商店归这一篇**(用户 2026-08-09 拍板)—— 商店节奏就是关卡节奏的一部分:
 > 7 商店 : 4 槽 ≈ 1.75:1,后半程必须「买新替旧」,那才是构筑弧的发动机。
@@ -112,7 +112,7 @@ per-gig data shape stay, so re-introducing a curve is a JSON edit.
   casual play scored 万-level while bot-calibrated targets sat at 几百 —
   humans out-score the bots by roughly an order of magnitude, mainly via
   unlimited discard spending and deliberate cache curation):
-  `[850, 2400, 6900, 19300]`
+  `[850, 2400, 6900, 19300]`(⚠ 两代过期的数;**现行 `run.json` = `[420, 1500, 3100, 5600]`**,08-15~17 真人重锚)
   Re-cut for 4 sections by resampling the previous curve at the same cumulative
   BEAT positions (total beats stay 24), so the shape is unchanged. Tables from
   other structures are NOT comparable section-by-section — only beat-for-beat.
@@ -148,7 +148,7 @@ per-gig data shape stay, so re-introducing a curve is a JSON edit.
   playtests.
 - Economy: **4** wage points (`SECTION_CLEAR_REWARD` +3◆ per section clear) —
   down from 12, so per-shop purchasing power falls even though the shop count
-  held at 8. Prices retuned only after the user's bot pass.
+  held at **7**(⚠ 原文写 8;末段无段末商店, Tape 实测 37/37 局都是 7). Prices retuned only after the user's bot pass.
 
 ### Boss faces (`core/modifier.gd`)
 
@@ -158,6 +158,10 @@ the shop board. Pools keep their four escalating tiers, remapped to keys
 `0/1/2/3` (S1 gentlest, S4 nasty). Bent-not-bricked rule unchanged.
 
 ### Target swap
+
+> ⚠⚠ **已被「Target 回池」取代**(2026-08-06 用户:「不应该有任何卡有固定概率」)——
+> `target_swap{price, chance, from_section}` 三个键整体删除,Target 与 Support 同一货架池按稀有度出现,
+> 已有 Target 时就是一次普通的「买新替旧」。下面原文保留作历史。
 
 Pivot window opens **from S2** (`from_section: 1`). ⚠ This had to move with the
 re-cut: the old absolute `3` is the LAST section under a 4-section run, which
@@ -274,8 +278,8 @@ lightweight strip, not a run_end mode.
 总拍数始终是 24,所以两张表都按「旧曲线在同一累计拍位上的几何插值」重采样,形状不变:
 
 ```
-section_targets (人锚) = [850, 2400, 6900, 19300]
-sim.json bot_targets   = [215, 540, 895, 1345]
+section_targets (人锚) = [850, 2400, 6900, 19300]   ← ⚠ 过期;现行 run.json = [420, 1500, 3100, 5600]
+sim.json bot_targets   = [215, 540, 895, 1345]      ← ⚠ 过期;现行 sim.json = [496, 995, 4270, 5678]
 ```
 
 **都只是起点。** 用户 2026-08-06 明确:「机器人模拟算法还比较蠢,不着急过。我们先把节奏定下来,
@@ -409,6 +413,16 @@ sim.json bot_targets   = [215, 540, 895, 1345]
 ---
 
 ## 经济与商店
+
+> ⚠⚠ **本节下面的表是 2026-08-06 之前的经济,已被推翻(2026-08-21 评审标注)。现行以 `data/economy.json` 为准**:
+> · **弃牌免费**(`discard_cost: 0`,08-06 拍板「唯一的闸门是 8 秒」);
+> · **没有 skip 奖励**(08-06 删,按钮保留叫「继续 ▸」只作免费出口);
+> · **没有 `target_swap`**(Target 回到同一货架池按稀有度出现,首张 Target 免费三选一是唯一特例);
+> · **金币两个出口 = 买牌 + 升级已装备的小丑牌**(08-16 `joker_upgrade`:5 级、`costs [4,7,11,16]`、
+>   按**增量**放大、金币通道不放大、规则牌不可升 —— 原则在 CLAUDE.md,数字在 economy.json);
+> · 稀有度权重 `35/30/25`(曝光轴 08-16 换原则,见 numbers.md §9.1),价格 4/6/9◆、镜面 11◆;
+> · 数字**不在** `core/config.gd`/`economy.gd`,那两处只是 `data/*.json` 之上的门面。
+> 下面原文保留作历史对照。
 
 > Rewritten 2026-08 for the shipped single-pool economy. The escalating
 > draw-cost table died with the candidate mechanic.
@@ -669,3 +683,27 @@ loss = | 预测通过率 − 实测通过率 |
 
 `run.json section_targets` 与 `sim.json bot_targets` **不是定稿**,
 整套要跟着新目标函数(留存最大化)重新设计。**别把它们当待修的 bug。**
+
+
+---
+
+## 附:音乐与拍长 —— 120 BPM 是算术不是口味(2026-08-21 从 TODO 搬来)
+
+> 派生约束「**拍长一律取偶数秒**」已进 CLAUDE.md;接线现状见 `view/music.gd` 文件头。
+
+### ⚑⚑ BPM 已经算死了:**120(4/4)**, 这是算术不是口味
+
+8 秒与 6 秒的最大公约数是 **2 秒** ⇒ **小节长度必须整除 2 秒** ⇒ 120 BPM(小节正好 2.000s)。
+跑遍常用 BPM 只有 120 与 240(同一网格)成立;140 的 6 秒是 3.5 小节、90 的是 2.25 小节
+—— **听感上就是「音乐还没走完就被切断」**。
+
+**⚑ 实测游戏里全部拍长, 结论比预期更强**(2026-08-17 查 `faces.json` + `tutorial.json`):
+
+| 拍长 | 出现在 | 120 BPM 下 |
+|---|---|---|
+| 6.0s | 四张 tier-4 的脸(`rush`/`overtime`/`teardown`/`closing`, `time_penalty: 2.0`) | 3 小节 ✅ |
+| 8.0s | 正式局全部 | 4 小节 ✅ |
+| 10.0s / 12.0s | 教学关 | 5 / 6 小节 ✅ |
+
+**⇒ 派生出一条该写进设计的约束:拍长一律取偶数秒。**
+只要守住它, 120 BPM 就**永远**对齐, 以后再改拍长也不会破坏音乐。

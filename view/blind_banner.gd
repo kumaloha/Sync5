@@ -54,9 +54,9 @@ func _draw() -> void:
 		Color(StageTheme.CYAN.r, StageTheme.CYAN.g, StageTheme.CYAN.b, 0.30), 14), r)
 	var zh := StageTheme.zh()
 	var num := StageTheme.num("Bold")
-	var seg_a := "目标达成 ✓  "
+	var seg_a := Lingo.t("目标达成 ✓  ")
 	var seg_n := "%d / %d" % [_score, _target]
-	var seg_b := "   工资 +%d ◆" % _wage
+	var seg_b := Lingo.t("   工资 +%d ◆") % _wage
 	var wa: float = zh.get_string_size(seg_a, HORIZONTAL_ALIGNMENT_LEFT, -1, 20).x
 	var wn: float = num.get_string_size(seg_n, HORIZONTAL_ALIGNMENT_LEFT, -1, 24).x
 	var wb: float = zh.get_string_size(seg_b, HORIZONTAL_ALIGNMENT_LEFT, -1, 20).x

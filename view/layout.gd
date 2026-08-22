@@ -6,7 +6,10 @@ extends RefCounted
 ##
 ## ⚠ 这里只**造**节点, **不连信号** —— 「谁听谁」是编排, 留在 `view/phrase.gd`。
 ## ⚠ 也不打点、不碰钱:那两件事按铁律只许发生在编排器。
-## ⚠ 坐标与文案一律从 `data/ui.json` 取, 不许硬编码回代码。
+## ⚠ **关键**坐标与文案从 `data/ui.json` 取(手牌/缓存/盲注卡/货架/信息区那几节);
+##   但本文件正文仍有十几处写死的位置(音浪 426/216 · 均衡器 626/44 · 唱片 132 · 两条饰线 · 遮罩板),
+##   2026-08-21 评审点名「文件头说不许, 正文自己写了十余个」—— 这句改成真话:**它们是一次性装配常量,
+##   搬进 ui.json 是待办**, 在那之前改这些数字请在此处改, 并同步 docs/design/ui_meta.md 的坐标表。
 ##
 ## `build()` 返回的字典就是编排器要拿的那几个把手;**add_child 的顺序 = 画的顺序**,
 ## 动之前先想清楚谁该盖住谁(替换态那两个部件由 `view/replace.gd` 在这之后挂上去)。
@@ -171,7 +174,7 @@ static func _build_joker_row(host: Control, margin: float, gap: float, pill_w: f
 		Color(StageTheme.CYAN.r, StageTheme.CYAN.g, StageTheme.CYAN.b, 0.10),
 		Color(StageTheme.CYAN.r, StageTheme.CYAN.g, StageTheme.CYAN.b, 0.45), 1, 18,
 		Color(StageTheme.CYAN.r, StageTheme.CYAN.g, StageTheme.CYAN.b, 0.35), 8))
-	var pl := StageTheme.label("♪ 小丑牌 ♪", StageTheme.zh(), 19, Color("d9fbf7"),
+	var pl := StageTheme.label(Lingo.t("♪ 小丑牌 ♪"), StageTheme.zh(), 19, Color("d9fbf7"),
 		HORIZONTAL_ALIGNMENT_CENTER)
 	pl.custom_minimum_size = Vector2(170, 30)
 	pill.add_child(pl)

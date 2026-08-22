@@ -81,11 +81,21 @@ for sec, rows in secs.items():
                  if (sec + 1) in ([f.get('tier')] if 'tier' in f else f.get('tiers', []))]
     if 'raisedbar' in tier_pool:
         ordered.append('raisedbar')               # 覆盖②:改目标分, 最狠端
+    # ⚠⚠ 兜底(2026-08-20 补, trilogy 事故):**池里有、表里没的脸一律压最狠端**。
+    # 起因 = trilogy 与 raisedbar 同族(改目标分, 仪器盲区), 但覆盖②只点了 raisedbar 的名,
+    # trilogy 被静默丢出排序表 —— Director 取交后这张脸**永不登场且不报错**。
+    # 点名规则改成结构规则:凡是仪器没给数的池脸, 按「仪器量不到 = 该族的已知形状 =
+    # 真实难度在另一个量纲」处理, 压最狠端并打印出来;db::validate_ranking 同时加了
+    # 反向完备性校验, 这类丢脸从此是测试期红灯。
+    for fid in tier_pool:
+        if fid not in ordered:
+            ordered.append(fid)
+            print(f'  ⚠ {fid}@S{sec + 1} 仪器无读数 → 设计性压最狠端(盲区兜底)')
     out[str(sec)] = ordered
 
 doc = {'_comment': '⚑ 仪器输出(tools/price.gd → tools/rankgen.py), 手改无效。'
        '每段由易到难;时间族与 raisedbar 是设计性覆盖(理由在本脚本头与 blinds.md 仪器盲区节)。'
-       'core/db.gd::validate_ranking 守四段齐全 + id 都是活脸 —— 脸池一变这里就红。',
+       'core/db.gd::validate_ranking 守四段齐全 + id 都是活脸 + **池脸都在表里**(反向完备性, trilogy 事故后加)—— 脸池一变这里就红。',
        **{k: out[k] for k in sorted(out)}}
 (ROOT / 'data' / 'ranking.json').write_text(
     json.dumps(doc, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')

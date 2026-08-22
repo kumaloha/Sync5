@@ -10,7 +10,7 @@ var fx_text: String
 func _init(e: Dictionary) -> void:
 	id = String(e["id"])
 	name = String(e["name"])
-	cn_name = String(e["cn"])
+	cn_name = Lingo.pick(e)   # 名字带语言(1.1 英文化):en 挑现成的 name 字段
 	fx_text = String(e["fx"])
 
 
@@ -35,10 +35,23 @@ static func by_id(p_id: String) -> BlindBoon:
 	return null
 
 
-static func roll(rng: RandomNumberGenerator) -> String:
+## `seen` = {boon_id: 见过几次}(context.md 岔 #4 批「Boon 也走 novelty」)。
+## 非空且 Director.novelty_on() 时收缩到最少见的那批;恒一次掷点, 空 seen 逐字节退回。
+static func roll(rng: RandomNumberGenerator, seen: Dictionary = {}) -> String:
 	var pool := ids()
 	if pool.is_empty():
 		return ""
+	if not seen.is_empty() and Director.novelty_on():
+		var kept: Array = []
+		var best := -1
+		for id in pool:
+			var c := int(seen.get(String(id), 0))
+			if best < 0 or c < best:
+				best = c
+				kept = [id]
+			elif c == best:
+				kept.append(id)
+		pool = kept
 	return String(pool[rng.randi_range(0, pool.size() - 1)])
 
 

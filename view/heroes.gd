@@ -20,7 +20,8 @@ const GAP := 14.0
 
 var sel := 0
 
-var _t := 0.0
+var _rain: Chrome.RainLayer
+var _key: Dictionary = {}       # 静态层上次重画时的状态键(Chrome.dirty)
 var _roster: Array = []            # Character
 var _colors: Array = []            # 各职业主色(manifest primary)
 var _crops: Array = []             # avatar_crop(归一化 Rect2)
@@ -60,12 +61,15 @@ func _ready() -> void:
 					var cr: Array = ch["avatar_crop"]
 					_crops[i] = Rect2(float(cr[0]), float(cr[1]),
 						float(cr[2]), float(cr[3]))
+	_rain = Chrome.RainLayer.new()
+	add_child(_rain)          # 雨是唯一每帧重画的东西(2026-08-21 评审:静态页别整屏 60fps 重画)
 	set_process(true)
 
 
 func _process(delta: float) -> void:
-	_t += delta
-	queue_redraw()
+	_rain.tick(delta)
+	if Chrome.dirty(_key, [sel, SaveState.gems()]):
+		queue_redraw()
 
 
 func _avatar(i: int) -> Texture2D:
@@ -111,12 +115,11 @@ func _draw() -> void:
 	draw_rect(Rect2(0, 0, W, H), Color("000000"), true)
 	var acc: Color = _colors[sel]
 	var hero: Character = _roster[sel]
-	Chrome.page_bar(self, "主 角 图 鉴", "%d 位主角 · 点选即上场" % _roster.size(), acc,
-		int(HomeScreen.PROFILE["gems"]))
+	Chrome.page_bar(self, Lingo.t("主 角 图 鉴"), Lingo.t("%d 位主角 · 点选即上场") % _roster.size(), acc,
+		SaveState.gems())   # 1.1 起是真钱包(资产循环)
 	_draw_detail(acc, hero)
 	_draw_grid()
 	Chrome.draw_tabs(self, 1, acc)
-	Chrome.rain(self, _t)
 
 
 func _draw_detail(acc: Color, hero: Character) -> void:
@@ -145,34 +148,35 @@ func _draw_detail(acc: Color, hero: Character) -> void:
 	# 左列:称号(设计稿的 TYPE 位);右上:编号
 	var ty := CARD.position.y + 58.0
 	draw_string(med, Vector2(x, ty), "TITLE", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, dim)
-	draw_string(zh, Vector2(x, ty + 26.0), hero.title, HORIZONTAL_ALIGNMENT_LEFT, -1, 19,
+	draw_string(zh, Vector2(x, ty + 26.0), Lingo.t(hero.title), HORIZONTAL_ALIGNMENT_LEFT, -1, 19,
 		Color("eaf6ff"))
 	draw_string(med, Vector2(x, ty), "NO. %02d / %02d" % [sel + 1, _roster.size()],
 		HORIZONTAL_ALIGNMENT_RIGHT, cw, 12, dim)
 
 	# 底部:名字行 → 分隔线 → 被动
 	var by := CARD.end.y - 96.0
-	var nw := zh.get_string_size(hero.cn_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 40).x
-	# 中文名本身就是拉丁字母的(DJ/RAPPER)不再跟注英文 id,免得念两遍
+	var hname := Lingo.t(hero.cn_name)   # en 模式显示名走对照表(1.1 英文化)
+	var nw := zh.get_string_size(hname, HORIZONTAL_ALIGNMENT_LEFT, -1, 40).x
+	# 显示名本身就是拉丁字母的(DJ/RAPPER, en 模式则全员)不再跟注英文 id,免得念两遍
 	var en: String = String(Walker.IDS[sel]).to_upper()
-	if en == hero.cn_name.to_upper():
+	if en == hname.to_upper():
 		en = ""
 	var ew := 0.0 if en == "" else \
 		med.get_string_size(en, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x + 12.0
 	var nx := CARD.position.x + (CARD.size.x - nw - ew) * 0.5
-	Chrome.neon(self, zh, hero.cn_name, Vector2(nx, by), 40, Color("ffffff"), acc)
+	Chrome.neon(self, zh, hname, Vector2(nx, by), 40, Color("ffffff"), acc)
 	if en != "":
 		draw_string(med, Vector2(nx + nw + 12.0, by), en,
 			HORIZONTAL_ALIGNMENT_LEFT, -1, 14, dim)
 	Widgets.StageCard.rule_line(self, x, by + 14.0, cw, acc)
 	var py := by + 46.0
-	var chip_w := zh.get_string_size("被动", HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x + 24.0
+	var chip_w := zh.get_string_size(Lingo.t("被动"), HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x + 24.0
 	var chip := Rect2(x, py - 19.0, chip_w, 27.0)
 	draw_style_box(StageTheme.box(Color(acc.r, acc.g, acc.b, 0.10),
 		Color(acc.r, acc.g, acc.b, 0.55), 1, 10), chip)
-	draw_string(zh, Vector2(chip.position.x, py), "被动",
+	draw_string(zh, Vector2(chip.position.x, py), Lingo.t("被动"),
 		HORIZONTAL_ALIGNMENT_CENTER, chip.size.x, 13, acc)
-	draw_string(zh, Vector2(chip.end.x + 14.0, py), hero.fx_text,
+	draw_string(zh, Vector2(chip.end.x + 14.0, py), Lingo.t(hero.fx_text),
 		HORIZONTAL_ALIGNMENT_LEFT, cw - chip_w - 14.0, 17, Color("e8f2ff"))
 
 
@@ -210,8 +214,8 @@ func _draw_grid() -> void:
 			Color(c.r, c.g, c.b, 0.85 if on else 0.4), 1.8, true)
 		var name_col := Color("ffffff") if on else Color("b9cbe8")
 		draw_string(zh, Vector2(r.position.x, r.position.y + 132.0),
-			(_roster[i] as Character).cn_name, HORIZONTAL_ALIGNMENT_CENTER,
+			Lingo.t((_roster[i] as Character).cn_name), HORIZONTAL_ALIGNMENT_CENTER,
 			r.size.x, 16, name_col)
 		draw_string(zh, Vector2(r.position.x, r.position.y + 158.0),
-			"「%s」" % (_roster[i] as Character).title, HORIZONTAL_ALIGNMENT_CENTER,
+			Lingo.t("「%s」") % Lingo.t((_roster[i] as Character).title), HORIZONTAL_ALIGNMENT_CENTER,
 			r.size.x, 12, Color(c.r, c.g, c.b, 0.8) if on else Color("66799f"))

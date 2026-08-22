@@ -95,9 +95,9 @@ func _draw() -> void:
 	# 预览态隐掉标题两行 —— 立绘辉光会压住它,而且你已经在看具体的人,标题成了废话。
 	var ptex: Texture2D = _portrait(_hover) if _hover >= 0 else null
 	if ptex == null:
-		draw_string(zh, Vector2(0, 402), "选 择 主 角", HORIZONTAL_ALIGNMENT_CENTER, 720, 40,
+		draw_string(zh, Vector2(0, 402), Lingo.t("选 择 主 角"), HORIZONTAL_ALIGNMENT_CENTER, 720, 40,
 			StageTheme.INK)
-		draw_string(zh, Vector2(0, 442), "每位主角带一个贯穿整局的被动", HORIZONTAL_ALIGNMENT_CENTER,
+		draw_string(zh, Vector2(0, 442), Lingo.t("每位主角带一个贯穿整局的被动"), HORIZONTAL_ALIGNMENT_CENTER,
 			720, 17, StageTheme.DIM)
 	if _hover >= 0:
 		if ptex != null:
@@ -130,14 +130,14 @@ func _draw() -> void:
 		draw_style_box(sb, r)
 
 		# passive plate at the top of the tile
-		draw_string(num, r.position + Vector2(0, 26), ch.title.to_upper(),
+		draw_string(num, r.position + Vector2(0, 26), Lingo.t(ch.title).to_upper(),
 			HORIZONTAL_ALIGNMENT_CENTER, r.size.x, 15, Color(col.r, col.g, col.b, 0.95))
 		draw_line(r.position + Vector2(18, 34), r.position + Vector2(r.size.x - 18, 34),
 			Color(col.r, col.g, col.b, 0.28), 1.0)
 
 		# name + effect below the figure
-		draw_string(zh, r.position + Vector2(0, r.size.y - 34), ch.cn_name,
+		draw_string(zh, r.position + Vector2(0, r.size.y - 34), Lingo.t(ch.cn_name),
 			HORIZONTAL_ALIGNMENT_CENTER, r.size.x, 17, StageTheme.INK)
-		draw_string(zh, r.position + Vector2(6, r.size.y - 13), ch.fx_text,
+		draw_string(zh, r.position + Vector2(6, r.size.y - 13), Lingo.t(ch.fx_text),
 			HORIZONTAL_ALIGNMENT_CENTER, r.size.x - 12, 11,
 			Color(col.r, col.g, col.b, 0.80))

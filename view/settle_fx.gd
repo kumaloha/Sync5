@@ -128,40 +128,40 @@ func _draw() -> void:
 	var cx := size.x * 0.5
 	# ---- 乘区逐个上台(为 1/为 0 的不占位, 玩家看到的每一框都真的参与了这拍)----
 	var boxes: Array = [
-		{"cap": "基础分", "val": str(_base), "col": Color("ff9ecb"),
+		{"cap": Lingo.t("基础分"), "val": str(_base), "col": Color("ff9ecb"),
 			"frame": Color(1.0, 79.0 / 255, 163.0 / 255, 0.85), "bg": Color(26.0 / 255, 8.0 / 255, 20.0 / 255, 0.94),
 			"w": 96.0, "fs": 30, "delay": 0.0}]
 	var syms: Array = []
 	if _pattern_mult > 0.0:
-		var pat_name := String(DB.ui().get("patterns", {}).get(str(_kind), "牌型"))
+		var pat_name := String(DB.ui().get("patterns", {}).get(str(_kind), Lingo.t("牌型")))
 		syms.append("×")
 		boxes.append({"cap": pat_name, "val": "×%s" % _fmt(_pattern_mult), "col": Color("8ff5ee"),
 			"frame": Color(53.0 / 255, 232.0 / 255, 224.0 / 255, 0.85), "bg": Color(6.0 / 255, 20.0 / 255, 24.0 / 255, 0.94),
 			"w": 88.0, "fs": 28, "delay": 0.06})
 		if absf(_joker_mult - 1.0) > 0.01:
 			syms.append("×")
-			boxes.append({"cap": "小丑牌", "val": "×%s" % _fmt(_joker_mult), "col": Color("7ee6a1"),
+			boxes.append({"cap": Lingo.t("小丑牌"), "val": "×%s" % _fmt(_joker_mult), "col": Color("7ee6a1"),
 				"frame": Color(0.35, 0.9, 0.55, 0.85), "bg": Color(0.02, 0.09, 0.05, 0.94),
 				"w": 88.0, "fs": 28, "delay": 0.12})
 		if _pct > 0.004:
 			syms.append("×")
-			boxes.append({"cap": "加成", "val": "+%d%%" % int(round(_pct * 100.0)), "col": Color("ffd9a0"),
+			boxes.append({"cap": Lingo.t("加成"), "val": "+%d%%" % int(round(_pct * 100.0)), "col": Color("ffd9a0"),
 				"frame": Color(1.0, 0.61, 0.17, 0.85), "bg": Color(0.12, 0.07, 0.02, 0.94),
 				"w": 88.0, "fs": 26, "delay": 0.18})
 	else:
 		# 旧调用方(没给分解)退回单框总乘数
 		syms.append("×")
-		boxes.append({"cap": "乘数", "val": "×%s" % _fmt(_mult), "col": Color("8ff5ee"),
+		boxes.append({"cap": Lingo.t("乘数"), "val": "×%s" % _fmt(_mult), "col": Color("8ff5ee"),
 			"frame": Color(53.0 / 255, 232.0 / 255, 224.0 / 255, 0.85), "bg": Color(6.0 / 255, 20.0 / 255, 24.0 / 255, 0.94),
 			"w": 100.0, "fs": 30, "delay": 0.06})
 	if _bonus > 0:
 		# flat rewards land after the multiplier — they get their own beat
 		syms.append("+")
-		boxes.append({"cap": "奖励分", "val": "+%d" % _bonus, "col": Color("cfa9ff"),
+		boxes.append({"cap": Lingo.t("奖励分"), "val": "+%d" % _bonus, "col": Color("cfa9ff"),
 			"frame": Color(165.0 / 255, 107.0 / 255, 1.0, 0.85), "bg": Color(18.0 / 255, 10.0 / 255, 30.0 / 255, 0.94),
 			"w": 84.0, "fs": 26, "delay": 0.22})
 	syms.append("=")
-	boxes.append({"cap": "最终分数", "val": (str(_final) if _phase == "merge" else "?"), "col": Color("ffe9c9"),
+	boxes.append({"cap": Lingo.t("最终分数"), "val": (str(_final) if _phase == "merge" else "?"), "col": Color("ffe9c9"),
 		"frame": Color(1.0, 179.0 / 255, 71.0 / 255, 0.9), "bg": Color(30.0 / 255, 18.0 / 255, 4.0 / 255, 0.94),
 		"w": 124.0, "fs": 32, "delay": 0.06 * float(boxes.size() + 1)})
 

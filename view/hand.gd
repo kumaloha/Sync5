@@ -399,11 +399,11 @@ func refresh(vm: Dictionary) -> void:
 		pc.set_states(scoring_set.has(card), sel_hand.has(i))
 		var hand_mark := ""
 		if _marked_cards.has(card):
-			hand_mark = "丢"
+			hand_mark = Lingo.t("丢")
 		if _discard_blocked_hand.has(card):
-			hand_mark = "弃"
+			hand_mark = Lingo.t("弃")
 		if _swap_blocked_hand.has(card):
-			hand_mark = "锁" if hand_mark != "" else "换"
+			hand_mark = Lingo.t("锁") if hand_mark != "" else Lingo.t("换")
 		pc.set_blocked(hand_mark)
 		# 2026-08-11 用户反馈「默认高度经常不同」:计分五张的抬升被读成噪音而不是信息 ——
 		# 高度从此只区分「选中」,「哪五张在计分」交给 set_states 的 scoring 光效表达。
@@ -439,11 +439,11 @@ func refresh(vm: Dictionary) -> void:
 		pc.setup(cache_card)
 		pc.set_back(hidden.has(cache_card))
 		pc.set_states(false, sel_cache.has(i))
-		var cache_mark := "丢" if _marked_cards.has(cache_card) else ""
+		var cache_mark := Lingo.t("丢") if _marked_cards.has(cache_card) else ""
 		if _discard_blocked_cache.has(cache_card):
-			cache_mark = "弃"
+			cache_mark = Lingo.t("弃")
 		if _swap_blocked_cache.has(cache_card):
-			cache_mark = "锁" if cache_mark != "" else "换"
+			cache_mark = Lingo.t("锁") if cache_mark != "" else Lingo.t("换")
 		pc.set_blocked(cache_mark)
 		# 选中抬升(2026-08-18 用户:「缓存牌盖住了, 点击不会抬高一点」)——
 		# 手牌选中会抬, 缓存原本只有光效:被压暗层/提示条半掩时选没选根本看不见。
@@ -546,5 +546,5 @@ class SealedSlot extends Control:
 			var dy: float = 1.0 if corner.y == 0.0 else -1.0
 			draw_line(corner, corner + Vector2(dx * l, 0), col, 2.0)
 			draw_line(corner, corner + Vector2(0, dy * l), col, 2.0)
-		draw_string(StageTheme.zh(), Vector2(0, h * 0.5 + 9.0 * s), "封",
+		draw_string(StageTheme.zh(), Vector2(0, h * 0.5 + 9.0 * s), Lingo.t("封"),
 			HORIZONTAL_ALIGNMENT_CENTER, w, int(26.0 * s), Color(0.72, 0.52, 1.0, 0.5))

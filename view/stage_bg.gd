@@ -256,6 +256,19 @@ func _crowd_glowsticks(w: float, h: float) -> void:
 		{"grip_a": Vector2(618, 36), "grip_b": Vector2(610, 12), "tube_a": Vector2(610, 14), "tube_b": Vector2(608, 6),
 			"color": Color("ffb347"), "period": 1.7, "delay": 0.2},
 	]
+	# 应援团资产(META「买了就想玩」):四根之间再插四根, 台下声势翻倍。
+	# 摆位手工插空(不是均分)—— 原四根就是手摆的, 均分会读出机器味。探针恒无。
+	if SaveState.has_flair("crowd"):
+		sticks += [
+			{"grip_a": Vector2(188, 38), "grip_b": Vector2(182, 14), "tube_a": Vector2(182, 16), "tube_b": Vector2(180, 8),
+				"color": Color("9fe9ff"), "period": 1.5, "delay": 0.6},
+			{"grip_a": Vector2(370, 33), "grip_b": Vector2(378, 9), "tube_a": Vector2(378, 11), "tube_b": Vector2(380, 3),
+				"color": Color("ff8bbd"), "period": 1.8, "delay": 1.0},
+			{"grip_a": Vector2(536, 37), "grip_b": Vector2(528, 13), "tube_a": Vector2(528, 15), "tube_b": Vector2(526, 7),
+				"color": Color("cdb2ff"), "period": 1.3, "delay": 0.3},
+			{"grip_a": Vector2(684, 35), "grip_b": Vector2(692, 11), "tube_a": Vector2(692, 13), "tube_b": Vector2(694, 5),
+				"color": Color("35e8e0"), "period": 2.0, "delay": 0.9},
+		]
 	for s in sticks:
 		var grip_a: Vector2 = s["grip_a"]
 		var grip_b: Vector2 = s["grip_b"]

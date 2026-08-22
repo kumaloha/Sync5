@@ -279,6 +279,125 @@ func run(t) -> void:
 		t.check(rk.has(sec) and not (rk[sec] as Array).is_empty(),
 			"ranking 第 %d 段必须喂满(空表 = 没有导演, 只是随机)" % sec)
 
+	# ---- context(2026-08-19「基于 context 生成关卡」, 推翻 08-14「不读 context」)----
+	# 出厂开关:**两个都开**(08-19 晚用户拍板:「开, 就是要千人千面, 但不要被察觉」)。
+	t.check(Director.novelty_on(), "novelty ships ON (N axis, generating.md says it must be external)")
+	t.check(Director.streak_shift_on(),
+		"streak_shift ships ON (user 08-19: thousand faces, never detectable)")
+	t.check(Director.returning_on(), "returning ships ON (context.md fork #3 approved)")
+	t.check(Director.explore_on(), "explore_shelf ships ON (context.md fork #1 approved)")
+	# 回归局:强制温和档 + 熟脸(seen 最大者必选 —— familiar 反向收缩)
+	var rk_ret := DB.ranking_tiers()
+	var band_r := Director.band(rk_ret[0], "mild")
+	var seen_r := {}
+	for id in band_r:
+		seen_r[String(id)] = 1
+	var fam_id := String(band_r[0])
+	seen_r[fam_id] = 9
+	for sd in [3, 77]:
+		var rr2 := RandomNumberGenerator.new()
+		rr2.seed = sd
+		t.eq(Director.pick_face(rk_ret[0], "mild", rr2, [], seen_r, true), fam_id,
+			"returning run picks the most familiar face (seed %d)" % sd)
+	var ret_roll := Director.roll_run(3, RandomNumberGenerator.new(), rk_ret,
+		{"streak": 5, "returning": true, "seen": seen_r})
+	for w in GameConfig.WALL_SECTIONS:
+		var pool_w := Director.ranked_pool(int(w), rk_ret, 3)
+		t.check(Director.band(pool_w, "mild").has(String(ret_roll[int(w)])),
+			"returning run stays in the mild band even on a win streak (sec %d)" % int(w))
+	# 纯函数 shift_bias:连败 2 降一档 / 连胜 3 升一档, 阈值不对称是设计
+	t.eq(Director.shift_bias("median", -2), "mild", "2 losses soften a step")
+	t.eq(Director.shift_bias("median", -1), "median", "1 loss does nothing")
+	t.eq(Director.shift_bias("mild", -5), "mild", "already mild: floor")
+	t.eq(Director.shift_bias("median", 3), "harsh", "3 wins harden a step")
+	t.eq(Director.shift_bias("median", 2), "median", "2 wins do nothing (asymmetric on purpose)")
+	t.eq(Director.shift_bias("harsh", 9), "harsh", "already harsh: ceiling")
+	t.eq(Director.shift_bias("nosuch", -9), "nosuch", "unknown bias passes through")
+	# 阈值是参数(data/director.json context_tuning), 不再写死
+	t.eq(Director.shift_bias("median", -1, 1, 3), "mild", "lose threshold 1: one loss softens")
+	t.eq(Director.shift_bias("median", 2, 2, 2), "harsh", "win threshold 2: two wins harden")
+	t.eq(int(Director.tuning().get("lose_streak", -1)), 2, "shipped lose_streak = 2")
+	t.eq(int(Director.tuning().get("win_streak", -1)), 3, "shipped win_streak = 3")
+	t.eq(Director.return_gap_s(), 3 * 86400, "shipped return gap = 3 days")
+	t.check(absf(Director.explore_mult() - 1.5) < 1e-9, "shipped explore_mult = 1.5")
+	# context_tuning 校验:未知键 / 低于下界 都红
+	var tn_bad := _cfg({"a": {"face_bias": "mild", "shelf": {}}}, ["a"])
+	tn_bad["context_tuning"] = {"lose_streak": 2, "bogus": 1}
+	t.check(DB.validate_director(tn_bad).contains("未知键"), "context_tuning rejects unknown keys")
+	tn_bad["context_tuning"] = {"explore_mult": 0.5}
+	t.check(DB.validate_director(tn_bad).contains("≥"), "context_tuning rejects explore_mult < 1")
+	tn_bad["context_tuning"] = {"lose_streak": 1, "win_streak": 1, "return_gap_days": 1, "explore_mult": 1.0}
+	t.eq(DB.validate_director(tn_bad), "", "context_tuning at the lower bounds passes")
+	# explore_boost 是纯函数:空 used ⇒ 空;有 used ⇒ 只有「没用过的 Target」进字典
+	var cands: Array = []
+	for jid in ["twin", "stair", "wildcard"]:
+		cands.append(Joker.by_id(jid))
+	t.check(Director.explore_boost(cands, {}).is_empty(), "explore_boost: no history ⇒ no boost")
+	var eb := Director.explore_boost(cands, {"twin": 3})
+	t.check(not eb.has("twin"), "explore_boost: a used Target is not boosted")
+	t.check(eb.has("stair") and absf(float(eb["stair"]) - Director.explore_mult()) < 1e-9,
+		"explore_boost: an unused Target gets explore_mult")
+	t.check(not eb.has("wildcard"), "explore_boost: supports are never boosted")
+	# 开关开着时走 shift;ctx 为空仍恒等(逐字节退回的另一半契约)
+	t.eq(Director.bias_with_ctx("median", {"streak": -9}), "mild",
+		"switch on: losses soften the band")
+	t.eq(Director.bias_with_ctx("median", {}), "median", "empty ctx never shifts")
+	# ⚑ 契约核心:ctx 缺省空 = 逐字节退回(探针/hundred 验证全靠这条)
+	var ra := RandomNumberGenerator.new()
+	var rb := RandomNumberGenerator.new()
+	ra.seed = 777
+	rb.seed = 777
+	var no_ctx := Director.roll_run(3, ra, rk)
+	var empty_ctx := Director.roll_run(3, rb, rk, {})
+	t.eq(no_ctx, empty_ctx, "empty ctx is byte-identical to the old signature")
+	t.eq(ra.state, rb.state, "…and consumes the same amount of RNG")
+	# novelty:同一档里「见得最少」的那张必选(子集恰好剩 1 张时与种子无关)
+	var band3 := Director.band(rk[0], "median")
+	t.check(band3.size() >= 1, "band is non-empty")
+	var seen_map := {}
+	for id in band3:
+		seen_map[String(id)] = 5
+	var fresh_id := String(band3[band3.size() - 1])
+	seen_map[fresh_id] = 0
+	for sd in [1, 42, 999]:
+		var rr := RandomNumberGenerator.new()
+		rr.seed = sd
+		t.eq(Director.pick_face(rk[0], "median", rr, [], seen_map), fresh_id,
+			"least-seen face always picked (seed %d)" % sd)
+	# Boon novelty(岔 #4 已落地):seen 里唯一最少见的 boon 必选, 与种子无关;空 seen 逐字节退回
+	var bids := BlindBoon.ids()
+	if bids.size() >= 2:
+		var bseen := {}
+		for b in bids:
+			bseen[String(b)] = 5
+		bseen[String(bids[1])] = 0
+		for sd in [2, 44, 888]:
+			var rb2 := RandomNumberGenerator.new()
+			rb2.seed = sd
+			t.eq(BlindBoon.roll(rb2, bseen), String(bids[1]), "least-seen boon always rolled (seed %d)" % sd)
+		var rx := RandomNumberGenerator.new()
+		var ry := RandomNumberGenerator.new()
+		rx.seed = 5
+		ry.seed = 5
+		t.eq(BlindBoon.roll(rx), BlindBoon.roll(ry, {}), "empty seen equals no-arg roll")
+		var hits := 0
+		for sd in range(120):
+			var rz := RandomNumberGenerator.new()
+			rz.seed = 7000 + sd
+			if BlindBoon.roll(rz) == String(bids[1]):
+				hits += 1
+		t.check(hits < 110, "without seen the roll is not pinned (bids[1] %d/120)" % hits)
+	# 数据面:context 节只有两个布尔开关
+	var cgood := _cfg({"a": {"face_bias": "mild", "shelf": {}}}, ["a"])
+	cgood["context"] = {"novelty": true, "streak_shift": false}
+	t.eq(DB.validate_director(cgood), "", "well-formed context section validates")
+	var cbad := _cfg({"a": {"face_bias": "mild", "shelf": {}}}, ["a"])
+	cbad["context"] = {"nope": true}
+	t.check(DB.validate_director(cbad) != "", "unknown context key rejected")
+	var cint := _cfg({"a": {"face_bias": "mild", "shelf": {}}}, ["a"])
+	cint["context"] = {"novelty": 1}
+	t.check(DB.validate_director(cint) != "", "non-bool context switch rejected")
+
 
 func _cfg(states: Dictionary, seq: Array, lf: int = 0, bf: float = 0.5) -> Dictionary:
 	return {"band_fraction": bf, "loop_from": lf, "sequence": seq, "states": states}

@@ -80,7 +80,7 @@ func show_tickets(held: Dictionary, boost_next: float, armed_text: String = "") 
 
 
 func _label_for(tid: String, n: int, boost_next: float) -> String:
-	var cn := String(Ticket.by_id(tid).get("cn", tid))
+	var cn := Lingo.pick(Ticket.by_id(tid))
 	var tail := ""
 	if tid == "boost" and boost_next > 0.0:
 		tail = " ×%.1f" % boost_next

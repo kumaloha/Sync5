@@ -79,12 +79,17 @@ var blind_card: Widgets.BlindCard
 var intro: BlindIntro
 var tray: TicketTray         # 局内券托盘(拍内 scope 的使用入口, view/tray.gd)
 var music: Music             # 每段一首的 8 秒循环(view/music.gd, 2026-08-18)
+var beacon: Beacon           # Tape 回传(view/beacon.gd, 1.1;配置关着时自睡)
 ## boost 券给本拍上的局外乘子(用一张 ×一次, 可叠)。每拍在 _start_phrase 归 1;
 ## 结算时经 flags 的 `meta_mult` 交给 core/beat.gd —— **记分必须留在 core**(唯一真相),
 ## view 只负责「什么时候上、上多少」。
 var _boost_mult := 1.0
 var fx: StageFeedback        # 屏震/弹跳/飘字 —— 纯表现, view/feedback.gd
 var _shown_score := 0        # what the HUD prints; counts up to run.section_score
+## 分数滚动还没演完(2026-08-21 评审:`resolve_hold 1.0s` < 碎片 1.5s ⇒ `_refresh` 一离开 RESOLVE 就把
+## `_shown_score` 拍成终值, 滚动 tween 到点时 from == to 直接 return —— 设计稿 t=2120ms 的
+## count-up 从来没演过)。现在滚动期间 `_refresh` 不抢拍, 滚完 / 被打断(商店、局末)才归位。
+var _score_roll: Tween = null
 
 
 ## 这一次「坐下」的身份 —— `{id, gap, runs_prev}`,整个进程只取一次。
@@ -125,7 +130,13 @@ func _notification(what: int) -> void:
 ## _process would otherwise tick against a null phrase.
 func _open_home() -> void:
 	if music != null:
-		music.stop_music()   # 首页静音(1.1 再谈首页音景)
+		# 首页音景 = 点唱机资产(META「买了就想玩」):买了它, 首页奏你的歌单;没买保持静音。
+		if SaveState.has_flair("homejuke"):
+			music.play_home()
+		else:
+			music.stop_music()
+	if beacon != null:
+		beacon.poke()        # 一局刚收尾 = 它的日志刚写完, 正是回传的时机
 	set_process(false)
 	state = St.FRONT
 	_front_latch = false        # 回到前端 = 新的选角会话(V3 闩锁复位)
@@ -229,9 +240,7 @@ func choose_character(i: int) -> void:
 	# ⚑ **游戏是唯一传真实局数的地方**(探针一律走缺省 = 全解锁, 理由在 SectionMod.unlocked_at)。
 	# ⚠ `+1` 是因为掷脸发生在 `note_run_started()` **之前** —— 存档里的 `runs_total`
 	# 此刻还是「以前玩过几局」, 而这一局是第 `runs_total + 1` 局。
-	_run_index = 1 if SaveState.is_probe() else SaveState.runs_total() + 1
-	_feed_director()
-	run.roll_faces(-1, _run_index)
+	_begin_run()
 	# 打点从这里开流 —— 主角与四面墙都定了, 这一局的初始条件已经完整
 	# ⚠⚠ 教学关**照样打点, 但必须打上标记**:它是一局假局(6 拍、目标分 0、不判生死),
 	# 混进 Tape 会污染 `tools/probbook.py` 的「合格真人局」分拣。
@@ -239,7 +248,6 @@ func choose_character(i: int) -> void:
 	# **新手的动作时刻分布**(12 秒够不够), 而那正是现有 Tape 全是熟练玩家所以缺的那一块。
 	# ⚑ 会话边界(D4)——「一次坐下玩几局 / 隔多久回来」。目标函数换成留存之后,
 	# **这是唯一能直接观测目标的量**。它跨局, 而 Tape 一局一个文件, 所以只能进 meta。
-	SaveState.note_run_started()
 	# ⚑ **run scope 的券在这里兑现** —— 开局一次性生效, 用掉即消耗。
 	# ⚠ 必须**先看返回值再加钱**:`consume_ticket` 返回 false 表示根本没这张券,
 	# 不看就直接加 = 白送一次效果, 而那不会报错(`core/save.gd` 里写着同一条)。
@@ -256,6 +264,8 @@ func choose_character(i: int) -> void:
 	Tape.begin({
 		"sess": _sess,
 		"tutorial": run.tutorial,
+		# META 快照(m 的留存分析要用:持有资产数 × 回访;记事实 —— 开局这一刻的钱包)
+		"meta": {"gems": SaveState.gems(), "assets": SaveState.assets_owned()},
 		"char": i, "cn": run.character.cn_name,
 		"faces": run.run_faces.duplicate(),
 		"targets": GameConfig.SECTION_TARGETS,
@@ -293,6 +303,8 @@ func _build_ui() -> void:
 	tray = n["tray"]
 	music = Music.new()
 	add_child(music)
+	beacon = Beacon.new()   # Tape 回传(1.1;缺省配置下自睡, 见 view/beacon.gd)
+	add_child(beacon)
 
 	for i in range(joker_views.size()):
 		joker_views[i].tapped.connect(_on_slot_tapped.bind(i))  # only live in replace mode
@@ -371,6 +383,7 @@ func _tape_section() -> void:
 ## 钟不走、手牌不吃点击, 与旧公示卡同一道闸。0.5s 飞入(|cos| 翻面)+ 1.1s 定格 + 0.4s 归位。
 func _play_blind_closeup() -> void:
 	state = St.INTRO
+	tray.visible = false   # 特写 2 秒内券点了会被静默吞(state != DECISION), 干脆收起(评审)
 	# ⚠ 状态一变就要刷组件快照(hand 的 decide 是快照不是活查询):
 	# 教学第 4 轮的特写在 _start_phrase 中途触发, 其后的 _refresh 在 INTRO 下把手牌
 	# 禁用了一整拍 —— 用户:「特写后无法操作, 等到下一轮才能动」。起止各刷一次。
@@ -397,6 +410,9 @@ func _closeup_done(home: Vector2, hz: int) -> void:
 	if state == St.INTRO:
 		state = St.DECISION      # 钟从这一刻才开始走(elapsed 已在 _start_phrase 归零)
 		_refresh()               # 把 hand 的 decide 快照刷回可操作(卡死 bug 的另一半)
+		_refresh_tray()          # 特写收尾再亮托盘(与上面 tray.visible = false 配对)
+		music.sync_beat()        # 特写恰好 2.0s = 1 小节, 但 tween 有帧抖动 ⇒ 显式归零
+
 
 
 ## t 在 a_pos→b_pos 间插值飞行;flip=true 时 x 轴按 |cos| 做一次翻面(卡牌翻面同一 idiom)。
@@ -475,6 +491,10 @@ func _start_phrase() -> void:
 		music.play_section(run.section_idx)   # 每关一首(探针在 Music 里自静音)
 	if run.phrase_in_section == 0 and not run.tutorial and not SaveState.is_probe():
 		_play_blind_closeup()
+	# 拍首下拍:钟起步的那一刻 kick 归零(Music.sync_beat 文件内有整套推导)。
+	# 特写路径除外 —— 那 2 秒 state=INTRO 钟不走, kick 由 _closeup_done 落。
+	if state == St.DECISION:
+		music.sync_beat()
 
 
 ## 教学关的一行提示 + 分区指向 + 多选解锁。抽成函数是为了**拍中推进后立刻重放**
@@ -536,6 +556,12 @@ var _run_index := 1
 ## 探针喂空 {} ⇒ roll_run 逐字节退回旧掷法(director.gd 的承诺), 仪器复现性不漂。
 func _feed_director() -> void:
 	run.face_ranking = {} if SaveState.is_probe() else DB.ranking_tiers()
+	# 玩家状态 m 的切片(2026-08-19「基于 context 生成关卡」):连胜/连败 + 见过的脸。
+	# 探针恒空 ⇒ 掷法逐字节不变(min_run 同一条先例)。
+	run.director_ctx = {} if SaveState.is_probe() \
+		else {"streak": SaveState.streak(), "seen": SaveState.faces_seen(),
+			"boons_seen": SaveState.boons_seen(),
+			"returning": SaveState.returning_run()}
 
 ## 教学的示范道具(2026-08-18 用户:「给一些代表性的盲注+小丑牌, 打开玩家想象力」)。
 ## 第 3 轮:四槽装**借展样品** —— 倍率(三连音)/加成(开场)/基础分(贵宾)/奖励分(灯牌)
@@ -543,11 +569,18 @@ func _feed_director() -> void:
 ## 特意避开规则牌当样品 —— 规则牌要挂 deck 旗, 借展收回时还得拆旗, 不值得。
 ## 第 4 轮:盲注卡亮样例脸(禁回)+ 放一次特写 —— 盲注的登场时刻本身就是教学。
 ## 样品与样例都在段边界收回(tutorial_done 那段):免费四张带进正式局会送掉首局构筑。
+## 借展样品的**实例**清单(2026-08-21 评审 R3):转正时只收回这四个对象, 玩家在教学商店里
+## 花真金买进来的卡(走替换流装上的是新实例)**必须带进正式局** —— 此前整排清空,
+## 新玩家第一次花钱买的牌连同退款一起蒸发, 而 deck 规则旗不回滚。
+var _tutor_samples: Array = []
+
 func _stage_tutor_props() -> void:
 	if run.tutorial_step >= 2 and run.joker_slots[0] == null:
 		var ids := ["triplet", "opener", "vip", "neonsign"]
+		_tutor_samples.clear()
 		for i in range(4):
 			run.joker_slots[i] = Joker.by_id(ids[i])
+			_tutor_samples.append(run.joker_slots[i])
 			# ⚠ 槽位视图不走 _refresh 镜像(只在买入/重置点显式写)—— 借展也要自己写
 			joker_views[i].set_joker(run.joker_slots[i])
 			fx.pop(joker_views[i])
@@ -691,12 +724,17 @@ func _on_settle_burst() -> void:
 	var to := run.section_score
 	if to == from:
 		return
-	var tw := create_tween()
-	tw.tween_interval(0.62)
-	tw.tween_method(func(v: float) -> void:
+	if _score_roll != null and _score_roll.is_valid():
+		_score_roll.kill()
+	_score_roll = create_tween()
+	_score_roll.tween_interval(0.62)
+	_score_roll.tween_method(func(v: float) -> void:
 			_shown_score = int(round(v))
 			hud.set_score_text(_shown_score),
 		float(from), float(to), 0.5).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_score_roll.tween_callback(func() -> void:
+			_score_roll = null
+			_refresh())
 
 
 ## 提前收工:立刻结算这一拍。**2026-08-13 起真的有调用方了** ——
@@ -730,6 +768,20 @@ func _on_vinyl_tapped() -> void:
 ## _settle 与 _advance 共用这一份判据(判定只许有一份真相)。
 func _acted_early() -> bool:
 	return last_action_time >= 0.0 and last_action_time <= GameConfig.EARLY_FINISH_TIME
+
+
+## 分数滚动进行中(含 burst 前的等待:settle_fx 还没到 1.5s 时 tween 尚未建, 看 fx 的相位)
+func _rolling() -> bool:
+	if _score_roll != null and _score_roll.is_valid():
+		return true
+	return settle_fx.visible and settle_fx.is_processing() and run.section_score != _shown_score
+
+
+func _stop_roll() -> void:
+	if _score_roll != null and _score_roll.is_valid():
+		_score_roll.kill()
+	_score_roll = null
+	_shown_score = run.section_score
 
 
 func _advance() -> void:
@@ -766,10 +818,13 @@ func _advance() -> void:
 		_feed_director()
 		run.roll_faces(-1, SaveState.runs_total())
 		tutor.set_hint("", "")
-		# 借展道具收回:样品四张 + 样例盲注(理由在 _stage_tutor_props 头)
+		# 借展道具收回:**只收样品实例** + 样例盲注(理由在 _tutor_samples 头)——
+		# 教学商店里买的卡留在槽里带进正式局
 		for i in range(run.joker_slots.size()):
-			run.joker_slots[i] = null
-			joker_views[i].set_joker(null)
+			if run.joker_slots[i] != null and _tutor_samples.has(run.joker_slots[i]):
+				run.joker_slots[i] = null
+				joker_views[i].set_joker(null)
+		_tutor_samples.clear()
 		_tutor_blind_shown = false
 		Tape.on("tutorial_done", {"beat": run.phrase_index})
 	if bool(out["section_done"]):
@@ -781,7 +836,12 @@ func _advance() -> void:
 			Tape.close({"ok": false, "sec": run.section_idx,
 				"score": run.section_score, "target": run.target(),
 				"beats": run.phrase_index})
+			# META 结算(1.1):战绩/见过的脸/boon/构筑入存档(喂 Director 的 ctx)+ 宝石入账。
+			# 死在第 i 段 = 通关了前 i 段;失败也有参与收入, 这正是「来了就有」那一层。
+			var meta := SaveState.settle_run_meta(false, run.section_idx, _faces_encountered(),
+				String(run.boon()), _final_target_id())
 			run_end.show_fail(run.section_score, run.target())
+			run_end.set_meta_gain(meta)
 			return
 		# clear wage, shown as the panel chip(走 grant —— 金币上限的四个入账口之一)
 		phrase.coins = Economy.grant(phrase.coins, GameConfig.SECTION_CLEAR_REWARD,
@@ -793,8 +853,11 @@ func _advance() -> void:
 			# 2026-08-06 用户:「为什么中途要跳那个通关成功的页面啊, 只有一整关通关才跳」——
 			# 全屏庆祝**只留给整轮结束**。改成 4 段全墙之后, 挂在墙上的旧规则等于每段都发,
 			# 一局 5 分钟被打断 4 次; 庆祝是稀缺资源, 现在全程只发 1 次。
+			var meta := SaveState.settle_run_meta(true, GameConfig.SECTIONS_PER_RUN,
+				_faces_encountered(), String(run.boon()), _final_target_id())
 			run_end.show_success(run.section_score, run.target(), GameConfig.SECTION_CLEAR_REWARD,
 				true, GameConfig.gig_of(run.section_idx) + 1)
+			run_end.set_meta_gain(meta)
 		else:
 			# 中途过关 —— 轻横幅(≤1s 自动滑走)直接进商店, 不打断节奏
 			banner.pop(run.section_score, run.target(), GameConfig.SECTION_CLEAR_REWARD)
@@ -808,6 +871,25 @@ func _advance() -> void:
 		_open_draft()
 		return
 	_start_phrase()
+
+
+## 这一局收官时的 Target(构筑倾向的原料, 探索型货架的分母)。"" = 一局没装过 Target。
+func _final_target_id() -> String:
+	for j in run.joker_slots:
+		if j != null and String(j.kind) == "target":
+			return String(j.id)
+	return ""
+
+
+## 这一局「见过」的脸:打到的每一段 + 预告过的下一场 —— 喂 `faces_seen`
+## (新鲜感轴的分母)。没打到也没预告的脸不算见过, 全记会把 N 轴静默清零。
+func _faces_encountered() -> Array:
+	var out: Array = []
+	for i in range(mini(run.section_idx + 2, GameConfig.SECTIONS_PER_RUN)):
+		var f := String(run.run_faces.get(i, ""))
+		if f != "":
+			out.append(f)
+	return out
 
 
 ## advance to the next blind and open the shop — every section boundary is a
@@ -836,8 +918,11 @@ func _on_end_retry() -> void:
 	Tape.on("nav", {"to": "retry"})
 	run_end.close()
 	_reset_run(true)      # 再来一次 keeps the protagonist, per docs/design/levels.md
+	_begin_run()          # 与开局同一份三步(评审 R2):Director/min_run/局数都要算上这一局
 	# 重开 = 新的一局, 得开新流, 否则两局的事件会串在同一条时间轴上
-	Tape.begin({"char": run.character.idx, "cn": run.character.cn_name,
+	Tape.begin({"sess": _sess, "tutorial": run.tutorial,
+		"char": run.character.idx, "cn": run.character.cn_name,
+		"meta": {"gems": SaveState.gems(), "assets": SaveState.assets_owned()},
 		"faces": run.run_faces.duplicate(), "targets": GameConfig.SECTION_TARGETS,
 		"coins": GameConfig.STARTING_COINS, "retry": true,
 		"struct": {"sec": GameConfig.SECTIONS_PER_RUN,
@@ -872,11 +957,26 @@ func _reset_run(keep_character: bool) -> void:
 	_shown_score = 0
 
 
+## 开局三步(2026-08-21 评审 R2 收口):定局数 → 喂 Director(排序表 + 玩家状态 m)→
+## 按真实局数掷脸 → 记局数。**开局与「再来一次」必须走同一份。**
+## 此前重开路径只调 `_reset_run()`, 而 `Run.reset()` 内部用缺省 `run_index = -1` 掷脸 ⇒
+## min_run 门失效(禁回第 2 局重开就能冒出来)、Director 永远第 1 局状态、ctx 用上一局的
+## 快照、runs_total/history 分叉 —— 四条全静默。「第二条入口漏掉主路径的步骤」是这个项目
+## 最贵的形状之一, 所以收成一个函数, 别再让两条入口各写各的。
+## ⚠ `_run_index` 的 `+1`:掷脸发生在 `note_run_started()` 之前, 存档里还是「以前玩过几局」。
+func _begin_run() -> void:
+	_run_index = 1 if SaveState.is_probe() else SaveState.runs_total() + 1
+	_feed_director()
+	run.roll_faces(-1, _run_index)
+	SaveState.note_run_started()
+
+
 # ============================== DRAFT ==============================
 
 func _open_draft() -> void:
 	state = St.DRAFT
 	settle_fx.dismiss()   # 分解面板铺在货架带上, 商店一开必须立刻让位(2026-08-18)
+	_stop_roll()          # 滚动一起收, 商店盲注板讲的是终值
 	# ⚠ **进商店先收掉教学提示条**(2026-08-17 试玩报的:「选小丑牌了, 前面的提示怎么还在」)。
 	# 它只在 `_start_phrase` 设, 而商店是**从拍中间弹出来的全屏层** —— 没人负责清它,
 	# 于是上一拍那句话就压在货架上。
@@ -892,6 +992,8 @@ func _open_draft() -> void:
 	shop.set_upgrades_on(not run.tutorial)
 	# Director 的货架偏置(establish 抬 common / experiment 抬 rare…):探针中性
 	shop.set_shelf_rarity_mult({} if SaveState.is_probe() else Director.shelf_rarity_mult(_run_index))
+	# 探索型货架的原料(玩过的 Target):探针恒空 ⇒ 货架掷法逐字节不变
+	shop.set_explore_used({} if SaveState.is_probe() else SaveState.targets_used())
 	# 点唱券:免费刷新的**余额**在开店时注入(shop 只管显示与分流, 消耗在编排器)
 	shop.set_free_rerolls(SaveState.tickets_held("juketicket"))
 	shop.open(run.joker_slots, phrase.coins, run.section_idx,
@@ -918,6 +1020,11 @@ func _on_shop_bought(j, price: int) -> void:
 		return
 	# 0 = 本局首张 Target(免费三选一, Target 唯一保留的特例);
 	# 之后 Target 与 Support 一样按稀有度定价(2026-08-06 回池, 原专属 8◆ 已废)。
+	# ⚠ 余额在**这里**复查(经济动作只发生在编排器):shop 的显示态与真钱包可能差一拍
+	# (升级路径一直复查, 买入路径此前没有 —— 2026-08-21 评审)。
+	if price < 0 or phrase.coins < price:
+		Tape.on("deny", {"why": "buy_stale"})
+		return
 	phrase.coins -= price
 	Tape.on("buy", {"id": String(j.id), "kind": String(j.kind),
 		"price": price, "coins": phrase.coins})
@@ -1020,6 +1127,9 @@ func _on_shop_skipped() -> void:
 func _on_shop_reroll(cost: int) -> void:
 	if state != St.DRAFT or replace.pick != null:
 		return
+	if cost < 0 or phrase.coins < cost:
+		Tape.on("deny", {"why": "reroll_stale"})
+		return
 	phrase.coins -= cost
 	Joker.notify_shop(run.joker_slots, "reroll")     # 淘碟:刷新是付费动作(A4✓)
 	Tape.on("rerl", {"k": shop.reroll_count(), "cost": cost, "coins": phrase.coins})
@@ -1047,7 +1157,7 @@ func _on_shop_reroll_ticket() -> void:
 ## 今日发券的提示(纯表现)。拆成方法是给截图探针一个注入口 ——
 ## 探针拿不到真券(`_is_probe` 闸), 但提示的视觉必须能目视。
 func _show_daily_notice(tid: String) -> void:
-	var cn := String(Ticket.by_id(tid).get("cn", tid))
+	var cn := Lingo.pick(Ticket.by_id(tid))
 	var at := tray.position + Vector2(tray.size.x * 0.5, -34.0) if tray.visible \
 		else Vector2(500.0, 600.0)   # 兜底:发的是 run/shop 券时托盘可能不显示
 	fx.float_text(String(DB.ui()["tickets"]["daily_notice"]) % cn, at, StageTheme.GOLD)
@@ -1119,9 +1229,10 @@ func _on_slot_tapped(k: int) -> void:
 		return
 	var old = run.joker_slots[k]
 	var price := Economy.shelf_price(new_j, run.joker_slots)
-	var refund := Economy.sell_value(old)
+	# 借展样品换下来**不退款**(评审 R3):它不是玩家买的, 折半回收等于白送钱
+	var refund := 0 if (old != null and _tutor_samples.has(old)) else Economy.sell_value(old)
 	if phrase.coins + refund < price:
-		fx.float_text("◆ 不足", joker_views[k].get_global_position() + Vector2(30, 40), Color("ff5f7e"))
+		fx.float_text(Lingo.t("◆ 不足"), joker_views[k].get_global_position() + Vector2(30, 40), Color("ff5f7e"))
 		Tape.on("deny", {"why": "replace"})
 		return
 	# 回收进账走 grant, 付款直接扣;换进的卡若自带上限, 装完再修剪存量(cap_held)
@@ -1169,37 +1280,37 @@ func _swap_open() -> bool:
 func _blind_status() -> String:
 	match cur_modifier:
 		"request":
-			return "点歌 · %s" % Run.request_label(phrase.request_goal)
+			return Lingo.t("点歌 · %s") % Run.request_label(phrase.request_goal)
 		"lostpage":
-			return "将丢 · %s" % ("?" if phrase.marked_cache_card == null \
+			return Lingo.t("将丢 · %s") % ("?" if phrase.marked_cache_card == null \
 				else phrase.marked_cache_card.label())
 		"throttle":
-			return "操作余 %d" % maxi(0, SectionMod.action_limit(cur_modifier) - phrase.action_count)
+			return Lingo.t("操作余 %d") % maxi(0, SectionMod.action_limit(cur_modifier) - phrase.action_count)
 		"onetake":
-			return "弃牌余 %d 次" % maxi(0,
+			return Lingo.t("弃牌余 %d 次") % maxi(0,
 				SectionMod.discard_action_limit(cur_modifier) - phrase.discard_actions_used)
 		"oneswap":
-			return "交换余 %d 次" % maxi(0,
+			return Lingo.t("交换余 %d 次") % maxi(0,
 				SectionMod.swap_action_limit(cur_modifier) - phrase.swap_actions_used)
 		"ration":
-			return "弃牌余 %d 张" % maxi(0, phrase.discard_budget - phrase.discards_used)
+			return Lingo.t("弃牌余 %d 张") % maxi(0, phrase.discard_budget - phrase.discards_used)
 		"trilogy":
-			return "曲目 %d/%d" % [run.section_kinds.size(),
+			return Lingo.t("曲目 %d/%d") % [run.section_kinds.size(),
 				SectionMod.required_kinds(cur_modifier)]
 		"switchtrack":
-			return "选择轨道" if phrase.action_track == "" else (
-				"仅可弃牌" if phrase.action_track == "discard" else "仅可交换")
+			return Lingo.t("选择轨道") if phrase.action_track == "" else (
+				Lingo.t("仅可弃牌") if phrase.action_track == "discard" else Lingo.t("仅可交换"))
 		"handseal":
-			return "弃牌封 · %s" % ("?" if phrase.sealed_hand_card == null \
+			return Lingo.t("弃牌封 · %s") % ("?" if phrase.sealed_hand_card == null \
 				else phrase.sealed_hand_card.label())
 		"doubleseal":
-			return "手牌/缓存双封"
+			return Lingo.t("手牌/缓存双封")
 		"wetink":
-			return "缓存锁 %d" % phrase.locked_cache_cards.size()
+			return Lingo.t("缓存锁 %d") % phrase.locked_cache_cards.size()
 		"rush":
 			if run.boon() == "spotlight" and phrase.spotlight_card != null:
-				return "聚光 · %s" % phrase.spotlight_card.label()
-			return "固定 6 秒"
+				return Lingo.t("聚光 · %s") % phrase.spotlight_card.label()
+			return Lingo.t("固定 6 秒")
 	return ""
 
 
@@ -1423,7 +1534,7 @@ func _on_hand_single_discard(zone: String, idx: int) -> void:
 
 func _refresh() -> void:
 	var decide: bool = state == St.DECISION
-	if state != St.RESOLVE:
+	if state != St.RESOLVE and not _rolling():
 		_shown_score = run.section_score
 	# ⚠⚠ **必须走 `run.target()`, 不许直接索引 SECTION_TARGETS**(2026-08-09 修的真 bug):
 	# 判生死走的是 `Run.target()`(乘了 `SectionMod.target_mult`), 而这里曾经读原始表 ——
@@ -1432,7 +1543,8 @@ func _refresh() -> void:
 	var target: int = run.target()
 	hud.refresh({"section_idx": run.section_idx, "coins": phrase.coins,
 		"score": _shown_score, "target": target, "phrase_no": run.phrase_index,
-		"fraction": float(run.section_score) / float(target)})
+		# 教学关 target = 0 ⇒ 0/0 = NaN(GDScript 浮点除零不报错), 进度条会画成残条(评审)
+		"fraction": 0.0 if target <= 0 else float(run.section_score) / float(target)})
 
 	# 「当前牌型」读数面板已删除(用户 2026-08-05:「PAIR 100 那个区域去掉,
 	# 根本不知道什么意思」)——它没有任何说明, 又和结算三段式的分数演算重复。

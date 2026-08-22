@@ -3,10 +3,12 @@ extends RefCounted
 func run(t) -> void:
 	_test_run_structure(t)
 	_test_run_machine(t)
+	_t_fork_complete(t)
 
 
 # --- Run structure (2026-08-06 节奏定案: run = 4 gigs × 1 blind = 4 sections,
 # 6 phrases each, shop every 3 — 商店与盲注解耦) ---
+
 func _test_run_structure(t) -> void:
 	t.eq(GameConfig.SECTIONS_PER_GIG, 1, "1 blind per gig")
 	t.eq(GameConfig.GIGS_PER_RUN, 4, "4 gigs per run")
@@ -313,3 +315,46 @@ func _test_run_machine(t) -> void:
 		"boost lifted the ledger score but raw/boon stayed un-boosted(复读/回放读原始分)")
 	t.eq(mm_run.previous_raw_score, int(mm_o["raw_score"]),
 		"afterglow chain keeps reading the raw score, not the boosted one")
+
+
+## 2026-08-21 外部审查:RunLoop.fork 漏拷七个字段 ⇒ 买牌推演的世界与本尊分叉。
+## 这里把「本尊上能设的字段」全设上, fork 之后逐一对比 —— 新加字段要么进 fork 要么在这里红。
+func _t_fork_complete(t) -> void:
+	var RL = load("res://tools/runloop.gd")
+	# 探针世界的 boon:缺省 AUTO = 掷一张(与游戏同池, 独立流, 按 deck_seed 确定);"" = 明确无
+	t.eq(RL.Opts.new().boon, RL.BOON_AUTO, "RunLoop.Opts rolls a boon by default (probe world has boons)")
+	t.check(BlindBoon.ids().has(RL.roll_boon(5)), "roll_boon draws from the approved boon pool")
+	t.eq(RL.roll_boon(5), RL.roll_boon(5), "roll_boon is deterministic per deck_seed")
+	var spread := {}
+	for sd in range(40):
+		spread[RL.roll_boon(sd)] = true
+	t.check(spread.size() >= 2, "roll_boon varies across deck seeds (not one boon forever)")
+	var r := Run.new()
+	r.deck = Deck.new(7)
+	r.run_faces = {0: "norepeat", 1: "request", 2: "ration", 3: "rush"}
+	r.run_boon = "doubleset"
+	r.section_idx = 2
+	r.phrase_in_section = 3
+	r.section_score = 123
+	r.phrase_index = 15
+	r.prev_kind = 4
+	r.first_kind = 2
+	r.section_discards_used = 5
+	r.section_kinds = {2: true, 4: true}
+	r.cache_meta = {"ages": {"x": 3}, "next": 9}
+	r.previous_raw_score = 777
+	r.request_last = "color_mix"
+	r.coins = 11
+	r.tutorial = false
+	var f: Run = RL.fork(r, 42)
+	for k in ["run_boon", "section_idx", "phrase_in_section", "section_score", "phrase_index",
+			"prev_kind", "first_kind", "section_discards_used", "previous_raw_score",
+			"request_last", "coins", "tutorial"]:
+		t.eq(f.get(k), r.get(k), "fork copies %s" % k)
+	t.eq(f.section_kinds, r.section_kinds, "fork copies section_kinds")
+	t.eq(f.cache_meta, r.cache_meta, "fork copies cache_meta")
+	t.eq(f.run_faces, r.run_faces, "fork copies run_faces")
+	f.section_kinds[9] = true
+	t.check(not r.section_kinds.has(9), "fork's section_kinds is a copy, not an alias")
+	f.cache_meta["ages"]["y"] = 1
+	t.check(not r.cache_meta["ages"].has("y"), "fork's cache_meta is a deep copy")

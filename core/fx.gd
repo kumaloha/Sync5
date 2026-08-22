@@ -190,10 +190,16 @@ static func _count(d: Dictionary, state: Dictionary, ctx: Dictionary) -> float:
 static func _do(d: Dictionary, state: Dictionary, ctx: Dictionary,
 		scale: float = 1.0) -> String:
 	# escape-hatch opcodes first (docs/design/tech.md: the irreducible two)
+	# ⚠⚠ 升级放大在**每个**逃生口里各做一次(2026-08-21 评审 R1):此前六个逃生口在下面
+	# 「升级:放大增量」那段之前就 return 了 ⇒ 8 张卡(vip/mirror/bassclef/warmtone/cooltone/
+	# undertone/bench/royalty)的升级是**纯扣钱**, 而 joker.gd 的注释还写着「放大只发生在
+	# apply 一处, 谁调谁拿到」—— 注释承诺了不存在的机制。规则与下面一致:
+	# 乘子走 `1 + (x−1)×scale`, 加分走 `×scale`, **金币通道不放大**(升级不印钱)。
 	if d.has("mult_from_target_factor"):
 		var tf: float = float(ctx.get("target_factor", 1.0))
 		if tf > 1.0:
 			var mf: float = 1.0 + (tf - 1.0) * float(d["mult_from_target_factor"])
+			mf = 1.0 + (mf - 1.0) * scale
 			ctx.mult *= mf
 			return "×%.1f" % mf
 		return ""
@@ -203,6 +209,7 @@ static func _do(d: Dictionary, state: Dictionary, ctx: Dictionary,
 		for c in ctx.get("scoring_cards", []):
 			if c.rank >= 11 and c.rank <= 13:
 				boost += val - c.rank
+		boost = int(round(float(boost) * scale))
 		if boost > 0:
 			ctx.additive += boost
 			return "+%d" % boost
@@ -214,6 +221,7 @@ static func _do(d: Dictionary, state: Dictionary, ctx: Dictionary,
 		for c in ctx.get("scoring_cards", []):
 			if not c.is_wild() and c.rank >= 2 and c.rank <= 5:
 				lboost += lval - c.rank
+		lboost = int(round(float(lboost) * scale))
 		if lboost > 0:
 			ctx.additive += lboost
 			return "+%d" % lboost
@@ -231,6 +239,7 @@ static func _do(d: Dictionary, state: Dictionary, ctx: Dictionary,
 			if not c.is_wild():
 				ctop = maxi(ctop, int(c.rank))
 		ctop *= int(d["additive_cache_top"])
+		ctop = int(round(float(ctop) * scale))
 		if ctop > 0:
 			ctx.additive += ctop
 			return "+%d" % ctop
@@ -253,8 +262,9 @@ static func _do(d: Dictionary, state: Dictionary, ctx: Dictionary,
 			if hit:
 				hits += 1
 		if hits > 0:
-			ctx.additive += per_card * hits
-			return "+%d" % (per_card * hits)
+			var add := int(round(float(per_card * hits) * scale))
+			ctx.additive += add
+			return "+%d" % add
 		return ""
 
 	var cnt := _count(d, state, ctx)

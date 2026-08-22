@@ -1,0 +1,37 @@
+# 单测 CI(2026-08-21 外部审查 H5:「没有任何 CI」)。
+# 只跑全量单测 + 四判据(tools/unittest.sh, 与 gate.sh 同一份);
+# 全量门(gate.sh, 本机 4.5h)与出包不进 CI —— 出包要签名 keystore, 归用户。
+name: tests
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90     # 本机 ~12–15 min;CI 机慢 2–3×
+    env:
+      GODOT_VERSION: 4.6.2
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Godot (headless)
+        run: |
+          set -e
+          curl -sSL -o godot.zip "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q godot.zip
+          sudo mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" /usr/local/bin/godot
+          godot --version
+      - name: Import (class_name 注册, 同 CLAUDE.md 命令表)
+        run: godot --headless --path . --import 2>&1 | tail -5
+      - name: Unit tests (four criteria)
+        run: tools/unittest.sh "$RUNNER_TEMP/tests.log"
+      - name: Upload log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tests-log
+          path: ${{ runner.temp }}/tests.log

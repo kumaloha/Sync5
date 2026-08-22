@@ -64,7 +64,7 @@ func _button() -> Button:
 
 
 func _style_buttons() -> void:
-	_btn_a.text = "返回主页"
+	_btn_a.text = Lingo.t("返回主页")
 	var cold := StageTheme.box(Color(0.047, 0.063, 0.14, 0.6), Color(0.47, 0.59, 0.78, 0.4), 1, 16)
 	for st in ["normal", "hover", "pressed"]:
 		_btn_a.add_theme_stylebox_override(st, cold)
@@ -76,7 +76,7 @@ func _style_buttons() -> void:
 	for st in ["normal", "hover", "pressed"]:
 		_btn_b.add_theme_stylebox_override(st, hot)
 	_btn_b.add_theme_color_override("font_color", Color("eafffd") if _mode == "success" else Color("ffe3ec"))
-	_btn_b.text = ("谢幕 ▸" if _finale else "下一场演出 ▸") if _mode == "success" else "再来一次 ↻"
+	_btn_b.text = (Lingo.t("谢幕 ▸") if _finale else Lingo.t("下一场演出 ▸")) if _mode == "success" else Lingo.t("再来一次 ↻")
 
 
 func _on_primary() -> void:
@@ -93,6 +93,7 @@ func show_success(score: int, target: int, wage: int, finale: bool, gig_no: int 
 	_wage = wage
 	_finale = finale
 	_gig = gig_no
+	_meta = {}
 	_rng.randomize()
 	_make_confetti()
 	_make_sticks()
@@ -104,7 +105,16 @@ func show_fail(score: int, target: int) -> void:
 	_score = score
 	_target = maxi(1, target)
 	_finale = false
+	_meta = {}
 	_open()
+
+
+## META 收入(1.1 资产循环):{"earn": 基础, "yield": 资产分红}。编排器在 show_* 之后喂;
+## 空 = 不画(探针 settle_run_meta 恒空, 截图探针的画面因此不变)。
+var _meta: Dictionary = {}
+func set_meta_gain(m: Dictionary) -> void:
+	_meta = m
+	queue_redraw()
 
 
 func _open() -> void:
@@ -130,7 +140,8 @@ func _process(delta: float) -> void:
 func _make_confetti() -> void:
 	var colors := [Color("35e8e0"), Color("ff4fa3"), Color("a56bff"), Color("ffb347"), Color("9fe9ff"), Color("ff8bbd")]
 	_confetti.clear()
-	for i in range(26):
+	# 彩带机资产(META「买了就想玩」):庆功彩带加倍。探针恒无 ⇒ 截图稳定。
+	for i in range(52 if SaveState.has_flair("confetti") else 26):
 		_confetti.append({
 			"x": _rng.randf_range(0.02, 0.98) * W,
 			"w": _rng.randf_range(5.0, 12.0),
@@ -145,8 +156,10 @@ func _make_confetti() -> void:
 func _make_sticks() -> void:
 	var colors := [Color("35e8e0"), Color("ff4fa3"), Color("a56bff"), Color("ffb347"), Color("9fe9ff"), Color("ff8bbd"), Color("cdb2ff")]
 	_sticks.clear()
-	for i in range(26):
-		var x := 14.0 + float(i) * 27.0 + _rng.randf() * 14.0
+	# 应援团资产:荧光棒海加倍(52 根塞同一条带里 = 间距减半, 声势自然翻上去)。
+	var n := 52 if SaveState.has_flair("crowd") else 26
+	for i in range(n):
+		var x := 14.0 + float(i) * (26.0 * 27.0 / float(n)) + _rng.randf() * 14.0
 		var dx := (_rng.randf() - 0.5) * 18.0
 		var top_y := 52.0 + _rng.randf() * 10.0
 		_sticks.append({
@@ -348,24 +361,28 @@ func _neon_spaced(text: String, cy: float, fs: int, spacing: float, core: Color,
 func _title(ok: bool) -> void:
 	if ok:
 		var pulse := 0.75 + 0.25 * (0.5 + 0.5 * sin(_t * TAU / 2.4))
-		_neon_spaced("演出成功", 410.0, 72, 18.0, Color("eafffd"), StageTheme.CYAN, pulse)
-		_sub("第 %d 场演出 · 全场沸腾" % _gig, 448.0, Color("5fd8d0"))
+		_neon_spaced(Lingo.t("演出成功"), 410.0, 72, 18.0, Color("eafffd"), StageTheme.CYAN, pulse)
+		_sub(Lingo.t("第 %d 场演出 · 全场沸腾") % _gig, 448.0, Color("5fd8d0"))
 	else:
-		_neon_spaced("演出失败", 410.0, 72, 18.0, Color("ffe3ec"), Color("ff4fa3"), 0.9)
-		_sub("STAGE FAILED · 观众散场了", 448.0, Color("c96a85"))
+		_neon_spaced(Lingo.t("演出失败"), 410.0, 72, 18.0, Color("ffe3ec"), Color("ff4fa3"), 0.9)
+		_sub(Lingo.t("STAGE FAILED · 观众散场了"), 448.0, Color("c96a85"))
 
 
 func _sub(text: String, y: float, col: Color) -> void:
 	var font := StageTheme.zh()
 	var spacing := 12.0
 	var total := 0.0
+	# 每个字量一次(2026-08-21 评审:此前每帧每字量两遍;这屏是全屏动画, 每帧都走到这里)
+	var widths: Array = []
 	for ch in text:
-		total += font.get_string_size(ch, HORIZONTAL_ALIGNMENT_LEFT, -1, 17).x + spacing
+		var wd: float = font.get_string_size(ch, HORIZONTAL_ALIGNMENT_LEFT, -1, 17).x
+		widths.append(wd)
+		total += wd + spacing
 	total -= spacing
 	var x := 360.0 - total * 0.5
-	for ch in text:
-		draw_string(font, Vector2(x, y), ch, HORIZONTAL_ALIGNMENT_LEFT, -1, 17, col)
-		x += font.get_string_size(ch, HORIZONTAL_ALIGNMENT_LEFT, -1, 17).x + spacing
+	for i in range(text.length()):
+		draw_string(font, Vector2(x, y), text[i], HORIZONTAL_ALIGNMENT_LEFT, -1, 17, col)
+		x += float(widths[i]) + spacing
 
 
 ## dcmergein for the panel: scale .3→1.15→.97→1.
@@ -408,7 +425,7 @@ func _panel(ok: bool) -> void:
 	# 最终得分  {shown}  / {target}
 	var num_w: float = num.get_string_size(str(shown), HORIZONTAL_ALIGNMENT_LEFT, -1, 76).x
 	var lx := -num_w * 0.5 - 96.0
-	draw_string(zh, Vector2(lx, r.position.y + 62.0), "最终得分", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, dim)
+	draw_string(zh, Vector2(lx, r.position.y + 62.0), Lingo.t("最终得分"), HORIZONTAL_ALIGNMENT_LEFT, -1, 16, dim)
 	draw_string(num, Vector2(-num_w * 0.5, r.position.y + 74.0), str(shown), HORIZONTAL_ALIGNMENT_LEFT, -1, 76, score_col)
 	draw_string(num, Vector2(num_w * 0.5 + 12.0, r.position.y + 62.0), "/ %d" % _target, HORIZONTAL_ALIGNMENT_LEFT, -1, 20, dim)
 	# progress bar
@@ -429,13 +446,13 @@ func _panel(ok: bool) -> void:
 			HORIZONTAL_ALIGNMENT_LEFT, -1, 21, Color("ffd9a0"))
 		var chip2 := Rect2(-6.0, r.position.y + 108.0, 172.0, 34.0)
 		draw_style_box(StageTheme.box(Color(0.08, 0.04, 0.14, 0.6), Color(0.65, 0.42, 1.0, 0.5), 1, 16), chip2)
-		draw_string(zh, Vector2(chip2.position.x + 12.0, chip2.position.y + 24.0), "♪ 小丑牌 · 待挑选",
+		draw_string(zh, Vector2(chip2.position.x + 12.0, chip2.position.y + 24.0), Lingo.t("♪ 小丑牌 · 待挑选"),
 			HORIZONTAL_ALIGNMENT_LEFT, -1, 17, Color("cdb2ff"))
 	else:
 		var lack := maxi(0, _target - _score)
-		var msg_a := "还差 "
+		var msg_a := Lingo.t("还差 ")
 		var msg_n := str(lack)
-		var msg_b := " 分就能点燃全场"
+		var msg_b := Lingo.t(" 分就能点燃全场")
 		var wa: float = zh.get_string_size(msg_a, HORIZONTAL_ALIGNMENT_LEFT, -1, 19).x
 		var wn: float = num.get_string_size(msg_n, HORIZONTAL_ALIGNMENT_LEFT, -1, 26).x
 		var wb: float = zh.get_string_size(msg_b, HORIZONTAL_ALIGNMENT_LEFT, -1, 19).x
@@ -443,6 +460,17 @@ func _panel(ok: bool) -> void:
 		draw_string(zh, Vector2(x0, r.position.y + 128.0), msg_a, HORIZONTAL_ALIGNMENT_LEFT, -1, 19, Color("c96a85"))
 		draw_string(num, Vector2(x0 + wa, r.position.y + 128.0), msg_n, HORIZONTAL_ALIGNMENT_LEFT, -1, 26, Color("ffd9a0"))
 		draw_string(zh, Vector2(x0 + wa + wn, r.position.y + 128.0), msg_b, HORIZONTAL_ALIGNMENT_LEFT, -1, 19, Color("c96a85"))
+	# META 收入行(1.1 资产循环)—— 挂在面板正下方, 宝石紫(语义色不跟档位走)。
+	# 失败也有:参与收入挂通关段数, 这行正是「输了也在攒」的可见证据。
+	if not _meta.is_empty():
+		var earn := int(_meta.get("earn", 0))
+		var yielded := int(_meta.get("yield", 0))
+		if earn + yielded > 0:
+			var mtxt := Lingo.t("◈ 巡演收入 +%d") % (earn + yielded)
+			if yielded > 0:
+				mtxt += Lingo.t("(含资产分红 +%d)") % yielded
+			draw_string(zh, Vector2(r.position.x, r.end.y + 26.0), mtxt,
+				HORIZONTAL_ALIGNMENT_CENTER, r.size.x, 15, Color("cdb2ff"))
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 

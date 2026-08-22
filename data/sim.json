@@ -68,15 +68,6 @@
   "6": 0.06,
   "7": 0.01
  },
- "target_tf": {
-  "twin": 3.5,
-  "stair": 8.0,
-  "mono": 6.0,
-  "triplet": 5.0,
-  "lonewolf": 4.0,
-  "kaleido": 4.0,
-  "shredder": 4.0
- },
  "counterfactual_tv": {
   "twin": 2.6,
   "stair": 1.5,
@@ -305,6 +296,10 @@
      5.0
     ],
     "off_target": 0.03
+   },
+   "popup": {
+    "fixed_rate": 0.167,
+    "_comment": "每段第 1 拍 = 1/6(同 opener);2026-08-21 评审:此前缺臂 ⇒ bot 永远不买 ⇒ 尺子里从不存在"
    }
   },
   "timing": {

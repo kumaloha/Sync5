@@ -241,7 +241,7 @@ func _draw() -> void:
 ## Drawn unscaled so the glyphs stay crisp. 帧图与简笔两条路径共用。
 func _name_plate() -> void:
 	var f := StageTheme.zh()
-	var label := String(_ch["name"])
+	var label := Lingo.t(String(_ch["name"]))
 	var w := f.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x
 	var ly := (-ANCHOR.y - 9.0) * FIG_SCALE   # clears the magician's top hat too
 	draw_string(f, Vector2(-w * 0.5, ly), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 12,

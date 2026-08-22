@@ -29,7 +29,8 @@ Lumines 的节奏推进 + Balatro 的构筑。**始终用中文回复。**
 > ⚠ **要「调研业内做法」之前先在 `docs/design/` 里 grep** —— 那篇 27k 的调研已经覆盖
 > DDA / L4D Director / 心流 / 近失效应 / 短局留存 / 起承転結(踩过,见 [LESSONS.md](LESSONS.md) 八)。
 >
-> 设计规格在 `docs/design/`,建模这条线按 `22 → 23 → 24 → 25` 读。
+> 设计规格在 `docs/design/`(导览 = [`docs/design/README.md`](docs/design/README.md),文档已全部去号按主题命名),
+> 建模这条线按 `prior → solving → generating → capability` 读。
 
 ---
 
@@ -38,11 +39,12 @@ Lumines 的节奏推进 + Balatro 的构筑。**始终用中文回复。**
 ```bash
 godot --path /Users/kuma/Projects/Sync5                                    # 跑游戏(主场景 = 首页)
 godot --path /Users/kuma/Projects/Sync5 -- --fresh                         # 同上, 但**清掉存档当新玩家跑**(会进教学关)
-godot --headless --path . --script res://tests/runner.gd                   # 单元测试
-./tools/gate.sh                                                            # 加了内容就要过的门(~15 分钟)
+godot --headless --path . --script res://tests/runner.gd                   # 单元测试(裸跑, 自己看四判据)
+./tools/unittest.sh [日志路径]                                              # 单元测试 + 四判据(唯一一份判据;gate.sh 与 CI 都调它)
+./tools/gate.sh                                                            # 加了内容就要过的门(耗时看 STATUS.md 门耗时表)
 SYNC5_KIT_ID=<joker_id> godot --headless --path . --script res://tools/kit.gd   # 只验一张新小丑牌
 ./tools/gate.sh <face_id>                                                  # 只验一张新脸(⚠ 见下,不再是十几秒)
-godot --headless --path . --script res://tools/pair.gd                     # 守「求解器 = 游戏代码」(~3 分钟)
+godot --headless --path . --script res://tools/pair.gd                     # 守「求解器 = 游戏代码」
 godot --headless --path . --import                                         # 新增 class_name 后必须先跑
 ```
 
@@ -97,13 +99,17 @@ godot --headless --path . --import                                         # 新
 
 ---
 
-## 已拍板的规则(docs/design/ 01/02/04/05/08/11/12 已同步当前实现;07/09/10 是未实施的前瞻设计)
+## 已拍板的规则(哪篇是现行、哪篇是前瞻,以 [`docs/design/README.md`](docs/design/README.md) 主结构表为准)
 
 - **候选牌机制作废**。弃牌重抽制:选中手牌/缓存的牌 → 弃牌 → **立刻原位补牌**。
   **⚑ 弃牌免费(2026-08-06 用户拍板,推翻「1 金币/张」)**:「每局可以免费无限制弃牌,
   我们是有时间限制的,取消加大赌性,且取消后续买不起小丑牌的顾虑」。
-  **唯一的闸门是 8 秒钟**,金币只剩买牌一个出口
-  (连带的五处变化与模型侧影响见 [`docs/design/cards.md`](docs/design/cards.md))。
+  **唯一的闸门是 8 秒钟**;金币有**两个出口:买牌 + 升级已装备的小丑牌**(2026-08-16 加出口,金币的主出口)
+  (弃牌免费连带的五处变化见 [`docs/design/cards.md`](docs/design/cards.md))。
+- **升级的三条原则**(数字在 `data/economy.json` 的 `joker_upgrade`):**放大的是「增量」不是整个数**
+  (×1.5 的卡满级 = ×2.0,按整数放大是指数爆炸)· **金币通道不放大**(升级不印钱,否则正反馈;
+  只有金币通道的卡干脆不挂升级报价)· **规则牌不可升级**(没有数值可升,也是红调/黑调的平衡杠杆)。
+  升级放大必须覆盖 DSL 的**每个**通道 —— 逃生口操作码漏掉放大 = 升级变成纯扣钱,且不报错(2026-08-21 评审抓到 8 张)。
 - 手牌恒 5 张;**缓存区恒满 3 格**(2 格不好玩)。缓存不存在"存入空位",**拖拽 = 两张对调**;
   拖到弃牌键 = 单张直弃。理牌 = 按点数排序。
 - **点击和拖拽是两种手势, 不许混**(2026-08-06 用户:「点到手牌区的卡和缓存区的卡就直接交换了,
@@ -185,6 +191,20 @@ godot --headless --path . --import                                         # 新
   (它是取消位);新旧同屏对照的完整交互见 [`docs/design/ui_meta.md`](docs/design/ui_meta.md)
   与 [`docs/design/levels.md`](docs/design/levels.md) §0.2。
 
+- **1.1 起新增的六条(2026-08-19~21,全部去掉数字仍成立)**:
+  · **玩家可见文案一律走 `Lingo.t()` / `data/lingo.json`**,view/ 里裸中文字面量 `t_lingo` 直接红;
+    实体名用数据里的英文 `name` 字段;**探针恒 cn、Tape 不走语言层**(日志记事实,两台机器的日志必须长一样)。
+  · **`data/ranking.json` 是仪器输出**(`tools/price.gd` → `tools/rankgen.py`),手改无效;
+    池里的每张脸都必须在表里(Director 取交,漏一张 = 永不登场且不报错,校验锁着)。
+  · **千人千面只换「哪张脸上场」**:context 四开关(novelty/streak_shift/returning/explore_shelf)
+    不碰目标分、规则、数值、UI —— 不可察觉是红线,判据 = 攻略作者写不出「必」字。
+  · **META 资产循环双出口**:财富 = 宝石(只能再买资产,收入挂通关段数不挂分数)、力量 = 券(日清零);
+    循环碰不到局内金币,不许永久底倍率;资产必须是**玩的时候看得见听得着的内容**,不做分红数学。
+  · **券不许破解脸规则**,整手重发不是弃牌(不喂成长计数器 —— 零挂机成长)。
+  · **拍长一律取偶数秒**(120 BPM 下任何拍都在小节边界收束,音乐永远对齐)。
+- **开局/重开/转正三条入口必须走同一份「开局三步」**(`_begin_run()`:定局数 → 喂 Director → 掷脸 → 记局数)——
+  「第二条入口漏掉主路径的步骤」是这个项目最贵的形状之一(2026-08-21 评审:重开曾绕过 min_run 与 Director)。
+
 ### 数值的归属(改哪里)
 
 - **小丑牌与主角的平衡数值各在一张表里**:`data/jokers.json` 与
@@ -214,7 +234,7 @@ godot --headless --path . --import                                         # 新
   **画面里的光全部由光效层承担**(激光/探照灯/光斑/霓虹边/扫描线),底色不再贡献任何亮度。
   ⚠ **改底色只做一半会看不出来** —— 大面积柔光会把黑重新染回来
   (细节见 [`docs/design/ui_meta.md`](docs/design/ui_meta.md))。
-- **盲注档位色 = 四档递进 蓝 `#23cdff` → 橙 `#ffb347` → 红 `#ff5f6e` → 粉 `#ff4fa3`**(逐档升温)。
+- **盲注档位色 = 四档递进 蓝 `#23cdff`(`StageTheme.BLUE`)→ 橙 `#ff9b2b`(`AMBER`)→ 红 `#ff3632`(`RED`)→ 粉 `#ff328d`(`PINK`)**(逐档升温;⚠ 2026-08-21 前这行写的是二次校色**之前**的三个旧 hex,以 `view/theme.gd` 为准)。
   只在 `Widgets.StageCard.accent_for()` 一处定义,首页舞台卡与局内盲注卡共用。
 - **底部页签区不要加板**:那里本来就是黑的,顶栏靠自己用**半透黑**(`draw_card` 的 `body` 参数)
   与它取齐即可(2026-08-05 用户否掉过我给底部补的那块板:「别加东西了」)。

@@ -1,10 +1,17 @@
 {
-  "_": "游玩打点开关 (core/tape.gd)。改这里 = 改采集口径,不用动代码。",
-  "_mute": "要暂时关掉某类事件就把事件名填进 mute,例如 [\"swap\", \"sort\"] 只留决策不留手势。",
-  "_dir": "user:// 在 macOS 上是 ~/Library/Application Support/Godot/app_userdata/<项目名>/。别用 user://logs —— 那是 Godot 引擎自己写 godot.log 的地方,还会按 max_files 轮转删除。",
-  "enabled": true,
-  "to_file": true,
-  "dir": "user://tape",
-  "max_events": 2000,
-  "mute": []
+ "_": "游玩打点开关 (core/tape.gd)。改这里 = 改采集口径,不用动代码。",
+ "_mute": "要暂时关掉某类事件就把事件名填进 mute,例如 [\"swap\", \"sort\"] 只留决策不留手势。",
+ "_dir": "user:// 在 macOS 上是 ~/Library/Application Support/Godot/app_userdata/<项目名>/。别用 user://logs —— 那是 Godot 引擎自己写 godot.log 的地方,还会按 max_files 轮转删除。",
+ "enabled": true,
+ "to_file": true,
+ "dir": "user://tape",
+ "max_events": 2000,
+ "mute": [],
+ "_upload": "回传通道(1.1, 2026-08-19)。**缺省关** —— url 是部署决定, 有端点了把 enabled 翻 true。客户端 = core/uplink.gd(簿记)+ view/beacon.gd(网络/时机):开机 5s 后扫一次 + 每次回首页 poke;一次最多 batch_max 个文件, 失败每 retry_seconds 重试、一个会话最多 3 轮, 之后留给下个会话(「还没搬进 sent/」本身就是重试队列)。传成的日志搬进 tape/sent/ 不删。参考接收端 = tools/tapeserver.py。⚠ 启用前隐私页该不该补「匿名遥测」一句, 归用户。",
+ "upload": {
+  "enabled": false,
+  "url": "",
+  "batch_max": 3,
+  "retry_seconds": 30.0
+ }
 }

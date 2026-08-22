@@ -46,7 +46,22 @@ func increment_scale() -> float:
 ## 还能不能升。⚠ **规则牌一律不能** —— 它们没有数值可升(改的是判定规则),
 ## 而这正好是红调/黑调的平衡杠杆:开局 5.3× 很强, 但**吃不到升级红利**。
 func can_upgrade() -> bool:
-	return not is_rule_card() and has_effects() and level < GameConfig.UPGRADE_MAX_LEVEL
+	return not is_rule_card() and has_scalable_effect() and level < GameConfig.UPGRADE_MAX_LEVEL
+
+
+## 有没有任何一个通道会吃升级放大(2026-08-21 评审 R1)。**金币通道不放大**(升级不印钱),
+## 所以只有 coins / coins_factor 的卡(皇室 royalty)挂升级报价 = 卖一个空气 —— 这里直接不卖。
+## 通道清单与 `Fx._do` 放大的那几档**一一对应**, 加通道要两处同改(t_joker 锁着「可升级 ⇒ 满级 ≠ Lv1」)。
+const _SCALABLE := ["mult", "mult_add", "additive", "bonus", "bonus_target_pct", "bonus_pct",
+	"mult_from_target_factor", "additive_face_value", "additive_low_value",
+	"additive_cache_top", "chips_per_card"]
+func has_scalable_effect() -> bool:
+	for e in _effects:
+		var d: Dictionary = e.get("do", {})
+		for k in d:
+			if _SCALABLE.has(String(k)):
+				return true
+	return false
 
 
 ## 升到下一级要多少钱;−1 = 升不了(满级或规则牌)。
@@ -66,7 +81,9 @@ var _hold: Dictionary    # 持有期恒生效的经济/规则参数(穷开心的
 func _init(e: Dictionary) -> void:
 	id = String(e["id"])
 	name = String(e["name"])
-	cn_name = String(e["cn"])
+	# ⚠ 名字带语言:en 模式挑数据里现成的 name 字段(1.1 英文化)。消费者全是渲染点,
+	# Tape 不记小丑牌的 cn_name, 打点事实不受语言影响。
+	cn_name = Lingo.pick(e)
 	kind = String(e["kind"])
 	rarity = String(e["rarity"])
 	fx_text = String(e["fx"])
@@ -277,5 +294,6 @@ func clone() -> Joker:
 		if String(e["id"]) == id:
 			var j := Joker.new(e)
 			j.state = state.duplicate(true)
+			j.level = level   # 评审:漏拷 level ⇒ 求解器/bot 的推演把满级卡当 Lv1 算
 			return j
 	return null

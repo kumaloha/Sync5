@@ -14,6 +14,21 @@
 
 ## 数据配置(schema)
 
+> ⚠⚠ **本章的示例块是 2026-08-05 配置化当天的快照,数值与部分键已过期(2026-08-21 评审标注)。
+> schema 的权威 = `data/*.json` 本身 + `core/db.gd` 的 `validate_*`(测试期门禁,`t_db` 断言零违规)。**
+> 已知过期处,读到时按下面这张表改:
+> · `run.json` 示例写 12 段 / `blind_names` 小盲大盲 / 5 拍 / `gig_clocks 9.0` —— 现行 **4 段 × 6 拍 × 8s**,
+>   `section_targets [420,1500,3100,5600]`,`blind_names` 只剩档位;
+> · `economy.json` 示例写 `discard_cost: 1`、权重 70/25/5、含 `target_swap` —— 现行 **弃牌免费、35/30/25、无 target_swap、
+>   多 `joker_upgrade`(5 级 / [4,7,11,16] / step 0.25)**;
+> · `tutorial.json` 示例写 6 步 × 12s、键只有 `seconds/unlock/command/signal` —— 现行 **4 步 × 8s**,键是
+>   `seconds/unlock/require/command/signal/focus`(**`require` 动作门与 `focus` 分区指向是现行核心键**,白名单在 `db.gd::validate_tutorial`);
+> · 文件表只列 7 个文件 —— `data/` 现有 **15 个**:另有 `tickets`(券)/ `assets`(META 资产)/ `director`(B 轴剧本 + `context` 四开关)/
+>   `ranking`(仪器输出,`rankgen.py` 重刷)/ `boons` / `ui`(含 blindcard·jokercard 交叉校验)/ `tape`(含 `upload` 回传节)/ `lingo`(中→英对照表)。
+> ✅ 2026-08-21 晚:`run`/`economy`/`jokers`/`characters` 四块已改成「键名 + 指向校验函数」,`tutorial` 示例改成现行键;
+> 其余示例块(DSL 片段 / faces / sim / ui)仍是当年快照,**别抄这里的数字**。
+
+
 > 2026-08-05 配置化工程升级 (user-approved). Everything tunable moves out of
 > code into `data/*.json`; behaviors become an effect DSL.
 > Status: **shipped** — all six data files live, 283 tests green, sim A/B
@@ -52,8 +67,7 @@ the loader ignores them.
 
 ```json
 { "components": ["hand", "discard", "cache", "multiselect", "shop"],
-  "steps": [ {"seconds": 12.0, "unlock": ["hand"],
-              "command": "中文一句", "signal": "SHORT EN"} ] }
+  "steps": [ {"seconds": …, "require": …, "unlock": …, "focus": …, "command": …, "signal": …} ] }   // 4 步 × 8.0s,键白名单在 db.gd::validate_tutorial
 ```
 
 - `seconds` —— 这一拍多长。**拍长只收不放**,最后一拍必须等于正式局的 `phrase_duration`
@@ -137,124 +151,19 @@ clamped at `floor`. This replaces the hand-written `on_discard` /
 
 Adding a third opcode requires the same bar as a new hook (docs/design/jokers.md).
 
-### jokers.json (full v1 content — numbers as shipped & sealed)
+### jokers.json
 
-```json
-{"jokers": [
- {"id": "twin", "name": "Twin", "cn": "双子", "kind": "target", "rarity": "",
-  "fx": "Pair ×3, Two Pair ×5",
-  "effects": [{"when": {"kind": "PAIR"}, "do": {"mult": 3.0}},
-              {"when": {"kind": "TWO_PAIR"}, "do": {"mult": 5.0}}]},
- {"id": "stair", "name": "Stairway", "cn": "阶梯", "kind": "target", "rarity": "",
-  "fx": "Straight ×8, Straight Flush ×16",
-  "effects": [{"when": {"kind": "STRAIGHT"}, "do": {"mult": 8.0}},
-              {"when": {"kind_in": ["STRAIGHT_FLUSH", "ROYAL_FLUSH"]}, "do": {"mult": 16.0}}]},
- {"id": "mono", "name": "Monochrome", "cn": "单色", "kind": "target", "rarity": "",
-  "fx": "Flush ×6, Straight Flush ×12",
-  "effects": [{"when": {"kind": "FLUSH"}, "do": {"mult": 6.0}},
-              {"when": {"kind_in": ["STRAIGHT_FLUSH", "ROYAL_FLUSH"]}, "do": {"mult": 12.0}}]},
- {"id": "triplet", "name": "Triplet", "cn": "三连音", "kind": "target", "rarity": "",
-  "fx": "Trips ×4, Full House ×8, Quads ×12",
-  "effects": [{"when": {"kind": "THREE_KIND"}, "do": {"mult": 4.0}},
-              {"when": {"kind": "FULL_HOUSE"}, "do": {"mult": 8.0}},
-              {"when": {"kind": "FOUR_KIND"}, "do": {"mult": 12.0}}]},
- {"id": "lonewolf", "name": "Lone Wolf", "cn": "独狼", "kind": "target", "rarity": "",
-  "fx": "Ace/King high, no discards: ×4",
-  "effects": [{"when": {"kind": "HIGH_CARD", "discards_eq": 0, "top_rank_gte": 13},
-               "do": {"mult": 4.0}}]},
+**权威 = 文件本身 + `core/db.gd::validate_jokers`**。08-05 那份「full v1 content — numbers as shipped & sealed」
+(90 行 18 张卡的旧数值)已于 2026-08-21 整块删除:它封印的是配置化当天的数,此后卡池扩到 63 张、倍率表三版演进,
+**读者抄这里的数字比不抄更糟**。现行卡的键集:`acquire` · `cn` · `counters` · `curve` · `effects` · `fx` · `hold` · `id` · `kind` · `name` · `proof` · `rarity` · `shelf`;
+kind 分布:support 55 · target 8。
+数值演进与定价在 [`jokers.md`](jokers.md) / [`jokers_history.md`](jokers_history.md),升级放大规则在 CLAUDE.md「升级的三条原则」。
 
- {"id": "encore", "name": "Encore", "cn": "回响", "kind": "support", "rarity": "common",
-  "fx": "Same hand as last phrase: +80",
-  "effects": [{"when": {"same_as_prev": true}, "do": {"bonus": 80}}]},
- {"id": "finale", "name": "Finale", "cn": "尾声", "kind": "support", "rarity": "common",
-  "fx": "Act in final 2 seconds: +70",
-  "effects": [{"when": {"acted_late": true}, "do": {"bonus": 70}}]},
- {"id": "turnover", "name": "Turnover", "cn": "周转", "kind": "support", "rarity": "common",
-  "fx": "+20 per discard this phrase",
-  "effects": [{"when": {"discards_gte": 1}, "do": {"bonus": 20, "per": "discard"}}]},
- {"id": "tipjar", "name": "Tip Jar", "cn": "小费罐", "kind": "support", "rarity": "common",
-  "fx": "Zero discards this phrase: +2 coins",
-  "effects": [{"when": {"discards_eq": 0}, "do": {"coins": 2}}]},
- {"id": "chord", "name": "Chord", "cn": "和弦", "kind": "support", "rarity": "common",
-  "fx": "Cache all one suit: +120",
-  "effects": [{"when": {"cache_mono_suit": true}, "do": {"bonus": 120}}]},
- {"id": "neonsign", "name": "Neon Sign", "cn": "灯牌", "kind": "support", "rarity": "common",
-  "fx": "+80",
-  "effects": [{"do": {"bonus": 80}}]},
- {"id": "vinyl", "name": "Vinyl", "cn": "黑胶", "kind": "support", "rarity": "common",
-  "fx": "Every discard: +3 forever",
-  "counters": {"n": {"on_discard": "sum"}},
-  "effects": [{"when": {"counter_gte": ["n", 1]}, "do": {"additive": 3, "per": "counter:n"}}]},
+### characters.json
 
- {"id": "chorus", "name": "Chorus", "cn": "副歌", "kind": "support", "rarity": "uncommon",
-  "fx": "Last phrase of section: +75%",
-  "effects": [{"when": {"last_phrase": true}, "do": {"bonus_pct": 0.75}}]},
- {"id": "interest", "name": "Interest", "cn": "利息", "kind": "support", "rarity": "uncommon",
-  "fx": "+1 coin per 4 held",
-  "effects": [{"when": {"coins_gte": 4}, "do": {"coins": 1, "per": "coins:4", "cap": 5}}]},
- {"id": "momentum", "name": "Momentum", "cn": "惯性", "kind": "support", "rarity": "uncommon",
-  "fx": "Each early finish: +10% forever",
-  "counters": {"stacks": {"on_early_finish": 1}},
-  "effects": [{"when": {"counter_gte": ["stacks", 1]},
-               "do": {"bonus_pct": 0.10, "per": "counter:stacks"}}]},
- {"id": "vip", "name": "VIP", "cn": "贵宾", "kind": "support", "rarity": "uncommon",
-  "fx": "Face cards count as 15",
-  "effects": [{"do": {"additive_face_value": 15}}]},
- {"id": "glowstick", "name": "Glow Stick", "cn": "荧光棒", "kind": "support", "rarity": "uncommon",
-  "fx": "+60%, fades 6% each phrase",
-  "counters": {"pct": {"init": 0.60, "decay_per_phrase": 0.06, "floor": 0.0}},
-  "effects": [{"when": {"counter_gte": ["pct", 0.001]},
-               "do": {"bonus_pct": {"counter": "pct"}}}]},
- {"id": "shortcut", "name": "Shortcut", "cn": "近道", "kind": "support", "rarity": "uncommon",
-  "fx": "Straights may skip one rank",
-  "acquire": {"deck_rule": "shortcut"}},
-
- {"id": "fourfingers", "name": "Four Fingers", "cn": "四指", "kind": "support", "rarity": "rare",
-  "fx": "Four-card straights count",
-  "acquire": {"deck_rule": "fourfingers"}},
- {"id": "twotone", "name": "Two-Tone", "cn": "双色调", "kind": "support", "rarity": "rare",
-  "fx": "Flushes need only matching colors",
-  "acquire": {"deck_rule": "twotone"}},
- {"id": "bassline", "name": "Bassline", "cn": "贝斯线", "kind": "support", "rarity": "rare",
-  "fx": "Every 12 discards: ×0.25 forever",
-  "counters": {"n": {"on_discard": "sum"}},
-  "effects": [{"when": {"counter_gte": ["n", 12]},
-               "do": {"mult_add": 0.25, "per": "counter:n", "step": 12}}]},
- {"id": "mirror", "name": "Mirror", "cn": "镜面", "kind": "support", "rarity": "rare",
-  "fx": "Copies your Target at half power",
-  "effects": [{"do": {"mult_from_target_factor": 0.5}}]},
- {"id": "wildcard", "name": "Wildcard", "cn": "百搭", "kind": "support", "rarity": "rare",
-  "fx": "Two wild cards join your deck",
-  "acquire": {"wilds": 2}}
-]}
-```
-
-### characters.json (full v1 content)
-
-```json
-{"characters": [
- {"idx": 0, "cn": "DJ", "title": "回放", "fx": "与上一拍同牌型 +30%",
-  "effects": [{"when": {"same_as_prev": true}, "do": {"bonus_pct": 0.30}}]},
- {"idx": 1, "cn": "魔术师", "title": "变数", "fx": "每弃1张+12% 上限36%",
-  "effects": [{"when": {"discards_gte": 1},
-               "do": {"bonus_pct": 0.12, "per": "discard", "cap": 0.36}}]},
- {"idx": 2, "cn": "拳手", "title": "重拳", "fx": "基础分≥60 +25%",
-  "effects": [{"when": {"base_gte": 60}, "do": {"bonus_pct": 0.25}}]},
- {"idx": 3, "cn": "调酒师", "title": "调和", "fx": "持有金币≥8 +20%",
-  "effects": [{"when": {"coins_gte": 8}, "do": {"bonus_pct": 0.20}}]},
- {"idx": 4, "cn": "占卜师", "title": "预见", "fx": "与上一拍不同牌型 +20%",
-  "effects": [{"when": {"diff_from_prev": true}, "do": {"bonus_pct": 0.20}}]},
- {"idx": 5, "cn": "鼓手", "title": "节拍", "fx": "最后2秒仍有操作 +25%",
-  "effects": [{"when": {"acted_late": true}, "do": {"bonus_pct": 0.25}}]},
- {"idx": 6, "cn": "RAPPER", "title": "即兴", "fx": "本拍一张不弃 +18%",
-  "effects": [{"when": {"discards_eq": 0}, "do": {"bonus_pct": 0.18}}]},
- {"idx": 7, "cn": "纹身师", "title": "刻印", "fx": "每拍 +1金币",
-  "effects": [{"do": {"coins": 1}}]}
-]}
-```
-
-`idx` doubles as the walk-sprite id (Walker.CREW order) — order in the file
-is the roster order and must stay dense 0..7 (loader-checked).
+**权威 = 文件本身 + `core/db.gd::validate_characters`**(与 jokers 共用 `_validate_effects`)。
+08-05 的「full v1 content」块已删(2026-08-21):主角被动走同一套 Effect DSL,键 `idx/cn/title/fx/effects`,
+`core/character.gd::roster()` 只保留名字与立绘指向。
 
 ### faces.json — metadata + params in data, 生效逻辑留在结算链
 
@@ -286,33 +195,17 @@ apply sites (`Settle.run`, `view/phrase.gd`) read accessors on `SectionMod`.
 
 ### run.json
 
-```json
-{"phrases_per_section": 5, "sections_per_gig": 3, "gigs_per_run": 4,
- "blind_names": ["小盲", "大盲", "BOSS"],
- "gig_names": ["小酒吧", "俱乐部", "剧场", "体育场"],
- "section_targets": [500, 1000, 2200, 3500, 6000, 9000, 13000, 18000, 25000, 34000, 45000, 60000],
- "gig_clocks": [9.0, 9.0, 9.0, 9.0],
- "warning_offset": 3.0, "lock_offset": 0.25,
- "late_act_window": 2.0, "early_finish_time": 4.0,
- "hand_size": 5, "cache_cap": 3}
-```
-
-`WALL_SECTIONS` stays **derived** (`(idx+1) % sections_per_gig == 0`) — 墙位
-是结构的推论不是自由参数,「一个关卡 = 3 个盲注」就是 `sections_per_gig: 3`
-这一行。Loader checks `section_targets.size() == sections_per_gig ×
-gigs_per_run` and `gig_clocks.size() == gigs_per_run`.
+**权威 = 文件本身 + `core/db.gd::validate_run`**(2026-08-21:原示例块写 12 段/小盲大盲/5 拍,整块删除)。
+现行顶层键:`phrases_per_section` · `phrases_per_shop` · `sections_per_gig` · `gigs_per_run` · `blind_names` · `gig_names` · `section_targets` · `gig_clocks` · `warning_offset` · `lock_offset` · `late_act_window` · `final_act_window` · `early_finish_time` · `early_discard_window` · `early_lock_min` · `hand_size` · `cache_cap` · `beat_budget` · `death_spec`。
+结构常量(4 段 × 6 拍 × 8s,`phrases_per_shop: 3` ⇒ 7 次商店)的推导在 [`levels.md`](levels.md);
+⚠ 所有按段索引的表长度必须 = 段数(`t_run` 锁着,表短会被静默截断成放水盘)。
 
 ### economy.json
 
-```json
-{"starting_coins": 6, "discard_cost": 1, "section_clear_reward": 3,
- "draft_rarity_weights": {"common": 70, "uncommon": 25, "rare": 5},
- "joker_prices": {"common": 4, "uncommon": 6, "rare": 9},
- "joker_price_overrides": {"mirror": 11},
- "target_swap": {"price": 8, "chance": 0.35, "from_section": 3},
- "reroll": {"base": 3, "step": 1}}
-// 2026-08-06: draft_skip_reward 已删 —— 跳过奖励取消, 商店出口按钮不再给钱
-```
+**权威 = 文件本身 + `core/db.gd::validate_economy`**(2026-08-21:原 08-05 示例块写 `discard_cost: 1`(现为 0,弃牌免费)并含已删的 `target_swap`,整块删除)。
+现行顶层键:`starting_coins` · `discard_cost` · `section_clear_reward` · `draft_rarity_weights` · `joker_prices` · `joker_price_overrides` · `reroll` · `joker_upgrade`。
+规则(去掉数字仍成立的部分):弃牌免费 · 标价不保底 · 刷新递增 · `joker_upgrade.costs` 长度 = `max_level − 1` ·
+`prices`/`weights` 键集必须相等(校验锁着)。数字与推导见 [`levels.md`](levels.md) §经济。
 
 ### sim.json — 机器人信念表 (user call: bot tunables are config too)
 

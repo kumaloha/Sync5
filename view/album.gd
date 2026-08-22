@@ -28,6 +28,7 @@ const FILTERS := ["全部", "Target", "普通", "罕见", "稀有"]
 var filter := 0
 
 var _t := 0.0
+var _key: Dictionary = {}       # 静态层上次重画时的状态键(Chrome.dirty)
 var _cards: Array = []          # {id,cn,kind,rarity,trigger,amount,price,pooled}
 var _pooled := 0
 var _scroll := 0.0
@@ -100,9 +101,10 @@ func _load_cards() -> void:
 			else String(e.get("rarity", "common"))
 		var kind := String(pool[id].get("kind", "support")) if pooled \
 			else String(e.get("kind", "support"))
+		var show := Lingo.pick(e)   # en 挑数据里的 name 字段(1.1 英文化)
 		_cards.append({
 			"id": id,
-			"cn": String(e.get("cn", id)),
+			"cn": show if show != "" else id,
 			"kind": kind,
 			"rarity": rarity,
 			"amount": String(e.get("amount", "")),
@@ -116,12 +118,14 @@ func _load_cards() -> void:
 
 func _process(delta: float) -> void:
 	_t += delta
-	queue_redraw()
-	if _grid != null:
-		_grid.queue_redraw()
+	# 只有雨在动;本体与网格只在状态键变了才重画(2026-08-21 评审:此前三层每帧全画)
 	for ch in get_children():
 		if ch is RainLayer:
 			ch.queue_redraw()
+	if Chrome.dirty(_key, [filter, snappedf(_scroll, 0.5), _cards.size()]):
+		queue_redraw()
+		if _grid != null:
+			_grid.queue_redraw()
 
 
 func _visible_cards() -> Array:
@@ -180,8 +184,8 @@ func _gui_input(ev: InputEvent) -> void:
 
 func _draw() -> void:
 	draw_rect(Rect2(0, 0, W, H), Color("000000"), true)
-	Chrome.page_bar(self, "小 丑 牌", "已实装 %d / %d · Target %d 面旗" %
-		[_pooled, _cards.size(), _count_targets()], ACC)
+	Chrome.page_bar(self, Lingo.t("小 丑 牌"), Lingo.t("已实装 %d / %d · Target %d 面旗") %
+		[_pooled, _cards.size(), _count_targets()], ACC, SaveState.gems())
 	_draw_filter()
 	Chrome.draw_tabs(self, 2, ACC)
 
@@ -198,11 +202,11 @@ func _draw_filter() -> void:
 	_chip_rects = []
 	var zh := StageTheme.zh()
 	var y := 124.0
-	draw_string(zh, Vector2(44.0, y + 20.0), "收 藏", HORIZONTAL_ALIGNMENT_LEFT, -1, 15,
+	draw_string(zh, Vector2(44.0, y + 20.0), Lingo.t("收 藏"), HORIZONTAL_ALIGNMENT_LEFT, -1, 15,
 		Color("8ea3c8"))
 	var x := 676.0
 	for i in range(FILTERS.size() - 1, -1, -1):
-		var tw := zh.get_string_size(FILTERS[i], HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
+		var tw := zh.get_string_size(Lingo.t(FILTERS[i]), HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
 		var r := Rect2(x - tw - 26.0, y, tw + 26.0, 28.0)
 		x = r.position.x - 10.0
 		var on := i == filter
@@ -212,12 +216,12 @@ func _draw_filter() -> void:
 		else:
 			draw_style_box(StageTheme.box(Color(0, 0, 0, 0),
 				Color(0.67, 0.76, 1.0, 0.16), 1, 12), r)
-		draw_string(zh, Vector2(r.position.x, r.position.y + 19.0), FILTERS[i],
+		draw_string(zh, Vector2(r.position.x, r.position.y + 19.0), Lingo.t(FILTERS[i]),
 			HORIZONTAL_ALIGNMENT_CENTER, r.size.x, 14,
 			Color("ffffff") if on else Color("8ea3c8"))
 		_chip_rects.append(r)
 	_chip_rects.reverse()
-	var lx := 44.0 + zh.get_string_size("收 藏", HORIZONTAL_ALIGNMENT_LEFT, -1, 15).x + 14.0
+	var lx := 44.0 + zh.get_string_size(Lingo.t("收 藏"), HORIZONTAL_ALIGNMENT_LEFT, -1, 15).x + 14.0
 	draw_line(Vector2(lx, y + 14.0), Vector2(x - 4.0, y + 14.0),
 		Color(ACC.r, ACC.g, ACC.b, 0.35), 1.0)
 
@@ -265,7 +269,7 @@ func draw_grid(ci: CanvasItem) -> void:
 		ci.draw_line(r.position + Vector2(12.0, 0.5), Vector2(r.end.x - 12.0, r.position.y + 0.5),
 			Color(0.86, 0.91, 1.0, 0.30 * dim), 1.2)
 		# 顶行:稀有度 / 数额
-		var tag := "TARGET" if is_target else String(RARITY_CN[c["rarity"]])
+		var tag := "TARGET" if is_target else Lingo.t(String(RARITY_CN[c["rarity"]]))
 		ci.draw_string(zh, Vector2(r.position.x + 9.0, r.position.y + 19.0), tag,
 			HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(tint.r, tint.g, tint.b, dim))
 		if String(c["amount"]) != "":
@@ -295,5 +299,5 @@ func draw_grid(ci: CanvasItem) -> void:
 			ci.draw_string(zh, Vector2(r.position.x, r.end.y - 9.0), "◆ %d" % int(c["price"]),
 				HORIZONTAL_ALIGNMENT_CENTER, r.size.x, 13, Color("ffd9a0"))
 		else:
-			ci.draw_string(zh, Vector2(r.position.x, r.end.y - 9.0), "未实装",
+			ci.draw_string(zh, Vector2(r.position.x, r.end.y - 9.0), Lingo.t("未实装"),
 				HORIZONTAL_ALIGNMENT_CENTER, r.size.x, 12, Color("7387a8"))

@@ -37,7 +37,7 @@ static func draw_tabs(ci: CanvasItem, active: int, acc: Color) -> void:
 		var ic: Color = acc if on else Color(0.55, 0.67, 1.0, 0.35)
 		tab_icon(ci, i, r.position + Vector2(TAB_W * 0.5, TAB_ICON_DY), ic)
 		ci.draw_string(StageTheme.zh(), Vector2(r.position.x, r.position.y + TAB_LABEL_DY),
-			TABS[i], HORIZONTAL_ALIGNMENT_CENTER, TAB_W, 20, col)
+			Lingo.t(TABS[i]), HORIZONTAL_ALIGNMENT_CENTER, TAB_W, 20, col)
 		if on:
 			var u := Rect2(r.position.x + TAB_W * 0.5 - 16.0, r.position.y + TAB_UNDER_DY,
 				32.0, 2.5)
@@ -74,7 +74,7 @@ static func tab_icon(ci: CanvasItem, i: int, c: Vector2, col: Color, scale := 1.
 
 
 ## 图鉴页的页标题栏(设计稿三页共用的头):玻璃条 + 标题/副行 + 货币章。
-## 货币数值仍是 HomeScreen.PROFILE 那套 mock —— 存档系统接入前四屏共用一份假数。
+## 货币只有宝石(调用方传真钱包;负数 = 不放)—— ◆ 跨局金币 2026-08-22 删。
 static func page_bar(ci: CanvasItem, title: String, sub: String, acc: Color,
 		gems := -1) -> void:
 	var bar := Rect2(44.0, 22.0, W - 88.0, 82.0)
@@ -86,15 +86,10 @@ static func page_bar(ci: CanvasItem, title: String, sub: String, acc: Color,
 	ci.draw_string(StageTheme.zh(), Vector2(r.position.x + 18.0, r.position.y + 52.0), sub,
 		HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("7487ac"))
 	var cy := r.position.y + r.size.y * 0.5
-	var coins := int(HomeScreen.PROFILE["coins"])
+	# ◆ 跨局金币的 chip 2026-08-22 用户拍板删掉(那个系统不存在);只剩 ◈ 宝石, 居中。gems < 0 = 这页不放货币。
 	if gems >= 0:
-		chip(ci, Rect2(r.end.x - 130.0, cy - 33.0, 122.0, 30.0), StageTheme.AMBER,
-			"◆", str(coins), Color("ffd9a0"))
-		chip(ci, Rect2(r.end.x - 130.0, cy + 3.0, 122.0, 30.0), StageTheme.VIOLET,
+		chip(ci, Rect2(r.end.x - 130.0, cy - 15.0, 122.0, 31.0), StageTheme.VIOLET,
 			"◈", str(gems), Color("cdb2ff"))
-	else:
-		chip(ci, Rect2(r.end.x - 130.0, cy - 15.0, 122.0, 31.0), StageTheme.AMBER,
-			"◆", str(coins), Color("ffd9a0"))
 
 
 ## 玻璃「膜」:从首页大卡的素材(assets/frames/glass.png)裁一条反光带,
@@ -145,6 +140,35 @@ static func chip(ci: CanvasItem, r: Rect2, acc: Color, glyph: String, val: Strin
 
 ## 斜雨(原 home.gd::_draw_rain)。无雨规则只管局内舞台;首页/图鉴/失败屏
 ## 的设计稿都带雨。
+## ⚑ 静态页的「动效层」(2026-08-21 评审:首页/三个图鉴页/荣誉页此前在 `_process` 里每帧
+## 无条件 `queue_redraw()` 整屏重画 —— 程序化玻璃 + 几十次 draw_string 每秒 60 遍, 而真正在动的
+## 只有雨。手机上首页是停留最久的屏, 这就是发热来源)。
+## 用法:页面 `_ready` 里 `add_child(Chrome.RainLayer.new())` 挂在最后(雨要压在所有内容上面);
+## `_process` 里只 `tick(delta)` 这一层;自己的静态内容改成**状态键变了才重画**(`Chrome.dirty()`)。
+class RainLayer:
+	extends Control
+	var t := 0.0
+	func _init() -> void:
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		position = Vector2.ZERO
+		size = Vector2(Chrome.W, Chrome.H)
+	func tick(delta: float) -> void:
+		t += delta
+		queue_redraw()
+	func _draw() -> void:
+		Chrome.rain(self, t)
+
+
+## 「状态键变了才重画」的一行判据:页面把会影响自己 _draw 的全部状态放进 key 数组,
+## 每帧比一次;变了返回 true(并记住新键)。⚠ 漏放一个量的后果是「那个量变了画面不刷新」——
+## 所以 key 宁可多放(读一个 int 的代价远小于整屏重画)。
+static func dirty(holder: Dictionary, key: Array) -> bool:
+	if holder.get("k", null) == key:
+		return false
+	holder["k"] = key
+	return true
+
+
 static func rain(ci: CanvasItem, t: float) -> void:
 	var col := Color(0.71, 0.86, 1.0, 0.20 * 0.35)
 	var drift: float = fmod(t / 1.3, 1.0)

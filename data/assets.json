@@ -1,0 +1,156 @@
+{
+ "_comment": "META 资产层(1.1)。⚑⚑ **v2(2026-08-19 晚用户拍板重做)**:「没有回本周期, 参考蔚蓝星球的道具, 几乎是买了你就想玩, 玩了你就想买的循环」⇒ 资产不是产钱的数字, 是**玩的时候看得见听得着的内容**:唱片 = 场馆歌单加曲(assets/audio 十首里六首上架, 每场馆免费第一首)· 彩带机/应援团 = 局内与结算的视觉声势 · 合约 = 每日加发券。**分红出口整个删掉**(yield_gems 机制保留在代码里, 表里不用)——「玩了就想买」的动力来自内容, 不来自复利数学。宝石收入只剩演出本身(按通关段数, 不挂分数 —— 求解器目标函数的岔照旧绕开), 循环仍碰不到局内金币。",
+ "_comment_numbers": "价格全是**占位**(用户手调):阶梯升序即是表序(db 校验锁着);第一张唱片 1~2 局够买, 顶端 ≈ 几十局。收入基础 = 每段 2 + 通关加 4(一局 4~12 宝石)。",
+ "gems": {
+  "per_section": 2,
+  "full_clear_bonus": 4
+ },
+ "assets": [
+  {
+   "id": "vinyl02",
+   "cn": "慢舞厅唱片",
+   "name": "Lounge Vinyl",
+   "cn_fx": "小酒吧新增曲目《Nu-Disco Lounge》",
+   "price": 15,
+   "track": "02_small_bar_nu_disco_lounge"
+  },
+  {
+   "id": "vinyl04",
+   "cn": "酸性唱片",
+   "name": "Acid Vinyl",
+   "cn_fx": "俱乐部新增曲目《Acid House》",
+   "price": 40,
+   "track": "04_club_acid_house"
+  },
+  {
+   "id": "confettirig",
+   "cn": "彩带机",
+   "name": "Confetti Rig",
+   "cn_fx": "庆功彩带加倍绽放",
+   "price": 70,
+   "flair": "confetti"
+  },
+  {
+   "id": "turntable",
+   "cn": "点唱机",
+   "name": "Turntable",
+   "cn_fx": "首页奏响你的歌单",
+   "price": 90,
+   "flair": "homejuke"
+  },
+  {
+   "id": "vinyl05",
+   "cn": "迪斯科唱片",
+   "name": "Disco Vinyl",
+   "cn_fx": "俱乐部新增曲目《Disco House》",
+   "price": 100,
+   "track": "05_club_disco_house"
+  },
+  {
+   "id": "jukedeal",
+   "cn": "点唱合约",
+   "name": "Juke Deal",
+   "cn_fx": "每日多发一张点唱券",
+   "price": 140,
+   "ticket": "juketicket"
+  },
+  {
+   "id": "vinyl07",
+   "cn": "放克唱片",
+   "name": "Funk Vinyl",
+   "cn_fx": "剧场新增曲目《Synth-Funk Show》",
+   "price": 190,
+   "track": "07_theater_synth_funk_show"
+  },
+  {
+   "id": "crowdcrew",
+   "cn": "应援团",
+   "name": "Hype Crew",
+   "cn_fx": "台下荧光棒声势翻倍",
+   "price": 250,
+   "flair": "crowd"
+  },
+  {
+   "id": "overtimeclause",
+   "cn": "加时条款",
+   "name": "Overtime Clause",
+   "cn_fx": "每日多发一张加时券",
+   "price": 330,
+   "ticket": "overtime"
+  },
+  {
+   "id": "vinyl09",
+   "cn": "法电唱片",
+   "name": "French Vinyl",
+   "cn_fx": "体育场新增曲目《Big French Electro》",
+   "price": 430,
+   "track": "09_stadium_big_french_electro"
+  },
+  {
+   "id": "vinyl10",
+   "cn": "宇宙唱片",
+   "name": "Cosmic Vinyl",
+   "cn_fx": "体育场新增曲目《Cosmic Disco》",
+   "price": 560,
+   "track": "10_stadium_cosmic_disco_anthem"
+  }
+ ],
+ "_comment_season": "赛季脚手架(meta.md §4 批「赛季上架窗口」):season_now = 当前赛季 id(空 = 无赛季);资产可带 season 键(空/缺省 = 常驻)。**过季只下架不没收**:货架只摆 on_shelf(常驻 + 本季),已持有的永远显示且生效。首个赛季内容(唱片/皮肤)待排。",
+ "season_now": "",
+ "_comment_profile": "玩家档案(2026-08-22 用户拍板:「跨局金币可以删 chip, 其他按你推荐的来」, meta.md §8):等级 = **参与度**, XP = 累计通关段数(与宝石收入同源, 只挂参与不挂分数);升级只给**称号**, 零数值(红线:不许永久底倍率)。levels 按 xp 升序, 第一档 xp 0;到顶后经验条满格。阈值是口味值, 等留存数据再校。",
+ "profile": {
+  "xp_source": "sections",
+  "levels": [
+   {
+    "xp": 0,
+    "cn": "雨夜新客",
+    "name": "Rain Rookie"
+   },
+   {
+    "xp": 4,
+    "cn": "小酒吧常客",
+    "name": "Bar Regular"
+   },
+   {
+    "xp": 10,
+    "cn": "俱乐部熟脸",
+    "name": "Club Familiar"
+   },
+   {
+    "xp": 20,
+    "cn": "剧场嘉宾",
+    "name": "Theater Guest"
+   },
+   {
+    "xp": 35,
+    "cn": "体育场压轴",
+    "name": "Stadium Headliner"
+   },
+   {
+    "xp": 55,
+    "cn": "巡演老手",
+    "name": "Tour Veteran"
+   },
+   {
+    "xp": 80,
+    "cn": "霓虹主唱",
+    "name": "Neon Frontman"
+   },
+   {
+    "xp": 110,
+    "cn": "雨夜俱乐部 VIP",
+    "name": "Rain Club VIP"
+   },
+   {
+    "xp": 150,
+    "cn": "节拍大师",
+    "name": "Beat Master"
+   },
+   {
+    "xp": 200,
+    "cn": "霓虹传奇",
+    "name": "Neon Legend"
+   }
+  ]
+ }
+}

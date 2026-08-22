@@ -30,6 +30,17 @@ extends RefCounted
 
 ## 一局的配置。**14 份的差异全部收敛到这几个键** —— 再出现第 15 种需求时,
 ## 加键,不要再抄循环。
+const BOON_AUTO := "<auto>"
+
+
+## 探针的 boon 掷法:与游戏同一份 `BlindBoon.roll`, 但喂它一条从 deck_seed 派生的**独立** RNG ——
+## 共享主流(主角/脸/补牌)一个数都不多消耗。seen 恒空:探针是老玩家世界, 不做 novelty。
+static func roll_boon(deck_seed: int) -> String:
+	var brng := RandomNumberGenerator.new()
+	brng.seed = deck_seed * 53 + 11
+	return BlindBoon.roll(brng)
+
+
 class Opts extends RefCounted:
 	var rng: RandomNumberGenerator      # 外部传入 —— 配对实验靠共用种子, 不许内部 new
 	var deck_seed: int = 0
@@ -54,6 +65,11 @@ class Opts extends RefCounted:
 	var st: Dictionary = {}
 	var shop: bool = false              # 开不开商店(构筑值 4.2 倍, 这个开关很重)
 	var mortal: bool = false            # true = 真判生死;false = **不死局**打满 24 拍
+	## 本局的 boon id。**缺省 AUTO = 像游戏一样掷一张**(从 deck_seed 派生的独立流, 不碰共享主流 ⇒
+	## 配对臂的 RNG 消耗序列逐字节不变);传 "" = 明确无 boon(旧世界, A/B 用);传真 id = 指定。
+	## 2026-08-21 评审 R6:探针此前从不设 boon, 四张 boon 在所有仪器里不存在 —— 本批把缺省翻成「有」,
+	## ⇒ sim/curve/gate/price 的下一次读数是**新基线**。
+	var boon: String = RunLoop.BOON_AUTO
 	var targets: Array = []             # mortal 时判生死用的表
 	var coin_delta: int = 0             # 起始金币的偏移(默认 0 = GameConfig.STARTING_COINS 不变)
 	## ⚠ 这两个是 2026-08-08 迁 coin/addit/price/gate 时加的口子, **默认值维持原有 8 份的行为不变**。
@@ -96,17 +112,22 @@ static func play(o: Opts, bot: Bot) -> Dictionary:
 		else Character.roster()[o.rng.randi_range(0, 7)]
 	run.coins = maxi(0, GameConfig.STARTING_COINS + o.coin_delta)
 	run.run_faces = o.faces
+	run.run_boon = roll_boon(o.deck_seed) if o.boon == BOON_AUTO else o.boon
+	# ⚠ 盲注掷点流要有种子(2026-08-21 评审 R11):`Run.new()` 的 `_blind_rng` 构造即随机,
+	# 唯一消费者 `next_request_goal`(request 脸当值时每拍一掷)⇒ 约 1/8 的局随进程变,
+	# 正是 sim A/A「1000 局翻 1 局」的形状。派生自 deck_seed, 不碰共享主流。
+	run._blind_rng.seed = o.deck_seed * 31 + 7
 	var st: Dictionary = o.st if not o.st.is_empty() else _fresh_st()
 	var coins: int = run.coins
 	var total := 0
 	var beats := 0
 	var died_at := -1
 	var sec_scores: Array = []
+	var sec_kinds: Array = []   # 每段打出的牌型种数(曲目税的输入)
 	for section in range(GameConfig.SECTIONS_PER_RUN):
 		var mod := String(o.faces.get(section, ""))
 		run.section_idx = section
-		run.section_score = 0
-		run.first_kind = -99              # setlist(定调)锁的是本段第一拍的牌型
+		run.reset_section_state()          # 与游戏 next_section 同一份清单(段内状态不许跨段继承)
 		for pidx in range(GameConfig.PHRASES_PER_SECTION):
 			run.phrase_in_section = pidx
 			run.coins = coins
@@ -133,6 +154,7 @@ static func play(o: Opts, bot: Bot) -> Dictionary:
 					_left(section, done), section, o.faces, run.cache, done, run)
 		var sec_score: int = run.section_score
 		sec_scores.append(float(sec_score))
+		sec_kinds.append(run.section_kinds.size())   # 事后判生死要算曲目税(gate.gd 用)
 		if o.on_section.is_valid():
 			o.on_section.call(run, section, sec_score, coins)
 		# 判生死 —— ⚠ 必须走 `Run.section_target_for`, 那是**两处判生死唯一的一份实现**。
@@ -158,7 +180,7 @@ static func play(o: Opts, bot: Bot) -> Dictionary:
 				_left(section, GameConfig.PHRASES_PER_SECTION), section, o.faces,
 				run.cache, GameConfig.PHRASES_PER_SECTION, run)
 	# ⚠ `run` 也返回 —— 死后的记账(哪些牌在槽里)需要它, 否则调用方只能自己再建一个。
-	return {"total": float(total), "sec_scores": sec_scores,
+	return {"total": float(total), "sec_scores": sec_scores, "sec_kinds": sec_kinds, "boon": run.run_boon,
 		"died_at": died_at, "beats": beats, "st": st, "coins": coins, "run": run}
 
 
@@ -225,5 +247,16 @@ static func fork(run: Run, seed_value: int) -> Run:
 	r.phrase_index = run.phrase_index
 	r.prev_kind = run.prev_kind
 	r.first_kind = run.first_kind
+	# 2026-08-21 外部审查:fork 此前漏了下面七样 ⇒ 买牌推演里 boon 不存在、配给预算归零、
+	# 缓存年龄归零、曲目税消失、余响的上一拍分丢失、盲注流不可复现。显式逐字段拷 —— 新加 Run
+	# 字段时这里要跟(t_run 锁了一条「fork 字段完备」断言)。
+	r.run_boon = run.run_boon
+	r.cache_meta = run.cache_meta.duplicate(true)
+	r.section_kinds = run.section_kinds.duplicate()
+	r.section_discards_used = run.section_discards_used
+	r.request_last = run.request_last
+	r.previous_raw_score = run.previous_raw_score
+	r.tutorial = run.tutorial
+	r._blind_rng.seed = seed_value * 131 + 17   # 派生种子:推演可复现, 不碰本尊的流
 	r.stage = Run.Stage.DECISION         # Beat 的状态机从"可以开拍"起步
 	return r

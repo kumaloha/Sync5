@@ -168,9 +168,14 @@ func _draw() -> void:
 	var meta := _card_meta(String(joker.id))
 	var pad := 8.0 * s
 
-	# 头带:中文名大字 + 编码
+	# 头带:显示名大字 + 编码。字号对超宽名字自适应下调 —— 中文名 2-3 字撑不满,
+	# 英文名(Monochrome/Curtain Call)在 0.62w 里会被截半(2026-08-19 en 截图抓到)。
+	var nfs := int(17.0 * s)
+	while nfs > int(11.0 * s) and StageTheme.zh().get_string_size(joker.cn_name,
+			HORIZONTAL_ALIGNMENT_LEFT, -1, nfs).x > w * 0.62:
+		nfs -= 1
 	draw_string(StageTheme.zh(), Vector2(pad + 2.0 * s, 20.0 * s), joker.cn_name,
-		HORIZONTAL_ALIGNMENT_LEFT, w * 0.62, int(17.0 * s), Color("eafffd"))
+		HORIZONTAL_ALIGNMENT_LEFT, w * 0.62, nfs, Color("eafffd"))
 	var code := String(meta.get("code", ""))
 	if code != "":
 		var cfs := int(9.0 * s)
@@ -187,7 +192,7 @@ func _draw() -> void:
 	_display_window(win, s, acc)
 
 	# 数额章:黑底 acc 框, 叠箱右上角(跨头带线, 附图语言)
-	var amount := String(meta.get("amount", ""))
+	var amount := Lingo.t(String(meta.get("amount", "")))   # manifest 数额章有 4 个带中文单位
 	if amount != "":
 		var af := StageTheme.num("Bold")
 		var afs := int(14.0 * s)
@@ -232,7 +237,7 @@ func _pick_overlay(w: float, h: float, s: float) -> void:
 	var pulse: float = 0.55 + 0.45 * (0.5 - 0.5 * cos(_pick_t * TAU / 0.9))
 	for g in [6.0, 3.0, 0.0]:
 		ci_stroke(w, h, s, g, Color(col.r, col.g, col.b, (0.14 + 0.5 * pulse) * (1.0 - g / 9.0)))
-	var tag := "替 换" if hot else "取 消"
+	var tag := Lingo.t("替 换") if hot else Lingo.t("取 消")
 	var tw := StageTheme.zh().get_string_size(tag, HORIZONTAL_ALIGNMENT_LEFT, -1, int(13.0 * s)).x
 	var tr := Rect2((w - tw - 18.0 * s) * 0.5, -11.0 * s, tw + 18.0 * s, 22.0 * s)
 	draw_style_box(StageTheme.box(col, Color(0, 0, 0, 0), 0, int(11.0 * s)), tr)
@@ -341,7 +346,7 @@ func _draw_empty(w: float, h: float, s: float) -> void:
 	draw_arc(c, r, 0, TAU, 28, col, 1.5)
 	draw_line(c - Vector2(r * 0.45, 0), c + Vector2(r * 0.45, 0), col, 1.5)
 	draw_line(c - Vector2(0, r * 0.45), c + Vector2(0, r * 0.45), col, 1.5)
-	draw_string(StageTheme.zh(), Vector2(0, h - 14.0 * s), "空 槽",
+	draw_string(StageTheme.zh(), Vector2(0, h - 14.0 * s), Lingo.t("空 槽"),
 		HORIZONTAL_ALIGNMENT_CENTER, w, int(13.0 * s), Color(0.63, 0.71, 1.0, 0.5))
 	_pick_overlay(w, h, s)
 

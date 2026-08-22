@@ -1,7 +1,9 @@
 class_name SaveState
 extends RefCounted
 
-## 跨局存档 —— **目前只存一件事:教学关看过没有。**
+## 跨局存档 —— 教学标记 · 会话/局数 · 券 · 主角 · 语言 · install_id · 玩家状态 m(战绩/见过的脸)· 宝石与资产。
+## (文件头这句 08-21 才更新:此前还写着「只存一件事」,而键早已有十几个。)
+## 写盘 = 原子写 + .bak + 版本键 `v`(见 _flush / _migrate)。
 ##
 ## ⚑ 为什么单开一个文件而不是往 `Run` 上挂:TODO 里挂着的**断点续玩**
 ## (移动 Web 刚需 —— iOS 内存回收重载后局面全丢)需要的是**同一个存档层**。
@@ -104,6 +106,8 @@ static func session_start() -> Dictionary:
 		"gap": -1 if last <= 0 else maxi(0, now - last),
 		"runs_prev": int(d.get("runs_total", 0)),
 	}
+	_session_gap = int(out["gap"])   # 回归局判定的原料(returning_run)
+	_session_runs = 0
 	d["sessions"] = out["id"]
 	d["last_seen"] = now
 	_flush()
@@ -154,9 +158,16 @@ static func settle_daily_ticket() -> String:
 	var d := _data()
 	var today := Ticket.day_index(int(Time.get_unix_time_from_system()))
 	Ticket.reset_if_new_day(d, today)          # 先清过期, 再发今天的
+	# ⚠ 「今天到了没」要在 settle_daily_grant **之前**读 —— 它会把 grant_day 盖成今天。
+	var fresh_day := int(d.get("grant_day", -1)) != today
 	var rng := RandomNumberGenerator.new()
 	rng.randomize()
 	var got := Ticket.settle_daily_grant(d, today, rng)
+	# 券类资产的每日加发(META 变现的力量侧, core/asset.gd)。只在跨天那次发,
+	# 静默入托盘 —— 每日提示仍只报基础那张(一天飘一句就够)。
+	if fresh_day:
+		for tid in Asset.daily_ticket_ids(d):
+			Ticket.grant_with_roll(d, String(tid), 1, rng)
 	_flush()
 	return got
 
@@ -215,9 +226,200 @@ static func set_hero(i: int) -> void:
 	_flush()
 
 
+## 本机安装 id(1.1 回传)。随机生成一次, 从此不变 —— 只用来把同一台机器的局串起来
+## (会话边界 D4 的分母), 不含任何 PII。探针恒 "probe":探针日志本来就不该混进真人数据,
+## 万一探针闸漏了, 服务端还能按这个字段兜底过滤。
+static func install_id() -> String:
+	if _is_probe():
+		return "probe"
+	var d := _data()
+	if not d.has("install_id"):
+		var rng := RandomNumberGenerator.new()
+		rng.randomize()
+		d["install_id"] = "%08x%08x" % [rng.randi(), rng.randi()]
+		_flush()
+	return String(d["install_id"])
+
+
+## ---- 玩家状态 m + META 资产(1.1, 2026-08-19)----
+## m = generating.md §3 的玩家状态向量, 这里存它的两个切片:近期战绩(streak 的原料)
+## 与 faces_seen(新鲜感 N 的原料)。**消费端是 Director 的 ctx 入参** —— core 纯逻辑
+## 不偷读存档(min_run 那条铁律), 由编排器在开局时取这里的读数传进去。
+## META 资产:宝石(gems)与持有资产(assets), 簿记逻辑全在 core/asset.gd 的纯函数里,
+## 这里只做「探针闸 + 落盘」的壳(券的四层同款分工)。
+
+## 首页信息栏的档案(meta.md §8, 2026-08-22 用户拍板:参与度等级 + 删 ◆ chip):
+## 等级/经验/称号全部从**累计通关段数**推(`Asset.level_for`), 与宝石收入同源;跨局金币不存在, 不再有这个键。
+## 探针读到的是零历史(LV.1 · 0/4), 与新玩家同值。
+static func profile() -> Dictionary:
+	return Asset.level_for(int(stats().get("sections", 0)))
+
+
+## 终身计数(成就页的真数据源, 2026-08-22):局数 / 通关数 / 通关段数。
+## ⚠ `history` 只留 20 圈, 不能拿它数终身;这三个是独立累加的键, 只增不减。
+static func stats() -> Dictionary:
+	if _is_probe():
+		return {"runs": 0, "wins": 0, "sections": 0}
+	var d := _data()
+	return {"runs": int(d.get("runs_total", 0)), "wins": int(d.get("wins_total", 0)),
+		"sections": int(d.get("sections_total", 0))}
+
+
+## 近期战绩, 定长 20 圈。每条只记两件事实:赢没赢 · 死在第几段(-1 = 通关)。
+static func run_history() -> Array:
+	if _is_probe():
+		return []
+	return _data().get("history", [])
+
+
+## 连胜为正 / 连败为负, 从最近一局往回数。
+static func streak() -> int:
+	var h := run_history()
+	var s := 0
+	for i in range(h.size() - 1, -1, -1):
+		var w := bool(h[i].get("w", false))
+		if s == 0:
+			s = 1 if w else -1
+		elif s > 0 and w:
+			s += 1
+		elif s < 0 and not w:
+			s -= 1
+		else:
+			break
+	return s
+
+
+## {face_id: 见过几次}。「见过」= 那一段真的打到了(或作为下一场被预告)。
+static func faces_seen() -> Dictionary:
+	if _is_probe():
+		return {}
+	return _data().get("faces_seen", {})
+
+
+static func boons_seen() -> Dictionary:
+	if _is_probe():
+		return {}
+	return _data().get("boons_seen", {})
+
+
+## {target_id: 用它打完几局}(构筑倾向 —— 探索型货架的分母, context.md 岔 #1)。
+static func targets_used() -> Dictionary:
+	if _is_probe():
+		return {}
+	return _data().get("targets_used", {})
+
+
+## 回归局:这个会话隔了很久才回来, 而且是回来后的**第一局**。
+## ⚠ 读的时机必须在 note_run_started 之前(_feed_director 正是), 否则永远 false。
+## 隔几天算「回来」:data/director.json `context_tuning.return_gap_days`(口味值, 等留存数据再校)。
+
+static var _session_gap := -1
+static var _session_runs := 0
+
+static func returning_run() -> bool:
+	if _is_probe():
+		return false
+	return _session_gap >= Director.return_gap_s() and _session_runs == 0
+
+
+static func gems() -> int:
+	if _is_probe():
+		return 0
+	return int(_data().get("gems", 0))
+
+
+static func assets_owned() -> Array:
+	if _is_probe():
+		return []
+	return Asset.owned(_data())
+
+
+## 唱片解锁的曲目(Music 读)/ 视觉声势(run_end · stage_bg 读)。探针恒空 ⇒ 截图稳定。
+static func owned_tracks() -> Array:
+	if _is_probe():
+		return []
+	return Asset.owned_tracks(_data())
+
+
+static func has_flair(kw: String) -> bool:
+	if _is_probe():
+		return false
+	return Asset.has_flair(_data(), kw)
+
+
+static func buy_asset(id: String) -> bool:
+	if _is_probe():
+		return false
+	if not Asset.buy(_data(), id):
+		return false
+	_flush()
+	return true
+
+
+## 一局收尾的 META 结算(成败两条路都走这一个口):
+## ① 战绩入圈 + faces_seen 累计(喂 Director 的 ctx)
+## ② 宝石收入 = 基础(按**通关段数**, 明确不挂分数)+ 资产分红(变现)
+## 返回 {"earn": 基础, "yield": 分红} 给结算屏显示。探针恒空且绝不落盘。
+static func settle_run_meta(won: bool, sections_cleared: int, faces: Array,
+		boon: String = "", target_id: String = "") -> Dictionary:
+	if _is_probe():
+		return {}
+	var d := _data()
+	var h: Array = d.get("history", [])
+	h.append({"w": won, "d": -1 if won else sections_cleared})
+	while h.size() > 20:
+		h.pop_front()
+	d["history"] = h
+	# 终身计数(成就页):通关段数与通关数 —— 和宝石收入同一个来源(META §3:收入只挂参与)
+	d["sections_total"] = int(d.get("sections_total", 0)) + maxi(0, sections_cleared)
+	if won:
+		d["wins_total"] = int(d.get("wins_total", 0)) + 1
+	var fs: Dictionary = d.get("faces_seen", {})
+	for f in faces:
+		var s := String(f)
+		if s != "":
+			fs[s] = int(fs.get(s, 0)) + 1
+	d["faces_seen"] = fs
+	if boon != "":
+		var bs: Dictionary = d.get("boons_seen", {})
+		bs[boon] = int(bs.get(boon, 0)) + 1
+		d["boons_seen"] = bs
+	if target_id != "":
+		var tu: Dictionary = d.get("targets_used", {})
+		tu[target_id] = int(tu.get(target_id, 0)) + 1
+		d["targets_used"] = tu
+	var earn := Asset.gems_per_section() * maxi(0, sections_cleared) \
+		+ (Asset.full_clear_bonus() if won else 0)
+	var yielded := Asset.run_yield(d)
+	d["gems"] = int(d.get("gems", 0)) + earn + yielded
+	_flush()
+	return {"earn": earn, "yield": yielded}
+
+
+## 语言覆写(1.1 英文化)。"" = 没设过, 跟系统语言走(解析顺序在 core/lingo.gd 文件头)。
+## ⚠ 探针不读存档语言 —— Lingo 在 SaveState 之前就把探针钉死在 cn 了, 这里只兜真人。
+static func lang() -> String:
+	if _is_probe():
+		return ""
+	return String(_data().get("lang", ""))
+
+
+## 给未来设置页的口(UI 还没有)。写 "" = 清覆写, 回到跟系统语言走。
+static func set_lang(l: String) -> void:
+	if _is_probe():
+		return
+	if l == "":
+		_data().erase("lang")
+	else:
+		_data()["lang"] = l
+	_flush()
+	Lingo.force("")   # 清语言缓存, 下次 lang() 重新解析
+
+
 static func note_run_started() -> void:
 	if _is_probe():
 		return
+	_session_runs += 1
 	var d := _data()
 	d["runs_total"] = int(d.get("runs_total", 0)) + 1
 	d["last_seen"] = int(Time.get_unix_time_from_system())
@@ -254,20 +456,56 @@ static func _data() -> Dictionary:
 		return _cache
 	if not FileAccess.file_exists(PATH):
 		return _cache
-	var f := FileAccess.open(PATH, FileAccess.READ)
-	if f == null:
-		return _cache
-	var parsed = JSON.parse_string(f.get_as_text())
-	f.close()
+	var parsed = _read_json(PATH)
+	# 主档坏了(半截 JSON / 非对象)退回 .bak —— 两份都坏才当新玩家
+	if not parsed is Dictionary:
+		parsed = _read_json(BAK_PATH)
+		if parsed is Dictionary:
+			push_warning("[SaveState] 主存档损坏, 已从 .bak 恢复")
 	if parsed is Dictionary:
-		_cache = parsed
+		_cache = _migrate(parsed)
 	return _cache
 
 
-static func _flush() -> void:
-	var f := FileAccess.open(PATH, FileAccess.WRITE)
+static func _read_json(path: String):
+	if not FileAccess.file_exists(path):
+		return null
+	var f := FileAccess.open(path, FileAccess.READ)
 	if f == null:
-		push_error("SaveState: 写不了 %s —— 教学关会重复出现, 但不影响游戏" % PATH)
+		return null
+	var parsed = JSON.parse_string(f.get_as_text())
+	f.close()
+	return parsed
+
+
+## 存档格式版本(2026-08-21 审查:存档已装着宝石/资产/券/战绩, 坏掉不再只是「重看教学」)。
+## 读到更高版本 = 别的构建写的, 照读不丢;读到更低版本 = 走 _migrate 逐级升。
+const SAVE_VERSION := 1
+const BAK_PATH := "user://sync5.save.bak.json"
+
+
+## 原子写:先写 .tmp 再 rename 盖上去;盖之前把上一份挪成 .bak。
+## 断电/崩溃落在任一步, 盘上要么是完整的旧档要么是完整的新档, 不会是半截 JSON。
+static func _flush() -> void:
+	_cache["v"] = SAVE_VERSION
+	var tmp := PATH + ".tmp"
+	var f := FileAccess.open(tmp, FileAccess.WRITE)
+	if f == null:
+		push_error("SaveState: 写不了 %s —— 教学关会重复出现, 但不影响游戏" % tmp)
 		return
 	f.store_string(JSON.stringify(_cache))
 	f.close()
+	var dir := DirAccess.open("user://")
+	if dir == null:
+		return
+	if dir.file_exists(PATH.get_file()):
+		dir.rename(PATH.get_file(), BAK_PATH.get_file())
+	dir.rename(tmp.get_file(), PATH.get_file())
+
+
+## 逐级迁移(现在只有 v1;以后改键名/形状在这里加一段, 每段只负责 n → n+1)。
+static func _migrate(d: Dictionary) -> Dictionary:
+	var v := int(d.get("v", 0))
+	if v < 1:
+		d["v"] = 1   # v0 = 08-21 前的无版本档, 键形状与 v1 相同
+	return d

@@ -26,6 +26,9 @@
 #
 # ⚠ 读退出码别隔着管道:`godot ... | tail` 之后的 $? 是 tail 的。下面每一步都直接读。
 set -uo pipefail
+LOGDIR="${SYNC5_GATE_LOGDIR:-/tmp/sync5-gate}"; mkdir -p "$LOGDIR"
+# `timeout` 在 macOS 上来自 coreutils(brew);没有就裸跑 —— 但那样第一种假绿(挂起)就没人兜
+if command -v timeout >/dev/null 2>&1; then TIMEOUT="timeout"; else TIMEOUT=""; echo "⚠ 没有 timeout 命令, 单测挂起将无人兜底"; fi
 cd "$(dirname "$0")/.."
 
 FACE="${1:-}"
@@ -39,9 +42,11 @@ INCREMENTAL=0
 
 # 机制文件:一改就影响**所有**卡与脸的读数, 增量在这里没有意义。
 # ⚠ 宁可多列不可漏列 —— 漏一个的代价是「门绿了但读数是旧的」, 静默且昂贵。
-MECH_RE='^(core/|tools/(bot|solver|runloop|draft|report|stat|probe|beat)\.gd|data/(run|economy|sim)\.json|project\.godot)'
+# 2026-08-21 审查:boons/characters/director/ranking/tickets 也是结算链或排布的全局输入, 漏在外面 = 改了不跑门
+MECH_RE='^(core/|tools/(bot|solver|runloop|draft|report|stat|probe|beat)\.gd|data/(run|economy|sim|boons|characters|director|ranking|tickets)\.json|project\.godot)'
 
-changed_files() { git diff --name-only HEAD -- . 2>/dev/null; git diff --cached --name-only HEAD -- . 2>/dev/null; }
+# 未跟踪的新文件也算改动(2026-08-21 审查:新建的 core/*.gd 此前对增量门隐身)
+changed_files() { git diff --name-only HEAD -- . 2>/dev/null; git diff --cached --name-only HEAD -- . 2>/dev/null; git ls-files --others --exclude-standard 2>/dev/null; }
 
 # data/*.json 里改动过的 id。
 #
@@ -101,11 +106,9 @@ step() {  # step <名字> <命令...>
 }
 
 tests() {
-	# runner.gd 自己不返回非零退出码, 所以判据是输出里的 "0 failed"。
-	local out
-	out=$(godot --headless --path . --script res://tests/runner.gd 2>&1)
-	echo "$out" | grep -E '^=== RESULT' || { echo "$out" | tail -20; return 1; }
-	echo "$out" | grep -q ', 0 failed'
+	# 2026-08-21 评审 R7:此前这里只 `grep ', 0 failed'` —— 丢退出码、不数 SCRIPT ERROR / ^ERROR、不看通过数、
+	# 没有超时。四判据现在**只有一份**, 在 tools/unittest.sh(CI 也调它), 这里只是转发。
+	tools/unittest.sh "$LOGDIR/tests.log"
 }
 
 if [[ -n "$FACE" ]]; then

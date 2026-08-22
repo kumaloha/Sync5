@@ -65,6 +65,12 @@ DESIGN_P = {
 def _qualified(lines):
     if not lines or lines[0].get('e') != 'run':
         return False
+    # 2026-08-21 审查:教学关(假局, 目标分 0)与探针会话(sess.id = -1)不算合格真人局
+    head = lines[0]
+    if head.get('tutorial'):
+        return False
+    if isinstance(head.get('sess'), dict) and head['sess'].get('id', 0) == -1:
+        return False
     evs = defaultdict(int)
     for l in lines:
         evs[l['e']] += 1
@@ -80,7 +86,8 @@ def human_rates():
     fired = defaultdict(lambda: [0, 0])
     rule_kinds = {r: [defaultdict(int), defaultdict(int)] for r in RULES}
     runs = 0
-    for f in glob.glob(TAPE + '/*.jsonl'):
+    # 回传成功的日志被 core/uplink.gd 搬进 sent/ —— 本地分析两处都要扫(2026-08-21 审查)
+    for f in glob.glob(TAPE + '/*.jsonl') + glob.glob(TAPE + '/sent/*.jsonl'):
         try:
             lines = [json.loads(l) for l in open(f)]
         except Exception:

@@ -3,7 +3,7 @@ extends Probe
 ## **L2 完备性门**(docs/design/solving.md 第四部分)—— 给定形式化描述 + 一局 Tape,
 ## 能不能重放出**每一个决策点**?
 ##   godot --headless --path . --script res://tools/replay.gd
-##   SYNC5_REPLAY_INJECT=1   注入一个假事件, 用来 A/B 验证这道门本身没坏
+##   SYNC5_REPLAY_INJECT=1   篡改每局第一条弃牌(弃一张不在手上的牌), 断言门恰好多报一条 —— A/B 验门本身没坏
 ##
 ## **和 tapeprobe 的分工**:`tapeprobe` 验「日志能不能重放出**局面**」(采集侧完整性);
 ## 本探针验「文档能不能重放出**决策问题**」(建模侧完整性)。
@@ -41,17 +41,43 @@ func _newest_logs(dir: String, n: int) -> Array:
 	if d == null:
 		return []
 	var out: Array = []
-	d.list_dir_begin()
-	var fname := d.get_next()
-	while fname != "":
-		if fname.ends_with(".jsonl"):
-			out.append(dir + "/" + fname)
-		fname = d.get_next()
-	d.list_dir_end()
-	out.sort()
-	if out.size() > n:
-		out = out.slice(out.size() - n, out.size())
-	return out
+	# 回传成功的日志在 sent/ 子目录(core/uplink.gd 的记账方式)—— 两处都扫(2026-08-21 审查)
+	for sub in ["", "/" + Uplink.SENT_SUBDIR]:
+		var dd := DirAccess.open(dir + sub)
+		if dd == null:
+			continue
+		dd.list_dir_begin()
+		var fname := dd.get_next()
+		while fname != "":
+			if fname.ends_with(".jsonl"):
+				out.append(dir + sub + "/" + fname)
+			fname = dd.get_next()
+		dd.list_dir_end()
+	out.sort_custom(func(a, b): return a.get_file() < b.get_file())
+	# ⚠ 只要**真人局**(2026-08-21 发现:tape/ 里 3000+ 份是 flow_probe 的机器局, 没有任何弃牌/
+	# 交换决策, 「最近 5 份」全是它们 ⇒ 重放连着几天在验空集而且全绿)。探针局 sess.id = -1,
+	# 教学局 tutorial = true, 两种都跳过。
+	var picked: Array = []
+	for i in range(out.size() - 1, -1, -1):
+		if _is_human_run(out[i]):
+			picked.push_front(out[i])
+			if picked.size() >= n:
+				break
+	return picked
+
+
+func _is_human_run(path: String) -> bool:
+	var fh := FileAccess.open(path, FileAccess.READ)
+	if fh == null:
+		return false
+	var head = JSON.parse_string(fh.get_line())
+	fh.close()
+	if not head is Dictionary or String(head.get("e", "")) != "run":
+		return false
+	if bool(head.get("tutorial", false)):
+		return false
+	var sess = head.get("sess", {})
+	return not (sess is Dictionary and int(sess.get("id", 0)) == -1)
 
 
 ## 重放一局。核心状态只需要三样就能验完 L2:hand / cache / 这一拍是否已锁定。
@@ -66,6 +92,7 @@ func _replay_one(path: String, inject: bool) -> void:
 	var spot := ""
 	var have_beat := false
 	var n_line := 0
+	var injected := false      # A/B:每局只篡改一次
 	while not fh.eof_reached():
 		var line := fh.get_line()
 		if line.strip_edges() == "":
@@ -99,15 +126,30 @@ func _replay_one(path: String, inject: bool) -> void:
 				var cards := _arr(d.get("cards", []))
 				var got := _arr(d.get("got", []))
 				_checked += 1
+				# A/B(2026-08-21 评审:旧版只 append 一条假失败, 检查逻辑一行没走到 ——
+				# 「注入误判照样全绿的假守卫」同形):**真的篡改**这条弃牌, 让它弃一张不在
+				# A(s) 里的牌, 然后断言 ① **恰好**多报一条;推进状态用的仍是原始 cards。
+				var checked_cards := cards
+				var fails_before := _fail.size()
+				var inject_now := inject and not injected and not cards.is_empty()
+				if inject_now:
+					injected = true
+					checked_cards = cards.duplicate()
+					checked_cards[0] = "??"
 				# ① 动作必须在 A(s) 里:弃掉的每张都得当时真的在手上或缓存里。
 				# ⚠ 循环内计数, 循环外断言一次 —— 逐条 append 会把违规列表灌水。
 				var not_available := 0
-				for c in cards:
+				for c in checked_cards:
 					if not (hand.has(c) or cache.has(c)):
 						not_available += 1
 				if not_available > 0:
 					_fail.append("%s disc 弃了 %d 张不在 A(s) 里的牌 (cards=%s hand=%s cache=%s)"
-						% [path, not_available, str(cards), str(hand), str(cache)])
+						% [path, not_available, str(checked_cards), str(hand), str(cache)])
+				if inject_now:
+					if _fail.size() != fails_before + 1:
+						_fail.append("%s [INJECTED] 门是死的:篡改了弃牌却没有恰好多报一条" % path)
+					else:
+						_fail[_fail.size() - 1] = "%s [INJECTED] 人为违规被抓到 —— 门是活的" % path
 				# ② 补牌张数必须等于弃牌张数 —— 手牌恒 5、缓存恒满是形式化的硬约束。
 				if got.size() != cards.size():
 					_fail.append("%s disc 弃 %d 补 %d, 破坏「手牌恒 5 缓存恒满」"
@@ -171,10 +213,9 @@ func _replay_one(path: String, inject: bool) -> void:
 							% [path, str(played), str(hand), spot])
 				have_beat = false
 	fh.close()
-	if inject:
-		# A/B:注入一个不可能的决策点, 这道门必须报警。
-		_checked += 1
-		_fail.append("%s [INJECTED] 人为违规 —— 看到这一条说明门是活的" % path)
+	if inject and not injected:
+		# 这局没有任何弃牌可篡改 —— 明说, 别让 A/B 静默变成「没注入也绿」
+		_fail.append("%s [INJECTED] 无弃牌事件可篡改, 本局 A/B 未执行" % path)
 
 
 func _arr(v) -> Array:
