@@ -57,6 +57,18 @@ static func _when_ok(w: Dictionary, state: Dictionary, ctx: Dictionary) -> bool:
 			"last_phrase":
 				if int(ctx.get("phrase_idx", -1)) != GameConfig.PHRASES_PER_SECTION - 1:
 					return false
+			"cache_mono_color":
+				# 低频卡族放宽(2026-08-26 用户拍板「改条件放宽」):全同花(4-5%)→
+				# 全同色(红/黑, 先验 ≈25%)。和弦/和声共用;万能牌不计色(与同花版同口径)。
+				var mc_cards: Array = ctx.get("cache_cards", [])
+				if mc_cards.is_empty():
+					return false
+				var colors := {}
+				for c in mc_cards:
+					if not c.is_wild():
+						colors[c.is_red()] = true
+				if colors.size() != 1:
+					return false
 			"cache_mono_suit":
 				var cards: Array = ctx.get("cache_cards", [])
 				if cards.is_empty():

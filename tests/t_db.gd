@@ -19,7 +19,7 @@ func run(t) -> void:
 	# validation catches planted bad files
 	t.check(DB.validate_run({"phrases_per_section": 5}) != "", "missing run key detected")
 	t.check(DB.validate_economy({"starting_coins": 6, "typo_key": 1}) != "", "unknown economy key detected")
-	t.eq(Joker.pool().size(), 78, "78 jokers(08-25 +13 · 08-26 superwild/advance +2;declutter/trio/doggybag 仍在池外)")
+	t.eq(Joker.pool().size(), 77, "77 jokers(08-26 +superwild/advance −wildcard[被超级百搭取代])")
 	# 卡面文字随平衡改, 别抄死 —— 只锁「读得回来 + 符合 D2 的 ≤7 词」
 	t.check(Joker.by_id("twin").fx_text.length() > 0, "joker text roundtrip")
 	for oid in GameConfig.JOKER_PRICE_OVERRIDES:

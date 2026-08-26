@@ -233,14 +233,14 @@
    "rarity": "common",
    "curve": "burst",
    "proof": "score",
-   "fx": "Cache all one suit: +140",
+   "fx": "Cache all one color: +60",
    "effects": [
     {
      "when": {
-      "cache_mono_suit": true
+      "cache_mono_color": true
      },
      "do": {
-      "bonus": 140.0
+      "bonus": 60.0
      }
     }
    ]
@@ -551,19 +551,6 @@
    ]
   },
   {
-   "id": "wildcard",
-   "name": "Wildcard",
-   "cn": "百搭",
-   "kind": "support",
-   "rarity": "rare",
-   "curve": "fixed",
-   "proof": "solver",
-   "fx": "Two wild cards join your deck",
-   "acquire": {
-    "wilds": 2
-   }
-  },
-  {
    "id": "superwild",
    "name": "Super Wildcard",
    "cn": "超级百搭",
@@ -575,7 +562,7 @@
    "acquire": {
     "wilds": 4
    },
-   "_comment": "2026-08-26 用户创意:四张 JOKER 入堆 + 付费洗牌钓卡(reshuffle_cost, 金币第三出口)。与百搭共存还是取代待拍板;弃牌仍免费不动。"
+   "_comment": "2026-08-26 用户创意:四张 JOKER 入堆 + 付费洗牌钓卡(reshuffle_cost, 金币第三出口)。与百搭共存还是取代待拍板;弃牌仍免费不动。 ⚑ 2026-08-26 用户拍板:取代百搭(wildcard 已删, 万能牌唯一来源);特例价 4◆(用户:「超级卡就4金币」, overrides 在 economy.json, 说明在 levels.md)。"
   },
   {
    "id": "kaleido",
@@ -1469,18 +1456,18 @@
    "rarity": "rare",
    "curve": "burst",
    "proof": "score",
-   "fx": "No discards or swaps: ×0.4",
+   "fx": "No discards this phrase: x1.15",
    "effects": [
     {
      "when": {
-      "discards_eq": 0,
-      "swaps_eq": 0
+      "discards_eq": 0
      },
      "do": {
-      "mult_add": 0.4
+      "mult_add": 0.15
      }
     }
-   ]
+   ],
+   "_comment": "静场放宽(2026-08-26 用户拍板):零弃零换(8%)→ 只禁弃牌 —— 经济 v2 下不弃牌 = 省弃牌费, 双重协同;数额 0.4→0.15 按触发率反推, kit 校。"
   },
   {
    "id": "harmony",
@@ -1490,14 +1477,14 @@
    "rarity": "rare",
    "curve": "burst",
    "proof": "score",
-   "fx": "Cache all one suit: ×0.3",
+   "fx": "Cache all one color: x1.12",
    "effects": [
     {
      "when": {
-      "cache_mono_suit": true
+      "cache_mono_color": true
      },
      "do": {
-      "mult_add": 0.3
+      "mult_add": 0.12
      }
     }
    ]

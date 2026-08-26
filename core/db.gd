@@ -801,7 +801,7 @@ static func _validate_face_proof(d: Dictionary, tier_of: Dictionary) -> String:
 
 const _PREDICATES := ["kind", "kind_in", "same_as_prev", "diff_from_prev",
 	"acted_late", "discards_eq", "discards_gte", "coins_gte", "base_gte",
-	"last_phrase", "cache_mono_suit", "top_rank_gte", "counter_gte",
+	"last_phrase", "cache_mono_suit", "cache_mono_color", "top_rank_gte", "counter_gte",
 	"first_phrase", "section_eq", "early_finish", "all_suits", "no_pair",
 	"cache_all_faces", "cache_run", "cache_trio",
 	"swaps_eq", "discard_batch_gte", "section_doubled",

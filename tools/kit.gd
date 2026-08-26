@@ -86,7 +86,7 @@ const N_COIN := 150        # 金币臂效应巨大(实测最弱的 tipjar z=39 @
 ## 要对每张万能牌暴力代入 52 张 —— 求解器一拍调它 ~12 万次, 单局从 0.6s 涨到 **3.6s**。
 ## 它的效应又是这条通路里最大的几个之一(n=6 就有 z=3.7), 所以 15 局足够 (外推 z≈5.9)。
 ## ⚠ 封顶只减不增:`SYNC5_KIT_N` 调小时照样生效。
-const ARM_CAP := {"wildcard": 15, "superwild": 15}
+const ARM_CAP := {"superwild": 15}
 
 ## ⚠⚠ **别指望用「加样本量」救一张卡**(2026-08-13 试过并撤回, 留档)。
 ## 判据有**两条**:|z|≥3(信不信得过)**且** 量级≥5%(要不要管)。
@@ -161,7 +161,6 @@ const WITNESS := {
 	"fourfingers": ["STRAIGHT", "STRAIGHT_FLUSH", "ROYAL_FLUSH"],
 	"redtone": ["FLUSH", "STRAIGHT_FLUSH", "ROYAL_FLUSH"],
 	"blacktone": ["FLUSH", "STRAIGHT_FLUSH", "ROYAL_FLUSH"],
-	"wildcard": ["*wild"],
 	"superwild": ["*wild"],
 	# ⚠ 2026-08-12 流派批修仪器:第三种形状 —— **牌堆手术卡**(trim:不改判定规则、
 	# 不进 popup 链, 改的是**抽牌分布本身**)。它不制造任何单一牌型, 证物率没有定义域

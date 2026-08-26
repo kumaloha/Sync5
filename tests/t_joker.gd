@@ -5,7 +5,7 @@ func run(t) -> void:
 	# roster shape (2026-08-12 流派批: 删 popup/backup, 加族内件×4 + backer/bench/boxseats + trim;
 	# 缘由与增删改清单见 docs/design/archetypes.md §5)
 	var pool := Joker.pool()
-	t.eq(pool.size(), 78, "pool holds 78 jokers(08-26 +superwild/advance)")
+	t.eq(pool.size(), 77, "pool holds 77 jokers(08-26 +superwild/advance −wildcard)")
 	var targets := 0
 	var rarities := {"common": 0, "uncommon": 0, "rare": 0}
 	for j in pool:
@@ -30,7 +30,7 @@ func run(t) -> void:
 	# 2026-08-25 对抗批 +13(全在 uncommon/rare:乘法出口按「稀有度=构筑依赖度」入 rare,
 	# 彩头/回收/客串/斗牛士/盲奏入 uncommon):uncommon 22→27 · rare 10→18。
 	t.eq(rarities["uncommon"], 28, "twenty-eight uncommon supports(08-26 advance +1)")
-	t.eq(rarities["rare"], 19, "nineteen rare supports(08-26 superwild +1)")
+	t.eq(rarities["rare"], 18, "eighteen rare supports(superwild +1, wildcard −1)")
 	t.eq(String(Joker.by_id("fourfingers").rarity), "uncommon", "fourfingers stays uncommon (顺子线要救)")
 	# ⚑ 拆分后单张实测 5.3×(先验层 N=20万, Δ同花族 +29.7pp), 两张都装 9.6× = 老 twotone。
 	# 仍是同类规则牌里最强(近道/四指只 1.8×), 所以 rare 保持不动。

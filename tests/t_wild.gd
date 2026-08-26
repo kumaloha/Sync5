@@ -26,9 +26,9 @@ func run(t) -> void:
 	var fr := Pattern.evaluate_best(flush4)
 	t.check(fr["kind"] >= Pattern.Kind.FLUSH, "wild completes the flush")
 
-	# the wild-unlocking joker turns wilds on for the run
+	# 万能牌唯一来源 = 超级百搭(2026-08-26 取代百搭)
 	var d := Deck.new(9)
 	t.eq(d.total(), 52, "deck starts without wilds")
-	var wj := Joker.by_id("wildcard")
+	var wj := Joker.by_id("superwild")
 	wj.on_acquire(d)
-	t.eq(d.total(), 54, "百搭 shuffles 大小王 into the deck")
+	t.eq(d.total(), 56, "超级百搭 injects four JOKERs")

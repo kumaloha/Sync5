@@ -199,16 +199,6 @@
     ],
     "off_target": 0.03
    },
-   "wildcard": {
-    "base": 0.1,
-    "target_bonus": [
-     [
-      "stair",
-      "triplet"
-     ],
-     0.1
-    ]
-   },
    "duo": {
     "fixed_rate": 0.7
    },

@@ -16,9 +16,6 @@ func _init(seed_value: int = -1) -> void:
 		_rng.randomize()
 	_build_full()
 
-## 大王/小王 are OFF by default — only a joker modifier puts them in the deck.
-var wilds_enabled := false
-
 ## Run-owned rule flags set by rule-change jokers (shortcut / fourfingers /
 ## twotone). They live on the deck because the deck IS the run's card system —
 ## a fresh run builds a fresh deck, so the rules reset for free.
@@ -30,21 +27,10 @@ func _build_full() -> void:
 	for s in range(4):
 		for r in range(2, 15):
 			draw_pile.append(Card.new(r, s))
-	if wilds_enabled:
-		draw_pile.append(Card.new(Card.JOKER_RANK, Card.JOKER_BIG))
-		draw_pile.append(Card.new(Card.JOKER_RANK, Card.JOKER_LITTLE))
 	shuffle()
 
-## Turn the two wild cards on mid-run: they are shuffled into the draw pile.
-func enable_wilds() -> void:
-	if wilds_enabled:
-		return
-	wilds_enabled = true
-	draw_pile.append(Card.new(Card.JOKER_RANK, Card.JOKER_BIG))
-	draw_pile.append(Card.new(Card.JOKER_RANK, Card.JOKER_LITTLE))
-	shuffle()
-
-
+## ~~enable_wilds(大小王开关)~~ 2026-08-26 随百搭退役:超级百搭取代之,
+## 万能注入只剩 add_wilds 一条路(按来源记账)。旧存档的 "wilds" 键读取时忽略。
 ## 额外万能注入(2026-08-26 超级百搭):按**来源**记账, 同一张卡只生效一次
 ## (买新替旧再买回不许翻倍 —— enable_wilds 用 bool 挡的是同一件事)。
 ## 与 enable_wilds 独立:大小王(suit 0/1)归百搭, 注入的 JOKER 用 suit 2/3
@@ -188,7 +174,7 @@ func total() -> int:
 func snapshot() -> Dictionary:
 	return {
 		"draw": cards_out(draw_pile), "disc": cards_out(discard_pile),
-		"wilds": wilds_enabled, "wildx": wild_extra.duplicate(true), "trim": trim_low,
+		"wildx": wild_extra.duplicate(true), "trim": trim_low,
 		"rules": rules.duplicate(true), "rng": _rng.state,
 	}
 
@@ -209,7 +195,6 @@ static func from_snapshot(d: Dictionary) -> Deck:
 		deck.draw_pile.append(Card.new(int(p[0]), int(p[1])))
 	for p in d.get("disc", []):
 		deck.discard_pile.append(Card.new(int(p[0]), int(p[1])))
-	deck.wilds_enabled = bool(d.get("wilds", false))
 	deck.wild_extra = d.get("wildx", {}).duplicate(true)
 	deck.trim_low = bool(d.get("trim", false))
 	deck.rules = d.get("rules", {}).duplicate(true)
@@ -226,7 +211,6 @@ func fork(seed_value: int) -> Deck:
 	var d := Deck.new(seed_value)
 	d.draw_pile = draw_pile.duplicate()
 	d.discard_pile = discard_pile.duplicate()
-	d.wilds_enabled = wilds_enabled
 	d.wild_extra = wild_extra.duplicate(true)
 	d.trim_low = trim_low
 	d.rules = rules.duplicate(true)

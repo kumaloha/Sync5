@@ -1562,8 +1562,7 @@ func _refresh() -> void:
 		# 教学关 target = 0 ⇒ 0/0 = NaN(GDScript 浮点除零不报错), 进度条会画成残条(评审)
 		"fraction": 0.0 if target <= 0 else float(run.section_score) / float(target)})
 	# 洗牌键:牌堆里有万能才亮(装了百搭/超级百搭);付不起时压暗但不藏 —— 玩家要看得见价。
-	hand.reshuffle_key.visible = decide \
-		and (phrase.deck.wilds_enabled or not phrase.deck.wild_extra.is_empty())
+	hand.reshuffle_key.visible = decide and not phrase.deck.wild_extra.is_empty()
 	hand.reshuffle_key.fee = Economy.reshuffle_cost()
 	hand.reshuffle_key.active = phrase.can_reshuffle()
 

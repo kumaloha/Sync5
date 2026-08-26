@@ -376,7 +376,7 @@ func _glyph_for(id: String) -> String:
 		"redtone": return "◑"
 		"bassline": return "∿"
 		"mirror": return "⧉"
-		"wildcard": return "★"
+		"superwild": return "★"
 		"twin": return "❋"
 		"stair": return "▤"
 		_: return "◈"

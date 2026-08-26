@@ -163,7 +163,7 @@ func _card_ev(id: String, st: Dictionary, slots: Array, phrases_left: int) -> fl
 			# tempo 卡:借款的价值 = 前期加速买卡, 已由 draft 环路自然消化;
 			# base 是「持有它值多少」的方向锚(利息 −2/段 vs 提前成型), ⑥ 精扫。
 			return float(p["base"]) * score_mean
-		"wildcard", "superwild":
+		"superwild":
 			# 超级百搭(2026-08-26)与百搭同键形:base + 对位 Target 加成;
 			# 差异(4 张注入 + 洗牌钓卡)已折进 ev.cards 的 base 先验(0.2 vs 0.1)。
 			var tb: Array = p["target_bonus"]
@@ -805,7 +805,7 @@ func _play_adaptive(p: Phrase, slots: Array, target_id: String, section: int, mo
 				return
 			break
 	# 洗牌(2026-08-26 超级百搭配套):**只在注入过 JOKER 时**(wild_extra 非空)考虑,
-	# 绑注入而不绑 wilds_enabled —— 免得这条臂改动 wildcard 旧基线(控制变量)。
+	# 绑注入(wild_extra)—— 万能牌唯一来源 = superwild(08-26 取代百搭后大小王通道已退役)。
 	# 动机 = 钓 JOKER:手里没万能、手牌还烂(plan 不是 keep_all)、钱付得起还留得下
 	# 购买力(cost + 6)才洗;每拍至多一次 —— 连洗是在赌, 不是玩家会做的事。
 	if not p.deck.wild_extra.is_empty() and p.can_reshuffle() \

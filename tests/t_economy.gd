@@ -15,6 +15,8 @@ func run(t) -> void:
 	t.eq(Economy.joker_price(Joker.by_id("chorus")), 3, "uncommon support costs 3(经济 v2 平价)")
 	t.eq(Economy.joker_price(Joker.by_id("bassline")), 3, "rare support costs 3(经济 v2 平价)")
 	t.eq(Economy.joker_price(Joker.by_id("mirror")), 3, "mirror 平价(稀缺税随经济 v2 摘除;特例要回来必须在 levels.md 说明)")
+	t.eq(Economy.joker_price(Joker.by_id("superwild")), 4,
+		"superwild 特例价 4◆(2026-08-26 用户:「超级卡就4金币」, 说明在 levels.md)")
 	t.eq(Economy.joker_price(Joker.by_id("mono")), 0, "the first target is free")
 	# Target 回池(2026-08-06 用户拍板): 换旗不再有专属价, 走同一张稀有度价目表。
 	t.eq(Economy.joker_price(Joker.by_id("mono"), true), 3,

@@ -12,7 +12,9 @@
   "uncommon": 3,
   "rare": 3
  },
- "joker_price_overrides": {},
+ "joker_price_overrides": {
+  "superwild": 4
+ },
  "reroll": {
   "base": 3,
   "step": 1

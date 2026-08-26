@@ -154,7 +154,7 @@ func start() -> void:
 func can_reshuffle() -> bool:
 	if locked or coins < Economy.reshuffle_cost():
 		return false
-	return deck.wilds_enabled or not deck.wild_extra.is_empty()
+	return not deck.wild_extra.is_empty()
 
 
 func reshuffle() -> void:

@@ -342,9 +342,6 @@
   "mirror": {
    "trigger": "连续两拍达成 Target:以其一半倍率再乘一次"
   },
-  "wildcard": {
-   "trigger": "两张万能牌加入牌库"
-  },
   "variation": {
    "trigger": "成牌且与上拍不同:奖励分+目标分的20%"
   },

@@ -226,12 +226,10 @@ func on_acquire(deck: Deck) -> void:
 	if deck == null:
 		return
 	if _acquire.has("wilds"):
-		# 值 = 张数(2026-08-26 起):≤2 走大小王开关(百搭, 旧行为逐位不变);
-		# >2 走按来源记账的注入(超级百搭 4 张;卖卡再买不翻倍, deck 侧挡)。
-		if int(_acquire["wilds"]) <= 2:
-			deck.enable_wilds()
-		else:
-			deck.add_wilds(id, int(_acquire["wilds"]))
+		# 值 = 张数, 统一走按来源记账的注入(卖卡再买不翻倍, deck 侧挡)。
+		# 大小王开关(enable_wilds)已随百搭退役 —— 2026-08-26 用户拍板超级百搭**取代**百搭,
+		# 万能牌唯一来源 = superwild 的 4 张 JOKER 注入。
+		deck.add_wilds(id, int(_acquire["wilds"]))
 	if _acquire.has("deck_rule"):
 		deck.rules[String(_acquire["deck_rule"])] = true
 	if _acquire.has("trim_low"):
