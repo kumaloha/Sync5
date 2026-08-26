@@ -53,6 +53,14 @@
    }
   }
  },
+ "_cycle": "10-run 周期机制课程(difficulty.md §2.5, 2026-08-26 用户拍板:「以 10 轮为一个周期, 轮循不同的一套」)。groups[g] = 第 g+1 组周期的 10 个格子, 按局数轮换:pos 1-2/3-4/6-7/8-9 = 学习位(挂 attack_axes 的机制轴名, 连续两局考同类题 —— 掷脸时同轴脸权重 ×bias_mult, **不是硬性全同轴**:档位/千人千面/序列杀伤预算照旧工作, 可预测的是节奏、不可预测的是题面);pos 5/10 = 考试位(\"wall\" = 数值墙, 保证四墙至少一张加码族(raisedbar 族);\"combo\" = 复合盲注, 引擎未支持前按 wall 处理)。⚑ 两组四轴的取舍:六条轴里 time 不占学习位 —— 第四轮全员时间族, 它天生每局都在教, 挂上去是两局空课程;剩下五条轴两组覆盖全部, discard 只在 A 组、swap 只在 B 组。⚠ 探针素掷(没有排序表)时课程整体不进场 —— 「逐字节退回 SectionMod.roll_run」的契约不动。",
+ "cycle": {
+  "bias_mult": 3.0,
+  "groups": [
+   ["discard", "discard", "cache", "cache", "wall", "info", "info", "tempo", "tempo", "wall"],
+   ["swap", "swap", "tempo", "tempo", "wall", "info", "info", "cache", "cache", "wall"]
+  ]
+ },
  "_context": "context 节(2026-08-19, 推翻 08-14「不读 context」的拍板)。两个布尔开关:novelty = 同一档内偏向见得最少的脸(N 轴/新鲜感);streak_shift = 连败 2 局降一档 / 连胜 3 局升一档(改排布不改数值)。⚑ 两个都开(2026-08-19 晚用户拍板:「开, 就是要千人千面, 但不要被察觉」)——不可察觉的保障 = 只换『哪张脸上场』, 目标分/规则/数值/UI 全不动。ctx 本体(streak/seen)在 SaveState, 编排器按局传参;探针恒传空 ⇒ 掷法逐字节不变。 08-20 用户委托按设计稿推荐落地:returning(隔 3 天回来第一局 = 温和档 + 熟脸)与 explore_shelf(没用过的 Target 货架权重 ×1.5)两个开关也开。",
  "context": {
   "novelty": true,

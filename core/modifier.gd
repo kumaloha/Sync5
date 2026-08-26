@@ -227,6 +227,12 @@ const _AXIS_PARAMS := {
 }
 
 
+## 全部攻击轴的 id(= `_AXIS_PARAMS` 的键)。周期课程(difficulty.md §2.5)的
+## 「机制轴」用的就是这份名单 —— db 校验与 Director 各自读它, 不许再抄第二份。
+static func axis_ids() -> Array:
+	return _AXIS_PARAMS.keys()
+
+
 static func attack_axes(mod_id: String) -> Array:
 	var out: Array = []
 	if mod_id == "":
