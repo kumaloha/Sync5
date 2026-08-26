@@ -12,10 +12,6 @@ signal replace_requested(j)           # full slots: orchestrator runs the replac
 signal skipped()                      # orchestrator pays the skip reward
 signal reroll_paid(cost: int)         # orchestrator deducts, then calls redeal()
 signal denied(why: String)            # 想买/想刷但钱不够 — 编排器打点(购买力压力)
-## 升级第 i 个已装槽位。⚠ **只发信号, 不动钱也不动等级** —— 与「金币/装槽等经济动作
-## 只发生在编排器」那条铁律同一条线(CLAUDE.md 架构铁律)。
-signal upgrade_requested(slot_idx: int, cost: int)
-
 var _cfg: Dictionary = DB.ui()["shop"]
 var _layer: Control
 var _views: Array = []
@@ -30,8 +26,6 @@ var _candidates: Array = []
 var _reroll_count := 0
 ## 点名的解除奖励:本次开店 +1 货架位(编排器在 open 前灌入并清源, 联票封顶 4)。
 var shelf_bonus := 0
-## 升级栏开关 —— 编排器注入(教学段 false:栏里只会是借展样品)。
-var _upgrades_on := true
 ## Director 的稀有度乘数 —— 编排器开店时注入(探针一律 {} = 中性, 掷法逐字节不变)。
 var _rarity_mult: Dictionary = {}
 ## 探索型货架用的「玩家用过的 Target」—— 编排器开店时注入(探针 / 零历史 = {} ⇒ 不偏置)。
@@ -47,8 +41,6 @@ func set_shelf_rarity_mult(m: Dictionary) -> void:
 	_rarity_mult = m
 
 
-func set_upgrades_on(on: bool) -> void:
-	_upgrades_on = on
 var _slots: Array = []
 var _coins := 0
 var _section := 0
@@ -256,30 +248,7 @@ func _deal() -> void:
 						rp.append(j)
 				if not rp.is_empty() and not _candidates.is_empty():
 					_candidates[0] = rp[randi_range(0, rp.size() - 1)]
-	# ---- 升级上架(2026-08-18 用户:「升级也是放三个大的卡片上」)----
-	# 底部小按钮行已废;升级作为**商品**占一个货架位:有可升级的卡时, 随机一个货架位
-	# 换成随机一张已装卡的升级报价(token = {"up_slot": 槽号}, 渲染/成交各自分支)。
-	# 付费刷新会重掷 —— 换升级目标或换回新卡, 这正是「升级是货架商品」的全部含义。
-	# 教学段 _upgrades_on=false 不上架(货架里都是借展样品)。
-	# ⚠ 口径漂移记账:tools/bot.gd 的商店模型仍是「3 新卡 + 恒可升级」, 与真货架
-	# 从此不同构 —— sim 的升级/购买读数在重校准前只当方向看(TODO 已记)。
-	if _upgrades_on and not first_target and not _candidates.is_empty():
-		var ups: Array = []
-		for si in range(_slots.size()):
-			if _slots[si] != null and _slots[si].can_upgrade():
-				ups.append(si)
-		if not ups.is_empty():
-			# ⚠ 不许覆盖「必定出」钉住的位(2026-08-21 审查):Target 保底钉末位、规则牌保底钉首位,
-			# 随机覆写有 1/3 概率把卡面承诺吃掉。只从没被钉的下标里挑;全被钉住就不上升级。
-			var free: Array = []
-			for ci in range(_candidates.size()):
-				var pinned := (Joker.slots_guarantee_target(_slots) and ci == _candidates.size() - 1) \
-					or (Joker.slots_rule_guaranteed(_slots) and ci == 0)
-				if not pinned:
-					free.append(ci)
-			if not free.is_empty():
-				_candidates[int(free[randi_range(0, free.size() - 1)])] = {
-					"up_slot": int(ups[randi_range(0, ups.size() - 1)])}
+	# (升级上架段 2026-08-26 随升级系统整体删除 —— 路线 ③。)
 	_render(true)
 
 
@@ -289,22 +258,6 @@ func _render(popin: bool) -> void:
 	for i in range(_views.size()):
 		if i < _candidates.size():
 			var j = _candidates[i]
-			if j is Dictionary:
-				# 升级商品位:卡面 = 已装的那张(所见即所升), 价签念等级与价
-				var uj = _slots[int(j["up_slot"])]
-				var ucost: int = -1 if uj == null else uj.upgrade_cost()
-				var uok: bool = uj != null and uj.can_upgrade() and ucost >= 0 and _coins >= ucost
-				_views[i].visible = true
-				_views[i].set_joker(uj)
-				_views[i].modulate.a = 1.0 if uok else 0.45
-				_price_labels[i].visible = true
-				_price_labels[i].text = String(_cfg["upgrade_shelf_text"]) \
-					% [(0 if uj == null else uj.level + 1), maxi(0, ucost)]
-				_price_labels[i].add_theme_color_override("font_color",
-					StageTheme.CYAN if uok else Color("8a5560"))
-				if popin:
-					_pop(_views[i])
-				continue
 			var price := _price(j)
 			var afford := _affordable(j)
 			_views[i].visible = true
@@ -336,14 +289,6 @@ func _render(popin: bool) -> void:
 func offers() -> Array:
 	var out: Array = []
 	for j in _candidates:
-		if j is Dictionary:
-			# 升级商品位:记「升谁到几级要多少」—— 事实口径, 与卡商品同表可对
-			var uj = _slots[int(j["up_slot"])]
-			out.append({"id": "up:%s" % ("" if uj == null else String(uj.id)),
-				"kind": "upgrade", "rarity": "-",
-				"price": (-1 if uj == null else uj.upgrade_cost()),
-				"aff": uj != null and uj.can_upgrade() and _coins >= uj.upgrade_cost()})
-			continue
 		out.append({"id": String(j.id), "kind": String(j.kind),
 			"rarity": String(j.rarity), "price": _price(j), "aff": _affordable(j)})
 	return out
@@ -402,19 +347,6 @@ func _on_pick(i: int) -> void:
 	if not _layer.visible or i >= _candidates.size():
 		return
 	var j = _candidates[i]
-	if j is Dictionary:
-		# 升级商品:钱与等级都归编排器(upgrade_requested 老信号原路复用)
-		var uslot: int = int(j["up_slot"])
-		var uj = _slots[uslot]
-		if uj == null or not uj.can_upgrade():
-			return
-		var ucost: int = uj.upgrade_cost()
-		if ucost < 0 or _coins < ucost:
-			_float(String(_cfg["insufficient"]), _views[i].get_global_position() + Vector2(70, 40))
-			denied.emit("upgrade")
-			return
-		upgrade_requested.emit(uslot, ucost)
-		return
 	if not _affordable(j):
 		_float(String(_cfg["insufficient"]), _views[i].get_global_position() + Vector2(70, 40))
 		denied.emit("price")

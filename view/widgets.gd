@@ -1244,7 +1244,8 @@ class DJKey:
 	signal dropped(data: Dictionary)
 	var accent := Color.WHITE
 	var zh_label := ""
-	var kind := "sort"      # "sort" | "discard"
+	var kind := "sort"      # "sort" | "discard" | "reshuffle"(洗牌走热键画法, 图标同 shuffle)
+	var radius := 46.0      # 洗牌键是 72×72 的紧凑款, 圆环半径跟着尺寸走(2026-08-26)
 	var fee := 0
 	var active := true
 	var accept_drop := false
@@ -1292,7 +1293,7 @@ class DJKey:
 		var cx := size.x * 0.5
 		var cy := size.y * 0.5
 		var c := Vector2(cx, cy)
-		var r := 46.0
+		var r := radius
 		var a := 1.0 if active else 0.5
 		draw_circle(c, r, Color(0.035, 0.045, 0.11, 0.62 * a))
 		if kind == "sort":
@@ -1325,6 +1326,15 @@ class DJKey:
 			# ⇅ : up arrow on the left, down arrow on the right
 			_arrow(Vector2(cx - 8, cy + 13), Vector2(cx - 8, cy - 13), ic)
 			_arrow(Vector2(cx + 8, cy - 13), Vector2(cx + 8, cy + 13), ic)
+		elif kind == "reshuffle":
+			# 循环箭头(↻)—— 「弃牌堆洗回重发」;不复用弃牌键的交叉箭头:
+			# 两个圆键同图标时只剩颜色在做区分, 色弱读不出来。
+			var rr := r * 0.38
+			draw_arc(c, rr, PI * 0.2, PI * 1.8, 28, ic, 2.4, true)
+			var ea := PI * 1.8
+			var tip := c + Vector2(cos(ea), sin(ea)) * rr
+			var tangent := Vector2(-sin(ea), cos(ea))
+			_arrow(tip - tangent * 6.0, tip + tangent * 4.0, ic)
 		else:
 			# shuffle: two paths that enter flat from the left, cross in the
 			# middle and exit right — both heads point the same way. (Two
@@ -1332,7 +1342,7 @@ class DJKey:
 			_shuffle(c, ic)
 
 		# fee badge: dark pill with a gold ring, top-right of the ring
-		if kind == "discard" and fee > 0 and active:
+		if kind != "sort" and fee > 0 and active:
 			var badge := Rect2(cx + r - 30.0, cy - r - 12.0, 50, 26)
 			draw_style_box(StageTheme.box(Color(0.06, 0.05, 0.02, 0.9), StageTheme.GOLD, 1, 13), badge)
 			draw_string(StageTheme.num("Bold"), Vector2(badge.position.x, badge.position.y + 19),

@@ -45,6 +45,22 @@ func enable_wilds() -> void:
 	shuffle()
 
 
+## 额外万能注入(2026-08-26 超级百搭):按**来源**记账, 同一张卡只生效一次
+## (买新替旧再买回不许翻倍 —— enable_wilds 用 bool 挡的是同一件事)。
+## 与 enable_wilds 独立:大小王(suit 0/1)归百搭, 注入的 JOKER 用 suit 2/3
+## 轮流(显示为 ☆ 冷色;suit 必须 ≤3, SUITS/SUIT_GLYPHS 按下标取会越界)。
+## 注入的牌与 trim 同哲学:装过就永久, 卖卡不收回(玩家见过的牌不凭空消失)。
+var wild_extra: Dictionary = {}
+
+func add_wilds(source: String, n: int) -> void:
+	if wild_extra.has(source):
+		return
+	wild_extra[source] = n
+	for i in range(n):
+		draw_pile.append(Card.new(Card.JOKER_RANK, 2 + (i % 2)))
+	shuffle()
+
+
 ## 修剪(trim):2 和 3 永久离开牌库 —— 牌库手术类规则牌,概率线最硬的 Δp
 ## (enable_wilds 是加牌先例,这是减牌先例)。
 ## ⚠ 手牌/缓存里已经握着的 2/3 不当场没收(玩家看得见的牌不许凭空消失),
@@ -128,6 +144,14 @@ func _reshuffle_discard() -> void:
 	discard_pile.clear()
 	shuffle()
 
+
+## 洗牌动作用(2026-08-26):把弃牌堆整体洗回抽牌堆 —— 与 draw 抽空时的自动回收
+## 同一条路径, 只是把入口交给玩家(付费, 编排器扣钱)。堆里的 JOKER 全部回到可抽态。
+func recycle() -> void:
+	draw_pile.append_array(discard_pile)
+	discard_pile.clear()
+	shuffle()
+
 ## 设想抽 n 张但**不消耗牌堆**(docs/design/solver_roadmap.md:求解器是在"算", 不是在"玩" ——
 ## 真去 draw() 会让求解本身改变游戏状态, 那就不是同一局了)。
 ## **一次调用内不放回**:一副牌里没有两张一样的, 放回抽样会虚构出对子。
@@ -164,7 +188,7 @@ func total() -> int:
 func snapshot() -> Dictionary:
 	return {
 		"draw": cards_out(draw_pile), "disc": cards_out(discard_pile),
-		"wilds": wilds_enabled, "trim": trim_low,
+		"wilds": wilds_enabled, "wildx": wild_extra.duplicate(true), "trim": trim_low,
 		"rules": rules.duplicate(true), "rng": _rng.state,
 	}
 
@@ -186,6 +210,7 @@ static func from_snapshot(d: Dictionary) -> Deck:
 	for p in d.get("disc", []):
 		deck.discard_pile.append(Card.new(int(p[0]), int(p[1])))
 	deck.wilds_enabled = bool(d.get("wilds", false))
+	deck.wild_extra = d.get("wildx", {}).duplicate(true)
 	deck.trim_low = bool(d.get("trim", false))
 	deck.rules = d.get("rules", {}).duplicate(true)
 	deck._rng.state = int(d.get("rng", 0))
@@ -202,6 +227,7 @@ func fork(seed_value: int) -> Deck:
 	d.draw_pile = draw_pile.duplicate()
 	d.discard_pile = discard_pile.duplicate()
 	d.wilds_enabled = wilds_enabled
+	d.wild_extra = wild_extra.duplicate(true)
 	d.trim_low = trim_low
 	d.rules = rules.duplicate(true)
 	return d

@@ -189,7 +189,7 @@ func snapshot(run_index: int) -> Dictionary:
 	var slots_out: Array = []
 	for j in joker_slots:
 		slots_out.append(null if j == null \
-			else {"id": j.id, "lv": j.level, "st": j.state.duplicate(true)})
+			else {"id": j.id, "st": j.state.duplicate(true)})
 	var ages_out := {}
 	var ages: Dictionary = cache_meta.get("ages", {})
 	for i in range(cache.size()):
@@ -241,7 +241,6 @@ func restore(d: Dictionary) -> bool:
 		var j = Joker.by_id(String(e.get("id", "")))
 		if j == null:
 			continue          # 这张卡被退役了 —— 槽空着比开不了机好
-		j.level = int(e.get("lv", 1))
 		j.state = e.get("st", {}).duplicate(true)
 		# ⚠ 不调 on_acquire:它改牌堆(百搭洗入大小王等), 而牌堆快照里已经是改完的样子
 		joker_slots[i] = j

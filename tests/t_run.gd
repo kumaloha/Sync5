@@ -361,7 +361,6 @@ func _t_fork_complete(t) -> void:
 	sr.cache = [t._c(9, 1), t._c(12, 2), t._c(7, 0)]
 	sr.cache_meta = {"ages": {sr.cache[0]: 4, sr.cache[2]: 6}, "next": 7}
 	sr.joker_slots[0] = Joker.by_id("twin")
-	sr.joker_slots[0].level = 3
 	sr.joker_slots[2] = Joker.by_id("vinyl")
 	sr.joker_slots[2].state = {"n": 7}
 	for _i in range(5):
@@ -383,7 +382,6 @@ func _t_fork_complete(t) -> void:
 	t.check(not rr.cache_meta["ages"].has(rr.cache[1]), "没记年龄的格子不凭空长出年龄")
 	t.eq(int(rr.cache_meta["next"]), 7, "年龄计数器还原")
 	t.eq(String(rr.joker_slots[0].id), "twin", "槽 0 的卡还原")
-	t.eq(rr.joker_slots[0].level, 3, "等级还原")
 	t.check(rr.joker_slots[1] == null, "空槽还是空槽")
 	t.eq(int(rr.joker_slots[2].state.get("n", 0)), 7, "成长计数器还原")
 	t.check(not rr.tutorial, "恢复的局恒是正式局")

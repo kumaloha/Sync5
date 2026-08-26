@@ -832,6 +832,16 @@
    "trigger_zh": "盖着上台的牌",
    "amount": "+8/张",
    "art_subject": "裂镜上的无字面具(素材库 blank_mask)"
+  },
+  {
+   "id": "superwild",
+   "cn": "超级百搭",
+   "code": "S-75",
+   "kind": "support",
+   "rarity": "rare",
+   "trigger_zh": "四张 JOKER 入堆 + 付费洗牌",
+   "amount": "—",
+   "art_subject": "回响中的万能牌(素材库 echo_wild)"
   }
  ]
 }

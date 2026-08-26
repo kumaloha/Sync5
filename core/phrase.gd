@@ -146,6 +146,46 @@ func start() -> void:
 			hidden[hand[pick_pool[j]]] = true
 			pick_pool.remove_at(j)
 
+## 洗牌(2026-08-26 超级百搭配套的付费动作):整手回弃牌堆 → 弃牌堆洗回抽牌堆
+## → 重发 HAND_SIZE 张 —— 堆里的 JOKER 全部回到可抽态, 这是「付费钓卡」的实体。
+## 只在牌堆里有万能时开放(否则它只是免费全弃的付费重复, 纯坑)。缓存不动。
+## 封条随旧手牌离场(花金币洗掉封条 = versus.md「构筑相关成本」的合法解除);
+## 暗场/蒙面按脸的语义对新手牌**重掷**(否则 3◆ 把脸洗成空气)。
+func can_reshuffle() -> bool:
+	if locked or coins < Economy.reshuffle_cost():
+		return false
+	return deck.wilds_enabled or not deck.wild_extra.is_empty()
+
+
+func reshuffle() -> void:
+	if not can_reshuffle():
+		return
+	coins -= Economy.reshuffle_cost()
+	for c in hand:
+		if c != null:
+			hidden.erase(c)
+			deck.discard(c)
+	hand.clear()
+	deck.recycle()
+	for i in range(GameConfig.HAND_SIZE):
+		var c := deck.draw()
+		if c != null:
+			hand.append(c)
+	if sealed_hand_card != null and not hand.has(sealed_hand_card):
+		sealed_hand_card = null
+	if SectionMod.hide_faces(mod):
+		for c in hand:
+			if c != null and c.rank >= 11 and c.rank <= 13:
+				hidden[c] = true
+	var extra_hide := SectionMod.hide_random(mod)
+	if extra_hide > 0 and not hand.is_empty():
+		var pick_pool: Array = range(hand.size())
+		for _k in range(mini(extra_hide, pick_pool.size())):
+			var j := deck.pick_index(pick_pool.size())
+			hidden[hand[pick_pool[j]]] = true
+			pick_pool.remove_at(j)
+
+
 func can_discard(count: int) -> bool:
 	if locked or count <= 0 or coins < Economy.discard_cost(count):
 		return false

@@ -412,3 +412,28 @@ func run(t) -> void:
 	t.eq(sw.swapped_scoring_count([original]), 0,
 		"a swap-and-revert leaves no phantom credit —— 试探不算换入")
 
+
+	# 洗牌(2026-08-26 超级百搭配套):付费整手重掷 + 弃牌堆洗回。
+	var rd := Deck.new(88)
+	var rcache: Array = []
+	var rp := Phrase.new(rd, rcache, 10)
+	rp.start()
+	t.check(not rp.can_reshuffle(), "无万能的牌堆不开放洗牌(付费重掷对它是纯坑)")
+	rd.add_wilds("superwild", 4)
+	t.check(rp.can_reshuffle(), "注入 JOKER 后开放")
+	t.check(rp.discard_selected([0, 1]), "先弃两张造出弃牌堆")
+	var coins0 := rp.coins
+	var disc0 := rd.discard_pile.size()
+	t.check(disc0 >= 2, "弃牌堆非空")
+	rp.reshuffle()
+	t.eq(rp.coins, coins0 - Economy.reshuffle_cost(), "洗牌扣配置价")
+	t.eq(rp.hand.size(), 5, "洗后手牌仍 5 张")
+	t.eq(rd.discard_pile.size(), 0, "弃牌堆整体洗回抽牌堆(钓 JOKER 的实体)")
+	var poor := Phrase.new(Deck.new(89), [], 0)
+	poor.start()
+	poor.deck.add_wilds("superwild", 4)
+	var ph0: Array = poor.hand.duplicate()
+	poor.reshuffle()
+	t.check(not poor.can_reshuffle(), "0 金币付不起")
+	for i in range(5):
+		t.check(poor.hand[i] == ph0[i], "付不起时 reshuffle 是无操作(第 %d 张没动)" % i)

@@ -23,7 +23,7 @@ const IDS := [
 	# 2026-08-25 波3 +5:合奏/孤注/彩头/灌铅骰/回收(素材同库配对)。
 	"ensemble", "allin", "jackpot", "loadeddice", "recycle",
 	# 2026-08-25 波4 +3:客串/斗牛士/盲奏。
-	"gueststar", "matador", "blindplay",
+	"gueststar", "matador", "blindplay", "superwild",
 ]
 const REQUIRED := ["id", "cn", "code", "kind", "rarity", "trigger_zh", "amount", "art_subject"]
 const VALID_KIND := ["target", "support"]

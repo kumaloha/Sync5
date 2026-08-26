@@ -560,31 +560,6 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 				return coins
 			offer.erase(best)
 			continue
-		# ---- 升级已装备的卡(2026-08-16, 金币的主出口)----
-		#
-		# ⚠⚠ **不给 bot 这段, 就是第 7 次「规则在游戏里、不在模型里」** —— 玩家能把卡推到
-		# ×2.0 而 bot 永远 Lv1, 于是 sim 会**系统性低估**通关率, 而且不会报错。
-		# 方向是保守的(bot 比玩家弱), 所以它给不出乐观的假读数 —— 但仍然是分叉。
-		#
-		# ⚑ 策略 = **最便宜的先升**, 留 6◆ 缓冲。它不是最优解, 而是一条**明确的基线**:
-		# 与「规则 bot 永久保留手写表当回归基线」(tools/bot.gd:256 那条)同一个取舍 ——
-		# 求最优是求解器的活, bot 只要**不是零**。
-		# ⚠ 放在「买不动了」之后、刷新之前:先补齐构筑, 再加固, 最后才考虑重掷。
-		while true:
-			var up_i := -1
-			var up_cost := 999
-			for si in range(slots.size()):
-				var sj = slots[si]
-				if sj == null or not sj.can_upgrade():
-					continue
-				var uc: int = sj.upgrade_cost()
-				if uc >= 0 and uc < up_cost and coins - uc >= 6:
-					up_cost = uc
-					up_i = si
-			if up_i < 0:
-				break
-			coins -= up_cost
-			slots[up_i].level += 1
 		# nothing worth buying: one paid reroll if rich, else just walk away
 		# (2026-08-06: leaving the shop pays nothing — the skip reward is gone)
 		if attempt == 0 and buys == 0 and coins >= Economy.reroll_cost(0) + 6:
@@ -820,6 +795,20 @@ func _play_adaptive(p: Phrase, slots: Array, target_id: String, section: int, mo
 			if bool(vow_plan.get("keep_all", false)):
 				return
 			break
+	# 洗牌(2026-08-26 超级百搭配套):**只在注入过 JOKER 时**(wild_extra 非空)考虑,
+	# 绑注入而不绑 wilds_enabled —— 免得这条臂改动 wildcard 旧基线(控制变量)。
+	# 动机 = 钓 JOKER:手里没万能、手牌还烂(plan 不是 keep_all)、钱付得起还留得下
+	# 购买力(cost + 6)才洗;每拍至多一次 —— 连洗是在赌, 不是玩家会做的事。
+	if not p.deck.wild_extra.is_empty() and p.can_reshuffle() \
+			and p.coins >= Economy.reshuffle_cost() + 6:
+		var has_wild := false
+		for hc in p.hand:
+			if hc != null and hc.is_wild():
+				has_wild = true
+		if not has_wild:
+			var rs_plan: Dictionary = _best_plan(p.hand, target_id, 3, p.deck.rules)
+			if not bool(rs_plan.get("keep_all", false)):
+				p.reshuffle()
 	# free swaps: any trial swap that raises the best plan's EV sticks
 	var rules: Dictionary = p.deck.rules
 	for ci in range(p.cache.size()):

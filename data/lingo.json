@@ -105,7 +105,6 @@
   "◆ 不足": "Not enough ◆",
   "拖或点要换掉的槽位 · ◆%d 买入 · 旧卡折半": "Drag or tap a slot to replace · buy ◆%d · old refunds half",
   "✕ 不换了": "✕ Never mind",
-  "升级 · Lv%d ▸ ◆%d": "Upgrade · Lv%d ▸ ◆%d",
   "%s\n满级": "%s\nMax level",
   "%s\n规则牌不可升": "%s\nRule cards don't upgrade",
   "空槽": "Empty slot",
@@ -277,6 +276,10 @@
   "每张盖着上台的得分牌:基础分+8": "Each hidden scorer: +8 chips",
   "8选5": "best 5 of 8",
   "2×点数": "2× rank",
-  "+8/张": "+8/card"
+  "+8/张": "+8/card",
+  "洗牌": "Reshuffle",
+  "金币不够洗牌": "Not enough coins to reshuffle",
+  "四张 JOKER 加入牌库;洗牌键付费重掷整手, 弃牌堆洗回": "Four JOKERs join the deck; pay to redeal your hand, discards shuffled back",
+  "超级百搭": "Super Wildcard"
  }
 }

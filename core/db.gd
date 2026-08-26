@@ -37,7 +37,7 @@ const _RUN_KEYS := ["phrases_per_section", "phrases_per_shop", "sections_per_gig
 	"s1_face_min_run", "s1_easy_chance"]
 const _ECO_KEYS := ["starting_coins", "discard_cost", "section_clear_reward",
 	"draft_rarity_weights", "joker_prices", "joker_price_overrides",
-	"reroll", "joker_upgrade"]
+	"reroll", "reshuffle_cost"]
 const _TAPE_KEYS := ["enabled", "to_file", "dir", "max_events", "mute"]   # upload 是可选节, 另查
 
 
@@ -292,12 +292,6 @@ static func validate_economy(d: Dictionary) -> String:
 	var e := _keys_ok(d, _ECO_KEYS)
 	if e != "":
 		return e
-	# 升级曲线(2026-08-21 评审 D):costs 短了 ⇒ upgrade_cost() 返回 −1 ⇒ 商店永远弹「钱不够」, 不报错
-	var up: Dictionary = d.get("joker_upgrade", {})
-	var lv := int(up.get("max_level", 1))
-	var costs: Array = up.get("costs", [])
-	if lv < 1 or costs.size() != lv - 1:
-		return "joker_upgrade.costs 长度 %d ≠ max_level−1 = %d(升级会在半路静默卡死)" % [costs.size(), lv - 1]
 	# 稀有度的价格表与权重表键集必须相等 —— 拼错的稀有度两边各吞一个默认值
 	var prices: Dictionary = d.get("joker_prices", {})
 	var weights: Dictionary = d.get("draft_rarity_weights", {})
@@ -581,7 +575,6 @@ const _DIRECTOR_FORBIDDEN := {
 	"joker_prices": "定价先过 docs/design/numbers.md 的三轴框架与六步 SOP, 不许从 Director 绕",
 	"price_delta": "同上;货架价格增减是卡面效果(赞助), 不是 Director 的口",
 	"reroll": "同上",
-	"joker_upgrade": "同上 —— 升级曲线锚在「一局白剩多少钱」, 见 economy.json 的注释",
 	"discard_cost": "同上",
 	"starting_coins": "同上",
 	"section_clear_reward": "同上",
@@ -934,6 +927,11 @@ static func validate_jokers(d: Dictionary) -> String:
 				return "unknown acquire key '%s' (%s)" % [ak, e["id"]]
 			if String(ak) == "deck_rule" and not _DECK_RULES.has(String(e["acquire"][ak])):
 				return "unknown deck_rule '%s' (%s)" % [e["acquire"][ak], e["id"]]
+			# wilds 值 = 张数(2026-08-26):2 = 大小王开关(百搭), 3..6 = 按来源注入
+			# (超级百搭 4)。SUITS 按下标取, 注入 suit 只用 2/3, 张数没有硬上限,
+			# 但 >6 基本是手滑 —— 当场红比静默塞爆牌堆好。
+			if String(ak) == "wilds" and (int(e["acquire"][ak]) < 2 or int(e["acquire"][ak]) > 6):
+				return "acquire wilds 必须在 2..6(%s 给了 %s)" % [e["id"], e["acquire"][ak]]
 		for sk in e.get("shelf", {}):
 			if not _SHELF_KEYS.has(String(sk)):
 				return "unknown shelf key '%s' (%s)" % [sk, e["id"]]

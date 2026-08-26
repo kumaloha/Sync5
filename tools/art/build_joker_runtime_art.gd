@@ -27,8 +27,8 @@ static func key_black_to_alpha(img: Image) -> void:
 const BBOX_PADDING := 24
 # 2026-08-16 双色调拆分后 manifest = 69(67 是过期常量, 2026-08-24 重设计接入时撞出)
 # 2026-08-25 对抗批·波2 +5(快进/打碟/金嗓/静场/和声)+ 波3 +5(合奏/孤注/彩头/
-# 灌铅骰/回收)+ 波4 +3(客串/斗牛士/盲奏), 素材取自 expansion_20260825 素材库 = 82
-const EXPECTED_CARD_COUNT := 82
+# 灌铅骰/回收)+ 波4 +3(客串/斗牛士/盲奏)+ 超级百搭(2026-08-26, echo_wild)= 83
+const EXPECTED_CARD_COUNT := 83
 
 var _errors: Array[String] = []
 
