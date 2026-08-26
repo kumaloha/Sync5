@@ -824,7 +824,10 @@ func _advance() -> void:
 				SaveState.settle_run_meta(false, run.section_idx, _faces_encountered(),
 					String(run.boon()), _final_target_id())
 				music.play_jingle(false)
-				run_end.show_fail(run.section_score, run.target())
+				# 死因行:分数达标却因预支违约死掉, 只念分数会让玩家困惑(文案在
+				# ui.json 的 banner 节, DB.ui() 已过语言层, %d = 还不上的还款额)
+				run_end.show_fail(run.section_score, run.target(),
+					String(DB.ui().get("banner", {}).get("fail_loan", "%d◆")) % int(loan_out.repay))
 				return
 			phrase.coins -= int(loan_out.repay)
 			run.coins = phrase.coins

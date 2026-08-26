@@ -1012,6 +1012,14 @@ class BlindCard:
 		draw_string(zh, Vector2(7.0 * s, head_h * 0.72), head_name,
 			HORIZONTAL_ALIGNMENT_LEFT, w - 14.0 * s, int(10.0 * s),
 			Color(HOT_INK.r, HOT_INK.g, HOT_INK.b, dim))
+		# 档记号(2026-08-26 档位扩池, blinds.md §2.6「同机制同图标 + 档记号」):
+		# 带 `base` 的档位脸在脸名右上角上标一枚 ◈ —— 表意「同族档位」, 不区分松紧,
+		# 与 _fingerprint 的图标回落是同一条原则的两半(图标说机制, 记号说档位)。
+		if face != null and SectionMod.base_of(String(face.id)) != "":
+			var nw: float = minf(zh.get_string_size(head_name,
+				HORIZONTAL_ALIGNMENT_LEFT, -1, int(10.0 * s)).x, w - 14.0 * s)
+			draw_string(zh, Vector2(7.0 * s + nw + 2.0 * s, head_h * 0.52), "◈",
+				HORIZONTAL_ALIGNMENT_LEFT, -1, int(8.0 * s), Color(acc.r, acc.g, acc.b, dim))
 		var slot_txt := "NEXT" if preview else \
 			("6s" if face != null and face.id == "rush" else "%02d" % (section_idx + 1))
 		var stw := med.get_string_size(slot_txt, HORIZONTAL_ALIGNMENT_LEFT, -1, int(8.0 * s)).x

@@ -25,6 +25,7 @@ var _t := 0.0
 var _score := 0
 var _target := 1
 var _wage := 0
+var _why := ""            # fail: one-line death cause under the score ("" = plain score miss)
 var _finale := false
 var _gig := 1             # which gig just cleared (1-based, shown on success)
 var _confetti: Array = []
@@ -90,6 +91,7 @@ func show_success(score: int, target: int, wage: int, finale: bool, gig_no: int 
 	_mode = "success"
 	_score = score
 	_target = maxi(1, target)
+	_why = ""
 	_wage = wage
 	_finale = finale
 	_gig = gig_no
@@ -99,10 +101,13 @@ func show_success(score: int, target: int, wage: int, finale: bool, gig_no: int 
 	_open()
 
 
-func show_fail(score: int, target: int) -> void:
+## `why` = 已本地化的死因文案(编排器从 data/ui.json 的 banner 节取, 例:预支违约)。
+## "" = 普通的分数不达标, 面板与设计稿 fail.html 逐像素一致;非空时只多一行小字。
+func show_fail(score: int, target: int, why: String = "") -> void:
 	_mode = "fail"
 	_score = score
 	_target = maxi(1, target)
+	_why = why
 	_finale = false
 	_open()
 
@@ -397,7 +402,8 @@ func _panel(ok: bool) -> void:
 		return
 	var acc := StageTheme.CYAN if ok else Color("ff4f7d")
 	var pw := 460.0
-	var ph := 150.0 if ok else 138.0
+	# fail + 死因:面板向下多让 28px 放一行小字, 顶缘不动(设计稿的 490 锚点)
+	var ph := 150.0 if ok else (166.0 if _why != "" else 138.0)
 	var c := Vector2(360.0, 490.0 + ph * 0.5)
 	draw_set_transform(c, 0.0, Vector2(sc, sc))
 	var r := Rect2(-pw * 0.5, -ph * 0.5, pw, ph)
@@ -448,6 +454,10 @@ func _panel(ok: bool) -> void:
 		draw_string(zh, Vector2(x0, r.position.y + 128.0), msg_a, HORIZONTAL_ALIGNMENT_LEFT, -1, 19, Color("c96a85"))
 		draw_string(num, Vector2(x0 + wa, r.position.y + 128.0), msg_n, HORIZONTAL_ALIGNMENT_LEFT, -1, 26, Color("ffd9a0"))
 		draw_string(zh, Vector2(x0 + wa + wn, r.position.y + 128.0), msg_b, HORIZONTAL_ALIGNMENT_LEFT, -1, 19, Color("c96a85"))
+		if _why != "":
+			# 死因行(如预支违约):小一号、比脚注亮一档 —— 分数达标却失败时它是唯一的解释
+			draw_string(zh, Vector2(r.position.x, r.position.y + 154.0), _why,
+				HORIZONTAL_ALIGNMENT_CENTER, pw, 16, Color("ff9ecb"))
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
