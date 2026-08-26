@@ -270,12 +270,17 @@ static func note_run_started() -> void:
 	_flush()
 
 
-## ---- 首页顶栏(2026-08-24 用户:「顶部保持样式 · 体力可以存在 · 金币/宝石去掉」)----
+## ---- 首页顶栏 · 体力(2026-08-24「体力可以存在」→ 2026-08-26 用户拍板「体力是开局扣一点」)----
 ##
-## ⚑⚑ **体力目前只显示、不拦人**:它 = `energy_max − 今日已开局数`(每天回满),
-## 是从真实局数**推导**的余额, 不是独立资源 —— 没有假进度(08-22「首页数字全真」拍板)。
-## 要不要用它拦开局、拦了怎么回(等时间/看广告/买), 全归用户拍;在那之前局内玩法不受它影响。
-## ⚠ 探针恒满且不落盘(截图稳定, 实验条件不依赖机器本地状态 —— 本文件的一贯闸)。
+## ⚑⚑ **体力已从「只显示」转正为真闸门**:正式开局前扣 1 点, 不足 = 不开局。
+## 余额存独立键 `energy`/`energy_day` —— 不再从 `runs_today` 推导, 因为口径分岔了:
+## 教学关开局**不扣**、将来看广告**不开局也回**, 推导式背不动这两种(runs_today 仍是事实照记)。
+## 恢复 = 既有设计那一条:**跨天回满**(`energy_day` 不是今天 ⇒ 读满值);
+## profile.json 没有更细的恢复参数, 定时回复/看广告归后续批(SDK 选型归用户, 本批只留桩)。
+## ⚠ **旧存档没有这两个键 = 满值**(别让老玩家更新完开局即卡)—— 缺键正好走「跨天」那条分支。
+## ⚠ 探针恒满、恒放行、绝不落盘(截图稳定, 实验条件不依赖机器本地状态 —— 本文件的一贯闸)。
+## ⚠ 算术拆成纯函数层(`_energy_in` / `_spend_in`, 探针闸外)—— 测试自己就是 `--script`
+## 起的探针, 不拆的话四条体力契约在单测里只能打到「恒满恒放行」的探针分支, 全是空转。
 
 static func energy_max() -> int:
 	return int(DB.profile().get("energy_max", 5))
@@ -284,10 +289,55 @@ static func energy_max() -> int:
 static func energy() -> int:
 	if _is_probe():
 		return energy_max()
-	var d := _data()
-	if String(d.get("runs_day", "")) != _day_key():
-		return energy_max()
-	return maxi(0, energy_max() - int(d.get("runs_today", 0)))
+	return _energy_in(_data(), _day_key(), energy_max())
+
+
+## 扣体力。扣得起 = 扣掉并落盘, true;不足 = **一点不扣**, false。
+static func spend_energy(n: int = 1) -> bool:
+	if _is_probe():
+		return true
+	if not _spend_in(_data(), n, _day_key(), energy_max()):
+		return false
+	_flush()
+	return true
+
+
+## 开局闸(消费端 = view/phrase.gd::_begin_run **唯一**入口 —— 开局/重开同一份三步):
+## 口径 = 只有「新 run 的正式开局」扣 1 点;**教学关不扣**(「起」= 无惩罚地理解机制,
+## 0 体力也必须进得了教学关);重开 = 新 run, 照扣。转正/断点恢复是同一局的延续, 不经开局, 不扣。
+## ⚠ 教学分支在 `_spend_for_run_in` 里, 别在这层再写一份(手抄第二份的老坑)。
+## 教学放行时 `_flush` 白写一次未变的缓存 —— 代价可忽略(开局路径紧接着 note_run_started 也要写)。
+static func spend_energy_for_run(tutorial: bool) -> bool:
+	if _is_probe():
+		return true
+	if not _spend_for_run_in(_data(), tutorial, _day_key(), energy_max()):
+		return false
+	_flush()
+	return true
+
+
+## 开局闸的算术(纯函数, 教学口径的唯一一份):教学 = 免扣直接放行;正式局 = 扣 1。
+static func _spend_for_run_in(d: Dictionary, tutorial: bool, day: String, cap: int) -> bool:
+	if tutorial:
+		return true
+	return _spend_in(d, 1, day, cap)
+
+
+## 体力读数的算术(纯函数, 探针闸外, 测试直打):缺键/跨天 = 满值;同日 = 存量, 上限封顶。
+static func _energy_in(d: Dictionary, day: String, cap: int) -> int:
+	if String(d.get("energy_day", "")) != day:
+		return cap
+	return clampi(int(d.get("energy", cap)), 0, cap)
+
+
+## 扣减的算术(纯函数):不足 = false 且**不动 d**;够 = 就地扣 + 盖日期章, 落盘归带闸的外层。
+static func _spend_in(d: Dictionary, n: int, day: String, cap: int) -> bool:
+	var cur := _energy_in(d, day, cap)
+	if cur < n:
+		return false
+	d["energy_day"] = day
+	d["energy"] = cur - n
+	return true
 
 
 ## 参与度等级(EXP = 累计通关段数, 不挂分数)。返回 {level, xp, xp_max}。

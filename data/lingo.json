@@ -298,6 +298,8 @@
   "本段要打出 4 种牌型,缺种加税": "Four hand types or pay",
   "前三拍得分 ×0.7,后三拍 ×1.3": "Early ×0.7, late ×1.3",
   "每段初借 10◆, 段末还 12◆;还不上 = 演出失败": "Borrow 10 each section, repay 12 at its end; default = show over",
-  "预支": "Advance"
+  "预支": "Advance",
+  "体力不足,明天回满": "Out of energy — refills tomorrow",
+  "看广告补体力 · 敬请期待": "Watch an ad to refuel — coming soon"
  }
 }

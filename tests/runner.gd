@@ -20,6 +20,8 @@ const DOMAINS := [
 	# ⚠ 新域一律**追加在末尾** —— 上面那条「顺序即契约」说的是小丑牌的成长计数器跨用例
 	# 累积, 插在中间会静默改分。t_tutorial 自己不碰任何共享状态, 追加是安全的。
 	"t_tutorial", "t_director", "t_lingo", "t_uplink",
+	# t_save:体力真闸门(2026-08-26)。纯函数层, 不碰共享状态, 追加安全。
+	"t_save",
 ]
 
 var _pass := 0

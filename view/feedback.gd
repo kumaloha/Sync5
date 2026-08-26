@@ -44,10 +44,12 @@ func pop(node: Control) -> void:
 
 ## `at` 是**全局**坐标(调用方都是从 get_global_position() 算出来的), 所以字
 ## 必须挂在宿主上 —— 挂到本节点(Node 没有坐标)会丢掉参照系。
-func float_text(text: String, at: Vector2, color: Color) -> void:
+## `z` 缺省 60 = 局内层序(组件用到 z 20 一带);要盖在首页(HomeScreen z=80)上的
+## 浮字传高值(体力闸的回绝浮字 = 90, 截图对账抓过一次「字画在首页底下」)。
+func float_text(text: String, at: Vector2, color: Color, z: int = 60) -> void:
 	var l := StageTheme.label(text, StageTheme.num("Bold"), 26, color)
 	l.position = at
-	l.z_index = 60
+	l.z_index = z
 	_host.add_child(l)
 	var tw := _host.create_tween().set_parallel(true)
 	tw.tween_property(l, "position:y", at.y - 46.0, 0.8)
