@@ -355,6 +355,10 @@
      0.15
     ],
     "_comment": "方向锚:百搭(0.1)的注入加倍版, 数值批 SOP 未走(TODO 路线⑥)"
+   },
+   "advance": {
+    "base": 0.15,
+    "_comment": "tempo 方向锚(2026-08-26), ⑥ 精扫"
    }
   },
   "timing": {
@@ -392,7 +396,9 @@
   "discard_bias": {
    "_comment": "玩家为自己的卡凑弃牌张数(tools/bot.gd::_play_adaptive)。值 = 想凑到几张;必须与 jokers.json 该卡的 discards_gte 一致(2026-08-26 抓到手抄漂移:卡改弃6后这里还是3)。受 beat_discards 上限约束;超预算时偏置整个不生效。⚠ 只在 plan 本来就要弃牌时生效 —— 手牌已经很好时硬凑会砸掉现成牌型。",
    "wrecker": 6
-  }
+  },
+  "discard_kappa": 30.0,
+  "_comment_discard_kappa": "弃牌影子价(分/◆, 经济 v2):bot 弃 n 张要求 plan 增益 ≥ n×κ×discard_cost。初值 30 = coin_score_ratio(0.1)×典型拍分 300 的方向锚;decay.gd 纪律精扫后替换, 改动会动所有 bot 尺读数(新基线)。"
  },
  "chase": {
   "gain": 2.2,

@@ -195,7 +195,7 @@ func _test_run_machine(t) -> void:
 		previous_goal = goal
 	# With a live phrase supplied, the roll is filtered to goals the current
 	# visible state can actually reach without gambling on a hidden draw.
-	var valid_phrase := Phrase.new(Deck.new(1713), [], 0)
+	var valid_phrase := Phrase.new(Deck.new(1713), [], 50)
 	valid_phrase.mod = "request"
 	valid_phrase.start()
 	valid_phrase.hand = [t._c(2, 0), t._c(3, 0), t._c(4, 0), t._c(5, 0), t._c(6, 0)]

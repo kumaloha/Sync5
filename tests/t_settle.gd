@@ -8,7 +8,7 @@ func run(t) -> void:
 	# no jokers: passthrough
 	var plain := Settle.run(flush_res, [null, null, null, null], {})
 	t.eq(plain["score"], base, "no jokers -> base score")
-	t.eq(plain["coins"], 4, "no jokers -> pattern coins")
+	t.eq(plain["coins"], 5, "no jokers -> pattern coins(经济 v2:FLUSH 5)")
 
 	# mono target: flush x4
 	var mono := Joker.by_id("mono")

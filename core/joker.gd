@@ -182,6 +182,18 @@ static func slots_price_delta(slots: Array) -> int:
 	return d
 
 
+## 预支 advance(2026-08-26, 金融组):持仓的循环贷合计 —— 段初借 borrow, 段末还 repay,
+## 付不起 = run 失败。多张自然叠加(借 20 还 24)。两界(runloop / 编排器)共用这一口。
+static func slots_loan(slots: Array) -> Dictionary:
+	var borrow := 0
+	var repay := 0
+	for j in slots:
+		if j != null and j._hold.has("loan"):
+			borrow += int(j._hold["loan"].get("borrow", 0))
+			repay += int(j._hold["loan"].get("repay", 0))
+	return {"borrow": borrow, "repay": repay}
+
+
 ## 持有点唱机 jukebox 时, 货架必定有一张规则牌(概率线的定向搜索,
 ## 独狼 target_guaranteed 的同款机制)。
 static func slots_rule_guaranteed(slots: Array) -> bool:

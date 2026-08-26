@@ -159,6 +159,10 @@ func _card_ev(id: String, st: Dictionary, slots: Array, phrases_left: int) -> fl
 			var bm: float = score_mean / maxf(1.0, mult_mean)
 			return (float(ot[1]) * float(ot[2]) * bm) if tid == String(ot[0]) \
 				else float(p["off_target"]) * score_mean
+		"advance":
+			# tempo 卡:借款的价值 = 前期加速买卡, 已由 draft 环路自然消化;
+			# base 是「持有它值多少」的方向锚(利息 −2/段 vs 提前成型), ⑥ 精扫。
+			return float(p["base"]) * score_mean
 		"wildcard", "superwild":
 			# 超级百搭(2026-08-26)与百搭同键形:base + 对位 Target 加成;
 			# 差异(4 张注入 + 洗牌钓卡)已折进 ev.cards 的 base 先验(0.2 vs 0.1)。
@@ -499,7 +503,10 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 			else:
 				ev = _card_ev(j.id, st, slots, phrases_left)
 			if empty_slot >= 0:
-				if price > coins:
+				# 预支风控(2026-08-26 金融组):持贷时买入预算扣掉段末还款储备 ——
+				# runloop 段末自动扣款, bot 把还款钱花掉 = 自己判自己死。
+				var reserve := int(Joker.slots_loan(slots).repay)
+				if price > coins - reserve:
 					continue
 				var gain := ev * horizon - lam * float(price)
 				if gain > best_gain:
@@ -844,6 +851,15 @@ func _play_adaptive(p: Phrase, slots: Array, target_id: String, section: int, mo
 	for i in range(p.hand.size()):
 		if not keep.has(i) and idx.size() < d_max:
 			idx.append(i)
+	# ⚑ 经济 v2 · 弃牌影子价 κ(2026-08-26, 弃牌 1◆/张):免费时代 plan 更优就弃,
+	# 收费后「弃一张要值一张的钱」—— plan 相对 keep_all 的期望增益打不过
+	# κ × 张数就少弃(从计划外的尾巴先砍)。κ 挂 DISCARD_COST 乘法:免费世界自动归零,
+	# 旧读数逐位不变。初值是方向锚(sim.json ev.discard_kappa, 分/◆), decay.gd 精扫归 ⑥。
+	var kappa: float = float(EV.get("discard_kappa", 0.0)) * float(GameConfig.DISCARD_COST)
+	if kappa > 0.0:
+		var plan_gain: float = float(plan.get("ev", 0.0)) - float(plan.get("ev0", 0.0))
+		while idx.size() > 0 and plan_gain < kappa * float(idx.size()):
+			idx.pop_back()
 	# ⚑ **玩家为自己的卡调整弃牌张数**(2026-08-13 还的仪器债;同 `_timing_flags` 的思路)。
 	# 拆迁(弃满 3 张 → 成牌 ×3.5)与断舍离(一次弃 4 张 → +50%)的收益都远大于
 	# 「多弃一张让手牌变差」的损失, 所以装了它们的玩家会**凑够张数**。
@@ -928,8 +944,8 @@ func _best_plan(hand: Array, target_id: String, d: int, rules: Dictionary = {}) 
 	var cur := Pattern.evaluate_best(hand)
 	var cur_kind := int(cur.get("kind", 0))
 	var cur_score := float(cur.get("score", 0))
-	plans.append({"ev": cur_score * _target_mult(target_id, cur_kind),
-		"keep": [], "keep_all": true})
+	var ev_keep_all: float = cur_score * _target_mult(target_id, cur_kind)
+	plans.append({"ev": ev_keep_all, "keep": [], "keep_all": true})
 
 	# flush chase: majority suit (or color, under Two-Tone), any rank works
 	# ⚠ 双色调拆两张之后, 「按颜色追」只在**装了那一色**时成立 —— 沿用旧的单开关
@@ -1042,6 +1058,9 @@ func _best_plan(hand: Array, target_id: String, d: int, rules: Dictionary = {}) 
 	for pl in plans:
 		if float(pl["ev"]) > float(best["ev"]):
 			best = pl
+	# 经济 v2:带上 keep_all 基准(可能被上面的 top>=13 抬过), 弃牌 κ 门槛要拿它算增益。
+	best = best.duplicate()
+	best["ev0"] = float(plans[0]["ev"])
 	return best
 
 

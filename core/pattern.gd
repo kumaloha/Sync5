@@ -127,18 +127,17 @@ const BASE_MULT := {
 	Kind.ROYAL_FLUSH: 8,
 }
 
-const BASE_COINS := {
-	Kind.HIGH_CARD: 0,
-	Kind.PAIR: 1,
-	Kind.TWO_PAIR: 2,
-	Kind.THREE_KIND: 3,
-	Kind.STRAIGHT: 4,
-	Kind.FLUSH: 4,
-	Kind.FULL_HOUSE: 6,
-	Kind.FOUR_KIND: 8,
-	Kind.STRAIGHT_FLUSH: 12,
-	Kind.ROYAL_FLUSH: 15,
-}
+## ⚑ 经济 v2(2026-08-26 用户拍板 A 案):牌型金币表搬进 data/economy.json `kind_coins`
+## (「数值与内容全部在 data」;chips/mult 两表仍是 const —— 另案, 别顺手动)。
+## 表意 = 每拍按成牌发钱的**主收入通道**, 尺 = 组合难度 −log₂P(≥k)(levels.md 经济 v2)。
+static var BASE_COINS: Dictionary = _load_kind_coins()
+
+static func _load_kind_coins() -> Dictionary:
+	var out := {}
+	var raw: Dictionary = DB.economy().get("kind_coins", {})
+	for n in raw:
+		out[int(Kind[String(n)])] = int(raw[n])
+	return out
 
 ## Evaluate the best five-card combination out of the given cards.
 ## 大王/小王 are WILD: each stands in for whatever card scores highest.

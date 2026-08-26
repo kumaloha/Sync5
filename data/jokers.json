@@ -354,6 +354,23 @@
    ]
   },
   {
+   "id": "advance",
+   "name": "Advance",
+   "cn": "预支",
+   "kind": "support",
+   "rarity": "uncommon",
+   "proof": "shop",
+   "fx": "Borrow ten, repay twelve or die",
+   "hold": {
+    "loan": {
+     "borrow": 10,
+     "repay": 12
+    }
+   },
+   "_comment": "金融组首张真借贷(2026-08-26 用户创意):买入即签循环贷 —— 每段初自动 +10◆(过 grant 收口, 与穷开心 cap 自然互动), 段末工资入账后自动 −12◆, 付不起 = run 失败(含 S4 通关那一刻)。段中卖卡 = 提前解约。逐段手动借款版(商店按钮)记 TODO。 ⚑ proof=coin(2026-08-26 kit 尸检):它是组合 tempo 卡 —— kit 的 score/solver 单卡隔离臂没有商店, 借款花不出去 = 纯利息+违约险, 量出 −1109 是真实属性不是接线坏(镜面 PREREQ 同族盲区)。proof=shop + SHOP_WITNESS 'spend':硬证物 = 商店花费上升(借款转化为购买力, 实测 +20.6◆/+77.6%);分差/金币只作参考 —— 累计金币对花钱换 tempo 的卡天然为负。整体强弱由 sim 大盘与真人量。",
+   "curve": "fixed"
+  },
+  {
    "id": "momentum",
    "name": "Momentum",
    "cn": "惯性",

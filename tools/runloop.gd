@@ -124,6 +124,10 @@ static func play(o: Opts, bot: Bot) -> Dictionary:
 		var mod := String(o.faces.get(section, ""))
 		run.section_idx = section
 		run.reset_section_state()          # 与游戏 next_section 同一份清单(段内状态不许跨段继承)
+		# 预支借款(2026-08-26 金融组):段初自动 +borrow, 走 grant 收口(吃穷开心 cap)。
+		var loan_in := Joker.slots_loan(run.joker_slots)
+		if int(loan_in.borrow) > 0:
+			coins = Economy.grant(coins, int(loan_in.borrow), run.joker_slots)
 		for pidx in range(GameConfig.PHRASES_PER_SECTION):
 			run.phrase_in_section = pidx
 			run.coins = coins
@@ -164,6 +168,13 @@ static func play(o: Opts, bot: Bot) -> Dictionary:
 				died_at = section
 				break
 		coins = Economy.grant(coins, GameConfig.SECTION_CLEAR_REWARD, run.joker_slots)
+		# 预支还款:工资入账后判, 付不起 = run 死(含 S4 —— 通关那刻也得先还钱)。
+		var loan_out := Joker.slots_loan(run.joker_slots)
+		if int(loan_out.repay) > 0:
+			if coins < int(loan_out.repay):
+				died_at = section
+				break
+			coins -= int(loan_out.repay)
 		# ⚠⚠ **末段没有段末商店** —— 游戏里 `view/phrase.gd` 在 `finale` 那一支直接
 		# 走结算成功屏并 return, 根本不开商店。这里原本无条件开, 于是**模型比游戏多一次
 		# 商店**(8 vs 7)。2026-08-09 用 Tape 的 `shop` 事件实测:**37/37 完整局都是

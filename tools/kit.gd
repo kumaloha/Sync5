@@ -197,7 +197,8 @@ const SHOP_WITNESS := {
 	"digger": "counter",
 	"collector": "counter",
 	"rebrand": "counter",
-	"deejay": "counter",   # 2026-08-25 波2:每刷新倍率永久涨 —— 与淘碟同证物(计数动了=规则活着)
+	"deejay": "counter",
+	"advance": "spend",   # 2026-08-25 波2:每刷新倍率永久涨 —— 与淘碟同证物(计数动了=规则活着)
 }
 
 var _rng := RandomNumberGenerator.new()
@@ -490,6 +491,14 @@ func _run_shop(cfg: Dictionary, ids: Array, n: int) -> void:
 				_judge("%s: 计数器终值" % jid, _rec_series(jbase, "counter"),
 					_rec_series(arm, "counter"), Stat.mean(_rec_series(jbase, "counter")),
 					"成长证物=商店事件计数(基准恒0)", true, true)
+				_judge("%s: 总分(参考)" % jid, jbase["score"], arm["score"],
+					Stat.mean(jbase["score"]), "", false)
+			"spend":
+				# 花钱换 tempo 的卡(预支, 2026-08-26):证物 = **商店花费上升** ——
+				# 「借款真的被花掉」正是这张卡要证明的机制;累计金币对它天然是负
+				# (借还净流出 + 钱换成卡), 拿「金币要上升」判它是语义错配。
+				_judge("%s: 商店花费" % jid, jbase["spend"], arm["spend"],
+					Stat.mean(jbase["spend"]), "花费证物=借款转化为购买力", true, true)
 				_judge("%s: 总分(参考)" % jid, jbase["score"], arm["score"],
 					Stat.mean(jbase["score"]), "", false)
 			_:

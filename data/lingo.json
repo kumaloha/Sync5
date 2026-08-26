@@ -296,6 +296,8 @@
   "新进缓存的牌锁定两拍": "Cache locks for two phrases",
   "最后 4 秒不能弃牌": "No discards in last 4s",
   "本段要打出 4 种牌型,缺种加税": "Four hand types or pay",
-  "前三拍得分 ×0.7,后三拍 ×1.3": "Early ×0.7, late ×1.3"
+  "前三拍得分 ×0.7,后三拍 ×1.3": "Early ×0.7, late ×1.3",
+  "每段初借 10◆, 段末还 12◆;还不上 = 演出失败": "Borrow 10 each section, repay 12 at its end; default = show over",
+  "预支": "Advance"
  }
 }

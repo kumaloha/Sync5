@@ -8,14 +8,14 @@ func run(t) -> void:
 	p.start()
 	t.eq(p.hand.size(), 5, "phrase deals 5 cards")
 	t.eq(cache.size(), GameConfig.CACHE_CAP, "cache is dealt FULL at start")
-	t.eq(p.coins, 6, "starts with 6 coins")
+	t.eq(p.coins, 10, "starts with 10 coins(经济 v2)")
 
 	# discard 2 from hand: pay 2, refill in place immediately
 	var kept0: Card = p.hand[0]
 	var old1: Card = p.hand[1]
 	var old3: Card = p.hand[3]
 	t.check(p.discard_selected([1, 3]), "discard two hand cards")
-	t.eq(p.coins, 6 - GameConfig.DISCARD_COST * 2, "discarding charges the configured price (now free)")
+	t.eq(p.coins, 10 - GameConfig.DISCARD_COST * 2, "discarding charges 1◆/张(经济 v2 推翻弃牌免费)")
 	t.eq(p.hand.size(), 5, "hand refilled to exactly 5")
 	t.check(p.hand[0] == kept0, "untouched card stays in place")
 	t.check(p.hand[1] != old1 and p.hand[3] != old3, "discarded slots hold new cards")
@@ -72,7 +72,7 @@ func run(t) -> void:
 	var ed := Deck.new(99)
 	ed.shuffle()
 	var ecache: Array = []
-	var e1 := Phrase.new(ed, ecache, 0)
+	var e1 := Phrase.new(ed, ecache, 50)
 	e1.mod = "lostpage"
 	e1.start()
 	t.eq(ecache.size(), GameConfig.CACHE_CAP, "lostpage still deals a full cache")
@@ -84,18 +84,18 @@ func run(t) -> void:
 		if before.has(c):
 			kept += 1
 	t.eq(kept, GameConfig.CACHE_CAP - 1, "lostpage evicts exactly one, keeps the rest")
-	var e2 := Phrase.new(ed, ecache, 0)
+	var e2 := Phrase.new(ed, ecache, 50)
 	e2.mod = "lostpage"
 	e2.start()
 	t.eq(ecache.size(), GameConfig.CACHE_CAP, "the next phrase tops the cache back up")
 
-	var w1 := Phrase.new(ed, ecache, 0)
+	var w1 := Phrase.new(ed, ecache, 50)
 	w1.mod = "freshsheet"
 	w1.start()
 	var wbefore: Array = ecache.duplicate()
 	w1.cleanup()
 	t.eq(ecache.size(), 0, "freshsheet wipes the whole cache")
-	var w2 := Phrase.new(ed, ecache, 0)
+	var w2 := Phrase.new(ed, ecache, 50)
 	w2.mod = "freshsheet"
 	w2.start()
 	t.eq(ecache.size(), GameConfig.CACHE_CAP, "and the next phrase deals a fresh one")
@@ -109,17 +109,17 @@ func run(t) -> void:
 	# top-up, so entering the section holding a full cache still drops to 2 —
 	# that is the case a naive `while size < cap` would silently miss.
 	var scache: Array = []
-	var s0 := Phrase.new(ed, scache, 0)
+	var s0 := Phrase.new(ed, scache, 50)
 	s0.start()
 	t.eq(scache.size(), GameConfig.CACHE_CAP, "a normal phrase carries a full cache in")
-	var s1 := Phrase.new(ed, scache, 0)
+	var s1 := Phrase.new(ed, scache, 50)
 	s1.mod = "smallstage"
 	s1.start()
 	t.eq(scache.size(), GameConfig.CACHE_CAP - 1, "smallstage trims a carried-over cache")
 	t.eq(s1.hand.size() + scache.size(), GameConfig.HAND_SIZE + GameConfig.CACHE_CAP - 1,
 		"so the solver sees 7 visible cards, not 8")
 	# and it releases when the face is gone
-	var s2 := Phrase.new(ed, scache, 0)
+	var s2 := Phrase.new(ed, scache, 50)
 	s2.start()
 	t.eq(scache.size(), GameConfig.CACHE_CAP, "the cache refills once the face is over")
 
@@ -127,7 +127,7 @@ func run(t) -> void:
 	var hd := Deck.new(2027)
 	hd.shuffle()
 	var hcache: Array = []
-	var f1 := Phrase.new(hd, hcache, 0)
+	var f1 := Phrase.new(hd, hcache, 50)
 	f1.mod = "facedown"
 	f1.start()
 	var want_hidden := 0
@@ -147,7 +147,7 @@ func run(t) -> void:
 	t.eq(f1.hidden.size(), 0, "settling turns everything face up (用户 2026-08-07 拍板)")
 
 	# hidden_indices 必须跟着牌走, 不跟着下标走 —— 理牌会重排, 弃牌会原位换人
-	var f2 := Phrase.new(hd, hcache, 0)
+	var f2 := Phrase.new(hd, hcache, 50)
 	f2.mod = "facedown"
 	f2.start()
 	if not f2.hidden.is_empty():
@@ -180,32 +180,32 @@ func run(t) -> void:
 	t.check(b1.hidden.has(b1.hand[0]), "and it is the card that just arrived")
 	t.check(not b1.hidden.has(old0), "the discarded card left the hidden set")
 
-	# 身无分文时:弃牌**不再**被挡(2026-08-06 弃牌免费), 交换一直免费。
-	# 这条正是这次改动要买到的东西 —— 打崩了也还能重抽, 赌得起。
+	# 经济 v2(2026-08-26 推翻 08-06 弃牌免费):身无分文时弃牌**重新被挡**,
+	# 交换仍然免费 —— 出牌永远免费所以无硬死锁, 软破产由收支曲线管(levels.md 经济 v2)。
 	var d2 := Deck.new(1)
 	var cache2: Array = []
 	var p2 := Phrase.new(d2, cache2, 0)
 	p2.start()
 	t.eq(cache2.size(), GameConfig.CACHE_CAP, "fresh run deals cache full")
-	t.check(p2.can_discard(1), "broke players can still discard — the clock is the only gate")
+	t.check(not p2.can_discard(1), "broke players cannot discard(1◆/张, 经济 v2)")
 	t.check(p2.swap_with_cache(0, 0), "swap still free at zero coins")
 	t.check(not p2.can_discard(0), "an empty selection is still rejected")
 
 	# --- 第一轮:一口气按张数限(2026-08-25 重铸:「弃牌不在次数, 在张数」) ---
-	var one_take := Phrase.new(Deck.new(301), [], 0)
+	var one_take := Phrase.new(Deck.new(301), [], 50)
 	one_take.mod = "onetake"
 	one_take.start()
 	t.check(one_take.discard_selected([0, 1]), "onetake permits two cards in one batch")
 	t.check(not one_take.discard_selected([2]), "onetake rejects the third card")
 
-	var one_swap := Phrase.new(Deck.new(302), [], 0)
+	var one_swap := Phrase.new(Deck.new(302), [], 50)
 	one_swap.mod = "oneswap"
 	one_swap.start()
 	t.check(one_swap.swap_with_cache(0, 0), "oneswap permits the first swap")
 	t.check(not one_swap.swap_with_cache(1, 1), "oneswap rejects the second swap")
 
 	# --- 第二/三轮:限流按弃换合计张数限(2026-08-25 重铸), 换一次记一张 ---
-	var throttle := Phrase.new(Deck.new(303), [], 0)
+	var throttle := Phrase.new(Deck.new(303), [], 50)
 	throttle.mod = "throttle"
 	throttle.start()
 	t.check(throttle.swap_with_cache(0, 0), "throttle card one (swap)")
@@ -214,12 +214,12 @@ func run(t) -> void:
 	t.check(not throttle.discard_selected([4]), "throttle rejects the fifth card via discard")
 	t.check(not throttle.swap_with_cache(0, 2), "throttle rejects the fifth card via swap")
 
-	var discard_track := Phrase.new(Deck.new(304), [], 0)
+	var discard_track := Phrase.new(Deck.new(304), [], 50)
 	discard_track.mod = "switchtrack"
 	discard_track.start()
 	t.check(discard_track.discard_selected([0]), "switchtrack can choose discard first")
 	t.check(not discard_track.swap_with_cache(1, 0), "discard first closes the swap track")
-	var swap_track := Phrase.new(Deck.new(305), [], 0)
+	var swap_track := Phrase.new(Deck.new(305), [], 50)
 	swap_track.mod = "switchtrack"
 	swap_track.start()
 	t.check(swap_track.swap_with_cache(0, 0), "switchtrack can choose swap first")
@@ -227,7 +227,7 @@ func run(t) -> void:
 
 	# redlight blocks only a red card entering cache.
 	var red_cache: Array = [t._c(3, 0), t._c(4, 0), t._c(5, 0)]
-	var redlight := Phrase.new(Deck.new(306), red_cache, 0)
+	var redlight := Phrase.new(Deck.new(306), red_cache, 50)
 	redlight.mod = "redlight"
 	redlight.start()
 	redlight.hand = [t._c(8, 1), t._c(8, 0), t._c(9, 0), t._c(10, 0), t._c(11, 0)]
@@ -236,19 +236,19 @@ func run(t) -> void:
 
 	# wetink locks the newly cached object for the rest of this phrase, then releases.
 	var ink_cache: Array = []
-	var wet := Phrase.new(Deck.new(307), ink_cache, 0)
+	var wet := Phrase.new(Deck.new(307), ink_cache, 50)
 	wet.mod = "wetink"
 	wet.start()
 	t.check(wet.swap_with_cache(0, 0), "wetink accepts the initial swap")
 	var inked: Card = ink_cache[0]
 	t.check(not wet.swap_with_cache(1, 0), "the newly cached card cannot move again this phrase")
-	var wet_next := Phrase.new(wet.deck, ink_cache, 0)
+	var wet_next := Phrase.new(wet.deck, ink_cache, 50)
 	wet_next.mod = "wetink"
 	wet_next.start()
 	t.check(wet_next.swap_with_cache(0, ink_cache.find(inked)), "wetink releases on the next phrase")
 
 	# handseal and doubleseal pin object identities chosen at phrase start.
-	var sealed := Phrase.new(Deck.new(308), [], 0)
+	var sealed := Phrase.new(Deck.new(308), [], 50)
 	sealed.mod = "handseal"
 	sealed.start()
 	var sealed_i := sealed.hand.find(sealed.sealed_hand_card)
@@ -258,7 +258,7 @@ func run(t) -> void:
 	t.check(not sealed.discard_selected([sealed_i]), "the marked hand card cannot be discarded")
 	var free_i := 0 if sealed_i != 0 else 1
 	t.check(sealed.discard_selected([free_i]), "another hand card remains discardable")
-	var moved_seal := Phrase.new(Deck.new(1308), [], 0)
+	var moved_seal := Phrase.new(Deck.new(1308), [], 50)
 	moved_seal.mod = "handseal"
 	moved_seal.start()
 	var moved_card: Card = moved_seal.sealed_hand_card
@@ -271,7 +271,7 @@ func run(t) -> void:
 		"the cache view can keep marking a moved hand seal")
 
 	var shared_meta := {"ages": {}, "next": 0}
-	var double_seal := Phrase.new(Deck.new(309), [], 0)
+	var double_seal := Phrase.new(Deck.new(309), [], 50)
 	double_seal.cache_meta = shared_meta
 	double_seal.mod = "doubleseal"
 	double_seal.start()
@@ -283,7 +283,7 @@ func run(t) -> void:
 
 	# lowend searches the available deck for a 2..9 refill without consuming high cards.
 	var low_deck := Deck.new(310)
-	var lowend := Phrase.new(low_deck, [], 0)
+	var lowend := Phrase.new(low_deck, [], 50)
 	lowend.mod = "lowend"
 	lowend.start()
 	low_deck.draw_pile = [t._c(5, 0), t._c(13, 0)]
@@ -304,7 +304,7 @@ func run(t) -> void:
 	# lostpage chooses the victim before the decision window and removes exactly
 	# that object at cleanup; moving/discarding it consumes the mark, not a second card.
 	var page_cache: Array = []
-	var lost_page := Phrase.new(Deck.new(1311), page_cache, 0)
+	var lost_page := Phrase.new(Deck.new(1311), page_cache, 50)
 	lost_page.mod = "lostpage"
 	lost_page.start()
 	var marked_page: Card = lost_page.marked_cache_card
@@ -314,7 +314,7 @@ func run(t) -> void:
 	t.check(not page_cache.has(marked_page), "lostpage removes the preannounced cache object")
 
 	# ration is a card budget, not an action budget.
-	var ration := Phrase.new(Deck.new(311), [], 0)
+	var ration := Phrase.new(Deck.new(311), [], 50)
 	ration.mod = "ration"
 	ration.discard_budget = 2
 	ration.start()
@@ -322,14 +322,14 @@ func run(t) -> void:
 	t.check(not ration.discard_selected([2]), "ration rejects cards beyond the shared remainder")
 
 	# request goals are evaluated against the final hand and the phrase-start cache snapshot.
-	var request := Phrase.new(Deck.new(312), [], 0)
+	var request := Phrase.new(Deck.new(312), [], 50)
 	request.mod = "request"
 	request.start()
 	request.request_goal = "color_mix"
 	request.hand = [t._c(2, 1), t._c(3, 0), t._c(5, 0), t._c(7, 0), t._c(9, 0)]
 	request.lock_and_settle()
 	t.check(request.request_met, "request accepts a final hand containing red and black")
-	var invalid_request := Phrase.new(Deck.new(1312), [], 0)
+	var invalid_request := Phrase.new(Deck.new(1312), [], 50)
 	invalid_request.mod = "request"
 	invalid_request.start()
 	invalid_request.hand = [t._c(2, 0), t._c(3, 0), t._c(4, 0), t._c(5, 0), t._c(6, 0)]
@@ -338,14 +338,14 @@ func run(t) -> void:
 		"request validity rejects a color goal with no visible red route")
 	t.check(not invalid_request.request_goal_valid("face_or_ace"),
 		"request validity rejects a face goal with no visible J/Q/K/A route")
-	var miss_request := Phrase.new(Deck.new(313), [], 0)
+	var miss_request := Phrase.new(Deck.new(313), [], 50)
 	miss_request.mod = "request"
 	miss_request.start()
 	miss_request.request_goal = "face_or_ace"
 	miss_request.hand = [t._c(2, 0), t._c(3, 0), t._c(5, 0), t._c(7, 0), t._c(9, 0)]
 	miss_request.lock_and_settle()
 	t.check(not miss_request.request_met, "request records a missed public goal")
-	var cache_request := Phrase.new(Deck.new(314), [], 0)
+	var cache_request := Phrase.new(Deck.new(314), [], 50)
 	cache_request.mod = "request"
 	cache_request.start()
 	cache_request.request_goal = "initial_cache"
@@ -354,7 +354,7 @@ func run(t) -> void:
 	t.check(cache_request.request_met, "request tracks initial cache cards by object identity")
 
 	# Spotlight adds a scoring-only sixth card; the interactive hand remains five.
-	var spot := Phrase.new(Deck.new(315), [], 0)
+	var spot := Phrase.new(Deck.new(315), [], 50)
 	spot.boon = "spotlight"
 	spot.start()
 	t.eq(spot.hand.size(), GameConfig.HAND_SIZE, "Spotlight does not add an action slot")
@@ -366,7 +366,7 @@ func run(t) -> void:
 
 	# Encore clones the first discarded hand object into scoring without keeping
 	# a second live reference to a card that already returned to the deck.
-	var encore_phrase := Phrase.new(Deck.new(316), [], 0)
+	var encore_phrase := Phrase.new(Deck.new(316), [], 50)
 	encore_phrase.boon = "encore"
 	encore_phrase.start()
 	encore_phrase.hand = [t._c(10, 0), t._c(2, 0), t._c(4, 1), t._c(6, 2), t._c(8, 3)]

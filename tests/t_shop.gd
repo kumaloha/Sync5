@@ -57,9 +57,9 @@ func run(t) -> void:
 	t.check(not Joker.by_id("jukebox").is_rule_card(), "jukebox itself is not a rule card")
 	# 赞助折扣走 Economy.shelf_price:普通 4→3;免费(首张 Target)不受折扣;地板 1◆。
 	var tgt_first: Array = [null, Joker.by_id("sponsor"), null, null]
-	t.eq(Economy.shelf_price(Joker.by_id("neonsign"), with_sp), 3, "sponsor: common 4 -> 3")
-	t.eq(Economy.shelf_price(Joker.by_id("neonsign"), plain), 4, "no sponsor: base price")
+	t.eq(Economy.shelf_price(Joker.by_id("neonsign"), with_sp), 2, "sponsor: common 3 -> 2(经济 v2 平价)")
+	t.eq(Economy.shelf_price(Joker.by_id("neonsign"), plain), 3, "no sponsor: base price 3(经济 v2)")
 	t.eq(Economy.shelf_price(Joker.by_id("twin"), tgt_first), 0, "first target stays free under sponsor")
 	var tgt_owned: Array = [Joker.by_id("twin"), Joker.by_id("sponsor"), null, null]
-	t.eq(Economy.shelf_price(Joker.by_id("stair"), tgt_owned), 8, "target swap 9 -> 8 with sponsor")
-	t.eq(Economy.sell_value(Joker.by_id("neonsign")), 2, "sell-back ignores the discount (base/2)")
+	t.eq(Economy.shelf_price(Joker.by_id("stair"), tgt_owned), 2, "target swap 3 -> 2 with sponsor(经济 v2 平价)")
+	t.eq(Economy.sell_value(Joker.by_id("neonsign")), 1, "sell-back ignores the discount (3/2=1, 经济 v2)")

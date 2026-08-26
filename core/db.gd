@@ -37,7 +37,7 @@ const _RUN_KEYS := ["phrases_per_section", "phrases_per_shop", "sections_per_gig
 	"s1_face_min_run", "s1_easy_chance"]
 const _ECO_KEYS := ["starting_coins", "discard_cost", "section_clear_reward",
 	"draft_rarity_weights", "joker_prices", "joker_price_overrides",
-	"reroll", "reshuffle_cost"]
+	"reroll", "reshuffle_cost", "kind_coins"]
 const _TAPE_KEYS := ["enabled", "to_file", "dir", "max_events", "mute"]   # upload 是可选节, 另查
 
 
@@ -301,6 +301,12 @@ static func validate_economy(d: Dictionary) -> String:
 	for r in weights:
 		if not prices.has(r):
 			return "draft_rarity_weights 的稀有度 '%s' 不在 joker_prices 里" % r
+	# 经济 v2(2026-08-26):牌型金币表十键必须齐 —— 缺键 = 那个牌型结算给 0◆ 且不报错。
+	var kc: Dictionary = d.get("kind_coins", {})
+	for kn in ["HIGH_CARD", "PAIR", "TWO_PAIR", "THREE_KIND", "STRAIGHT",
+			"FLUSH", "FULL_HOUSE", "FOUR_KIND", "STRAIGHT_FLUSH", "ROYAL_FLUSH"]:
+		if not kc.has(kn):
+			return "kind_coins 缺牌型 '%s'(那个牌型会静默给 0◆)" % kn
 	return ""
 
 
@@ -818,7 +824,7 @@ const _COUNTER_KEYS := ["init", "decay_per_phrase", "floor", "on_discard",
 ## 持有期恒生效的经济/规则参数(穷开心 skint 的 coin_cap)。
 ## 与 shelf(货架影响)、acquire(一次性)三分天下, 键都要锁。
 const _HOLD_KEYS := ["coin_cap", "cache_scoring", "odds_mult",
-	"section_life", "face_coins"]
+	"section_life", "face_coins", "loan"]
 
 ## `per` 的合法值(计数来源)。⚠ 拼错 per 会让 `Fx._count` 静默返回 1.0 ——
 ## 效果从「按 N 计数」退化成「恒 ×1」,不报错。和 card_filter 同一条纪律:值也要锁。

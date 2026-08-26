@@ -15,11 +15,11 @@ func run(t) -> void:
 	# would land on the section end
 	t.check(DB.validate_run({"phrases_per_section": 6, "phrases_per_shop": 4}) != "",
 		"non-divisible shop beat rejected")
-	t.eq(int(DB.economy()["starting_coins"]), 6, "economy.json starting coins")
+	t.eq(int(DB.economy()["starting_coins"]), 10, "economy.json starting coins(经济 v2)")
 	# validation catches planted bad files
 	t.check(DB.validate_run({"phrases_per_section": 5}) != "", "missing run key detected")
 	t.check(DB.validate_economy({"starting_coins": 6, "typo_key": 1}) != "", "unknown economy key detected")
-	t.eq(Joker.pool().size(), 77, "77 jokers from data(08-25 对抗批 +13 · 08-26 超级百搭 +1;declutter/trio/doggybag 仍在池外)")
+	t.eq(Joker.pool().size(), 78, "78 jokers(08-25 +13 · 08-26 superwild/advance +2;declutter/trio/doggybag 仍在池外)")
 	# 卡面文字随平衡改, 别抄死 —— 只锁「读得回来 + 符合 D2 的 ≤7 词」
 	t.check(Joker.by_id("twin").fx_text.length() > 0, "joker text roundtrip")
 	for oid in GameConfig.JOKER_PRICE_OVERRIDES:

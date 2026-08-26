@@ -811,6 +811,24 @@ func _advance() -> void:
 		# clear wage, shown as the panel chip(走 grant —— 金币上限的四个入账口之一)
 		phrase.coins = Economy.grant(phrase.coins, GameConfig.SECTION_CLEAR_REWARD,
 			run.joker_slots)
+		# 预支还款(2026-08-26 金融组):工资入账后判 —— 付不起 = run 失败,
+		# **含 S4**(通关那一刻也得先还钱, 卡面写明 "or die")。死因记 Tape;
+		# fail 屏的死因行归 UI 批(现屏只念分数, 分数达标却失败的困惑由卡面契约兜)。
+		var loan_out := Joker.slots_loan(run.joker_slots)
+		if int(loan_out.repay) > 0:
+			if phrase.coins < int(loan_out.repay):
+				Tape.close({"ok": false, "sec": run.section_idx,
+					"score": run.section_score, "target": run.target(),
+					"beats": run.phrase_index, "why": "loan"})
+				SaveState.clear_checkpoint()
+				SaveState.settle_run_meta(false, run.section_idx, _faces_encountered(),
+					String(run.boon()), _final_target_id())
+				music.play_jingle(false)
+				run_end.show_fail(run.section_score, run.target())
+				return
+			phrase.coins -= int(loan_out.repay)
+			run.coins = phrase.coins
+			Tape.on("loan", {"pay": int(loan_out.repay), "coins": phrase.coins})
 		if bool(out["finale"]):
 			Tape.close({"ok": true, "sec": run.section_idx,
 				"score": run.section_score, "target": run.target(),
@@ -862,8 +880,23 @@ func _faces_encountered() -> Array:
 ## shop visit; with full slots it becomes the buy-new-replace-old flow
 func _next_section() -> void:
 	run.next_section()
+	_loan_borrow()
 	_tape_section()
 	_open_draft()
+
+
+## 预支借款(2026-08-26 金融组):段初自动 +borrow, 走 grant 收口(吃穷开心 cap)。
+## 开局(S1 初)不接:那时持仓恒空(首张卡最早来自第一次商店), 借款恒 0。
+func _loan_borrow() -> void:
+	var loan := Joker.slots_loan(run.joker_slots)
+	if int(loan.borrow) <= 0:
+		return
+	if phrase == null:
+		run.coins = Economy.grant(run.coins, int(loan.borrow), run.joker_slots)
+	else:
+		phrase.coins = Economy.grant(phrase.coins, int(loan.borrow), run.joker_slots)
+		run.coins = phrase.coins
+	Tape.on("loan", {"get": int(loan.borrow), "coins": run.coins})
 
 
 ## success screen: 下一场演出 (or 谢幕 on the finale)

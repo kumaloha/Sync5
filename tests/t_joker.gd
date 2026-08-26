@@ -5,7 +5,7 @@ func run(t) -> void:
 	# roster shape (2026-08-12 流派批: 删 popup/backup, 加族内件×4 + backer/bench/boxseats + trim;
 	# 缘由与增删改清单见 docs/design/archetypes.md §5)
 	var pool := Joker.pool()
-	t.eq(pool.size(), 77, "pool holds 77 jokers(08-25 +13 · 08-26 superwild +1)")
+	t.eq(pool.size(), 78, "pool holds 78 jokers(08-26 +superwild/advance)")
 	var targets := 0
 	var rarities := {"common": 0, "uncommon": 0, "rare": 0}
 	for j in pool:
@@ -29,7 +29,7 @@ func run(t) -> void:
 	# 配额上两个方向都在往 jokers_atlas.md §0 的目标(罕见 ~18 · 稀有 ~10)靠。
 	# 2026-08-25 对抗批 +13(全在 uncommon/rare:乘法出口按「稀有度=构筑依赖度」入 rare,
 	# 彩头/回收/客串/斗牛士/盲奏入 uncommon):uncommon 22→27 · rare 10→18。
-	t.eq(rarities["uncommon"], 27, "twenty-seven uncommon supports")
+	t.eq(rarities["uncommon"], 28, "twenty-eight uncommon supports(08-26 advance +1)")
 	t.eq(rarities["rare"], 19, "nineteen rare supports(08-26 superwild +1)")
 	t.eq(String(Joker.by_id("fourfingers").rarity), "uncommon", "fourfingers stays uncommon (顺子线要救)")
 	# ⚑ 拆分后单张实测 5.3×(先验层 N=20万, Δ同花族 +29.7pp), 两张都装 9.6× = 老 twotone。
@@ -100,9 +100,9 @@ func run(t) -> void:
 	t.eq(Settle.run(flush_res, [null, Joker.by_id("turnover"), null, null], {"discards": 3})["score"],
 		base + 3 * t._bonus("turnover"), "turnover bonus per discard")
 	t.eq(Settle.run(flush_res, [null, Joker.by_id("tipjar"), null, null], {"discards": 0})["coins"],
-		4 + 2, "tipjar +2 coins on zero discards")
+		5 + 2, "tipjar +2 coins on zero discards(经济 v2:FLUSH 基础 5)")
 	t.eq(Settle.run(flush_res, [null, Joker.by_id("tipjar"), null, null], {"discards": 1})["coins"],
-		4, "tipjar silent after a discard")
+		5, "tipjar silent after a discard(经济 v2)")
 
 	# chord: cache all one suit (wilds match anything)
 	var same_suit := [t._c(3, 1), t._c(9, 1), t._c(12, 1)]
@@ -198,7 +198,7 @@ func run(t) -> void:
 
 	# interest: cap at +5
 	t.eq(Settle.run(flush_res, [null, Joker.by_id("interest"), null, null], {"coins": 40})["coins"],
-		4 + 5, "interest caps at +5")
+		5 + 5, "interest caps at +5(经济 v2:FLUSH 基础 5)")
 
 	# ---- 2026-08-12 流派批(docs/design/archetypes.md §3):族内件 + 缓存件 + 经济件 ----
 	# 族内件 contains 语义 = kind_in(顺/同花五张点数互异, 天然不含对):
@@ -374,3 +374,22 @@ func run(t) -> void:
 	var full: Array = [sup, sup, sup, sup]
 	t.eq(Joker.first_free_support(full), -1, "全满没有空位")
 	t.check(Joker.has_room_for(full, "target"), "全满时 Target 仍装得进(换旗)")
+	_t_loan(t)
+
+
+## 预支 advance(2026-08-26 金融组):循环贷合计的结构契约。借还的两界行为
+## (runloop / 编排器)与失败通道由 kit 行为臂与真人试玩量, 这里锁数据形状。
+func _t_loan(t) -> void:
+	var none: Array = [null, null, null, null]
+	t.eq(int(Joker.slots_loan(none)["borrow"]), 0, "空槽不借")
+	t.eq(int(Joker.slots_loan(none)["repay"]), 0, "空槽不还")
+	var adv := Joker.by_id("advance")
+	t.check(adv != null, "advance 在池")
+	var one: Array = [null, adv, null, null]
+	t.eq(int(Joker.slots_loan(one)["borrow"]), 10, "单张借 10")
+	t.eq(int(Joker.slots_loan(one)["repay"]), 12, "单张还 12(利息 2 = 每段的 tempo 价)")
+	var two: Array = [null, adv, Joker.by_id("advance"), null]
+	t.eq(int(Joker.slots_loan(two)["borrow"]), 20, "两张自然叠加借 20")
+	t.eq(int(Joker.slots_loan(two)["repay"]), 24, "两张还 24")
+	t.check(int(Joker.slots_loan(one)["repay"]) > int(Joker.slots_loan(one)["borrow"]),
+		"还 > 借 —— 这卡是贷款不是印钞机(数值再调也不许倒挂)")
