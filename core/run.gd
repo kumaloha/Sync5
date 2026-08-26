@@ -15,6 +15,14 @@ var section_score := 0
 var phrase_index := 0
 var joker_slots: Array = [null, null, null, null]
 var prev_kind := -99
+## 上一拍旗条件是否触发(镜面的连击谓词;与 prev_kind 同生命周期同快照)。
+var prev_target_hit := false
+## 掷类脸的段级明掷结果:{"sec": 段号, "worse": bool, "suit": 0..3,
+## "kind": 点名指定牌型, "solved": 是否已解除}。
+## 懒掷(ensure_mod_roll)于段首第一次 Beat.begin;随快照续存。
+var mod_roll := {}
+## 点名的解除奖励:下次商店 +1 货架位(编排器开店时消费清零;随快照续存)。
+var shelf_bonus := 0
 ## Hand type played on this SECTION's opening phrase, -99 until it happens.
 ## Only `setlist` reads it, but it lives here (not in the view) because it is
 ## run state, and sim/curve must see the same lock the player does.
@@ -27,7 +35,6 @@ var cache_meta: Dictionary = {"ages": {}, "next": 0}
 var previous_raw_score := 0
 var request_last := ""
 var _blind_rng := RandomNumberGenerator.new()
-var character: Character = null
 ## Coins carried across phrases. The Phrase owns them during a phrase (that is
 ## where tolls and discards are charged); this is the carry between phrases, so
 ## that a probe does not have to invent its own coin variable — inventing one is
@@ -50,9 +57,9 @@ func reset(face_seed: int = -1) -> void:
 	phrase_index = 0
 	joker_slots = [null, null, null, null]
 	prev_kind = -99
+	prev_target_hit = false
 	cache_meta = {"ages": {}, "next": 0}
 	previous_raw_score = 0
-	character = null
 	coins = GameConfig.STARTING_COINS
 	stage = Stage.DECISION
 	# ⚠ **`tutorial` 自己不在这里清**(调用方 reset 之后才设它, 见 roll_faces 那条注释),
@@ -170,6 +177,100 @@ var face_ranking: Dictionary = {}
 var director_ctx: Dictionary = {}
 
 
+## ---- 断点续玩(2026-08-24 用户;移动 Web 刚需:iOS 内存回收重载后局面全丢)----
+##
+## 快照/恢复只搬**事实**(与 Tape 的口径同源:「能重放任意时刻的局面」= 这些键)。
+## ⚠ 恢复**不是**开局:不掷脸、不喂 Director、不 note_run_started —— 开局三步的产物
+## (run_faces / boon / 局数)全在快照里。「第二条入口漏掉主路径的步骤」是这个项目
+## 最贵的形状之一, 而恢复恰恰是**故意**跳过主路径的入口, 所以它必须从快照拿全部产物。
+## ⚠ 存档点恒在拍边界(发牌之前), 拍中被杀 = 这一拍从头再来(8 秒一拍, 丢不了多少);
+## 商店里被杀 = 回滚到商店前那一拍(结算后商店自然重开, 购物不会凭空消失)。
+func snapshot(run_index: int) -> Dictionary:
+	var slots_out: Array = []
+	for j in joker_slots:
+		slots_out.append(null if j == null \
+			else {"id": j.id, "lv": j.level, "st": j.state.duplicate(true)})
+	var ages_out := {}
+	var ages: Dictionary = cache_meta.get("ages", {})
+	for i in range(cache.size()):
+		if ages.has(cache[i]):
+			ages_out[str(i)] = int(ages[cache[i]])
+	var kinds_out := {}
+	for k in section_kinds:
+		kinds_out[str(int(k))] = section_kinds[k]   # 值原样搬(集合语义 true;曲目税只数键)
+	var faces_out := {}
+	for k in run_faces:
+		faces_out[str(int(k))] = String(run_faces[k])
+	return {
+		"v": 1, "run_index": run_index,
+		"section_idx": section_idx, "phrase_index": phrase_index,
+		"phrase_in_section": phrase_in_section, "section_score": section_score,
+		"section_discards_used": section_discards_used,
+		"prev_kind": prev_kind, "prev_target_hit": prev_target_hit,
+		"mod_roll": mod_roll.duplicate(), "shelf_bonus": shelf_bonus,
+		"first_kind": first_kind,
+		"previous_raw_score": previous_raw_score, "request_last": request_last,
+		"boon": run_boon, "coins": coins, "faces": faces_out,
+		"kinds": kinds_out, "cache": Deck.cards_out(cache),
+		"cache_ages": ages_out, "cache_next": int(cache_meta.get("next", 0)),
+		"slots": slots_out, "deck": deck.snapshot(),
+	}
+
+
+## 返回 false = 快照坏了(版本不认识 / 关键键缺失), 调用方清掉它当无事发生 ——
+## 与 SaveState「读失败当新玩家」同一取舍:坏档只该丢半局, 不该开不了机。
+func restore(d: Dictionary) -> bool:
+	if int(d.get("v", 0)) != 1 or not d.has("deck") or not d.has("faces"):
+		return false
+	deck = Deck.from_snapshot(d["deck"])
+	cache.clear()
+	for p in d.get("cache", []):
+		cache.append(Card.new(int(p[0]), int(p[1])))
+	cache_meta = {"ages": {}, "next": int(d.get("cache_next", 0))}
+	var ages_in: Dictionary = d.get("cache_ages", {})
+	for k in ages_in:
+		var i := int(k)
+		if i >= 0 and i < cache.size():
+			cache_meta["ages"][cache[i]] = int(ages_in[k])
+	joker_slots = [null, null, null, null]
+	var slots_in: Array = d.get("slots", [])
+	for i in range(mini(slots_in.size(), joker_slots.size())):
+		var e = slots_in[i]
+		if e == null:
+			continue
+		var j = Joker.by_id(String(e.get("id", "")))
+		if j == null:
+			continue          # 这张卡被退役了 —— 槽空着比开不了机好
+		j.level = int(e.get("lv", 1))
+		j.state = e.get("st", {}).duplicate(true)
+		# ⚠ 不调 on_acquire:它改牌堆(百搭洗入大小王等), 而牌堆快照里已经是改完的样子
+		joker_slots[i] = j
+	run_faces = {}
+	for k in d.get("faces", {}):
+		run_faces[int(k)] = String(d["faces"][k])
+	section_kinds = {}
+	for k in d.get("kinds", {}):
+		section_kinds[int(k)] = d["kinds"][k]
+	section_idx = int(d.get("section_idx", 0))
+	phrase_index = int(d.get("phrase_index", 0))
+	phrase_in_section = int(d.get("phrase_in_section", 0))
+	section_score = int(d.get("section_score", 0))
+	section_discards_used = int(d.get("section_discards_used", 0))
+	prev_kind = int(d.get("prev_kind", -99))
+	prev_target_hit = bool(d.get("prev_target_hit", false))
+	mod_roll = d.get("mod_roll", {}) if d.get("mod_roll", {}) is Dictionary else {}
+	shelf_bonus = int(d.get("shelf_bonus", 0))
+	first_kind = int(d.get("first_kind", -99))
+	previous_raw_score = int(d.get("previous_raw_score", 0))
+	request_last = String(d.get("request_last", ""))
+	run_boon = String(d.get("boon", ""))
+	coins = int(d.get("coins", 0))
+	tutorial = false
+	tutorial_step = 0
+	stage = Stage.DECISION
+	return true
+
+
 func target() -> int:
 	if tutorial:
 		return 0
@@ -183,14 +284,38 @@ func target() -> int:
 ## 正是五次「规则在游戏里、不在模型里」的第一次:模型那份当时不含时间维度, S4
 ## 有一半的局实际上没有 Boss 规则。**乘除只写一处, 谁要用谁来调。**
 ## 弃牌免费之后时间是唯一的闸门, 所以这一处比它看上去更重要。
-static func phrase_duration_for(section: int, mod: String) -> float:
-	return GameConfig.phrase_duration(section) - SectionMod.time_penalty(mod)
+## 掷类脸的开局明掷(轮盘掷严重度 / 变色灯掷花色)。懒掷:段首第一次 Beat.begin
+## 调它 —— 开局/重开/转正三条入口都必经那里, 不给「第二条入口漏步骤」留缝。
+## 掷一次记段号, 同段重复调是无操作;RNG 走 deck.pick_index(共享流, 探针同序)。
+func ensure_mod_roll() -> void:
+	if int(mod_roll.get("sec", -1)) == section_idx:
+		return
+	mod_roll = {"sec": section_idx}
+	var m := face()
+	if m == "":
+		return
+	var ch := SectionMod.roll_chance(m)
+	if ch > 0.0:
+		mod_roll["worse"] = deck.pick_index(100) < int(round(ch * 100.0))
+	if SectionMod.rolls_suit(m):
+		mod_roll["suit"] = deck.pick_index(4)
+	if SectionMod.rolls_kind(m):
+		# 点名的指定牌型池:构筑相关成本的四个中档型(对子太贱 = 单拍白嫖,
+		# 葫芦以上太贵 = 变成硬吃;两对~同花对不同构筑贵贱不一, 正是「解还是忍」)。
+		var kind_pool: Array = [Pattern.Kind.TWO_PAIR, Pattern.Kind.THREE_KIND,
+			Pattern.Kind.STRAIGHT, Pattern.Kind.FLUSH]
+		mod_roll["kind"] = int(kind_pool[deck.pick_index(kind_pool.size())])
+		mod_roll["solved"] = false
+
+
+static func phrase_duration_for(section: int, mod: String, phrase_idx: int = -1) -> float:
+	return GameConfig.phrase_duration(section) - SectionMod.time_penalty_at(mod, phrase_idx)
 
 
 func phrase_duration() -> float:
 	if tutorial:
 		return Tutorial.seconds(tutorial_step)
-	return phrase_duration_for(section_idx, face())
+	return phrase_duration_for(section_idx, face(), phrase_in_section)
 
 
 ## ---- 教学关的进度 ----
@@ -210,7 +335,7 @@ var _tutorial_acted: Dictionary = {}
 ## 想不到这个操作就无限重复。⚑ 我给**时钟**做了 30 秒兜底(`TUTOR_HOLD_MAX`),
 ## 却忘了给**步进**做 —— 同一个道理漏了一半。
 ## ⚑ **1 拍 = 任何教学最多一次结算都要过**(2026-08-19 用户拍板, 推翻 3 拍练习位)。
-## 动作门从此只剩一个作用:**做完动作提示立刻换**(tutorial_advance_if_done 的拍中路径);
+## 动作门从此只剩一个作用:**做完动作提示当场熄掉当回执**(编排器读 tutorial_pending);
 ## 拍末一律放行 —— 教学关的职责是让他见过, 不是把他扣在原地。
 const STEP_MAX_BEATS := 1
 var _tutorial_step_beats := 0
@@ -241,25 +366,12 @@ func tutorial_try_advance() -> bool:
 	return ok
 
 
-## 拍中推进(2026-08-18 用户:「应该消失, 进入下一个提示」)—— 动作一做出来提示就该换,
-## 等拍末才换在玩家眼里是「照做了但提示没消失」。与拍末那份(`tutorial_try_advance`)的分工:
-## · 这里**只认真做到的**:空门(play 语义 = 把一拍打完)不在拍中放行, 留给拍末;
-## · **不吃兜底**:拍数账(`_tutorial_step_beats`)不动, 超时放行仍然只属于拍末;
-## · 推进时**清动作账** —— 第 3/4 步都是 swap, 不清的话一次交换会在拍末再顶一步,
-##   把「再换一次」的练习位整个吞掉(t_tutorial 锁着这条)。
-func tutorial_advance_if_done() -> bool:
-	if not tutorial:
-		return false
-	var need := Tutorial.require(tutorial_step)
-	if need == "" or not bool(_tutorial_acted.get(need, false)):
-		return false
-	tutorial_step += 1
-	_tutorial_step_beats = 0
-	_tutorial_acted.clear()
-	return true
+## (拍中推进 tutorial_advance_if_done 已删 2026-08-24 —— 用户:「换一下之后立刻就跳到
+## 小丑牌了, 应该等结算完了再到」。拍中做完动作只熄提示当回执(编排器 `_note_tutorial`),
+## **步进只在拍末**(`tutorial_try_advance`);08-18「提示应该消失」的拍板由熄灭满足,
+## 不再靠提前上下一课。)
 
-
-## 这一步还欠什么动作 —— 空串 = 不欠。给编排器做「再说一次」的反馈用。
+## 这一步还欠什么动作 —— 空串 = 不欠。给编排器做「再说一次/拍中回执」的判据用。
 func tutorial_pending() -> String:
 	if not tutorial:
 		return ""
@@ -353,6 +465,12 @@ var last_section_phrases := 0
 
 func next_section() -> void:
 	last_section_phrases = phrase_in_section
+	# 客串(2026-08-25):段寿命卡在段末计一岁, 到寿自动谢幕离场;
+	# 游戏与探针共用这一个推进点(单一咬合)。顺带激活 on_section_end 钩子。
+	for i in range(joker_slots.size()):
+		var j = joker_slots[i]
+		if j != null and j.tick_section_life():
+			joker_slots[i] = null
 	section_idx = mini(section_idx + 1, GameConfig.SECTIONS_PER_RUN - 1)
 	reset_section_state()
 

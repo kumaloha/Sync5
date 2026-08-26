@@ -1,0 +1,674 @@
+[
+  {
+    "kind": "jokers",
+    "id": "backer",
+    "strong_inside": 112377,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "bassclef",
+    "strong_inside": 41241,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "bassline",
+    "strong_inside": 51583,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "bench",
+    "strong_inside": 114103,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "blacktone",
+    "strong_inside": 30981,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "boxseats",
+    "strong_inside": 33485,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "chord",
+    "strong_inside": 82835,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "chorus",
+    "strong_inside": 74708,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "collector",
+    "strong_inside": 22108,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "cooltone",
+    "strong_inside": 103781,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "curtain",
+    "strong_inside": 62974,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "digger",
+    "strong_inside": 35301,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "doublebill",
+    "strong_inside": 75757,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "duet",
+    "strong_inside": 67474,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "duo",
+    "strong_inside": 36262,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "earlyout",
+    "strong_inside": 44204,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "encore",
+    "strong_inside": 85012,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "finale",
+    "strong_inside": 28570,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "fourfingers",
+    "strong_inside": 59506,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "freeze",
+    "strong_inside": 47504,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "fullcast",
+    "strong_inside": 35089,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "glowstick",
+    "strong_inside": 60233,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "interest",
+    "strong_inside": 24574,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "jukebox",
+    "strong_inside": 89851,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "kaleido",
+    "strong_inside": 63594,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "lonewolf",
+    "strong_inside": 77776,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "mirror",
+    "strong_inside": 51988,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "momentum",
+    "strong_inside": 121145,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "mono",
+    "strong_inside": 35672,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "neonsign",
+    "strong_inside": 63963,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "nopair",
+    "strong_inside": 15082,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "opener",
+    "strong_inside": 57913,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "popup",
+    "strong_inside": 62838,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "rainbow",
+    "strong_inside": 30821,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "rebrand",
+    "strong_inside": 60249,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "redtone",
+    "strong_inside": 43079,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "rehearsal",
+    "strong_inside": 146974,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "reprise",
+    "strong_inside": 82247,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "royalty",
+    "strong_inside": 83487,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "segue",
+    "strong_inside": 58321,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "shortcut",
+    "strong_inside": 117024,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "shredder",
+    "strong_inside": 65842,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "skint",
+    "strong_inside": 108503,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "sponsor",
+    "strong_inside": 41233,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "stageexit",
+    "strong_inside": 68273,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "stair",
+    "strong_inside": 45034,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "stilllife",
+    "strong_inside": 157009,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "stopwatch",
+    "strong_inside": 68247,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "superfan",
+    "strong_inside": 43321,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "tipjar",
+    "strong_inside": 77414,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "triad",
+    "strong_inside": 35189,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "trim",
+    "strong_inside": 69610,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "triplebill",
+    "strong_inside": 63277,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "triplet",
+    "strong_inside": 68606,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "turnover",
+    "strong_inside": 40347,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "twin",
+    "strong_inside": 92112,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "undertone",
+    "strong_inside": 26262,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "variation",
+    "strong_inside": 38414,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "vinyl",
+    "strong_inside": 80364,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "vip",
+    "strong_inside": 58238,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "warmtone",
+    "strong_inside": 87389,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "wildcard",
+    "strong_inside": 76324,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "jokers",
+    "id": "wrecker",
+    "strong_inside": 62602,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "blackout",
+    "strong_inside": 27419,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "blindspot",
+    "strong_inside": 49212,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "closing",
+    "strong_inside": 16503,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "cover",
+    "strong_inside": 29125,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "doubleseal",
+    "strong_inside": 59165,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "facedown",
+    "strong_inside": 85799,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "freshsheet",
+    "strong_inside": 52097,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "handseal",
+    "strong_inside": 18767,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "lastcall",
+    "strong_inside": 33897,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "lockup",
+    "strong_inside": 34364,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "lostpage",
+    "strong_inside": 90626,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "lowend",
+    "strong_inside": 144920,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "norepeat",
+    "strong_inside": 37059,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "oneswap",
+    "strong_inside": 41855,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "onetake",
+    "strong_inside": 27364,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "overtime",
+    "strong_inside": 32331,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "patchin",
+    "strong_inside": 53876,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "raisedbar",
+    "strong_inside": 13604,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "ration",
+    "strong_inside": 84579,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "redlight",
+    "strong_inside": 46053,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "request",
+    "strong_inside": 32379,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "rerun",
+    "strong_inside": 46224,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "rotation",
+    "strong_inside": 25723,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "rush",
+    "strong_inside": 51855,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "setlist",
+    "strong_inside": 25208,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "smallstage",
+    "strong_inside": 60935,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "static",
+    "strong_inside": 30124,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "switchtrack",
+    "strong_inside": 52473,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "teardown",
+    "strong_inside": 20093,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "throttle",
+    "strong_inside": 71716,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "trilogy",
+    "strong_inside": 25085,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "unplugged",
+    "strong_inside": 64919,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "wetink",
+    "strong_inside": 47288,
+    "strong_outside": 0,
+    "outside_ratio": 0.0
+  }
+]

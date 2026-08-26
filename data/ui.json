@@ -26,8 +26,8 @@
    "signal": "LOCK −2s"
   },
   "onetake": {
-   "command": "每拍只能弃一次,张数不限",
-   "signal": "ONE TAKE"
+   "command": "每拍最多弃 2 张",
+   "signal": "MAX 2"
   },
   "oneswap": {
    "command": "每拍只能交换一次",
@@ -42,8 +42,8 @@
    "signal": "REFILL HIDE"
   },
   "throttle": {
-   "command": "弃牌与交换合计最多 3 次",
-   "signal": "ACTION 3"
+   "command": "弃牌与交换合计最多动 4 张",
+   "signal": "CARDS 4"
   },
   "request": {
    "command": "没完成本拍点歌,得分 −10%",
@@ -62,8 +62,8 @@
    "signal": "LOCK 1"
   },
   "handseal": {
-   "command": "开拍最低的那张手牌不能弃",
-   "signal": "LOW LOCK"
+   "command": "开拍随机一张手牌贴封条,不能弃",
+   "signal": "SEAL LOCK"
   },
   "rerun": {
    "command": "重复上一拍的牌型,得分归零",
@@ -82,7 +82,7 @@
    "signal": "FULL HIDE"
   },
   "doubleseal": {
-   "command": "最低手牌不能弃,最旧缓存不能换",
+   "command": "手牌与缓存各随机封一张,动不了",
    "signal": "DOUBLE LOCK"
   },
   "patchin": {
@@ -126,8 +126,44 @@
    "signal": "6s · LOCK −2s"
   },
   "closing": {
-   "command": "每拍 6 秒,只能弃一次",
-   "signal": "6s · ONE TAKE"
+   "command": "每拍 6 秒,最多弃 2 张",
+   "signal": "6s · MAX 2"
+  },
+  "highend": {
+   "command": "弃牌只补 9 以上的大牌",
+   "signal": "HIGH ONLY"
+  },
+  "countdown": {
+   "command": "拍长 8/8/6/6/4/4,一拍比一拍短",
+   "signal": "8·6·4"
+  },
+  "crescendo": {
+   "command": "前 3 拍得分打折,后 3 拍得分加成",
+   "signal": "HALF → BOOST"
+  },
+  "dimstage": {
+   "command": "每拍随机盖住 2 张手牌",
+   "signal": "DIM ×2"
+  },
+  "roulette": {
+   "command": "开场转盘:封缓存 1 格,一半概率封 2 格",
+   "signal": "ROULETTE"
+  },
+  "colorlight": {
+   "command": "开场掷一种花色,整关它算分减半",
+   "signal": "COLOR ROLL"
+  },
+  "callout": {
+   "command": "打出点名的牌型前,全场得分打 7 折;打出后下次商店多摆一张",
+   "signal": "CALLOUT"
+  },
+  "suitveil": {
+   "command": "所有牌的花色被遮住,只看得见点数",
+   "signal": "SUIT VEIL"
+  },
+  "rankfog": {
+   "command": "所有牌的点数被遮住,只看得见花色",
+   "signal": "RANK FOG"
   }
  },
  "jokercard": {
@@ -153,7 +189,46 @@
    "trigger": "6 秒前收工且成牌:×4 倍率"
   },
   "wrecker": {
-   "trigger": "本拍弃满 3 张且成牌:×3.5 倍率"
+   "trigger": "本拍弃满 6 张且成牌:×3.5 倍率"
+  },
+  "fastforward": {
+   "trigger": "每次提前收工:倍率永久 +0.1"
+  },
+  "deejay": {
+   "trigger": "每刷新一次商店:倍率永久 +0.05"
+  },
+  "goldenvoice": {
+   "trigger": "每持有 6◆:倍率 +0.1"
+  },
+  "hush": {
+   "trigger": "本拍不弃不换:倍率 +0.4"
+  },
+  "harmony": {
+   "trigger": "缓存三张同花色:倍率 +0.3"
+  },
+  "ensemble": {
+   "trigger": "缓存也上台:8 张里挑最好的 5 张"
+  },
+  "allin": {
+   "trigger": "每拍抛硬币:×2 或 ×0.5"
+  },
+  "jackpot": {
+   "trigger": "每段最后一拍:一半概率 ×3"
+  },
+  "loadeddice": {
+   "trigger": "你所有的概率翻倍"
+  },
+  "recycle": {
+   "trigger": "直弃缓存牌:按点数两倍给奖励分"
+  },
+  "gueststar": {
+   "trigger": "倍率 +0.5;下个段末谢幕离场"
+  },
+  "matador": {
+   "trigger": "脸的规则咬到你的拍:+2◆"
+  },
+  "blindplay": {
+   "trigger": "每张盖着上台的得分牌:基础分+8"
   },
   "encore": {
    "trigger": "与上拍同牌型:奖励分+目标分的58%"
@@ -198,10 +273,10 @@
    "trigger": "顺子和同花,四张就够"
   },
   "bassline": {
-   "trigger": "每累计弃 12 张:倍率+0.25,永久"
+   "trigger": "每累计弃 8 张:倍率+0.25,永久"
   },
   "mirror": {
-   "trigger": "以 Target 一半的倍率再乘一次"
+   "trigger": "连续两拍达成 Target:以其一半倍率再乘一次"
   },
   "wildcard": {
    "trigger": "两张万能牌加入牌库"
@@ -330,7 +405,7 @@
   "resolve_hold": 1.0,
   "pill_w": 200,
   "hand_top": 672,
-  "hand_card_y": 724,
+  "hand_card_y": 738,
   "cache_y": 1024,
   "lift_base": 16,
   "lift_scoring": 8,
@@ -407,7 +482,6 @@
   "price_dy": 8,
   "btn_y": 806,
   "reroll_text": "刷新 · %d ◆",
-  "reroll_ticket_text": "刷新 · 点唱券 ×%d",
   "skip_text": "继续 ▸",
   "free_text": "免费",
   "insufficient": "◆ 不足",
@@ -441,9 +515,9 @@
   "deny": {
    "window": "弃牌已关闭",
    "swap_window": "交换已关闭",
-   "onetake": "本拍已弃过",
+   "onetake": "弃牌张数到顶",
    "oneswap": "本拍已换过",
-   "throttle": "操作已用尽",
+   "throttle": "弃换张数用尽",
    "track_swap": "已选交换轨",
    "track_discard": "已选弃牌轨",
    "budget": "弃牌额度不足",
@@ -467,16 +541,6 @@
   "key_outset": 17,
   "_comment_key_outset": "理牌/弃牌两个键的**外挪量**与**宽度**(2026-08-16 用户两次反馈:「一个靠左一点一个再靠右一点」→「按钮的位置你也没处理」)。\n⚠ **只挪位置不够**:26 已经是全屏边距, 外挪上限就是 17px = 屏宽 2.4%, **看不出来**。\n⚑ 真正的分隔靠**把键做窄**:114(与卡同宽)→ 88, 于是与缓存牌的间隙从 24px 变成 **50px**。\n⚠ 键窄了但**点击区不变小**:DJKey 自己有热区, 88 仍远大于拇指最小 44pt。",
   "key_w": 88
- },
- "tickets": {
-  "_comment": "局内券托盘(view/tray.gd, 2026-08-17)。摆在 EQ 条带那一行的右端:EQ 是 y626 高 44 的装饰层, 手牌 672 才开始, 这一行是主画面唯一不与任何可点部件重叠的横带。右对齐 = 从 right_x 往左长, chips 少时不占中间。armed 标牌(boost 已上)也算一个 chip 位。",
-  "y": 627,
-  "right_x": 694,
-  "chip_w": 116,
-  "chip_h": 42,
-  "gap": 8,
-  "armed_text": "加成 ×%.1f 已上",
-  "daily_notice": "今日券 · %s"
  },
  "tutor_focus": {
   "_comment": "教学关高亮的**合法区域名白名单**(core/db.gd 校验 + Tutorial.regions())。⚠⚠ **值只是说明, 不是坐标** —— 2026-08-16 这里原本手写着四个矩形, 而手牌行/缓存行/弃牌键的位置是**运行时按 stage 的 card_w/gap/cache_y 算出来的**, 这里那份是目测抄的第二份, 键做窄(key_w)之后更对不上 ⇒ 用户报「高光位置不对、跟原图不对应」。真值现在从活部件取:`Hand.focus_rect()`(hand/cache/discard)与本文件的 `hud.pos`+`hud.size`(hud)。**别再往这里写坐标。**",

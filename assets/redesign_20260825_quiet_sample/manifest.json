@@ -1,0 +1,27 @@
+{
+  "version": "2026-08-25-quiet-sample",
+  "design": "docs/superpowers/specs/2026-08-25-joker-blind-quiet-glyph-sample-design.md",
+  "canvas": [1024, 1024],
+  "safe_band": {"x": 0, "y": 312, "width": 1024, "height": 400},
+  "status": "sample_review",
+  "jokers": [
+    {"id": "twin", "path": "jokers/joker_twin.png", "metaphor": "two equal-rank cards", "status": "reviewed"},
+    {"id": "shortcut", "path": "jokers/joker_shortcut.png", "metaphor": "straight ribbon with one bridged gap", "status": "reviewed"},
+    {"id": "tipjar", "path": "jokers/joker_tipjar.png", "metaphor": "untouched hand with two coin circles", "status": "reviewed"},
+    {"id": "finale", "path": "jokers/joker_finale.png", "metaphor": "clock with final wedge marked", "status": "reviewed"},
+    {"id": "chord", "path": "jokers/joker_chord.png", "metaphor": "three cache slots with the same suit", "status": "reviewed"},
+    {"id": "wrecker", "path": "jokers/joker_wrecker.png", "metaphor": "three discard ticks aimed at a completed hand", "status": "reviewed"}
+  ],
+  "blinds": [
+    {"id": "norepeat", "path": "blinds_concept/blind_norepeat.png", "metaphor": "repeat loop crossed by a slash", "status": "reviewed"},
+    {"id": "smallstage", "path": "blinds_concept/blind_smallstage.png", "metaphor": "plain two-slot cache", "status": "reviewed"},
+    {"id": "lastcall", "path": "blinds_concept/blind_lastcall.png", "metaphor": "clock with blocked final wedge", "status": "reviewed"},
+    {"id": "rush", "path": "blinds_concept/blind_rush.png", "metaphor": "six-wedge clock compressed by side bars", "status": "reviewed"}
+  ],
+  "contact_sheets": {
+    "full": "contact_sheets/sample_full.png",
+    "band": "contact_sheets/sample_band.png",
+    "preview_150": "contact_sheets/sample_150.png",
+    "comparison": "contact_sheets/quiet_vs_v2.png"
+  }
+}

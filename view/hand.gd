@@ -383,6 +383,9 @@ func refresh(vm: Dictionary) -> void:
 	# Cards the player cannot see (the hiding faces), keyed by Card object.
 	# Defaulted so the screenshot probes that build a vm by hand keep working.
 	var hidden: Dictionary = vm.get("hidden", {})
+	# 蒙点/蒙色(2026-08-25):属性遮蔽, 全场一致(不是按张)。
+	var mask_rank: bool = bool(vm.get("mask_rank", false))
+	var mask_suit: bool = bool(vm.get("mask_suit", false))
 
 	var flips := 0
 	for i in range(hand_cards.size()):
@@ -396,6 +399,7 @@ func refresh(vm: Dictionary) -> void:
 		# 拿走的只有「你知道它是什么」。结算时 Phrase 清空 hidden, 下一次
 		# refresh 自然就翻开了(用户 2026-08-07 拍板的时机)。
 		pc.set_back(hidden.has(card))
+		pc.set_masks(mask_rank, mask_suit)
 		pc.set_states(scoring_set.has(card), sel_hand.has(i))
 		var hand_mark := ""
 		if _marked_cards.has(card):
@@ -438,6 +442,7 @@ func refresh(vm: Dictionary) -> void:
 		var cache_card: Card = cards_cache[i]
 		pc.setup(cache_card)
 		pc.set_back(hidden.has(cache_card))
+		pc.set_masks(mask_rank, mask_suit)
 		pc.set_states(false, sel_cache.has(i))
 		var cache_mark := Lingo.t("丢") if _marked_cards.has(cache_card) else ""
 		if _discard_blocked_cache.has(cache_card):

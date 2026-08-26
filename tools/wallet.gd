@@ -34,8 +34,6 @@ extends Probe
 ##     ⚠ 因此它对 solve_draft 略偏乐观(死后本该买不到的牌在不死局里还买得到),
 ##     但**两条臂同一个偏**, 配对差仍然可比。
 ##   · 配对实验共用种子;报标准误和 z。
-##   · RNG 消耗顺序照抄 `sim.gd`:**先抽主角、后掷脸**, 主角预抽好传进 Opts
-##     (RunLoop 内部也会抽, 不预抽就变成「先掷脸后抽主角」, 读数整体漂移且不报错)。
 
 
 ## 装了监听的 Bot。**只记账, 不改决策** —— 每个覆盖都先调 `super` 拿到原始行为。
@@ -257,8 +255,6 @@ func _arm(cfg: Dictionary, solve: bool, n: int, seed0: int, spy: bool = true) ->
 	for r in range(n):
 		# ⚠ 配对的全部意义在这一行:两条臂的第 r 局用完全相同的种子。
 		_rng.seed = seed0 + r
-		# ⚠ RNG 消耗顺序照抄 sim.gd:先抽主角, 后掷脸。
-		var character: Character = Character.roster()[_rng.randi_range(0, 7)]
 		# ⚑ 一局四张脸走 SectionMod.roll_run 这一份(2026-08-14 收口, 原来 7 份)——
 		# 保证「一局之内不偶然重复」。RNG 消耗与旧代码逐次相同。
 		var faces := SectionMod.roll_run(_rng)
@@ -268,7 +264,6 @@ func _arm(cfg: Dictionary, solve: bool, n: int, seed0: int, spy: bool = true) ->
 		var o := RunLoop.Opts.new()
 		o.rng = _rng
 		o.deck_seed = r * 7 + 1
-		o.character = character
 		o.faces = faces
 		o.player = "adaptive"
 		o.cfg = pcfg

@@ -1,10 +1,13 @@
 class_name OrbitZone
 extends Control
 
-## The hand-area frame that the character walks around. One lap = one phrase.
-## Start/settle point (beat diamond) is bottom-center; the walker goes
-## clockwise (leftward along the bottom first). The walked part of the loop
-## glows gold behind them; the remainder is a faint dashed track.
+## The hand-area lap track. One lap = one phrase. Start/settle point (beat
+## diamond) is bottom-center; progress runs clockwise (leftward along the
+## bottom first). The elapsed part of the loop glows gold; the remainder is a
+## faint dashed track. 3-2-1 countdown pops at the beat point in the warning
+## window.
+## (2026-08-24 主角系统删除:曾有 Walker 火柴人沿轨道走圈, 轨道/菱形/倒计时
+## 是核心手感所以整体保留, 只摘掉小人;轨迹色从主角色改为固定金色。)
 
 const INSET := 2.0
 const CORNER := 26.0
@@ -13,25 +16,12 @@ var progress := 0.0        # 0..1 around the loop
 var warning := false
 var seconds_left := 99.0   # to lock; drives the 3-2-1 countdown in the warning window
 var mode := "walk"         # "walk" | "dance" (dance = settle celebration at the beat point)
-var _walker: Walker
 var _pulse_t := 0.0
-var _dance_t := 0.0
 var _last_digit := -1
 var _digit_pop := 0.0      # scale-pop timer, restarted on each new countdown digit
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_walker = Walker.new()
-	_walker.z_index = 20
-	add_child(_walker)
-
-## Pick one of the eight crew members (Walker.CREW).
-func set_character(i: int) -> void:
-	_walker.set_character(i)
-	queue_redraw()
-
-func character_color() -> Color:
-	return _walker.color()
 
 func set_progress(p: float, warn: bool, secs: float = 99.0) -> void:
 	progress = clampf(p, 0.0, 1.0)
@@ -46,45 +36,12 @@ func set_progress(p: float, warn: bool, secs: float = 99.0) -> void:
 		_last_digit = -1
 
 func set_mode(m: String) -> void:
-	if mode != m:
-		mode = m
-		_dance_t = 0.0
-		_walker.dancing = (m == "dance")
+	mode = m
 
 func _process(delta: float) -> void:
 	_pulse_t += delta
 	_digit_pop = maxf(0.0, _digit_pop - delta)
-	if mode == "dance":
-		# celebration on the beat point (the figure animates itself)
-		_dance_t += delta
-		_walker.position = Vector2(size.x * 0.5, size.y - INSET)
-		_walker.facing = 1.0 if sin(_dance_t * 4.5) >= 0.0 else -1.0
-	else:
-		var st := _path_state(progress)
-		_walker.position = st[0]
-		if absf(st[1].x) > 0.1:
-			_walker.facing = 1.0 if st[1].x > 0.0 else -1.0
 	queue_redraw()
-
-## Piecewise rounded-rect path starting at bottom-center, going LEFT
-## (clockwise when viewed on screen). Returns [point, tangent].
-func _path_state(p: float) -> Array:
-	var pts := _loop_points()
-	var total := 0.0
-	var lens: Array = []
-	for i in range(pts.size() - 1):
-		var l: float = pts[i].distance_to(pts[i + 1])
-		lens.append(l)
-		total += l
-	var target := p * total
-	var acc := 0.0
-	for i in range(lens.size()):
-		if acc + lens[i] >= target:
-			var f := (target - acc) / maxf(lens[i], 0.001)
-			var dir: Vector2 = (pts[i + 1] - pts[i]).normalized()
-			return [pts[i].lerp(pts[i + 1], f), dir]
-		acc += lens[i]
-	return [pts[pts.size() - 1], Vector2.RIGHT]
 
 ## Polyline approximating the loop (corners as arcs sampled).
 func _loop_points() -> PackedVector2Array:
@@ -122,7 +79,7 @@ func _draw() -> void:
 		if i % 2 == 0:
 			draw_line(pts[i], pts[i + 1], faint, 1.5)
 
-	# walked golden trail (bottom-center going clockwise to walker)
+	# elapsed golden trail (bottom-center going clockwise)
 	var total := 0.0
 	for i in range(pts.size() - 1):
 		total += pts[i].distance_to(pts[i + 1])
@@ -139,7 +96,7 @@ func _draw() -> void:
 		acc += l
 	if trail.size() >= 2:
 		# spec: one soft 7px pass at .28 alpha, one 2.5px core at .9
-		var col := StageTheme.PINK if warning else _walker.color()
+		var col := StageTheme.PINK if warning else StageTheme.GOLD
 		draw_polyline(trail, Color(col.r, col.g, col.b, 0.28), 8.0, true)
 		draw_polyline(trail, Color(col.r, col.g, col.b, 0.9), 2.8, true)
 

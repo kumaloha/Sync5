@@ -1,0 +1,25 @@
+{
+  "status": "PASS",
+  "new_counts": {
+    "jokers": 137,
+    "blinds": 67,
+    "total": 204
+  },
+  "combined_counts": {
+    "jokers": 200,
+    "blinds": 100
+  },
+  "checks": {
+    "required_schema": "PASS",
+    "ascii_ids": "PASS",
+    "existing_id_collisions": 0,
+    "new_id_collisions": 0,
+    "chinese_name_collisions": 0,
+    "english_name_collisions": 0,
+    "mechanic_collisions": 0,
+    "uniqueness_key_collisions": 0,
+    "near_duplicate_english_names": 0,
+    "near_duplicate_english_mechanics": 0,
+    "family_counts": "PASS"
+  }
+}

@@ -132,7 +132,8 @@ func run(t) -> void:
 		t.eq(String(same[int(w)]), String(plain[int(w)]), "第 %d 段与现有掷法掷出同一张脸" % int(w))
 	t.eq(a.randi(), b2.randi(), "RNG 消耗也一样 —— 接上 Director 不会让探针的复现性漂")
 
-	# --- 有排序表时:仍是每段恰好一次掷点, 脸仍来自本段池子, 且落在本局的倾向档里 ---
+	# --- 有排序表时:RNG 消耗 = 首墙一次简单关判定 + 每个实墙恰好一次掷点;
+	# 脸仍来自本段池子, 且落在本局的倾向档里(2026-08-24 首墙两层放水后的新契约)---
 	var ranking := {}
 	for w in GameConfig.WALL_SECTIONS:
 		ranking[int(w)] = SectionMod.pool_for(int(w))
@@ -140,25 +141,50 @@ func run(t) -> void:
 	var e2 := RandomNumberGenerator.new()
 	c.seed = 7
 	e2.seed = 7
-	var faces: Dictionary = Director.roll_run(1, c, ranking)
-	SectionMod.roll_run(e2)
-	t.eq(c.randi(), e2.randi(), "有排序表时 RNG 消耗仍是「每个墙段恰好一次」")
-	t.eq(faces.size(), GameConfig.WALL_SECTIONS.size(), "每个墙段一张脸")
+	var ri := GameConfig.S1_FACE_MIN_RUN          # 解锁局:走「简单关判定 + 掷脸」全路径
+	var faces: Dictionary = Director.roll_run(ri, c, ranking)
+	# 镜像消耗:第 1 步 = 首墙的简单关判定;触发则首墙不掷。逐墙用 SectionMod.roll
+	# 镜像(不按「每墙一步」硬数步数 —— 旧契约保证的是排序路径与普通掷法**同耗**,
+	# 不是每墙恰好一步, 这里继承那条既有等价性)。
+	var ez := e2.randf() < GameConfig.S1_EASY_CHANCE
+	var drawn2: Array = []
+	var out2 := {}
+	for w0 in GameConfig.WALL_SECTIONS:
+		if int(w0) == 0 and ez:
+			out2[int(w0)] = ""
+			continue
+		var f2 := SectionMod.roll(int(w0), e2, drawn2, ri)
+		out2[int(w0)] = f2
+		if f2 != "":
+			drawn2.append(f2)
+	# ⚑ 2026-08-26 序列杀伤预算:修复走**派生流**, 主流恒定只多一掷(派种子)——
+	# 消耗与序列内容解耦, 镜像照跑同一份 enforce 即同耗(修复次数不影响主流)。
+	SectionMod.enforce_axis_budget(out2, e2, ri)
+	t.eq(c.randi(), e2.randi(), "RNG 消耗 = 简单关判定一掷 + 每个实墙照常掷 + 修复派种一掷")
+	t.eq(String(faces.get(0, "x")) == "", ez, "首墙空脸当且仅当简单关判定触发")
+	t.eq(faces.size(), GameConfig.WALL_SECTIONS.size(), "每个墙段一张脸(空脸也占位)")
 	var pools_disjoint := true
 	var seen := {}
+	var off_band := 0
 	for w in GameConfig.WALL_SECTIONS:
 		var idx := int(w)
 		var pool: Array = SectionMod.pool_for(idx)
+		if idx == 0 and String(faces[0]) == "":
+			continue                              # 简单关:首墙无脸, 无池/档可查
 		t.check(pool.has(String(faces[idx])), "第 %d 段的脸来自它自己的池子" % idx)
 		# ⚠ 档要从**过滤后**的排序池算 —— Director 掷点用的就是它(`ranked_pool` 会按
 		# min_run 摘掉没解锁的脸), 拿未过滤的 ranking 算档等于和另一个池子比。
-		t.check(Director.band(Director.ranked_pool(idx, ranking, 1), Director.face_bias(1))
-				.has(String(faces[idx])),
-			"第 %d 段的脸落在本局的倾向档里" % idx)
+		# ⚑ 2026-08-26 围殴修复走素掷, 被修的槽会离档;镜像认不出 Director 修了哪个槽
+		# (内容路径不同), 所以逐槽断言退为**总量断言**:离档 ≤1 槽(修复的文档化让步)。
+		var in_band: bool = Director.band(Director.ranked_pool(idx, ranking, ri),
+			Director.face_bias(ri)).has(String(faces[idx]))
+		if not in_band:
+			off_band += 1
 		for fid in pool:
 			if seen.has(fid):
 				pools_disjoint = false
 			seen[fid] = true
+	t.check(off_band <= 1, "倾向档总量:离档 ≤1 槽(围殴修复的素掷让步, 实测 %d)" % off_band)
 	# ⚠ 条件断言:池子互斥时「一局不重复」是硬保证;将来放开 tiers(一张脸跨轮)后
 	# 一档可能被 exclude 排空而退回整档, 那时重复是**有意的退让**, 不是漏掉守卫。
 	if pools_disjoint:
@@ -299,10 +325,14 @@ func run(t) -> void:
 		rr2.seed = sd
 		t.eq(Director.pick_face(rk_ret[0], "mild", rr2, [], seen_r, true), fam_id,
 			"returning run picks the most familiar face (seed %d)" % sd)
-	var ret_roll := Director.roll_run(3, RandomNumberGenerator.new(), rk_ret,
+	# ⚠ 局号取解锁局(2026-08-24 首墙放水):第 3 局首墙必空, 那不是 mild 档是缓冲期
+	var ret_ri := GameConfig.S1_FACE_MIN_RUN
+	var ret_roll := Director.roll_run(ret_ri, RandomNumberGenerator.new(), rk_ret,
 		{"streak": 5, "returning": true, "seen": seen_r})
 	for w in GameConfig.WALL_SECTIONS:
-		var pool_w := Director.ranked_pool(int(w), rk_ret, 3)
+		if int(w) == 0 and String(ret_roll[0]) == "":
+			continue                              # 简单关判定触发:首墙无脸, 无档可查
+		var pool_w := Director.ranked_pool(int(w), rk_ret, ret_ri)
 		t.check(Director.band(pool_w, "mild").has(String(ret_roll[int(w)])),
 			"returning run stays in the mild band even on a win streak (sec %d)" % int(w))
 	# 纯函数 shift_bias:连败 2 降一档 / 连胜 3 升一档, 阈值不对称是设计
@@ -397,6 +427,33 @@ func run(t) -> void:
 	var cint := _cfg({"a": {"face_bias": "mild", "shelf": {}}}, ["a"])
 	cint["context"] = {"novelty": 1}
 	t.check(DB.validate_director(cint) != "", "non-bool context switch rejected")
+
+	# --- 首墙两层放水(2026-08-24 用户:原作对照 + 「后面的关也偶尔可以有简单关」)---
+	var wr := RandomNumberGenerator.new()
+	wr.seed = 424242
+	t.check(not SectionMod.wall_face_unlocked(0, 1), "第 1 局首墙未解锁")
+	t.check(not SectionMod.wall_face_unlocked(0, GameConfig.S1_FACE_MIN_RUN - 1), "解锁前一局仍锁")
+	t.check(SectionMod.wall_face_unlocked(0, GameConfig.S1_FACE_MIN_RUN), "到解锁局放行")
+	t.check(SectionMod.wall_face_unlocked(0, -1), "探针缺省(-1)= 全解锁世界, 逐字节不变")
+	t.check(SectionMod.wall_face_unlocked(1, 1), "门只锁首墙")
+	t.eq(String(SectionMod.roll_run(wr, 1).get(0, "x")), "", "模型侧同一道门(规则不许只在游戏里)")
+	t.eq(String(Director.roll_run(2, wr).get(0, "x")), "", "Director 侧:新手期首墙必空")
+	# 概率放水:解锁后 400 局, 频率落在 p ± 3σ;其余段恒有脸(简单关只开在首墙)
+	var easy := 0
+	var others_ok := true
+	for i in range(400):
+		var fs: Dictionary = Director.roll_run(GameConfig.S1_FACE_MIN_RUN + i, wr)
+		if String(fs.get(0, "")) == "":
+			easy += 1
+		for sec in range(1, GameConfig.SECTIONS_PER_RUN):
+			if String(fs.get(sec, "")) == "":
+				others_ok = false
+	t.check(others_ok, "解锁后 S2-S4 恒有脸 —— 压轴不放水")
+	var p := GameConfig.S1_EASY_CHANCE
+	var rate := float(easy) / 400.0
+	var se3 := 3.0 * sqrt(maxf(0.0001, p * (1.0 - p) / 400.0))
+	t.check(absf(rate - p) <= se3 + 0.001,
+		"简单关频率带内(%.3f vs p=%.2f ± %.3f)" % [rate, p, se3])
 
 
 func _cfg(states: Dictionary, seq: Array, lf: int = 0, bf: float = 0.5) -> Dictionary:

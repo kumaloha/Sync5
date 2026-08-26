@@ -212,11 +212,6 @@ static func _build_wave_zone(host: Control, out: Dictionary, margin: float) -> v
 	out["eq"].size = Vector2(720, 44)
 	host.add_child(out["eq"])
 
-	# 券托盘:EQ 条带右端(坐标在 data/ui.json 的 tickets 节, 自己摆自己)。
-	# 加在 eq 之后 = 画在其上;它只占 chips 自身矩形, 空了自动隐藏(view/tray.gd)。
-	out["tray"] = TicketTray.new()
-	host.add_child(out["tray"])
-
 	# 盲注卡: 音浪层**左侧**, 和右边的唱片对称, 音浪从两者之间穿过。
 	# 2026-08-11 用户拍板「位置不变, 上下顶格放大」:撑满唱片带全高(y 426..642, 高 216),
 	# 宽按目录 118:176 比例随高走(≈145), 左缘仍在 margin —— 字号随设计空间整体 +23%,
@@ -237,7 +232,7 @@ static func _build_wave_zone(host: Control, out: Dictionary, margin: float) -> v
 static func _build_orbit(host: Control, hand_top: float) -> OrbitZone:
 	# the frame is the walker's track, so it sits a little outside the card row
 	var frame := PanelContainer.new()
-	# ⚠⚠ **必须 IGNORE** —— 它是主角绕圈的**装饰轨道**, 覆盖 y 672..958,
+	# ⚠⚠ **必须 IGNORE** —— 它是手牌区的**装饰轨道**, 覆盖 y 672..958,
 	# 也就是**整个手牌行**。`PanelContainer` 默认 `MOUSE_FILTER_STOP`,
 	# 一旦它排在手牌卡上面, **手牌就点不动了**(缓存行在 y 1024+, 不受影响 ——
 	# 症状正是「只能弃缓存区的」)。

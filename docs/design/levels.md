@@ -177,8 +177,8 @@ retry, no carry-over.
 
 ### HUD
 
-- Top-left label: 「第 N 场 · 小盲/大盲/BOSS」 (was `SECTION 01`).
-- Section progress dots: **4 groups × 3** (was 10 flat).
+- Top-left label: 「第 N 场」+ 档位色/序号(小盲/大盲已废,四段全 BOSS 墙)(was `SECTION 01`).
+- Section progress pills: **每段一枚,共 4 枚**(`Widgets.SegPill`;早年设想的 4 组 × 3 点已简化).
 - Gig number is the narrative hook for future venue art
   (bar → club → theater → stadium); this pass ships numbering + copy only.
 

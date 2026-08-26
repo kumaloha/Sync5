@@ -1,12 +1,12 @@
-# UI 与 META
+# UI(愿景 + 现行实现)
 
 > **这一篇管:界面长什么样,以及局外成长。**
-> ⚠ 「UI/UX 愿景」仍是**前瞻设计**;「META」的资产循环 **2026-08-19 起已实施**(规格移交 `meta.md`),其余(Daily Joker/赛季道具/皮肤)仍前瞻;
+> ⚠ 「UI/UX 愿景」仍是**前瞻设计**;「META」一节已随局外 build 整体删除(2026-08-24 用户拍板,原文见 git 史);
 > **现行 UI 的权威是本篇末尾的「现行 UI 实现」一节**(2026-08-09 从 `../CLAUDE.md` 整节逐字迁来),
 > 加上 [`../CLAUDE.md`](../../CLAUDE.md) 的「美术方向」(色板 + 五条方法论)
 > 以及 `docs/mockups/` 下用户的 Claude Design 设计稿。
 >
-> 本篇 2026-08-09 由 `ui_meta.md` + `ui_meta.md` 合并而成 —— 见 [`README.md`](README.md) 的九篇结构。
+> 本篇 2026-08-09 由两篇旧编号文档合并而成 —— 见 [`README.md`](README.md) 的九篇结构。
 > **验证方案在末尾**(每篇自带,这是文档约定之一)。
 
 ---
@@ -99,111 +99,10 @@ The player should always know:
 
 ---
 
-## META:局外成长
+## META:局外成长(已删除)
 
-> ⚑⚑ **资产部分已由 [`meta.md`](meta.md) 接管**(2026-08-19 设计稿,含待拍岔路)——
-> 本节保留三层生命周期总表与 Daily/赛季/皮肤等未实施部分。
->
-> ⚑ **2026-08-19 起部分实施**:用户新需求「买游戏资产 → 资产变现 → 买更多资产」的循环
-> 已上线 v1(`data/assets.json` + `core/asset.gd` + 荣誉页「资 产」子页 + 结算屏收入行)。
-> 落点 = 下面三层生命周期的**永久层**;两条出口刻意分开:**财富 = 宝石**(按**通关段数**
-> 入账 ~~+ 资产每局分红~~ ⚠⚠ 分红当晚被 v2 推翻 —— 资产零分红,见 meta.md,只能再买资产)· **力量 = 券**(合约类资产每日加发,走日清零的
-> 消耗品层)—— 循环碰不到局内金币,下面 Principles 的两条红线结构性成立;
-> 收入明确**不挂绝对分数**,绕开了下面「赛季挂绝对分改求解器目标函数」那个未拍的岔。
-> 数字全是占位(assets.json 文件头有账),Daily/赛季/皮肤等其余节**仍是前瞻**。
-
-### Goal
-
-Meta progression creates ownership without replacing player skill.
-
-### ⚑ 三层生命周期(2026-08-09 用户拍板)
-
-用户原话:「玩家每局结束可以获得一下**「一日生命周期」**的道具,以及局内高分时可以获得一些
-**「一赛季生命周期」**的道具,以及**部分皮肤**。」
-
-| 层 | 生命周期 | **获得条件** | 性质 |
-|---|---|---|---|
-| 日 | 到 24:00 失效 | **每局结束**就给 | **参与**奖励 —— 见下面 Daily assets(已有设计) |
-| **赛季** | **一个赛季** | **局内高分** | **成就**奖励 —— ⚑ **这一层原本不存在**,是这次新增的中间层 |
-| 永久 | 不失效 | 角色碎片 / 收藏 / **部分皮肤** | 自我表达 —— 见下面 Permanent assets |
-
-⚑ **两个条件是两种东西,别混**:日道具挂「打完一局」= 只要来就有,拉的是**回访**;
-赛季道具挂「打得好」= 要打得好才有,拉的是**投入深度**。中间这一层是原设计缺的
-—— 原本只有「每天来」和「永久攒」,没有「这个赛季我要冲到哪」。
-
-⚠⚠ **与求解器目标函数冲突,待用户拍板**
-
-2026-08-08 核实过一个硬事实:**段分每段清零、通关工资固定,所以超出目标的分数价值精确为零**。
-目标函数因此从 `max Σ 分数` 换成了 `max E[总分] s.t. 每段 ρ_n ≥ T_n`,
-而「稳过的段里不再拼命拿分 / 必输时赌一把」这些行为**就是从这里涌现的**(见 CHANGELOG 2026-08-08)。
-
-**赛季道具挂在「局内高分」上,等于给超出目标的分数重新标了价** —— 它换的是局外资源。
-求解器的目标函数会因此多一项,权重 = 那件道具值多少,**那是个只有用户能定的数**。
-
-判据分岔(**待用户选**):
-
-- **挂绝对分数** → 超额得分一直有价值 → 求解器**永远在拼分**,「稳过就收手」的节奏被抹掉
-- **挂段目标达成度 / 通关段数** → 超额仍然无价值 → **现有目标函数不动**
-
-⚠ 这不是可以「先做了再说」的细节:它决定求解器算的是不是同一个游戏。
-
-### Daily assets
-
-At Run end, offer one daily Joker from a three-choice reward.
-
-Rules:
-
-- expires at 24:00
-- enters the day's available pool
-- may appear as an initial Support candidate next Run
-- rewarded ad may grant one extra choice
-
-Purpose:
-
-- fresh daily builds
-- short-term return motivation
-- no permanent power inflation
-
-### Permanent assets
-
-#### Character fragments
-
-- earned from Run results
-- unlock a permanent character
-- characters provide new pressure models, not raw power
-
-#### Cosmetics
-
-- card fronts
-- card backs
-- tables
-- Cache skins
-- settlement effects
-- character skins
-
-#### Collection
-
-- Joker encyclopedia
-- character encyclopedia
-- pattern records
-- highest build
-- historical best hand
-
-### Principles
-
-Permanent assets provide:
-
-- new choice
-- new play style
-- self-expression
-
-Avoid:
-
-- permanent base multiplier
-- permanent free coins that trivialize economy
-- power tiers that invalidate earlier characters
-
----
+> META 三层生命周期/资产循环/Daily/赛季/皮肤等局外内容随局外 build 于 2026-08-24 删除,
+> 商业化现行方向 = 纯激励视频(补刷新/领体力), 无内购(2026-08-26 用户拍板, 见 TODO 路线 ⑦)。
 
 ## 现行 UI 实现(2026-08-09 从 `../CLAUDE.md` 逐字迁来)
 
@@ -531,7 +430,7 @@ Avoid:
 (`mouse_filter` 从 IGNORE 改 STOP;⚠ 不能用 PASS,点击会穿到下面的手牌边框上)。
 
 **可点的三个条件**(`_can_early_lock`):决策态 · `elapsed ≥ early_lock_min`(2 秒,
-防手滑 —— 这个值来自 docs/design/jokers.md 里 Punk 主角的原始设计「2 秒后可以提前锁定」,
+防手滑 —— 这个值的出处是早期主角设计稿的「2 秒后可以提前锁定」(主角系统已删,数值保留),
 那条设计早就写着只是从未实装)· **动过至少一次手**(与 `_acted_early` 同源,A4 不许挂机)。
 
 **反馈**(用户从三个方案里选的第 2 案):

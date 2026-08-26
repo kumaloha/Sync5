@@ -1,9 +1,0 @@
-{
-  "id": "earlyout",
-  "prompt": "Use case: stylized-concept. Asset type: Sync5 game Joker central totem for a compact 145×50 runtime window. Reference only guides black-glass material and sharp neon rim; do not copy its synth, text, frame, or composition. Original hard-edged 2D cyberpunk nightclub illustration, dark glass/metal, crisp cyan neon rim, one tiny magenta hotspot, memorable silhouette. One compact centered totem; full silhouette visible; subject fills at least 55% width and 60% height where possible; prefer compact near-square or sturdy vertical structure, no thin strip; readable at 145×50. Perfectly flat uniform solid #00ff00 background, no texture, gradient, floor, shadow, reflection, or variation; no #00ff00 in subject. No card frame, title, digits, letters, words, random glyphs, logo, watermark, crowded narrative, or crop. Crisp edges; avoid photorealism, haze, generic circles, tiny detail. Common cyan secondary. Create ‘早弃 / Early Out’: three blank playing-card slabs flying out of a compact ejector before a row of four unlit timing lamps, with the first opening spotlight only beginning to ignite; no digits, ranks, suits, or text.",
-  "revision": 1,
-  "source_sha256": "521ac1934ff7a044daf4d3494f76e7422a0ca26cec748b8068eacb1d7a4a478f",
-  "tool_mode": "built-in",
-  "reference": "assets/reference/ref_joker_holo_synth.png",
-  "raw_codex_path": "/Users/kuma/.codex/generated_images/019fe632-fdfa-76f2-850c-53239465ebcd/exec-385212fd-7abc-45c2-82cd-7126fb5d8cc1.png"
-}

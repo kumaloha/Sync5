@@ -241,7 +241,6 @@ func _play(cfg: Dictionary, faces: Dictionary, perfect: bool, n: int) -> Array:
 		o.rng = _rng
 		o.deck_seed = r * 17 + 5
 		o.faces = faces
-		# o.character 留空:这几份都不掷脸(`faces` 是外面传进来的固定字典), 选主角是
 		# 唯一消耗随机数的一步, 顺序天然对齐 RunLoop 内部的建局顺序。
 		o.player = "adaptive"        # cfg["bot"] 已经带着 perfect/adaptive, 走 cfg 分派
 		o.cfg = pcfg

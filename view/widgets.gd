@@ -11,8 +11,13 @@ extends RefCounted
 ## 正是用户报的「包了一层形状不对的光晕」。**形状一旦有两份就必然再岔开。**
 ## 判据:近正方形(长宽比 <1.3)= 圆钮(弃牌/理牌的 DJ 键)⇒ 按整圆;长条区域 ⇒ 固定圆角。
 static func focus_radius(q: Rect2) -> float:
+	# 圆形分支只给**小方件**(理牌/弃牌那对 ~108px 圆键)——判据带尺寸上限:
+	# 2026-08-24 用户点名「区域是长方形, 灯光打过去是个圆」:教学常亮洞 720×608
+	# 长宽比 1.18 也落进旧判据, 被挖成 304px 圆角的怪圆。大块区域一律方洞(18px 圆角)。
 	var ratio := maxf(q.size.x, q.size.y) / maxf(1.0, minf(q.size.x, q.size.y))
-	return minf(q.size.x, q.size.y) * 0.5 if ratio < 1.3 else 18.0
+	if ratio < 1.3 and minf(q.size.x, q.size.y) <= 160.0:
+		return minf(q.size.x, q.size.y) * 0.5
+	return 18.0
 
 
 ## 教学关的一行提示(docs/design/difficulty.md §4.4)。
@@ -37,20 +42,26 @@ class TutorHint:
 	var light = null
 	## 提示条要躲开的矩形(全部可高亮区域)。空 = 不躲(旧行为)。
 	var _avoid: Array = []
+	## 压暗层的**常亮洞**(2026-08-24 用户:「倒计时边框也应该在教学的时候被看到」
+	## 「展示小丑牌的时候下方整个版面是黑的」):这些矩形只是**不压暗**, 不吃提亮、
+	## 不吃光圈、不参与提示条定位 —— 它们不是「这一步指向哪」, 是「永远不许黑」。
+	var _holes: Array = []
 
 	## ⚠ 本部件铺满全屏, 所以**必须** MOUSE_FILTER_IGNORE, 否则整屏点不动。
-	func set_hint(cn: String, en: String, focus: Array = [], avoid: Array = []) -> void:
+	func set_hint(cn: String, en: String, focus: Array = [], avoid: Array = [],
+			holes: Array = []) -> void:
 		_avoid = avoid
-		if cn == _cn and en == _en and focus == _focus:
+		if cn == _cn and en == _en and focus == _focus and holes == _holes:
 			return                      # 每拍都会被调, 不变就别重画
 		_cn = cn
 		_en = en
 		_focus = focus
+		_holes = holes
 		visible = cn != ""
 		if glow != null:
 			glow.set_focus(focus if cn != "" else [])
 		if dim != null:
-			dim.set_focus(focus if cn != "" else [])
+			dim.set_focus((focus + holes) if cn != "" else [])
 		if light != null:
 			light.set_focus(focus if cn != "" else [])
 		queue_redraw()
@@ -916,6 +927,7 @@ class BlindCard:
 	var next_mod = null       # 下一面墙的预告
 	var boon = null           # 第四轮进入时才揭示的正向惊喜
 	var status_text := ""     # per-phrase public state (request, budget, seals)
+	var roll_note := ""       # 掷类脸的明掷结果(编排器灌入, 追加在 command 后)
 
 	func setup(p_section: int, p_mod, p_next, p_boon = null) -> void:
 		section_idx = p_section
@@ -948,6 +960,9 @@ class BlindCard:
 		if _fp_cache.has(fid):
 			return null
 		var p := "res://assets/blinds/fp_%s.svg" % fid
+		if not ResourceLoader.exists(p):
+			# 2026-08-25 起新脸的特写用素材库 PNG(键控透明), svg 优先、png 兜底。
+			p = "res://assets/blinds/fp_%s.png" % fid
 		_fp_cache[fid] = load(p) if ResourceLoader.exists(p) else false
 		return _fp_cache[fid] if _fp_cache[fid] is Texture2D else null
 
@@ -1044,7 +1059,7 @@ class BlindCard:
 		draw_rect(Rect2(fr2.position, Vector2(2.0 * s, fr2.size.y)),
 			Color(acc.r, acc.g, acc.b, 0.9 * dim), true)
 		var copy: Dictionary = DB.ui().get("blindcard", {}).get(String(face.id), {})
-		var command := String(copy.get("command", face.cn_name))
+		var command := String(copy.get("command", face.cn_name)) + roll_note
 		var live_status := status_text != "" and not preview
 		var span := status_text if live_status else String(copy.get("signal", ""))
 		# 2026-08-11 文案重写成完整句后变长 —— 缩字到底仍装不下 13 字, 改两行:

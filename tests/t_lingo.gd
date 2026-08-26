@@ -22,22 +22,13 @@ var _t_call := RegEx.create_from_string("Lingo\\.t\\(\\s*\"([^\"\\\\]|\\\\.)*\""
 
 func run(t) -> void:
 	var table: Dictionary = DB.lingo().get("table", {})
-	t.check(table.size() >= 250, "table is populated (got %d)" % table.size())
+	# 阈值 2026-08-24 下调 250 → 200:局外 build 删除带走了主角/券/荣誉/资产四族 ~60 条
+	t.check(table.size() >= 200, "table is populated (got %d)" % table.size())
 
 	# ---- ① 数据完整性 ----
 	_walk_data(t, table, DB.ui(), "ui", ["tutor_focus"])
 	_walk_data(t, table, DB.tutorial(), "tutorial", [])
 	_walk_data(t, table, DB.run(), "run", [])
-	for c in DB.characters():
-		for k in ["cn", "title", "fx"]:
-			var v := String(c.get(k, ""))
-			if _han.search(v) != null:
-				t.check(table.has(v), "characters %s '%s' translated" % [k, v])
-	# 资产表的 cn_fx(显示行走 Lingo.t;cn/name 走 pick, 不进表)
-	for a in DB.assets().get("assets", []):
-		var fxv := String(a.get("cn_fx", ""))
-		if _han.search(fxv) != null:
-			t.check(table.has(fxv), "asset cn_fx '%s' translated" % fxv)
 	# 美术线 manifest **只查 amount**(数额章是唯一上屏字段;cn/art_subject/trigger_zh
 	# 是 dev 数据源或有 ui.json 优先级压着, 整树扫会把不上屏的字段全误伤)
 	var mf := FileAccess.open("res://assets/jokers/manifest.json", FileAccess.READ)

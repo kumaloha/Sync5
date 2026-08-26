@@ -78,9 +78,6 @@ func _play(cfg: Dictionary) -> Array:
 	var no_jokers: bool = bool(cfg.get("no_jokers", false))
 	for r in range(N_RUNS):
 		_rng.seed = 620000 + r
-		# ⚠⚠ **RNG 顺序不许动**:先抽主角、后掷脸。RunLoop 内部也会抽主角, 所以这里
-		# 自己抽好传进去(Opts.character 非空时它就不抽了), 否则顺序反过来、读数整体漂移。
-		var character: Character = Character.roster()[_rng.randi_range(0, 7)]
 		# ⚑ 一局四张脸走 SectionMod.roll_run 这一份(2026-08-14 收口, 原来 7 份)——
 		# 保证「一局之内不偶然重复」。RNG 消耗与旧代码逐次相同。
 		# ⚠⚠ **显式传「全解锁」的局数, 不吃默认值**(2026-08-16 加 `min_run` 之后)。
@@ -93,7 +90,6 @@ func _play(cfg: Dictionary) -> Array:
 		var o := RunLoop.Opts.new()
 		o.rng = _rng
 		o.deck_seed = r * 17 + 5
-		o.character = character
 		o.faces = faces
 		o.player = "adaptive"
 		o.cfg = pcfg

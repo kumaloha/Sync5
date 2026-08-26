@@ -1,18 +1,18 @@
 class_name Chrome
 extends RefCounted
 
-## 四屏共用的全局 chrome:首页 + 主角/小丑牌/荣誉三个图鉴页(2026-08-11,
-## docs/mockups/主角|小丑牌|荣誉.dc.html 三份设计稿实装时从 home.gd 迁出成单源)。
-## 这里只放「每个页面都要画的那几件」:底部页签轨、页标题栏、货币章、斜雨、
-## 霓虹字、头像圆盘。页面自己的内容各回各家。
+## 两屏共用的全局 chrome:首页 + 小丑牌图鉴页(2026-08-11 从 home.gd 迁出成单源;
+## 2026-08-24 局外 build 删除后, 主角/荣誉两页与货币章/头像圆盘一起退役)。
+## 这里只放「每个页面都要画的那几件」:底部页签轨、页标题栏、斜雨、霓虹字。
+## 页面自己的内容各回各家。
 
 const W := 720.0
 const H := 1280.0
-const TABS := ["关卡", "主角", "小丑牌", "荣誉"]
+const TABS := ["关卡", "小丑牌"]
 
-# 轨几何与 home.gd 原值一致(卡片外框 24 + 44 = 68 起)
+# 轨几何与 home.gd 原值一致(卡片外框 24 + 44 = 68 起);轨总宽恒 584, 均分给页签
 const TAB_X0 := 68.0
-const TAB_W := 146.0          # (672 - 88) / 4
+const TAB_W := 292.0          # (672 - 88) / 2
 const TAB_Y := 1143.0
 const TAB_ICON_DY := 48.0
 const TAB_LABEL_DY := 100.0
@@ -44,8 +44,7 @@ static func draw_tabs(ci: CanvasItem, active: int, acc: Color) -> void:
 			ci.draw_style_box(StageTheme.box(acc, Color(0, 0, 0, 0), 0, 2), u)
 
 
-## 四个页签的线稿图标(设计稿 SVG path 的简化临摹)。scale 给荣誉页的
-## 奖杯小图复用(1.0 = 页签原尺寸,约 42px 见方)。
+## 页签的线稿图标(设计稿 SVG path 的简化临摹)。
 static func tab_icon(ci: CanvasItem, i: int, c: Vector2, col: Color, scale := 1.0) -> void:
 	var wd := 2.0 * scale
 	var s := scale
@@ -55,28 +54,15 @@ static func tab_icon(ci: CanvasItem, i: int, c: Vector2, col: Color, scale := 1.
 			ci.draw_polyline(PackedVector2Array([c + Vector2(0, -9) * s, c + Vector2(9, 0) * s,
 				c + Vector2(0, 9) * s, c + Vector2(-9, 0) * s, c + Vector2(0, -9) * s]),
 				col, wd, true)
-		1:      # 主角: head + shoulders
-			ci.draw_arc(c + Vector2(0, -10) * s, 10.0 * s, 0, TAU, 26, col, wd, true)
-			ci.draw_arc(c + Vector2(0, 22) * s, 18.0 * s, PI, TAU, 22, col, wd, true)
-		2:      # 小丑牌: the jester crown
+		_:      # 小丑牌: the jester crown
 			ci.draw_polyline(PackedVector2Array([c + Vector2(-18, 14) * s, c + Vector2(-12, -12) * s,
 				c + Vector2(-4, 2) * s, c + Vector2(0, -16) * s, c + Vector2(4, 2) * s,
 				c + Vector2(12, -12) * s, c + Vector2(18, 14) * s, c + Vector2(-18, 14) * s]),
 				col, wd, true)
-		_:      # 荣誉: a trophy
-			ci.draw_polyline(PackedVector2Array([c + Vector2(-10, -18) * s, c + Vector2(10, -18) * s,
-				c + Vector2(10, -6) * s, c + Vector2(0, 4) * s, c + Vector2(-10, -6) * s,
-				c + Vector2(-10, -18) * s]), col, wd, true)
-			ci.draw_arc(c + Vector2(-15, -13) * s, 6.0 * s, PI * 0.5, PI * 1.5, 12, col, wd, true)
-			ci.draw_arc(c + Vector2(15, -13) * s, 6.0 * s, PI * 1.5, PI * 2.5, 12, col, wd, true)
-			ci.draw_line(c + Vector2(0, 4) * s, c + Vector2(0, 12) * s, col, wd, true)
-			ci.draw_line(c + Vector2(-9, 18) * s, c + Vector2(9, 18) * s, col, wd, true)
 
 
-## 图鉴页的页标题栏(设计稿三页共用的头):玻璃条 + 标题/副行 + 货币章。
-## 货币只有宝石(调用方传真钱包;负数 = 不放)—— ◆ 跨局金币 2026-08-22 删。
-static func page_bar(ci: CanvasItem, title: String, sub: String, acc: Color,
-		gems := -1) -> void:
+## 图鉴页的页标题栏:玻璃条 + 标题/副行。(货币章 2026-08-24 随宝石退役。)
+static func page_bar(ci: CanvasItem, title: String, sub: String, acc: Color) -> void:
 	var bar := Rect2(44.0, 22.0, W - 88.0, 82.0)
 	Widgets.StageCard.draw_card(ci, bar, acc, 22.0, 8.0, false)
 	glass_film(ci, bar.grow(-2.0), 20.0)
@@ -85,11 +71,6 @@ static func page_bar(ci: CanvasItem, title: String, sub: String, acc: Color,
 		HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color("eaf6ff"))
 	ci.draw_string(StageTheme.zh(), Vector2(r.position.x + 18.0, r.position.y + 52.0), sub,
 		HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("7487ac"))
-	var cy := r.position.y + r.size.y * 0.5
-	# ◆ 跨局金币的 chip 2026-08-22 用户拍板删掉(那个系统不存在);只剩 ◈ 宝石, 居中。gems < 0 = 这页不放货币。
-	if gems >= 0:
-		chip(ci, Rect2(r.end.x - 130.0, cy - 15.0, 122.0, 31.0), StageTheme.VIOLET,
-			"◈", str(gems), Color("cdb2ff"))
 
 
 ## 玻璃「膜」:从首页大卡的素材(assets/frames/glass.png)裁一条反光带,
@@ -120,22 +101,6 @@ static func glass_film(ci: CanvasItem, r: Rect2, radius := 18.0, alpha := 0.9) -
 		var u := src.position + (p - r.position) / r.size * src.size
 		uvs.append(Vector2(u.x / tw, u.y / th))
 	ci.draw_colored_polygon(pts, Color(1, 1, 1, alpha), uvs, tex)
-
-
-## 货币章(原 home.gd::_chip)。
-static func chip(ci: CanvasItem, r: Rect2, acc: Color, glyph: String, val: String,
-		ink: Color) -> void:
-	ci.draw_style_box(StageTheme.box(Color(acc.r * 0.22, acc.g * 0.16, acc.b * 0.10, 0.45),
-		Color(acc.r, acc.g, acc.b, 0.45), 1, 13), r)
-	var mid := r.position.y + r.size.y * 0.5
-	ci.draw_string(StageTheme.zh(), Vector2(r.position.x + 12.0, mid + 6.0), glyph,
-		HORIZONTAL_ALIGNMENT_LEFT, -1, 16, acc)
-	ci.draw_string(StageTheme.num("Bold"), Vector2(r.position.x + 36.0, mid + 7.0), val,
-		HORIZONTAL_ALIGNMENT_LEFT, -1, 19, ink)
-	ci.draw_arc(Vector2(r.end.x - 18.0, mid), 9.0, 0, TAU, 22,
-		Color(acc.r, acc.g, acc.b, 0.6), 1.2, true)
-	ci.draw_string(StageTheme.num("Medium"), Vector2(r.end.x - 26.0, mid + 6.0), "+",
-		HORIZONTAL_ALIGNMENT_CENTER, 16.0, 15, acc)
 
 
 ## 斜雨(原 home.gd::_draw_rain)。无雨规则只管局内舞台;首页/图鉴/失败屏
@@ -199,17 +164,3 @@ static func neon(ci: CanvasItem, font: Font, txt: String, at: Vector2, fs: int,
 	ci.draw_string(font, at, txt, align, w, fs, core)
 
 
-## 头像圆盘:把 512×512 头像按 manifest 的 avatar_crop 取最大内切圆,
-## UV 多边形贴出来(原 home.gd 内联的那段)。
-static func avatar_disc(ci: CanvasItem, c: Vector2, rad: float, tex: Texture2D,
-		crop: Rect2) -> void:
-	var ucx := crop.position.x + crop.size.x * 0.5
-	var ucy := crop.position.y + crop.size.y * 0.5
-	var ur := minf(crop.size.x, crop.size.y) * 0.5
-	var pts := PackedVector2Array()
-	var uvs := PackedVector2Array()
-	for i in range(40):
-		var a := TAU * float(i) / 40.0
-		pts.append(c + Vector2(cos(a), sin(a)) * rad)
-		uvs.append(Vector2(ucx + cos(a) * ur, ucy + sin(a) * ur))
-	ci.draw_colored_polygon(pts, Color.WHITE, uvs, tex)

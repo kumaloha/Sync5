@@ -7,8 +7,28 @@ const SOURCE_SIZE := Vector2i(1024, 1024)
 const OUTPUT_SIZE := Vector2i(1024, 400)
 const ART_BOX_SIZE := Vector2i(900, 360)
 const ALPHA_THRESHOLD := 64.0 / 255.0
+const OVERSCAN := 1.35   # 方图母版塞横幅的折中倍率(理由见 _build_runtime_art 内注释)
+
+
+## ⚑ 黑底转透明(2026-08-24 用户拍板②:「小丑牌是蓝色透明玻璃板作底」——
+## 不透明黑方块会把玻璃感盖死;发光素材标准键控:黑 = 透明, 越亮越实,
+## 槽位里就是「光悬在玻璃上」)。**只此一份**:webslim 的 512 线借调本函数。
+## a = max(r,g,b)(比亮度公式保饱和色的光强 —— 纯蓝辉光的 luma 很低会被杀),
+## 底噪地板 0.03 以下归零(黑底的压缩噪点别变成一层雾)。
+static func key_black_to_alpha(img: Image) -> void:
+	img.convert(Image.FORMAT_RGBA8)
+	for y in range(img.get_height()):
+		for x in range(img.get_width()):
+			var c := img.get_pixel(x, y)
+			var a := maxf(c.r, maxf(c.g, c.b))
+			if a < 0.03:
+				a = 0.0
+			img.set_pixel(x, y, Color(c.r, c.g, c.b, minf(a, c.a)))
 const BBOX_PADDING := 24
-const EXPECTED_CARD_COUNT := 67
+# 2026-08-16 双色调拆分后 manifest = 69(67 是过期常量, 2026-08-24 重设计接入时撞出)
+# 2026-08-25 对抗批·波2 +5(快进/打碟/金嗓/静场/和声)+ 波3 +5(合奏/孤注/彩头/
+# 灌铅骰/回收)+ 波4 +3(客串/斗牛士/盲奏), 素材取自 expansion_20260825 素材库 = 82
+const EXPECTED_CARD_COUNT := 82
 
 var _errors: Array[String] = []
 
@@ -165,7 +185,11 @@ func _build_runtime_art(id: String) -> void:
 
 	var padded_bbox := _pad_rect(bbox, BBOX_PADDING, size)
 	var crop_size := padded_bbox.size
-	var scale: float = min(1.0, min(float(ART_BOX_SIZE.x) / float(crop_size.x), float(ART_BOX_SIZE.y) / float(crop_size.y)))
+	# ⚑ 折中 cover(2026-08-24 重设计接入, 用户:「新图尺寸不对」):新母版是辉光满幅的
+	# 方图, bbox≈整张, 纯 fit 会把主体缩成 360² 的小方块居中。允许在 fit 基础上再放大
+	# OVERSCAN 倍, 纵向溢出的部分**居中裁掉** —— 裁的是外圈辉光, 主体保住尺寸。
+	var fit_s: float = min(float(ART_BOX_SIZE.x) / float(crop_size.x), float(ART_BOX_SIZE.y) / float(crop_size.y))
+	var scale: float = min(1.0, fit_s * OVERSCAN)
 	var scaled_size := Vector2i(max(1, int(round(crop_size.x * scale))), max(1, int(round(crop_size.y * scale))))
 	var art := Image.create(crop_size.x, crop_size.y, false, Image.FORMAT_RGBA8)
 	art.fill(Color(0, 0, 0, 0))
@@ -173,10 +197,13 @@ func _build_runtime_art(id: String) -> void:
 	if scaled_size != crop_size:
 		art.resize(scaled_size.x, scaled_size.y, Image.INTERPOLATE_LANCZOS)
 
+	var vis := Vector2i(mini(scaled_size.x, ART_BOX_SIZE.x), mini(scaled_size.y, ART_BOX_SIZE.y))
+	var src_off := Vector2i((scaled_size.x - vis.x) / 2, (scaled_size.y - vis.y) / 2)
 	var output := Image.create(OUTPUT_SIZE.x, OUTPUT_SIZE.y, false, Image.FORMAT_RGBA8)
 	output.fill(Color(0, 0, 0, 0))
-	var offset := Vector2i((OUTPUT_SIZE.x - scaled_size.x) / 2, (OUTPUT_SIZE.y - scaled_size.y) / 2)
-	output.blit_rect(art, Rect2i(Vector2i.ZERO, scaled_size), offset)
+	var offset := Vector2i((OUTPUT_SIZE.x - vis.x) / 2, (OUTPUT_SIZE.y - vis.y) / 2)
+	output.blit_rect(art, Rect2i(src_off, vis), offset)
+	key_black_to_alpha(output)   # 黑底转透明(见函数头;在缩放后做, 像素量小一个量级)
 
 	var output_path := OUTPUT_TEMPLATE % id
 	var save_error := output.save_png(output_path)

@@ -1,8 +1,9 @@
 class_name SaveState
 extends RefCounted
 
-## 跨局存档 —— 教学标记 · 会话/局数 · 券 · 主角 · 语言 · install_id · 玩家状态 m(战绩/见过的脸)· 宝石与资产。
-## (文件头这句 08-21 才更新:此前还写着「只存一件事」,而键早已有十几个。)
+## 跨局存档 —— 教学标记 · 会话/局数 · 语言 · install_id · 玩家状态 m(战绩/见过的脸)。
+## (2026-08-24 局外 build 整体删除:券/主角/宝石/资产/终身计数键全部退役,
+## 留下的只有局内玩法依赖的跨局事实:教学一次性、Director 的 ctx 原料、会话边界、语言。)
 ## 写盘 = 原子写 + .bak + 版本键 `v`(见 _flush / _migrate)。
 ##
 ## ⚑ 为什么单开一个文件而不是往 `Run` 上挂:TODO 里挂着的**断点续玩**
@@ -26,7 +27,7 @@ static var _loaded := false
 ## ⚑⚑ **探针一律当「老玩家」, 而且绝不落盘。**
 ##
 ## 起因是一次真实事故(2026-08-15, 当天就抓到):`tools/flow_probe.gd` 通过
-## `_on_home_start()` + `choose_character()` 驱动游戏 —— 那正是教学关的入口。
+## `_on_home_start()` + `start_run()` 驱动游戏 —— 那正是教学关的入口。
 ## 于是 **第一次跑**(机器上没有存档)走教学关、撞破流程不变量报 `1 bugs`,
 ## **而它自己把存档写了出来**, 第二次跑就绕开教学关报 `0 bugs`。
 ## **同一棵树两次不同结果, 而差别藏在 `~/Library/.../user://` 里。**
@@ -52,7 +53,7 @@ static func is_probe() -> bool:
 ## 教学关看过没有。⚠ 读不到 / 解析失败 = false(当新玩家), 见文件头。
 ##
 ## ⚑ 探针缺省当「看过」(不进教学关), **`SYNC5_PROBE_FRESH=1` 时当新玩家**(2026-08-18)——
-## 教学关真路径探针要走和真人一样的入口(公示卡闸/掷脸的教学分支/步进都在 choose_character
+## 教学关真路径探针要走和真人一样的入口(公示卡闸/掷脸的教学分支/步进都在 start_run
 ## 里按 seen_tutorial 分岔), 在编排器外面手按 `run.tutorial` 的探针拿到的是错位的假象
 ## (交接里两次「教学关截图冒出 BOSS 脸」正是按晚了)。⚠ 只影响这一个读数,
 ## 券/存档的探针闸不动 —— 教学关本来就不该依赖它们。
@@ -74,7 +75,7 @@ static func mark_tutorial_seen() -> void:
 ##
 ## ⚠⚠ **UI 上还没有入口, 这是有意的**(2026-08-15):三个可能的落点全都是用户的地盘 ——
 ## 页签轨的几何锁死在「四屏单源」(`Chrome.TAB_W = (672-88)/4`, 加第 5 个会改动全部四个)·
-## 荣誉页以 `docs/mockups/荣誉.dc.html` 为权威 · 首页用户明确否过加东西(「别加东西了」)。
+## 首页用户明确否过加东西(「别加东西了」)。
 ## **放哪是口味决定, 不该由我替他拍**, 所以先只留机制:接到哪个按钮上都是一行。
 ## ⚠ 用户对这件事本身的判断是「**教一把就会了**」—— 所以别默认它一定要有入口。
 static func clear_tutorial() -> void:
@@ -124,108 +125,6 @@ static func runs_total() -> int:
 	return int(_data().get("runs_total", 0))
 
 
-## ---- 券(消耗品层)· 2026-08-16 ----
-##
-## ⚑ 存两个键:`tickets` = {券 id: 张数} · `tickets_day` = 上次结算是第几天。
-## **每次读都先结算「今天是不是新的一天」** —— 不靠任何定时器, 因为玩家可能几天不开。
-##
-## ⚠⚠ **清零只清 `tickets`, 绝不碰别的键。** `runs_total` 是 `min_run`(禁回第 10 局解锁)
-## 的依据, 教学关标记也在同一个字典里 —— 顺手 `clear()` 会把解锁进度一起清掉,
-## 而那种 bug 只有玩了十局的人才发现得了。
-##
-## ⚠ 探针一律**没有券也不落盘**(同本文件其余六道闸):券是玩家的日常状态,
-## 让探针拿到它就等于让实验条件依赖「这台机器今天领没领」。
-
-
-## 今天的券。⚠ 会**顺带结算过期**并落盘(所以它不是纯读)。
-## ⚑ 逻辑在 `Ticket` 的纯函数里, 这里只负责**盘 + 时钟 + 探针闸**三件不可测的事。
-static func tickets() -> Dictionary:
-	# ⚑ `not Ticket.enabled()` = 1.0 不上券的总闸(数据开关, 五个入口同一句)——
-	# 关掉唯一进水口后其余路径本就死水, 连读口一起闸是为了让**存档里已有的券也隐身**。
-	if _is_probe() or not Ticket.enabled():
-		return {}
-	var d := _data()
-	if Ticket.reset_if_new_day(d, Ticket.day_index(int(Time.get_unix_time_from_system()))):
-		_flush()
-	return d.get("tickets", {})
-
-
-## 每天第一次打开时结算发放。返回发到的券 id(空串 = 今天已领 / 满仓 / 探针)。
-## ⚠ 调用方 = 编排器启动时一次(同 `session_start`), 别在别处调。
-static func settle_daily_ticket() -> String:
-	if _is_probe() or not Ticket.enabled():
-		return ""
-	var d := _data()
-	var today := Ticket.day_index(int(Time.get_unix_time_from_system()))
-	Ticket.reset_if_new_day(d, today)          # 先清过期, 再发今天的
-	# ⚠ 「今天到了没」要在 settle_daily_grant **之前**读 —— 它会把 grant_day 盖成今天。
-	var fresh_day := int(d.get("grant_day", -1)) != today
-	var rng := RandomNumberGenerator.new()
-	rng.randomize()
-	var got := Ticket.settle_daily_grant(d, today, rng)
-	# 券类资产的每日加发(META 变现的力量侧, core/asset.gd)。只在跨天那次发,
-	# 静默入托盘 —— 每日提示仍只报基础那张(一天飘一句就够)。
-	if fresh_day:
-		for tid in Asset.daily_ticket_ids(d):
-			Ticket.grant_with_roll(d, String(tid), 1, rng)
-	_flush()
-	return got
-
-
-static func tickets_held(tid: String) -> int:
-	return int(tickets().get(tid, 0))
-
-
-## 发一张券(看广告/每日领取的出口)。返回实际发到的张数。
-static func grant_ticket(tid: String, n: int = 1) -> int:
-	if _is_probe() or not Ticket.enabled():
-		return 0
-	tickets()                      # ← 顺带结算跨天
-	var rng := RandomNumberGenerator.new()
-	rng.randomize()
-	var got := Ticket.grant_with_roll(_data(), tid, n, rng)
-	if got > 0:
-		_flush()
-	return got
-
-
-## 队首掷值(boost 的「下一张是 ×几」)。UI 展示与使用前的确认都读这里。
-static func ticket_roll(tid: String) -> float:
-	if _is_probe() or not Ticket.enabled():
-		return 0.0
-	return Ticket.peek_roll(_data(), tid)
-
-
-## 用掉一张。返回是否真的用掉了。
-## ⚑ 掷值与张数**必须同步弹**(FIFO)—— 只减张数不弹值, 下一张会「继承」用掉那张的值。
-static func consume_ticket(tid: String) -> bool:
-	if _is_probe() or not Ticket.enabled():
-		return false
-	var held := tickets()
-	if not Ticket.consume_from(held, tid):
-		return false
-	_data()["tickets"] = held
-	Ticket.pop_roll(_data(), tid)
-	_flush()
-	return true
-
-
-## 当前主角(2026-08-18 用户拍板:「不要在局内开局选角色, 在角色页面选了谁就是谁」)。
-## 角色页每次点选即落盘;开局直接读这里, 局内选角屏(PickWalker)从流程上退役。
-## ⚠ 探针返回 1 —— 历史上所有探针都 choose_character(1), 探针世界保持逐字节不变。
-static func hero() -> int:
-	if _is_probe():
-		return 1
-	return int(_data().get("hero", 0))
-
-
-static func set_hero(i: int) -> void:
-	if _is_probe():
-		return
-	_data()["hero"] = i
-	_flush()
-
-
 ## 本机安装 id(1.1 回传)。随机生成一次, 从此不变 —— 只用来把同一台机器的局串起来
 ## (会话边界 D4 的分母), 不含任何 PII。探针恒 "probe":探针日志本来就不该混进真人数据,
 ## 万一探针闸漏了, 服务端还能按这个字段兜底过滤。
@@ -241,29 +140,10 @@ static func install_id() -> String:
 	return String(d["install_id"])
 
 
-## ---- 玩家状态 m + META 资产(1.1, 2026-08-19)----
+## ---- 玩家状态 m(1.1, 2026-08-19)----
 ## m = generating.md §3 的玩家状态向量, 这里存它的两个切片:近期战绩(streak 的原料)
 ## 与 faces_seen(新鲜感 N 的原料)。**消费端是 Director 的 ctx 入参** —— core 纯逻辑
 ## 不偷读存档(min_run 那条铁律), 由编排器在开局时取这里的读数传进去。
-## META 资产:宝石(gems)与持有资产(assets), 簿记逻辑全在 core/asset.gd 的纯函数里,
-## 这里只做「探针闸 + 落盘」的壳(券的四层同款分工)。
-
-## 首页信息栏的档案(meta.md §8, 2026-08-22 用户拍板:参与度等级 + 删 ◆ chip):
-## 等级/经验/称号全部从**累计通关段数**推(`Asset.level_for`), 与宝石收入同源;跨局金币不存在, 不再有这个键。
-## 探针读到的是零历史(LV.1 · 0/4), 与新玩家同值。
-static func profile() -> Dictionary:
-	return Asset.level_for(int(stats().get("sections", 0)))
-
-
-## 终身计数(成就页的真数据源, 2026-08-22):局数 / 通关数 / 通关段数。
-## ⚠ `history` 只留 20 圈, 不能拿它数终身;这三个是独立累加的键, 只增不减。
-static func stats() -> Dictionary:
-	if _is_probe():
-		return {"runs": 0, "wins": 0, "sections": 0}
-	var d := _data()
-	return {"runs": int(d.get("runs_total", 0)), "wins": int(d.get("wins_total", 0)),
-		"sections": int(d.get("sections_total", 0))}
-
 
 ## 近期战绩, 定长 20 圈。每条只记两件事实:赢没赢 · 死在第几段(-1 = 通关)。
 static func run_history() -> Array:
@@ -322,58 +202,22 @@ static func returning_run() -> bool:
 	return _session_gap >= Director.return_gap_s() and _session_runs == 0
 
 
-static func gems() -> int:
-	if _is_probe():
-		return 0
-	return int(_data().get("gems", 0))
-
-
-static func assets_owned() -> Array:
-	if _is_probe():
-		return []
-	return Asset.owned(_data())
-
-
-## 唱片解锁的曲目(Music 读)/ 视觉声势(run_end · stage_bg 读)。探针恒空 ⇒ 截图稳定。
-static func owned_tracks() -> Array:
-	if _is_probe():
-		return []
-	return Asset.owned_tracks(_data())
-
-
-static func has_flair(kw: String) -> bool:
-	if _is_probe():
-		return false
-	return Asset.has_flair(_data(), kw)
-
-
-static func buy_asset(id: String) -> bool:
-	if _is_probe():
-		return false
-	if not Asset.buy(_data(), id):
-		return false
-	_flush()
-	return true
-
-
-## 一局收尾的 META 结算(成败两条路都走这一个口):
-## ① 战绩入圈 + faces_seen 累计(喂 Director 的 ctx)
-## ② 宝石收入 = 基础(按**通关段数**, 明确不挂分数)+ 资产分红(变现)
-## 返回 {"earn": 基础, "yield": 分红} 给结算屏显示。探针恒空且绝不落盘。
+## 一局收尾的跨局记账(成败两条路都走这一个口):
+## 战绩入圈 + faces_seen 累计 —— **全部是 Director ctx 的原料**, 不再有任何货币。
+## (2026-08-24 局外 build 删除:宝石收入/终身计数原在这里, 已连系统一起退役。)
+## 探针绝不落盘。
 static func settle_run_meta(won: bool, sections_cleared: int, faces: Array,
-		boon: String = "", target_id: String = "") -> Dictionary:
+		boon: String = "", target_id: String = "") -> void:
 	if _is_probe():
-		return {}
+		return
 	var d := _data()
 	var h: Array = d.get("history", [])
 	h.append({"w": won, "d": -1 if won else sections_cleared})
 	while h.size() > 20:
 		h.pop_front()
 	d["history"] = h
-	# 终身计数(成就页):通关段数与通关数 —— 和宝石收入同一个来源(META §3:收入只挂参与)
+	# 累计通关段数 = 首页 EXP 的原料(参与度口径:失败也算打过的段)。
 	d["sections_total"] = int(d.get("sections_total", 0)) + maxi(0, sections_cleared)
-	if won:
-		d["wins_total"] = int(d.get("wins_total", 0)) + 1
 	var fs: Dictionary = d.get("faces_seen", {})
 	for f in faces:
 		var s := String(f)
@@ -388,12 +232,7 @@ static func settle_run_meta(won: bool, sections_cleared: int, faces: Array,
 		var tu: Dictionary = d.get("targets_used", {})
 		tu[target_id] = int(tu.get(target_id, 0)) + 1
 		d["targets_used"] = tu
-	var earn := Asset.gems_per_section() * maxi(0, sections_cleared) \
-		+ (Asset.full_clear_bonus() if won else 0)
-	var yielded := Asset.run_yield(d)
-	d["gems"] = int(d.get("gems", 0)) + earn + yielded
 	_flush()
-	return {"earn": earn, "yield": yielded}
 
 
 ## 语言覆写(1.1 英文化)。"" = 没设过, 跟系统语言走(解析顺序在 core/lingo.gd 文件头)。
@@ -422,8 +261,71 @@ static func note_run_started() -> void:
 	_session_runs += 1
 	var d := _data()
 	d["runs_total"] = int(d.get("runs_total", 0)) + 1
+	# 今日局数(体力显示的分母)。跨天第一局先清零再计 —— 不靠定时器, 玩家可能几天不开。
+	if String(d.get("runs_day", "")) != _day_key():
+		d["runs_day"] = _day_key()
+		d["runs_today"] = 0
+	d["runs_today"] = int(d.get("runs_today", 0)) + 1
 	d["last_seen"] = int(Time.get_unix_time_from_system())
 	_flush()
+
+
+## ---- 首页顶栏(2026-08-24 用户:「顶部保持样式 · 体力可以存在 · 金币/宝石去掉」)----
+##
+## ⚑⚑ **体力目前只显示、不拦人**:它 = `energy_max − 今日已开局数`(每天回满),
+## 是从真实局数**推导**的余额, 不是独立资源 —— 没有假进度(08-22「首页数字全真」拍板)。
+## 要不要用它拦开局、拦了怎么回(等时间/看广告/买), 全归用户拍;在那之前局内玩法不受它影响。
+## ⚠ 探针恒满且不落盘(截图稳定, 实验条件不依赖机器本地状态 —— 本文件的一贯闸)。
+
+static func energy_max() -> int:
+	return int(DB.profile().get("energy_max", 5))
+
+
+static func energy() -> int:
+	if _is_probe():
+		return energy_max()
+	var d := _data()
+	if String(d.get("runs_day", "")) != _day_key():
+		return energy_max()
+	return maxi(0, energy_max() - int(d.get("runs_today", 0)))
+
+
+## 参与度等级(EXP = 累计通关段数, 不挂分数)。返回 {level, xp, xp_max}。
+## 探针 = 新玩家同值(LV.1 · 0/x)。
+static func profile() -> Dictionary:
+	var per := maxi(1, int(DB.profile().get("xp_per_level", 4)))
+	var xp := 0 if _is_probe() else int(_data().get("sections_total", 0))
+	return {"level": xp / per + 1, "xp": xp % per, "xp_max": per}
+
+
+## 本地日历日(体力/今日局数的跨天判据)。用本地时区 —— 「新的一天」对玩家是本地半夜。
+static func _day_key() -> String:
+	var t := Time.get_datetime_dict_from_system()
+	return "%04d-%02d-%02d" % [int(t["year"]), int(t["month"]), int(t["day"])]
+
+
+## ---- 断点续玩(2026-08-24 用户:「没有断点续玩」)----
+## 快照内容由 core/run.gd 组装(纯事实);这里只管盘 + 探针闸。
+## ⚠ 探针不存不读:恢复路径依赖机器本地状态, 正是探针纪律要挡的形状(flow_probe 事故同款)。
+static func checkpoint() -> Dictionary:
+	if _is_probe():
+		return {}
+	return _data().get("resume", {})
+
+
+static func save_checkpoint(d: Dictionary) -> void:
+	if _is_probe():
+		return
+	_data()["resume"] = d
+	_flush()
+
+
+static func clear_checkpoint() -> void:
+	if _is_probe():
+		return
+	if _data().has("resume"):
+		_data().erase("resume")
+		_flush()
 
 
 ## ⚠ 只给测试用:把内存态清掉并重读。**不删盘上的文件** ——
@@ -478,9 +380,9 @@ static func _read_json(path: String):
 	return parsed
 
 
-## 存档格式版本(2026-08-21 审查:存档已装着宝石/资产/券/战绩, 坏掉不再只是「重看教学」)。
+## 存档格式版本(2026-08-21 审查加版本键;v2 = 2026-08-24 局外 build 删除, 清退役键)。
 ## 读到更高版本 = 别的构建写的, 照读不丢;读到更低版本 = 走 _migrate 逐级升。
-const SAVE_VERSION := 1
+const SAVE_VERSION := 2
 const BAK_PATH := "user://sync5.save.bak.json"
 
 
@@ -503,9 +405,17 @@ static func _flush() -> void:
 	dir.rename(tmp.get_file(), PATH.get_file())
 
 
-## 逐级迁移(现在只有 v1;以后改键名/形状在这里加一段, 每段只负责 n → n+1)。
+## 逐级迁移(每段只负责 n → n+1)。
 static func _migrate(d: Dictionary) -> Dictionary:
 	var v := int(d.get("v", 0))
 	if v < 1:
 		d["v"] = 1   # v0 = 08-21 前的无版本档, 键形状与 v1 相同
+	if v < 2:
+		# v2(2026-08-24):局外 build 整体删除 —— 券/主角/宝石/资产的键清掉,
+		# 免得死键在存档里一直背着。留下的键(教学/会话/战绩圈/faces_seen/语言)原样。
+		# ⚠ `sections_total` **不清**:同日用户要回顶栏 EXP, 它就是原料, 老档进度直接接上。
+		for k in ["tickets", "tickets_day", "grant_day", "ticket_rolls",
+				"hero", "gems", "assets", "wins_total"]:
+			d.erase(k)
+		d["v"] = 2
 	return d

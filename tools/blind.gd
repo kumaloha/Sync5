@@ -107,7 +107,6 @@ func _play(cfg: Dictionary, mod: String, oracle: bool) -> Array:
 		o.rng = _rng
 		o.deck_seed = r * 17 + 5
 		o.faces = faces
-		# o.character 留空:选主角是这条臂唯一消耗随机数的一步, 顺序天然对齐 RunLoop 内部。
 		o.player = "adaptive"        # cfg["bot"]="perfect" 才是真正派到完美玩家, 见 Opts 注释
 		o.cfg = pcfg
 		o.shop = false

@@ -34,6 +34,10 @@ var scoring := false
 var selected := false
 var show_back := false
 var violet := false                 # cache slots use the violet chrome
+## 蒙点/蒙色(2026-08-25):属性遮蔽 —— 点数或花色画成「?」, 另一半照常。
+## 蒙色时墨色也必须中性化:两色制里颜色本身就是花色情报。
+var mask_rank := false
+var mask_suit := false
 var drag_payload: Dictionary = {}
 var accept_zones: Array = []
 var blocked_label := ""             # compact public Blind marker: 弃 / 换 / 丢
@@ -203,6 +207,8 @@ static func sheen() -> GradientTexture2D:
 func _accent() -> Color:
 	if card == null:
 		return StageTheme.SUIT_BLK
+	if mask_suit:
+		return StageTheme.DIM   # 蒙色:红粉/青蓝就是花色情报, 一并遮掉
 	return StageTheme.SUIT_RED if card.is_red() else StageTheme.SUIT_BLK
 
 
@@ -221,6 +227,8 @@ func _frame() -> Color:
 		return Color(StageTheme.CACHE_ACCENT.r, StageTheme.CACHE_ACCENT.g, StageTheme.CACHE_ACCENT.b, 0.8)
 	if card == null:
 		return StageTheme.FRAME_BLK
+	if mask_suit:
+		return StageTheme.DIM   # 蒙色:边框的红/青也是花色情报, 一并中性化
 	return StageTheme.frame_color(card)
 
 
@@ -302,14 +310,32 @@ func _corner(pos: Vector2, acc: Color, rotated: bool) -> void:
 	var font := StageTheme.num("Bold")
 	var fs := int(32.0 * s)
 	# tube glow in the suit colour, near-white filament on top
-	_neon_text(font, card.rank_label(), Vector2(0, fs * 0.84), fs, acc, StageTheme.CARD_INK)
+	var rank_text := "?" if mask_rank else card.rank_label()
+	_neon_text(font, rank_text, Vector2(0, fs * 0.84), fs, acc, StageTheme.CARD_INK)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
 ## One large suit glyph, dead centre.
 func _draw_centre_suit(w: float, h: float, acc: Color) -> void:
 	var s := w / 114.0
+	if mask_suit:
+		# 蒙色:中央画一个大「?」, 用同一套霓虹管语言。
+		var font := StageTheme.num("Bold")
+		var fs := int(40.0 * s)
+		_neon_text(font, "?", Vector2(w * 0.5 - fs * 0.28, h * 0.5 + fs * 0.34),
+			fs, acc, StageTheme.CARD_INK)
+		return
 	_suit(Vector2(w * 0.5, h * 0.5), 27.0 * s, acc, false)
+
+
+## 属性遮蔽开关(变了才重画;编排器每帧灌 vm, 不判变会白刷)。
+func set_masks(p_rank: bool, p_suit: bool) -> void:
+	if mask_rank == p_rank and mask_suit == p_suit:
+		return
+	mask_rank = p_rank
+	mask_suit = p_suit
+	_apply_style()   # 边框与辉光在 StyleBox 里, 不重建的话蒙色只遮一半
+	queue_redraw()
 
 
 ## 大王 / 小王 — vertical JOKER rails plus the jester mark, all in the same

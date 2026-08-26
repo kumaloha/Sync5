@@ -140,12 +140,20 @@ func _card_ev(id: String, st: Dictionary, slots: Array, phrases_left: int) -> fl
 			return _glow_avg() * score_mean * minf(future, float(EV["glowstick_horizon"])) \
 				/ float(EV["glowstick_horizon"])
 		"bassline":
-			return _amt(id) * (_rate(st, String(p["rate"]), float(p["prior"])) * future * gh / 12.0) * score_mean
+			# 步长从 jokers.json 推导(不许手抄第二份 —— 12 弃/档时代这里就是抄死的 12.0,
+			# 2026-08-25 提速到 8 弃/档时被抓)。
+			var bl_step := 8.0
+			for e in DB.jokers():
+				if String(e["id"]) == id:
+					bl_step = float(e["effects"][0]["do"].get("step", bl_step))
+			return _amt(id) * (_rate(st, String(p["rate"]), float(p["prior"])) * future * gh / bl_step) * score_mean
 		"mirror":
 			# 2026-08-21 评审:此前读 sim.json 的 target_tf —— Target 倍率**过期的第二份**
 			# (twin 3.5 vs 真值 6, 且 wrecker 缺失 ⇒ 镜面在 bot 眼里一文不值)。改从 jokers.json 推导。
 			var tf: float = _target_peak(tid)
-			return _rate(st, String(p["rate"]), float(p["prior"])) * (tf - 1.0) * _mirror_power() * score_mean
+			# 2026-08-25 改造:连续两拍达成才生效 —— streak 折扣先验(ev.cards)。
+			return _rate(st, String(p["rate"]), float(p["prior"])) * float(p.get("streak", 1.0)) \
+				* (tf - 1.0) * _mirror_power() * score_mean
 		"shortcut", "fourfingers", "redtone", "blacktone", "trim":
 			var ot: Array = p["on_target"]
 			var bm: float = score_mean / maxf(1.0, mult_mean)
@@ -232,6 +240,43 @@ func _card_ev(id: String, st: Dictionary, slots: Array, phrases_left: int) -> fl
 			return _amt(id) * float(p["hits"]) * mult_mean
 		"bassclef":
 			return (_amt(id) - float(p["avg_low_rank"])) * float(p["hits"]) * mult_mean
+		# ---- 2026-08-25 对抗批·波2(docs/design/versus.md):五张乘法出口。
+		# 数额照旧 _amt 从 json 推导;行为先验在 ev.cards, kit/price 重跑后归仪器。----
+		"fastforward":      # 每次提前收工 ×+0.1 永久:早收率 × 成长视野
+			return _rate(st, String(p["rate"]), float(p["prior"])) * _amt(id) * (future * gh) * score_mean
+		"deejay":           # 每次刷新 ×+0.05 永久:预期刷新次数 × 成长视野
+			return _amt(id) * float(p["events"]) * (future * gh) * score_mean
+		"goldenvoice":      # 每持 6◆ ×+0.1:持币档数 × 均分
+			return _amt(id) * float(p["coin_steps"]) * score_mean
+		"hush":             # 零弃零换拍 ×+0.4:先验触发率 × 均分
+			return float(p["fixed_rate"]) * _amt(id) * score_mean
+		"harmony":          # 缓存同花 ×+0.3:同 chord 的触发率口径
+			return _rate(st, String(p["rate"]), float(p["prior"])) * _amt(id) * score_mean
+		# ---- 2026-08-25 波3:合奏/赌具组/回收。先验为设计估值, kit/price 后归仪器。----
+		"ensemble":         # 八选五的期望增益, 平摊成均分比例
+			return float(p["gain"]) * score_mean
+		"allin":            # EV=×1.25, 方差是产品
+			return float(p["gain"]) * score_mean
+		"jackpot":          # 1/6 末拍 × 1/2 × (+200%)
+			return float(p["gain"]) * score_mean
+		"loadeddice":       # 概率放大器:强度 = 场上赌卡数
+			var gambles := 0
+			for j2 in slots:
+				if j2 != null and j2.chance_rolls_needed() > 0:
+					gambles += 1
+			return float(p["gain_per_gamble"]) * float(gambles) * score_mean
+		"recycle":          # 每拍预期献祭点数 × 每点奖励分
+			return _amt(id) * float(p["ranks_per_beat"])
+		"gueststar":        # 租赁:超额数值 × 只活一段的折价
+			return _amt(id) * score_mean * float(p["rental"])
+		"blindplay":        # 盲奏:预期盖牌上台张数 × 每张 chips × 倍率链
+			return _amt(id) * float(p["hidden_per_beat"]) * mult_mean
+		"matador":          # 斗牛士:被咬率 × 每口的◆(数额从 hold 读, 不手抄)
+			var mt_coins := 0.0
+			for e in DB.jokers():
+				if String(e["id"]) == id:
+					mt_coins = float(e.get("hold", {}).get("face_coins", 0))
+			return float(p["bites_per_beat"]) * mt_coins * coin_val
 	# ⚠ 落到这里 = 这张卡在 bot 眼里**一文不值**, 永远不买 ⇒ 尺子里从不存在(2026-08-21 评审:
 	# 快闪就这么隐身了一周)。shop/coin 通路的卡本就不走这条(求解器/货架臂各有去处);
 	# score/solver 通路缺臂就响一声 —— 但只响一次, 别把 sim 日志灌满。
@@ -644,7 +689,7 @@ func _notify_discard(slots: Array, n: int) -> void:
 ## 孤立一拍地看, 最优解永远是把钱花光 —— 那是 `docs/design/history_adversarial.md` §7 警告的幻想区。
 ## 所以先把「切法」这一维做干净, 弃牌随后同样用影子价接进来。
 ##
-## ⚠ 已知近似:传给 Settle 的上下文缺 prev_kind / character / 时机旗
+## ⚠ 已知近似:传给 Settle 的上下文缺 prev_kind / 时机旗
 ## (它们在 sim 的循环里、bot 决策时还不存在)。小丑牌倍率是全的, 所以流派差异看得见;
 ## 「禁回」这类跨拍谓词看不见。DP 上来时要把上下文一起穿进来。
 func _play_perfect(p: Phrase, slots: Array, mod: String = "",
@@ -652,7 +697,7 @@ func _play_perfect(p: Phrase, slots: Array, mod: String = "",
 		eps: float = 0.0) -> void:
 	var extra := {
 		"prev_kind": -99, "acted_late": false, "discards": p.discards_used,
-		"coins": p.coins, "phrase_idx": 0, "mod": mod, "character": null,
+		"coins": p.coins, "phrase_idx": 0, "mod": mod,
 	}
 	# ① 弃牌(2026-08-06 起**免费**, 只受手速预算限制 —— 金币影子价 κ 因此整个消失,
 	#    求解器少一个要扫的参数)。弃的是「这拍用不上的那 3 张」, 计分的 5 张不动。
@@ -660,7 +705,7 @@ func _play_perfect(p: Phrase, slots: Array, mod: String = "",
 	# 玩家看不见的那几张在 visible 里的下标, `bs` 是给它们的替身采样组数。
 	# 完全信息时两者都是空/0, 老路径逐位不变(tests/runner.gd 锁着)。
 	var bs: int = GameConfig.BLIND_SAMPLES
-	var dur := Run.phrase_duration_for(section, mod)
+	var dur := Run.phrase_duration_for(section, mod, p.phrase_idx)
 	var d_max: int = GameConfig.beat_discards(dur, section)
 	if d_max > 0:
 		var vis0: Array = []
@@ -766,6 +811,15 @@ func _play_random(p: Phrase, slots: Array) -> void:
 ## payoff. Free cache swaps pull material in first, then paid discards chase
 ## the chosen plan.
 func _play_adaptive(p: Phrase, slots: Array, target_id: String, section: int, mod: String = "") -> void:
+	# 静场の誓(2026-08-25/26):持有静场时, **手牌已成才静**(keep_all 拍白拿 +0.4),
+	# 手牌还烂照常筛牌 —— 第一版整局全静, kit 实测 −940(机会成本 −1300 抵不回 +400):
+	# 那不是玩家会做的事, 是仪器在自欺(与「凑不到就别凑」同一条判据)。
+	for hj in slots:
+		if hj != null and hj.id == "hush":
+			var vow_plan: Dictionary = _best_plan(p.hand, target_id, 3, p.deck.rules)
+			if bool(vow_plan.get("keep_all", false)):
+				return
+			break
 	# free swaps: any trial swap that raises the best plan's EV sticks
 	var rules: Dictionary = p.deck.rules
 	for ci in range(p.cache.size()):
@@ -787,7 +841,7 @@ func _play_adaptive(p: Phrase, slots: Array, target_id: String, section: int, mo
 	# 旧代码是手写的 `cap = 3 if dur>=12 else 2` 再和金币取小 —— 两条都作废:
 	# 前者是该退役的手写判断, 后者的约束已经不存在。改走数据里的手速预算,
 	# 它按实际拍长缩放, 所以「赶场」-2s 第一次真正咬合(8s→2 张, 6s→1 张)。
-	var dur := Run.phrase_duration_for(section, mod)
+	var dur := Run.phrase_duration_for(section, mod, p.phrase_idx)
 	var d_max: int = GameConfig.beat_discards(dur, section)
 	if d_max <= 0:
 		return
@@ -829,6 +883,21 @@ func _play_adaptive(p: Phrase, slots: Array, target_id: String, section: int, mo
 				idx.append(i)
 	if not idx.is_empty() and p.can_discard(idx.size()) and p.discard_selected(idx, []):
 		_notify_discard(slots, idx.size())
+	# 回收の经营(2026-08-25 打法先验):持有回收 = 每拍把缓存最小的一张直弃换奖励分
+	# (它的设计就是献祭;原位补进来的新牌随后一起进切法)。封/锁的缓存牌不碰。
+	for rj in slots:
+		if rj != null and rj.id == "recycle":
+			var low_ci := -1
+			var low_rank := 99
+			var blocked: Dictionary = p.discard_blocked_cache()
+			for cj in range(p.cache.size()):
+				var cc = p.cache[cj]
+				if cc != null and cc.rank < low_rank and not blocked.has(cc):
+					low_rank = cc.rank
+					low_ci = cj
+			if low_ci >= 0 and p.can_discard(1) and p.discard_selected([], [low_ci]):
+				_notify_discard(slots, 1)
+			break
 	# Forced Rotation: any non-vow build tosses its worst card rather than
 	# eat the ×0.5 (Lone Wolf keeps the vow — ×4 halved still beats ×1)
 	if mod == "rotation" and p.discards_used == 0 and target_id != "lonewolf" and p.can_discard(1):

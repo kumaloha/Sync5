@@ -17,7 +17,7 @@ func _initialize() -> void:
 func _process(_delta: float) -> bool:
 	_frames += 1
 	if _frames == 4:
-		_scene.choose_character(1)
+		_scene.start_run()
 	elif _frames == 8:
 		# the blind-intro card holds the clock (and phrase creation) until it
 		# dismisses — skip it so the mid-run staging below has a phrase

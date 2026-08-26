@@ -40,7 +40,7 @@ func _process(_d: float) -> bool:
 		_scene._on_home_start()
 		return false
 	if _f == 8:
-		_scene.choose_character(0)
+		_scene.start_run()
 		return false
 	if _f < 12:
 		return false
@@ -164,8 +164,13 @@ func _audit() -> void:
 		_bug("swap left no trace")
 	if sorts == 0:
 		_bug("sort left no trace")
-	if intros == 0:
-		_bug("the intro card closing left no trace (skip vs timeout is a real signal)")
+	# ⚑ intro 契约更新(2026-08-25 全量门抓到的**过期断言**, 08-18 埋的雷):
+	# 公示卡(BlindIntro)2026-08-18 从流程退役, 特写接任 —— 而特写在探针世界被
+	# 帧预算闸跳过(`not SaveState.is_probe()`), 所以探针的日志里 intro 事件**合法为零**。
+	# 「skip vs timeout」那个信号如今只存在于真人局(特写打 closeup 标记)。
+	# 反向锁死:探针世界若冒出 intro 事件, 说明特写的探针闸破了 —— 帧预算回归。
+	if intros != 0:
+		_bug("probe world saw %d intro events — the closeup's probe gate broke" % intros)
 	# 「看了但没换」—— 只记成交就分不出「换不起」和「不值得换」
 	if ropen == 0:
 		_bug("entering the replace flow left no trace")

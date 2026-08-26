@@ -19,8 +19,7 @@ func _initialize() -> void:
 	var rng := RandomNumberGenerator.new()
 	var extra := {
 		"prev_kind": -99, "acted_late": false, "discards": 0, "coins": 99,
-		"phrase_idx": 0, "cache_cards": [], "mod": "", "character": null,
-	}
+		"phrase_idx": 0, "cache_cards": [], "mod": "", }
 
 	# ---- 第一关:确定性核心(不弃牌、不前瞻)。必须逐位相同 ----
 	var diff0 := 0

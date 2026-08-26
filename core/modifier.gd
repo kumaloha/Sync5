@@ -183,14 +183,109 @@ static func roll(section_idx: int, rng: RandomNumberGenerator, exclude: Array = 
 ## ⚑ `run_index` = **这是第几局(1 起)**, `<= 0` = 不设限。见 `unlocked_at`。
 ## ⚠ **RNG 消耗不受它影响** —— 每个墙段仍恰好一次 `randi_range`, 顺序照 `WALL_SECTIONS`。
 ## 解锁只改**候选集**, 不改**抽几次**, 所以探针的随机流不会因为这个参数而错位。
+## 首墙的新手缓冲门(2026-08-24 用户拍板「前 3 局 S1 纯分数」;量 = run.json
+## `s1_face_min_run`, 缺省第 4 局起掷)。与单张脸的 `min_run` 同族:**解锁通路**,
+## 可见、可写攻略, 不是暗改。⚠ run_index < 1(探针/测试缺省 -1)= 全解锁世界,
+## 掷法与 RNG 消耗逐字节不变 —— 探针按「老玩家全脸」标定(curve.gd UNLOCK_ALL_RUN 同款拍板)。
+## ⚑ 判定只有这一份;Director.roll_run 与本文件的 roll_run 两个掷法入口都调它。
+static func wall_face_unlocked(section_idx: int, run_index: int) -> bool:
+	if section_idx != 0 or run_index < 1:
+		return true
+	return run_index >= GameConfig.S1_FACE_MIN_RUN
+
+
 static func roll_run(rng: RandomNumberGenerator, run_index: int = -1) -> Dictionary:
 	var out := {}
 	var drawn: Array = []
 	for w in GameConfig.WALL_SECTIONS:
+		# 新手缓冲门(见 wall_face_unlocked 头)。⚠ 「偶尔的简单关」(s1_easy_chance)
+		# **不在这条探针掷法里** —— 探针世界按全脸标定, 目标分偏严方向安全;
+		# 真人的概率放水只在 Director.roll_run(游戏唯一漏斗)里掷。
+		if not wall_face_unlocked(int(w), run_index):
+			out[int(w)] = ""
+			continue
 		var f := roll(int(w), rng, drawn, run_index)
 		out[int(w)] = f
 		if f != "":
 			drawn.append(f)
+	return enforce_axis_budget(out, rng, run_index)
+
+
+## ---- 序列杀伤预算(2026-08-25, versus.md 杠杆二·掷脸端) ----
+## 攻击轴从脸参数**自动推导**(不手维护, 加新脸自动归位):
+## 同一条件族被同局 ≥3 张脸连打 = 「围殴」, 该族构筑整局无路走 —— 伏击率的最大来源。
+const _AXIS_PARAMS := {
+	"discard": ["discard_cards_max", "discard_actions", "section_discard_budget",
+		"discard_lock_last"],
+	"swap": ["swap_actions", "swap_lock_last"],
+	"cache": ["cache_evict", "cache_cap_delta", "cache_block_red",
+		"cache_lock_phrases", "seal_oldest_cache", "seal_random_cache"],
+	"time": ["time_penalty", "time_curve"],
+	"info": ["hide_faces", "hide_refill", "hide_random", "hide_suits", "hide_ranks"],
+	"tempo": ["repeat_factor", "lock_first", "required_kinds", "request_factor",
+		"callout_factor"],
+}
+
+
+static func attack_axes(mod_id: String) -> Array:
+	var out: Array = []
+	if mod_id == "":
+		return out
+	var params := {}
+	for e in DB.faces().get("faces", []):
+		if String(e["id"]) == mod_id:
+			params = e.get("params", {})
+			break
+	# 动作合限(限流/岔轨)同时压弃、换两轴
+	if params.has("action_cards_max") or params.has("action_limit") \
+			or params.has("exclusive_action_tracks"):
+		out.append("discard")
+		out.append("swap")
+	for axis in _AXIS_PARAMS:
+		if out.has(axis):
+			continue
+		for k in _AXIS_PARAMS[axis]:
+			if params.has(k):
+				out.append(axis)
+				break
+	return out
+
+
+## 预算修复:某轴被 ≥3 张脸压时, 重掷该轴**最后**一张(候选排除全部同轴脸与在场脸)。
+## 就地修、不整套重掷 —— RNG 只在违规时多消耗;探针掷法与 Director 共用这一份
+## (判定一份:围殴规则不许只在游戏里)。池被排空时保留原脸(宁可围殴不可空段)。
+static func enforce_axis_budget(out: Dictionary, rng: RandomNumberGenerator,
+		run_index: int = -1) -> Dictionary:
+	# ⚑ 修复用**派生流**:主流恒定只消耗一掷(派种子), 修复自己在派生流上掷 ——
+	# 消耗与序列内容解耦。否则镜像测试(素掷路径)与 Director(带 bias)内容不同,
+	# 修复次数不同, RNG 消耗永远对不上(2026-08-26 单测抓的)。可复现性不受影响:
+	# 种子来自主流, 同一主流状态 ⇒ 同一串修复。
+	var fix_rng := RandomNumberGenerator.new()
+	fix_rng.seed = rng.randi()
+	for axis in ["discard", "swap", "cache", "time", "info", "tempo"]:
+		# 循环收敛:四张同轴要修两张才降到 ≤2(只修一张是 2026-08-25 探针抓的洞)。
+		for _pass in range(GameConfig.WALL_SECTIONS.size()):
+			var hits: Array = []
+			for w in GameConfig.WALL_SECTIONS:
+				var f := String(out.get(int(w), ""))
+				if f != "" and attack_axes(f).has(axis):
+					hits.append(int(w))
+			if hits.size() < 3:
+				break
+			var fix_idx: int = hits[hits.size() - 1]
+			var banned: Array = []
+			for e in DB.faces().get("faces", []):
+				var fid := String(e["id"])
+				if attack_axes(fid).has(axis):
+					banned.append(fid)
+			for w2 in GameConfig.WALL_SECTIONS:
+				var f2 := String(out.get(int(w2), ""))
+				if f2 != "" and not banned.has(f2):
+					banned.append(f2)
+			var repl := roll(fix_idx, fix_rng, banned, run_index)
+			if repl == "":
+				break   # 池排空:宁可围殴不可空段
+			out[fix_idx] = repl
 	return out
 
 
@@ -233,6 +328,27 @@ static func _entry(mod_id: String) -> Dictionary:
 ## Extra seconds shaved off the phrase clock by this modifier.
 static func time_penalty(mod_id: String) -> float:
 	return _param(mod_id, "time_penalty", 0.0)
+
+
+## 倒计时(时间渐变算子, 2026-08-25):`time_curve` = 按拍序(0 起)的逐拍扣秒表,
+## 越界取末值;没写曲线或没有拍上下文(idx<0)退回恒定 time_penalty。
+## 拍长仍恒偶数秒:曲线值一律偶数(8/8/6/6/4/4, 用户拍板 886644)。
+static func time_penalty_at(mod_id: String, phrase_idx: int) -> float:
+	if phrase_idx >= 0:
+		var curve := _param_array(mod_id, "time_curve")
+		if not curve.is_empty():
+			return float(curve[clampi(phrase_idx, 0, curve.size() - 1)])
+	return time_penalty(mod_id)
+
+
+## 数组型参数(曲线类)的读口 —— 与 _param 同一条遍历, by_id 返回的是 SectionMod
+## 对象不是字典, 曲线不走它。
+static func _param_array(mod_id: String, key: String) -> Array:
+	for e in DB.faces().get("faces", []):
+		if String(e["id"]) == mod_id:
+			var v = e.get("params", {}).get(key, null)
+			return v if v is Array else []
+	return []
 
 
 ## Coins charged at each phrase start under this modifier.
@@ -332,6 +448,17 @@ static func action_limit(mod_id: String) -> int:
 	return int(_param(mod_id, "action_limit", -1.0))
 
 
+## 张数上限(2026-08-25 用户:「弃牌不在次数,在张数」—— 多选一起弃让次数没牙)。
+## 本拍弃牌张数上限(一口气/打烊)与本拍弃换合计张数上限(限流);-1 = 不限。
+## 旧的 discard_actions / action_limit 参数保留可用, 但重铸后的现役脸不再引用。
+static func discard_cards_max(mod_id: String) -> int:
+	return int(_param(mod_id, "discard_cards_max", -1.0))
+
+
+static func action_cards_max(mod_id: String) -> int:
+	return int(_param(mod_id, "action_cards_max", -1.0))
+
+
 static func cache_blocks_red(mod_id: String) -> bool:
 	return _param(mod_id, "cache_block_red", 0.0) > 0.0
 
@@ -354,6 +481,74 @@ static func seals_lowest_start(mod_id: String) -> bool:
 
 static func seals_oldest_cache(mod_id: String) -> bool:
 	return _param(mod_id, "seal_oldest_cache", 0.0) > 0.0
+
+
+## 随机封(2026-08-25 用户:「封条不如随机封,双封也可以随机」)——
+## 抽签走 deck.pick_index, 与丢谱的标记同一条共享 RNG 纪律(可复现、探针与游戏同序)。
+static func seals_random_start(mod_id: String) -> bool:
+	return _param(mod_id, "seal_random_start", 0.0) > 0.0
+
+
+static func seals_random_cache(mod_id: String) -> bool:
+	return _param(mod_id, "seal_random_cache", 0.0) > 0.0
+
+
+## 渐强(得分渐变, 2026-08-25):`phase_factors` = 按拍序的得分因子(前轻后重)。
+## ⚠ 它在结算里生效, 参数必须登记在 db.gd 的 SETTLE 表(放错表 = 静默不生效)。
+static func phase_factor(mod_id: String, phrase_idx: int) -> float:
+	if phrase_idx < 0:
+		return 1.0
+	var curve := _param_array(mod_id, "phase_factors")
+	if curve.is_empty():
+		return 1.0
+	return float(curve[clampi(phrase_idx, 0, curve.size() - 1)])
+
+
+## 暗场(2026-08-25):每拍随机盖住 N 张手牌(整张背面), 不递增不全盲。
+static func hide_random(mod_id: String) -> int:
+	return int(_param(mod_id, "hide_random", 0.0))
+
+
+## 蒙色/蒙点(2026-08-25, 用户创意):属性遮蔽 —— 全场牌只瞎一半。
+## 蒙色 = 花色遮住只见点数(同花流哭, 点数系无感);蒙点 = 点数遮住只见花色(反之)。
+## 每张只瞎一半, 构筑指向性比整张盖精准。牌照常计分, 拿走的只有「你知道它是什么」。
+static func hide_suits(mod_id: String) -> bool:
+	return _param(mod_id, "hide_suits", 0.0) > 0.0
+
+
+static func hide_ranks(mod_id: String) -> bool:
+	return _param(mod_id, "hide_ranks", 0.0) > 0.0
+
+
+## 掷类脸(概率算子, 2026-08-25):**开局明掷一次**, 结果存 Run.mod_roll(懒掷于
+## 段首第一次 Beat.begin, 三条开局入口自然共用一个咬合点;随快照续存)。
+## 纪律:随机决定「多难/打哪个」, 不决定「有没有玩点」;掷用 deck.pick_index,
+## 与丢谱标记/随机封同一条共享 RNG。
+static func roll_chance(mod_id: String) -> float:
+	return _param(mod_id, "roll_chance", 0.0)
+
+
+static func roll_cache_extra(mod_id: String) -> int:
+	return int(_param(mod_id, "roll_cache_extra", 0.0))
+
+
+static func rolls_suit(mod_id: String) -> bool:
+	return _param(mod_id, "roll_suit", 0.0) > 0.0
+
+
+## 变色灯:中签花色的牌点数按此系数计分(结算参数, 在 db 的 SETTLE 表)。
+static func suit_half(mod_id: String) -> float:
+	return _param(mod_id, "suit_half", 1.0)
+
+
+## 点名(可解除样板, 2026-08-25):开局掷一个指定牌型, 打出它之前全场按此系数计分;
+## 打出的那一拍即恢复全额, 并给下次商店 +1 货架位(解除奖励走经营通道)。
+static func callout_factor(mod_id: String) -> float:
+	return _param(mod_id, "callout_factor", 1.0)
+
+
+static func rolls_kind(mod_id: String) -> bool:
+	return _param(mod_id, "roll_kind", 0.0) > 0.0
 
 
 static func required_kinds(mod_id: String) -> int:

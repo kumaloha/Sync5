@@ -1,0 +1,106 @@
+{
+  "batch": 5,
+  "status": "DONE_WITH_CONCERNS",
+  "mode": "built-in image generation",
+  "assets": [
+    {
+      "id": "exec-0ef7b227-6b20-4239-b3b8-9be55a2aa4c7",
+      "path": "assets/redesign_20260824/jokers/joker_curtain.png",
+      "summary": "Neon glass Joker icon for curtain timing: final clock wedge plus multiplier card fan.",
+      "sha256": "26f2ee5b437c232533089cd6169e8886fbc657bab58b7f8872585b3afa2ad76c"
+    },
+    {
+      "id": "exec-1a092c6d-16bf-41de-8385-8cb69477409f",
+      "path": "assets/redesign_20260824/jokers/joker_stopwatch.png",
+      "summary": "Neon glass Joker icon for stopwatch scaling: remaining clock wedges feeding a brighter poker-card fan.",
+      "sha256": "7b38c09f466258c6c9669a0e3e83636b473a9417209aa938bea51962a41c4d2c"
+    },
+    {
+      "id": "exec-17a6e765-2f00-4279-aa71-a68abbc1fac6",
+      "path": "assets/redesign_20260824/jokers/joker_earlyout.png",
+      "summary": "Neon glass Joker icon for early-out discards: flying cards escaping through an early green-gold clock sector with plus particles.",
+      "sha256": "73abe59ec13ea2b45bb2b6ecc3742d2fcf5a43a672239dd46c5af8ab5b362337"
+    },
+    {
+      "id": "exec-3f1e6480-2269-44c5-abf6-024db330fe11",
+      "path": "assets/redesign_20260824/jokers/joker_digger.png",
+      "summary": "Neon glass Joker icon for reroll growth: shop offer card with cycling arrow and accumulating plus marks.",
+      "sha256": "8a7369696207863b6b6610057d84a4a09eb7f9c42771ea00142a12baacf2de00"
+    },
+    {
+      "id": "exec-5d28ed6d-5616-46e4-a535-d063f34f9197",
+      "path": "assets/redesign_20260824/jokers/joker_collector.png",
+      "summary": "Neon glass Joker icon for bought-card collection: purchased cards stacking from one to two with capped plus sparks.",
+      "sha256": "c6bc9097bbb4da5e452b720d083c40df24e0837423b0298db8f3b1b58661fb6a"
+    },
+    {
+      "id": "exec-f1559e88-61dc-465a-a49b-ab43ae33448f",
+      "path": "assets/redesign_20260824/jokers/joker_rebrand.png",
+      "summary": "Neon glass Joker icon for Target changes: poker hand target changing through a circular arrow with multiplier glow.",
+      "sha256": "04a95228951a9b7ef7cd50be8d337c6530f71c2d239247894e12451eced93b81"
+    },
+    {
+      "id": "exec-9108b902-d76b-4800-8d6f-ed08cf47795f",
+      "path": "assets/redesign_20260824/jokers/joker_wrecker.png",
+      "summary": "Neon glass Joker icon for three discards into a made hand: three flying cards breaking open a bright multiplier fan.",
+      "sha256": "4a54087b0ffc5aa5d22bb5eb589144b952c3deffb9910a6649ae37c9e5cb55a4"
+    },
+    {
+      "id": "exec-f4f415e8-132a-4d22-a376-8e6fba7494d6",
+      "path": "assets/redesign_20260824/blinds_concept/blind_unplugged.png",
+      "summary": "Simple red/magenta Blind warning icon for unplugged: severed power plug.",
+      "sha256": "78a1f87b81ed45a494ee9399cc41d8f13532b384ead4025c6507a13c9bcb4319"
+    },
+    {
+      "id": "exec-57868456-4b05-422b-9191-25af5617c5c8",
+      "path": "assets/redesign_20260824/blinds_concept/blind_static.png",
+      "summary": "Simple red/magenta Blind warning icon for static: jagged interference bars.",
+      "sha256": "f6aa2145682f59af4d7438da263090973d33cdd0dd8ac8264b56a7a18f88a600"
+    },
+    {
+      "id": "exec-fa6189a0-9cff-4fb9-b49f-60446aebb8bb",
+      "path": "assets/redesign_20260824/blinds_concept/blind_rotation.png",
+      "summary": "Simple red/magenta Blind warning icon for rotation: circular arrows forcing three cards to rotate.",
+      "sha256": "4377e4ae07b9750a7f28254af22170b2a74bf22c307470b2250c5cb6cb0f35a4"
+    },
+    {
+      "id": "exec-d8ba36e8-9120-4027-bf4e-a502200e0233",
+      "path": "assets/redesign_20260824/blinds_concept/blind_cover.png",
+      "summary": "Simple red/magenta Blind warning icon for cover: gold coin blocking a stage or card entrance.",
+      "sha256": "0c2a5629012cab7347a0b3909d639eaf936703374d28a281706fbf72a1470d3c"
+    },
+    {
+      "id": "exec-986c0bda-c212-42b4-b179-1ecdb45ff315",
+      "path": "assets/redesign_20260824/blinds_concept/blind_freshsheet.png",
+      "summary": "Simple red/magenta Blind warning icon for freshsheet: old marked page/card flipping into a blank clean page/card.",
+      "sha256": "695360a07e281782933123c0a22d8474fd9a764aaa98fffc703aef039edf5882"
+    },
+    {
+      "id": "exec-6e4cb83e-8a8c-4101-8fab-f8694abec45b",
+      "path": "assets/redesign_20260824/blinds_concept/blind_norepeat.png",
+      "summary": "Simple red/magenta Blind warning icon for no-repeat: duplicate-card loop cut by a half-strength slash.",
+      "sha256": "9c6a53254598eecf5e793a3d62243788b37045c67f98ff1cc5575fd8347962d2"
+    },
+    {
+      "id": "exec-4504ae72-ab89-4b4e-822a-678a97174774",
+      "path": "assets/redesign_20260824/blinds_concept/blind_lostpage.png",
+      "summary": "Simple red/magenta Blind warning icon for lostpage: violet three-slot cache with one slot torn out by a red slash.",
+      "sha256": "07f779d27ebff0752257e5a65a52f2e2fc36fd31887d07759cb5805ba5cddfc3"
+    }
+  ],
+  "validation": {
+    "dimensions": "All 14 selected assets verified as 1024x1024 PNG after resizing generated 1254x1254 outputs.",
+    "nonblank": "PIL active-pixel checks found nonblank centered content for all selected assets.",
+    "commands": [
+      "sips -g pixelWidth -g pixelHeight <14 assigned files>",
+      "python3 PIL active-pixel bounds check",
+      "shasum -a 256 <14 assigned files>"
+    ]
+  },
+  "concerns": [
+    "The built-in image tool returned native_hook_stdin_oversized instead of normal image metadata for each call, although files were created under /Users/kuma/.codex/generated_images/01a0339d-909f-7942-9b02-b21fe70a26c4/.",
+    "The first curtain call and final lostpage retry created extra unused candidates: exec-a74ee61b-0b5d-4e79-a50c-072eddd09fcc and exec-a2087363-45a4-4acf-849f-c56a0b4e9ed8.",
+    "Direct visual inspection via view_image was blocked by the same native_hook_stdin_oversized tool issue, so inspection was limited to file metadata, hashes, dimensions, and nonblank active-pixel bounds.",
+    "Active-pixel bounds suggest some glow/detail approaches the requested safe margin on joker_earlyout, blind_freshsheet, blind_lostpage, and blind_static."
+  ]
+}

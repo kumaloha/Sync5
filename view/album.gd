@@ -18,7 +18,7 @@ const H := 1280.0
 const GRID := Rect2(44.0, 168.0, 632.0, 955.0)   # 底沿 1123,页签轨 1143 上留 20
 const CELL_H := 222.0
 const GAP := 14.0
-const ACC := StageTheme.VIOLET      # 页面主色:构筑线一贯用紫(宝石/稀有同族)
+const ACC := StageTheme.VIOLET      # 页面主色:构筑线一贯用紫(稀有同族)
 
 const RARITY_CN := {"common": "普通", "uncommon": "罕见", "rare": "稀有"}
 const RARITY_TINT := {"common": Color("8ea3c8"), "uncommon": Color("5fd8ff"),
@@ -185,9 +185,9 @@ func _gui_input(ev: InputEvent) -> void:
 func _draw() -> void:
 	draw_rect(Rect2(0, 0, W, H), Color("000000"), true)
 	Chrome.page_bar(self, Lingo.t("小 丑 牌"), Lingo.t("已实装 %d / %d · Target %d 面旗") %
-		[_pooled, _cards.size(), _count_targets()], ACC, SaveState.gems())
+		[_pooled, _cards.size(), _count_targets()], ACC)
 	_draw_filter()
-	Chrome.draw_tabs(self, 2, ACC)
+	Chrome.draw_tabs(self, 1, ACC)
 
 
 func _count_targets() -> int:

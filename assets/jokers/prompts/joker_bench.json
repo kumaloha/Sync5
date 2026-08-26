@@ -1,9 +1,0 @@
-{
-  "id": "bench",
-  "prompt": "Use case: stylized-concept. Asset type: Sync5 game Joker central totem for a compact 145×50 runtime window. Input images: high-level references only for hard-edged black-glass material, crisp cyan neon rim, restrained violet/magenta accents, and compact symbolic silhouette; do not copy reference subjects, text, frames, or composition. Primary request: Create ‘替补 / Bench’: one compact angular waiting bench holds three dark, unlit playing-card silhouettes seated or slotted low; exactly one taller high-card silhouette stands upright from the bench and glows brightly. The standing card is the only visual focus and must read as a high card through a simple crown-like top edge, not through letters or ranks. No people, numbers, suit marks, or writing. Style/medium: original high-contrast hard-edged 2D cyberpunk nightclub illustration, black glass and dark metal, crisp cyan rim, Uncommon violet secondary, one tiny magenta hotspot. Composition: one compact centered slightly horizontal totem, whole silhouette visible, large readable shapes, generous but not excessive padding, readable after conversion to a 145×50 window. Background: perfectly flat solid #00ff00 chroma-key, uniform, no texture, gradient, floor, shadow, reflection, or lighting variation; no #00ff00 in subject. Constraints: no card frame around the whole image, title, digits, letters, words, random glyphs, logo, watermark, narrative scene, cropped bench, or tiny details. Avoid photorealism and painterly haze.",
-  "revision": 1,
-  "source_sha256": "c890b4686b17757abed65b78e878255789cd387d922f64a771fa4d595088ee9a",
-  "tool_mode": "built-in",
-  "reference": "assets/reference/ref_joker_holo_synth.png",
-  "raw_codex_path": "/Users/kuma/.codex/generated_images/019fe632-fdfa-76f2-850c-53239465ebcd/exec-4415c3a1-87f1-4bad-a621-2e5f3ada47d7.png"
-}

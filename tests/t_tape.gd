@@ -97,7 +97,7 @@ func run(t) -> void:
 	var mono := Joker.by_id("mono")
 	t.eq(Tape.slots([mono, null]), ["mono", ""], "empty slots keep their place")
 	t.eq(Tape.fired([{"slot": 0, "text": "x"}, {"slot": -1, "text": "y"}], [mono, null]),
-		["mono", "@character"], "popups map back to joker ids, slot -1 is the character")
+		["mono"], "popups map back to joker ids; negative slots are dropped(主角已删)")
 	t.eq(Tape.fired([{"slot": 2, "text": "x"}], [mono, null]), [],
 		"a popup pointing at an empty slot is dropped, not crashed on")
 

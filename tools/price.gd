@@ -158,7 +158,7 @@ func _play(cfg: Dictionary, faces: Dictionary, n: int) -> Dictionary:
 	var pcfg := cfg.duplicate()
 	pcfg["bot"] = "perfect"
 	for r in range(n):
-		# ⚠ 配对:每条臂的第 r 局种子完全相同; 选主角消耗一个随机数, 顺序不许动。
+		# ⚠ 配对:每条臂的第 r 局种子完全相同。
 		_rng.seed = 620000 + r
 		var st := {"n": 0.0, "disc": 0.0, "rep": 0.0, "late": 0.0, "early": 0.0,
 			"zerod": 0.0, "faces": 0.0, "chord": 0.0, "tgt": 0.0,

@@ -1,0 +1,1006 @@
+{
+  "method": "cropped-mask pHash plus mismatch",
+  "review_top_n": 100,
+  "pairs": [
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "redtone",
+      "b_source": "expansion",
+      "b_id": "third_pass",
+      "phash_distance": 18,
+      "mask_mismatch": 0.1445,
+      "score": 23.781
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "neonsign",
+      "b_source": "expansion",
+      "b_id": "stacked_twins",
+      "phash_distance": 24,
+      "mask_mismatch": 0.002,
+      "score": 24.078
+    },
+    {
+      "kind": "joker",
+      "a_source": "expansion",
+      "a_id": "held_second",
+      "b_source": "expansion",
+      "b_id": "rising_pair",
+      "phash_distance": 18,
+      "mask_mismatch": 0.1602,
+      "score": 24.406
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "royalty",
+      "b_source": "expansion",
+      "b_id": "wide_menu",
+      "phash_distance": 18,
+      "mask_mismatch": 0.165,
+      "score": 24.602
+    },
+    {
+      "kind": "joker",
+      "a_source": "expansion",
+      "a_id": "hinged_pair",
+      "b_source": "expansion",
+      "b_id": "wide_menu",
+      "phash_distance": 18,
+      "mask_mismatch": 0.1709,
+      "score": 24.836
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "superfan",
+      "b_source": "expansion",
+      "b_id": "midnight_mark",
+      "phash_distance": 22,
+      "mask_mismatch": 0.0723,
+      "score": 24.891
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "triplebill",
+      "b_source": "expansion",
+      "b_id": "midnight_mark",
+      "phash_distance": 22,
+      "mask_mismatch": 0.0869,
+      "score": 25.477
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "wrecker",
+      "b_source": "expansion",
+      "b_id": "rising_pair",
+      "phash_distance": 18,
+      "mask_mismatch": 0.1943,
+      "score": 25.773
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "bench",
+      "b_source": "expansion",
+      "b_id": "midnight_mark",
+      "phash_distance": 18,
+      "mask_mismatch": 0.1973,
+      "score": 25.891
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "neonsign",
+      "b_source": "expansion",
+      "b_id": "narrow_menu",
+      "phash_distance": 22,
+      "mask_mismatch": 0.0986,
+      "score": 25.945
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "twin",
+      "b_source": "expansion",
+      "b_id": "delayed_total",
+      "phash_distance": 22,
+      "mask_mismatch": 0.1035,
+      "score": 26.141
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "triplet",
+      "b_source": "expansion",
+      "b_id": "proxy_face",
+      "phash_distance": 22,
+      "mask_mismatch": 0.1055,
+      "score": 26.219
+    },
+    {
+      "kind": "joker",
+      "a_source": "expansion",
+      "a_id": "right_swap",
+      "b_source": "expansion",
+      "b_id": "suit_pivot",
+      "phash_distance": 16,
+      "mask_mismatch": 0.2578,
+      "score": 26.312
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "royalty",
+      "b_source": "expansion",
+      "b_id": "rising_pair",
+      "phash_distance": 18,
+      "mask_mismatch": 0.2129,
+      "score": 26.516
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "reprise",
+      "b_source": "expansion",
+      "b_id": "target_anchor",
+      "phash_distance": 20,
+      "mask_mismatch": 0.165,
+      "score": 26.602
+    },
+    {
+      "kind": "joker",
+      "a_source": "expansion",
+      "a_id": "alternate_lace",
+      "b_source": "expansion",
+      "b_id": "midnight_mark",
+      "phash_distance": 18,
+      "mask_mismatch": 0.2178,
+      "score": 26.711
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "triplet",
+      "b_source": "expansion",
+      "b_id": "offset_doublet",
+      "phash_distance": 22,
+      "mask_mismatch": 0.125,
+      "score": 27.0
+    },
+    {
+      "kind": "joker",
+      "a_source": "expansion",
+      "a_id": "late_lock",
+      "b_source": "expansion",
+      "b_id": "leaf_thinner",
+      "phash_distance": 16,
+      "mask_mismatch": 0.2764,
+      "score": 27.055
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "twin",
+      "b_source": "expansion",
+      "b_id": "midnight_mark",
+      "phash_distance": 20,
+      "mask_mismatch": 0.1777,
+      "score": 27.109
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "superfan",
+      "b_source": "expansion",
+      "b_id": "edge_gap",
+      "phash_distance": 16,
+      "mask_mismatch": 0.2803,
+      "score": 27.211
+    },
+    {
+      "kind": "joker",
+      "a_source": "expansion",
+      "a_id": "cross_pair",
+      "b_source": "expansion",
+      "b_id": "face_shear",
+      "phash_distance": 16,
+      "mask_mismatch": 0.2803,
+      "score": 27.211
+    },
+    {
+      "kind": "joker",
+      "a_source": "expansion",
+      "a_id": "delayed_total",
+      "b_source": "expansion",
+      "b_id": "first_discard",
+      "phash_distance": 20,
+      "mask_mismatch": 0.1816,
+      "score": 27.266
+    },
+    {
+      "kind": "joker",
+      "a_source": "expansion",
+      "a_id": "first_light",
+      "b_source": "expansion",
+      "b_id": "split_timer",
+      "phash_distance": 20,
+      "mask_mismatch": 0.1855,
+      "score": 27.422
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "boxseats",
+      "b_source": "expansion",
+      "b_id": "hinged_pair",
+      "phash_distance": 22,
+      "mask_mismatch": 0.1377,
+      "score": 27.508
+    },
+    {
+      "kind": "joker",
+      "a_source": "expansion",
+      "a_id": "held_second",
+      "b_source": "expansion",
+      "b_id": "last_card_stake",
+      "phash_distance": 20,
+      "mask_mismatch": 0.1895,
+      "score": 27.578
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "superfan",
+      "b_source": "expansion",
+      "b_id": "rising_pair",
+      "phash_distance": 22,
+      "mask_mismatch": 0.1426,
+      "score": 27.703
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "triplet",
+      "b_source": "expansion",
+      "b_id": "afterglow",
+      "phash_distance": 20,
+      "mask_mismatch": 0.1953,
+      "score": 27.812
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "duet",
+      "b_source": "expansion",
+      "b_id": "bottom_drawer",
+      "phash_distance": 22,
+      "mask_mismatch": 0.1465,
+      "score": 27.859
+    },
+    {
+      "kind": "joker",
+      "a_source": "expansion",
+      "a_id": "king_weight",
+      "b_source": "expansion",
+      "b_id": "late_lock",
+      "phash_distance": 20,
+      "mask_mismatch": 0.1973,
+      "score": 27.891
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "duet",
+      "b_source": "expansion",
+      "b_id": "alternate_lace",
+      "phash_distance": 20,
+      "mask_mismatch": 0.1982,
+      "score": 27.93
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "blacktone",
+      "b_source": "expansion",
+      "b_id": "suit_pivot",
+      "phash_distance": 22,
+      "mask_mismatch": 0.1494,
+      "score": 27.977
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "blacktone",
+      "b_source": "expansion",
+      "b_id": "three_suit_braid",
+      "phash_distance": 22,
+      "mask_mismatch": 0.1494,
+      "score": 27.977
+    },
+    {
+      "kind": "joker",
+      "a_source": "expansion",
+      "a_id": "last_discard",
+      "b_source": "expansion",
+      "b_id": "three_suit_braid",
+      "phash_distance": 18,
+      "mask_mismatch": 0.25,
+      "score": 28.0
+    },
+    {
+      "kind": "joker",
+      "a_source": "expansion",
+      "a_id": "ace_filing",
+      "b_source": "expansion",
+      "b_id": "blocked_swap",
+      "phash_distance": 22,
+      "mask_mismatch": 0.1504,
+      "score": 28.016
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "redtone",
+      "b_source": "expansion",
+      "b_id": "face_shear",
+      "phash_distance": 18,
+      "mask_mismatch": 0.251,
+      "score": 28.039
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "superfan",
+      "b_source": "expansion",
+      "b_id": "suit_lock",
+      "phash_distance": 22,
+      "mask_mismatch": 0.1514,
+      "score": 28.055
+    },
+    {
+      "kind": "joker",
+      "a_source": "expansion",
+      "a_id": "delayed_total",
+      "b_source": "expansion",
+      "b_id": "narrow_menu",
+      "phash_distance": 24,
+      "mask_mismatch": 0.1113,
+      "score": 28.453
+    },
+    {
+      "kind": "joker",
+      "a_source": "expansion",
+      "a_id": "coin_anchor",
+      "b_source": "expansion",
+      "b_id": "scar_tally",
+      "phash_distance": 18,
+      "mask_mismatch": 0.2617,
+      "score": 28.469
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "sponsor",
+      "b_source": "expansion",
+      "b_id": "brittle_slot",
+      "phash_distance": 20,
+      "mask_mismatch": 0.2119,
+      "score": 28.477
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "wrecker",
+      "b_source": "expansion",
+      "b_id": "narrow_menu",
+      "phash_distance": 20,
+      "mask_mismatch": 0.2119,
+      "score": 28.477
+    },
+    {
+      "kind": "joker",
+      "a_source": "expansion",
+      "a_id": "stacked_twins",
+      "b_source": "expansion",
+      "b_id": "wide_menu",
+      "phash_distance": 22,
+      "mask_mismatch": 0.1621,
+      "score": 28.484
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "popup",
+      "b_source": "expansion",
+      "b_id": "reverse_run",
+      "phash_distance": 20,
+      "mask_mismatch": 0.2129,
+      "score": 28.516
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "duet",
+      "b_source": "expansion",
+      "b_id": "midnight_mark",
+      "phash_distance": 24,
+      "mask_mismatch": 0.1133,
+      "score": 28.531
+    },
+    {
+      "kind": "joker",
+      "a_source": "expansion",
+      "a_id": "suit_crown",
+      "b_source": "expansion",
+      "b_id": "suit_lock",
+      "phash_distance": 24,
+      "mask_mismatch": 0.1133,
+      "score": 28.531
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "sponsor",
+      "b_source": "expansion",
+      "b_id": "discard_debt",
+      "phash_distance": 16,
+      "mask_mismatch": 0.3145,
+      "score": 28.578
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "triplet",
+      "b_source": "expansion",
+      "b_id": "late_lock",
+      "phash_distance": 20,
+      "mask_mismatch": 0.2168,
+      "score": 28.672
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "royalty",
+      "b_source": "expansion",
+      "b_id": "marked_offer",
+      "phash_distance": 22,
+      "mask_mismatch": 0.168,
+      "score": 28.719
+    },
+    {
+      "kind": "joker",
+      "a_source": "expansion",
+      "a_id": "cross_pair",
+      "b_source": "expansion",
+      "b_id": "ghost_suit",
+      "phash_distance": 16,
+      "mask_mismatch": 0.3184,
+      "score": 28.734
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "wildcard",
+      "b_source": "expansion",
+      "b_id": "clearance_line",
+      "phash_distance": 20,
+      "mask_mismatch": 0.2197,
+      "score": 28.789
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "sponsor",
+      "b_source": "expansion",
+      "b_id": "late_lock",
+      "phash_distance": 20,
+      "mask_mismatch": 0.2207,
+      "score": 28.828
+    },
+    {
+      "kind": "blind",
+      "a_source": "expansion",
+      "a_id": "marked_price",
+      "b_source": "expansion",
+      "b_id": "silent_meter",
+      "phash_distance": 20,
+      "mask_mismatch": 0.2207,
+      "score": 28.828
+    },
+    {
+      "kind": "joker",
+      "a_source": "expansion",
+      "a_id": "marked_offer",
+      "b_source": "expansion",
+      "b_id": "wide_menu",
+      "phash_distance": 24,
+      "mask_mismatch": 0.1221,
+      "score": 28.883
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "rehearsal",
+      "b_source": "expansion",
+      "b_id": "afterglow",
+      "phash_distance": 26,
+      "mask_mismatch": 0.0723,
+      "score": 28.891
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "reprise",
+      "b_source": "expansion",
+      "b_id": "split_receipt",
+      "phash_distance": 18,
+      "mask_mismatch": 0.2744,
+      "score": 28.977
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "chorus",
+      "b_source": "expansion",
+      "b_id": "hinged_pair",
+      "phash_distance": 20,
+      "mask_mismatch": 0.2256,
+      "score": 29.023
+    },
+    {
+      "kind": "joker",
+      "a_source": "expansion",
+      "a_id": "late_chain",
+      "b_source": "expansion",
+      "b_id": "proxy_face",
+      "phash_distance": 22,
+      "mask_mismatch": 0.1768,
+      "score": 29.07
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "duo",
+      "b_source": "expansion",
+      "b_id": "midnight_mark",
+      "phash_distance": 20,
+      "mask_mismatch": 0.2285,
+      "score": 29.141
+    },
+    {
+      "kind": "joker",
+      "a_source": "expansion",
+      "a_id": "coin_lock",
+      "b_source": "expansion",
+      "b_id": "last_bar",
+      "phash_distance": 24,
+      "mask_mismatch": 0.1299,
+      "score": 29.195
+    },
+    {
+      "kind": "joker",
+      "a_source": "expansion",
+      "a_id": "held_second",
+      "b_source": "expansion",
+      "b_id": "rank_sieve",
+      "phash_distance": 22,
+      "mask_mismatch": 0.1807,
+      "score": 29.227
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "triplet",
+      "b_source": "expansion",
+      "b_id": "rising_pair",
+      "phash_distance": 24,
+      "mask_mismatch": 0.1318,
+      "score": 29.273
+    },
+    {
+      "kind": "joker",
+      "a_source": "expansion",
+      "a_id": "cross_pair",
+      "b_source": "expansion",
+      "b_id": "late_chain",
+      "phash_distance": 22,
+      "mask_mismatch": 0.1826,
+      "score": 29.305
+    },
+    {
+      "kind": "joker",
+      "a_source": "expansion",
+      "a_id": "proxy_face",
+      "b_source": "expansion",
+      "b_id": "rising_pair",
+      "phash_distance": 22,
+      "mask_mismatch": 0.1826,
+      "score": 29.305
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "nopair",
+      "b_source": "expansion",
+      "b_id": "midnight_mark",
+      "phash_distance": 16,
+      "mask_mismatch": 0.333,
+      "score": 29.32
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "sponsor",
+      "b_source": "expansion",
+      "b_id": "leaf_thinner",
+      "phash_distance": 20,
+      "mask_mismatch": 0.2334,
+      "score": 29.336
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "reprise",
+      "b_source": "expansion",
+      "b_id": "clay_card",
+      "phash_distance": 20,
+      "mask_mismatch": 0.2354,
+      "score": 29.414
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "opener",
+      "b_source": "expansion",
+      "b_id": "proxy_face",
+      "phash_distance": 24,
+      "mask_mismatch": 0.1357,
+      "score": 29.43
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "royalty",
+      "b_source": "expansion",
+      "b_id": "hinged_pair",
+      "phash_distance": 24,
+      "mask_mismatch": 0.1367,
+      "score": 29.469
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "duet",
+      "b_source": "expansion",
+      "b_id": "sealed_coffer",
+      "phash_distance": 22,
+      "mask_mismatch": 0.1875,
+      "score": 29.5
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "neonsign",
+      "b_source": "expansion",
+      "b_id": "delayed_total",
+      "phash_distance": 24,
+      "mask_mismatch": 0.1377,
+      "score": 29.508
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "redtone",
+      "b_source": "expansion",
+      "b_id": "suit_echo",
+      "phash_distance": 22,
+      "mask_mismatch": 0.1885,
+      "score": 29.539
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "wildcard",
+      "b_source": "expansion",
+      "b_id": "offset_doublet",
+      "phash_distance": 22,
+      "mask_mismatch": 0.1885,
+      "score": 29.539
+    },
+    {
+      "kind": "joker",
+      "a_source": "expansion",
+      "a_id": "hinged_pair",
+      "b_source": "expansion",
+      "b_id": "last_bar",
+      "phash_distance": 20,
+      "mask_mismatch": 0.2393,
+      "score": 29.57
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "superfan",
+      "b_source": "expansion",
+      "b_id": "proxy_face",
+      "phash_distance": 24,
+      "mask_mismatch": 0.1396,
+      "score": 29.586
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "opener",
+      "b_source": "expansion",
+      "b_id": "clean_discard",
+      "phash_distance": 16,
+      "mask_mismatch": 0.3398,
+      "score": 29.594
+    },
+    {
+      "kind": "joker",
+      "a_source": "expansion",
+      "a_id": "hard_echo",
+      "b_source": "expansion",
+      "b_id": "split_timer",
+      "phash_distance": 20,
+      "mask_mismatch": 0.2422,
+      "score": 29.688
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "wildcard",
+      "b_source": "expansion",
+      "b_id": "overflow_meter",
+      "phash_distance": 16,
+      "mask_mismatch": 0.3428,
+      "score": 29.711
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "royalty",
+      "b_source": "expansion",
+      "b_id": "cross_pair",
+      "phash_distance": 20,
+      "mask_mismatch": 0.2432,
+      "score": 29.727
+    },
+    {
+      "kind": "blind",
+      "a_source": "expansion",
+      "a_id": "open_close",
+      "b_source": "expansion",
+      "b_id": "slot_drain",
+      "phash_distance": 16,
+      "mask_mismatch": 0.3438,
+      "score": 29.75
+    },
+    {
+      "kind": "joker",
+      "a_source": "expansion",
+      "a_id": "last_bar",
+      "b_source": "expansion",
+      "b_id": "rank_sieve",
+      "phash_distance": 20,
+      "mask_mismatch": 0.2441,
+      "score": 29.766
+    },
+    {
+      "kind": "joker",
+      "a_source": "expansion",
+      "a_id": "seed_stack",
+      "b_source": "expansion",
+      "b_id": "skip_ribbon",
+      "phash_distance": 20,
+      "mask_mismatch": 0.2441,
+      "score": 29.766
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "duet",
+      "b_source": "expansion",
+      "b_id": "delayed_total",
+      "phash_distance": 24,
+      "mask_mismatch": 0.1445,
+      "score": 29.781
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "bench",
+      "b_source": "expansion",
+      "b_id": "ace_ceiling",
+      "phash_distance": 20,
+      "mask_mismatch": 0.2451,
+      "score": 29.805
+    },
+    {
+      "kind": "joker",
+      "a_source": "expansion",
+      "a_id": "afterglow",
+      "b_source": "expansion",
+      "b_id": "blocked_swap",
+      "phash_distance": 20,
+      "mask_mismatch": 0.2451,
+      "score": 29.805
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "triplet",
+      "b_source": "expansion",
+      "b_id": "third_pass",
+      "phash_distance": 22,
+      "mask_mismatch": 0.1953,
+      "score": 29.812
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "opener",
+      "b_source": "expansion",
+      "b_id": "edge_gap",
+      "phash_distance": 22,
+      "mask_mismatch": 0.1963,
+      "score": 29.852
+    },
+    {
+      "kind": "joker",
+      "a_source": "expansion",
+      "a_id": "clearance_line",
+      "b_source": "expansion",
+      "b_id": "stacked_twins",
+      "phash_distance": 28,
+      "mask_mismatch": 0.0469,
+      "score": 29.875
+    },
+    {
+      "kind": "joker",
+      "a_source": "expansion",
+      "a_id": "odd_discard",
+      "b_source": "expansion",
+      "b_id": "wide_menu",
+      "phash_distance": 22,
+      "mask_mismatch": 0.1973,
+      "score": 29.891
+    },
+    {
+      "kind": "joker",
+      "a_source": "expansion",
+      "a_id": "king_weight",
+      "b_source": "expansion",
+      "b_id": "leaf_thinner",
+      "phash_distance": 18,
+      "mask_mismatch": 0.2979,
+      "score": 29.914
+    },
+    {
+      "kind": "blind",
+      "a_source": "expansion",
+      "a_id": "crossbar",
+      "b_source": "expansion",
+      "b_id": "no_backstep",
+      "phash_distance": 18,
+      "mask_mismatch": 0.2979,
+      "score": 29.914
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "bench",
+      "b_source": "expansion",
+      "b_id": "rising_pair",
+      "phash_distance": 20,
+      "mask_mismatch": 0.248,
+      "score": 29.922
+    },
+    {
+      "kind": "joker",
+      "a_source": "expansion",
+      "a_id": "ace_ceiling",
+      "b_source": "expansion",
+      "b_id": "first_light",
+      "phash_distance": 20,
+      "mask_mismatch": 0.248,
+      "score": 29.922
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "wrecker",
+      "b_source": "expansion",
+      "b_id": "hinged_pair",
+      "phash_distance": 22,
+      "mask_mismatch": 0.1982,
+      "score": 29.93
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "superfan",
+      "b_source": "expansion",
+      "b_id": "late_chain",
+      "phash_distance": 24,
+      "mask_mismatch": 0.1484,
+      "score": 29.938
+    },
+    {
+      "kind": "joker",
+      "a_source": "expansion",
+      "a_id": "queen_scale",
+      "b_source": "expansion",
+      "b_id": "rank_sieve",
+      "phash_distance": 18,
+      "mask_mismatch": 0.2988,
+      "score": 29.953
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "triplebill",
+      "b_source": "expansion",
+      "b_id": "clearance_line",
+      "phash_distance": 20,
+      "mask_mismatch": 0.25,
+      "score": 30.0
+    },
+    {
+      "kind": "joker",
+      "a_source": "expansion",
+      "a_id": "offset_doublet",
+      "b_source": "expansion",
+      "b_id": "split_timer",
+      "phash_distance": 20,
+      "mask_mismatch": 0.25,
+      "score": 30.0
+    },
+    {
+      "kind": "joker",
+      "a_source": "expansion",
+      "a_id": "delayed_total",
+      "b_source": "expansion",
+      "b_id": "hinged_pair",
+      "phash_distance": 26,
+      "mask_mismatch": 0.1035,
+      "score": 30.141
+    },
+    {
+      "kind": "blind",
+      "a_source": "base",
+      "a_id": "lastcall",
+      "b_source": "expansion",
+      "b_id": "secondtax",
+      "phash_distance": 22,
+      "mask_mismatch": 0.2041,
+      "score": 30.164
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "reprise",
+      "b_source": "expansion",
+      "b_id": "heavy_purse",
+      "phash_distance": 20,
+      "mask_mismatch": 0.2549,
+      "score": 30.195
+    },
+    {
+      "kind": "joker",
+      "a_source": "base",
+      "a_id": "triplebill",
+      "b_source": "expansion",
+      "b_id": "narrow_swap",
+      "phash_distance": 22,
+      "mask_mismatch": 0.2051,
+      "score": 30.203
+    }
+  ]
+}

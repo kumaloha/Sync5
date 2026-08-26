@@ -19,6 +19,7 @@ func _initialize() -> void:
 	var bugs := 0
 	var seen_per_face := {}          # face -> [首次出现的局号, 次数]
 	var by_state := {}               # 状态名 -> 局数
+	var s1_easy := 0                 # 解锁后首墙掷成纯分数关的局数(概率放水)
 	for r in range(1, RUNS + 1):
 		var st := Director.state_for(r)
 		by_state[st] = int(by_state.get(st, 0)) + 1
@@ -26,8 +27,16 @@ func _initialize() -> void:
 		var used := {}
 		for sec in faces:
 			var f := String(faces[sec])
-			# ① 每段必须有脸
+			# ① 每段必须有脸 —— **除了首墙**(2026-08-24 两层放水):
+			#    新手期(r < s1_face_min_run)首墙**必须**空;解锁后允许按 s1_easy_chance 空。
+			if int(sec) == 0 and not SectionMod.wall_face_unlocked(0, r):
+				if f != "":
+					print("❌ 局 %d 首墙未到解锁局却有脸 %s" % [r, f]); bugs += 1
+				continue
 			if f == "":
+				if int(sec) == 0:
+					s1_easy += 1
+					continue
 				print("❌ 局 %d 段 %d 空脸" % [r, sec]); bugs += 1
 				continue
 			# ② 局内不重复
@@ -45,6 +54,14 @@ func _initialize() -> void:
 			seen_per_face[f][1] += 1
 	print("\n=== 100 关生成验证 ===")
 	print("  状态分布: %s" % str(by_state))
+	# 概率放水的走带自检:解锁后 ~97 局 × p, 偏出 3 个标准误就喊(p=0 时必须恰 0)
+	var p := GameConfig.S1_EASY_CHANCE
+	var n_unlocked := RUNS - (GameConfig.S1_FACE_MIN_RUN - 1)
+	var expect := p * float(n_unlocked)
+	var se3 := 3.0 * sqrt(maxf(0.0001, p * (1.0 - p) * float(n_unlocked)))
+	print("  首墙简单关: %d / %d 局(期望 %.1f ± %.1f)" % [s1_easy, n_unlocked, expect, se3])
+	if absf(float(s1_easy) - expect) > se3:
+		print("❌ 简单关频率偏出 3σ —— s1_easy_chance 的掷点可能接错了"); bugs += 1
 	print("  出场脸种数: %d;首次出现最晚的:" % seen_per_face.size())
 	var rows: Array = []
 	for f in seen_per_face:

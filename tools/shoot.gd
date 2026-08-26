@@ -22,7 +22,7 @@ func _initialize() -> void:
 func _process(delta: float) -> bool:
 	_frames += 1
 	if _frames == 4:
-		_scene.choose_character(1)     # skip the pick screen
+		_scene.start_run()     # skip the pick screen
 	if not _fired and _frames == 300:
 		# stage a wall section so the boss-face banner renders via the real path.
 		# Keys/index must track WALL_SECTIONS — a stale hardcoded index renders a

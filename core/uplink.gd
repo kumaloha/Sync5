@@ -1,8 +1,8 @@
 class_name Uplink
 extends RefCounted
 
-## 回传的**簿记层**(1.1 · 2026-08-19)。Tape 一局一个 `run_*.jsonl`(采集侧早齐:
-## 21 类事件 + 「能重放任意时刻」判据), 这里管三件事:**哪些文件该传 · 传完怎么记账 ·
+## 回传的**簿记层**(1.1 · 2026-08-19)。Tape 一局一个 `run_*.jsonl`(采集侧早齐,
+## 事件表见 core/tape.gd + 「能重放任意时刻」判据), 这里管三件事:**哪些文件该传 · 传完怎么记账 ·
 ## 随包带什么元数据**。网络与时机在 `view/beacon.gd`(HTTPRequest 要挂树, 重试要时钟,
 ## 都不是 core 的事);本文件守 core 铁律:无时钟、不 import view, 碰文件系统走
 ## `core/save.gd`/`core/tape.gd` 的同一先例。

@@ -1,9 +1,0 @@
-{
-  "id": "glowstick",
-  "prompt": "Use case: stylized-concept. Asset type: Sync5 game Joker central totem inside a 145×50 runtime window. The input reference is only a high-level guide for black-glass material and sharp neon rim; do not copy its subject, text, card frame, or composition. Style/medium: original high-contrast hard-edged 2D cyberpunk nightclub illustration, dark glass and black metal, crisp cyan neon rim, violet secondary accent appropriate to an Uncommon support Joker, one very small magenta hotspot, strong memorable silhouette. Composition/framing: exactly one centered symbolic mechanism or prop, at most one supporting object, generous padding, entire recognition-critical silhouette visible in the center safe area and readable after conversion into a 145×50 display window. Scene/backdrop: perfectly flat solid #00ff00 chroma-key background, uniform, no texture, gradient, floor, shadow, reflection, or lighting variation; no #00ff00 in subject. Constraints: no narrative scene, people unless the subject explicitly requires them, card frame, playing-card ranks, title, digits, letters, words, random glyphs, logo, or watermark; crisp separated edges. Avoid photorealism, soft painterly haze, crowded scene, cropped subject, repeated generic circle icon, tiny details. Primary request: Create the Joker totem ‘荧光棒 / Glowstick’. Subject: one segmented glowstick whose segments visibly fade from bright cyan-violet to dark, conveying decay over time; no hand, no text.",
-  "revision": 1,
-  "source_sha256": "755d6502cf104e0bb9201c4bf973825a97fea534900640139cfc8189e49aa7c8",
-  "tool_mode": "built-in",
-  "reference": "assets/reference/ref_joker_holo_synth.png",
-  "raw_codex_path": "/Users/kuma/.codex/generated_images/019fe632-fdfa-76f2-850c-53239465ebcd/exec-72d77899-42aa-40ce-92fd-a3be56e6494b.png"
-}

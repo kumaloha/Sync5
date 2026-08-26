@@ -1,9 +1,0 @@
-{
-  "id": "triplebill",
-  "prompt": "Use case: stylized-concept. Asset type: Sync5 game Joker central totem for a compact 145×50 runtime window. Input images: high-level references only for hard-edged black-glass material, crisp cyan neon rim, restrained violet/magenta accents, and compact symbolic silhouette; do not copy reference subjects, text, frames, or composition. Primary request: Create ‘三重 / Triple Bill’: exactly three bold side-by-side stage-light pillars rising from one compact black-metal base and supporting one blank angular marquee canopy. The three illuminated pillars must be equally clear and countable; the marquee must contain no writing, symbols, lines resembling letters, or poster copy. Make it feel like the more powerful multiplier upgrade of a three-part music family. Style/medium: original high-contrast hard-edged 2D cyberpunk nightclub illustration, black glass and dark metal, crisp cyan rim, Uncommon violet energy cores, one tiny magenta hotspot. Composition: one compact centered near-square or sturdy vertical totem, complete silhouette visible, large readable shapes, generous but not excessive padding, readable after conversion to a 145×50 window. Background: perfectly flat solid #00ff00 chroma-key, uniform, no texture, gradient, floor, shadow, reflection, or lighting variation; no #00ff00 in subject. Constraints: no card frame, title, digits, letters, words, random glyphs, logo, watermark, narrative scene, people, cropped subject, thin strip, or tiny details. Avoid photorealism and painterly haze.",
-  "revision": 1,
-  "source_sha256": "170e17c20e927a30cea889210a0c7ab6ca17fb5a7926648e8f57fd82e7010fca",
-  "tool_mode": "built-in",
-  "reference": "assets/reference/ref_joker_holo_synth.png",
-  "raw_codex_path": "/Users/kuma/.codex/generated_images/019fe632-fdfa-76f2-850c-53239465ebcd/exec-3214d255-f933-4a72-b45b-b16c15a0c495.png"
-}

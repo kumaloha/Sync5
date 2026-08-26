@@ -8,7 +8,7 @@ extends RefCounted
 
 
 ## `scale` = 升级把**增量**放大多少倍(`Joker.increment_scale()`, Lv1 = 1.0)。
-## ⚠ 缺省 1.0 ⇒ **主角与所有既有调用点逐字节不变**(主角没有等级)。
+## ⚠ 缺省 1.0 ⇒ **所有既有调用点逐字节不变**。
 static func apply_effects(effects: Array, state: Dictionary, ctx: Dictionary,
 		scale: float = 1.0) -> String:
 	var popup := ""
@@ -86,6 +86,26 @@ static func _when_ok(w: Dictionary, state: Dictionary, ctx: Dictionary) -> bool:
 					return false
 			"early_finish":
 				if not bool(ctx.get("early_finish", false)):
+					return false
+			"chance":
+				# 赌具(2026-08-25):掷点在 Beat 预掷(共享 RNG 纪律), 结算保持纯函数。
+				# 无掷点上下文(直调 Settle 的测试 / kit 局部)= 永不触发, 基线确定。
+				# 灌铅骰的 odds_mult 乘在阈值上(1/4 → 1/2), 封顶 1。
+				var lucks: Array = ctx.get("luck_rolls", [])
+				if lucks.is_empty():
+					return false
+				var rv: float = float(lucks.pop_front())
+				var need: float = minf(1.0, float(v) * float(ctx.get("odds_mult", 1.0)))
+				if rv >= need:
+					return false
+			"target_streak":
+				# 镜面改造(2026-08-25, versus.md):连续两拍达成旗条件才生效 ——
+				# 本拍旗已触发(支援在旗之后评估, target_factor 已定)且上一拍也触发过
+				# (prev_target_hit 由 Run 维护, 与 prev_kind 同生命周期)。
+				# 必买卡从此要「玩出来」, 且第一次对禁回/炒冷饭类脸敏感。
+				if float(ctx.get("target_factor", 1.0)) <= 1.0:
+					return false
+				if not bool(ctx.get("prev_target_hit", false)):
 					return false
 			"acted_final":
 				if not bool(ctx.get("acted_final", false)):
@@ -178,6 +198,10 @@ static func _count(d: Dictionary, state: Dictionary, ctx: Dictionary) -> float:
 		c = float(int(ctx.get("swapped_scoring", 0)))
 	elif per.begins_with("counter:"):
 		c = float(state.get(per.substr(8), 0.0))
+	elif per == "cache_rank_sum":
+		c = float(ctx.get("cache_rank_sum", 0))
+	elif per == "hidden_scoring":
+		c = float(ctx.get("hidden_scoring", 0))
 	elif per.begins_with("coins:"):
 		@warning_ignore("integer_division")
 		c = float(int(ctx.coins) / int(per.substr(6)))

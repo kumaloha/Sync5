@@ -171,16 +171,16 @@ func run(t) -> void:
 	g.tutorial_note(want)
 	t.check(g.tutorial_try_advance(), "做了那个动作 ⇒ 返回 true")
 	t.eq(g.tutorial_step, gated + 1, "推进正好一步")
-	# --- 拍中推进(2026-08-18 用户:「应该消失, 进入下一个提示」)---
+	# --- 拍中回执(2026-08-24 用户:「换一下之后立刻就跳到小丑牌了 ——
+	# 应该等结算完了再到」)—— 拍中不再推步:做完动作只是 pending 清空
+	# (编排器据此熄提示当回执), 步进只属于拍末。
 	g.tutorial_step = gated
-	t.check(not g.tutorial_advance_if_done(), "没做动作 ⇒ 拍中不推进")
+	t.eq(g.tutorial_pending(), want, "没做动作 ⇒ pending 亮着(提示留在原地)")
 	g.tutorial_note(want)
-	t.check(g.tutorial_advance_if_done(), "做了动作 ⇒ 拍中立即推进(提示当场换)")
-	t.eq(g.tutorial_step, gated + 1, "拍中推进正好一步")
-	t.check(not g.tutorial_advance_if_done(),
-		"同一个动作不许替下一步的门买单 —— 拍中推进时清动作账(练习位不被吞)")
-	t.check(not g.tutorial_advance_if_done() and Tutorial.require(99) == "",
-		"越界步 require 为空 ⇒ 拍中永不放行(空门语义 = 把一拍打完, 归拍末)")
+	t.eq(g.tutorial_pending(), "", "做了动作 ⇒ pending 清空(编排器熄提示当回执)")
+	t.eq(g.tutorial_step, gated, "……但步子不动 —— 下一步的内容等结算(2026-08-24)")
+	t.check(g.tutorial_try_advance(), "拍末才推进")
+	t.eq(g.tutorial_step, gated + 1, "推进正好一步")
 	# require 全部在白名单里, 否则那一步**永远推进不了且不报错**(玩家卡死在教学关)
 	for s2 in range(Tutorial.steps()):
 		var rq := Tutorial.require(s2)
@@ -194,7 +194,7 @@ func run(t) -> void:
 	q.reset(1)
 	q.tutorial_note("discard")
 	t.check(not q.tutorial_try_advance(), "正式局 try_advance 恒 false")
-	t.check(not q.tutorial_advance_if_done(), "正式局拍中推进恒 false")
+	t.eq(q.tutorial_pending(), "", "正式局 pending 恒空")
 	t.eq(q.tutorial_step, 0, "正式局步骤下标不动")
 	# ⚠ 正式局必须**逐字节不受影响** —— 这是「加功能不许改既有行为」的机器可读版本。
 	var n := Run.new()

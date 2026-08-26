@@ -1,0 +1,1556 @@
+{
+  "version": "2026-08-24",
+  "source_spec": "docs/design/art_prompts_gpt.md",
+  "generation_mode": "built-in image generation model",
+  "authoritative": true,
+  "isolated": true,
+  "jokers": [
+    {
+      "id": "twin",
+      "path": "jokers/joker_twin.png",
+      "name_zh": "双子",
+      "name_en": "Twin",
+      "type": "target",
+      "rarity": "rare",
+      "mechanic": "打出对子/两对:×6 倍率",
+      "visual_metaphor": "镜像对子与第二组小对子共用一束倍率扇光。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "stair",
+      "path": "jokers/joker_stair.png",
+      "name_zh": "阶梯",
+      "name_en": "Stairway",
+      "type": "target",
+      "rarity": "rare",
+      "mechanic": "打出顺子/同花顺:×11 倍率",
+      "visual_metaphor": "五张连续点数牌组成上升台阶与倍率光扇。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "mono",
+      "path": "jokers/joker_mono.png",
+      "name_zh": "单色",
+      "name_en": "Monochrome",
+      "type": "target",
+      "rarity": "rare",
+      "mechanic": "打出同花/同花顺:×12 倍率",
+      "visual_metaphor": "五张同花色牌合为单色倍率扇面。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "triplet",
+      "path": "jokers/joker_triplet.png",
+      "name_zh": "三连音",
+      "name_en": "Triplet",
+      "type": "target",
+      "rarity": "rare",
+      "mechanic": "打出三条/葫芦/四条:×10 倍率",
+      "visual_metaphor": "三张同点数牌居中形成强倍率扇面。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "lonewolf",
+      "path": "jokers/joker_lonewolf.png",
+      "name_zh": "独狼",
+      "name_en": "Lone Wolf",
+      "type": "target",
+      "rarity": "rare",
+      "mechanic": "整拍零弃牌:+3◆;商店必出 Target",
+      "visual_metaphor": "未动的手牌同时连接三枚金币与目标牌位。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "encore",
+      "path": "jokers/joker_encore.png",
+      "name_zh": "回响",
+      "name_en": "Encore",
+      "type": "support",
+      "rarity": "common",
+      "mechanic": "与上拍同牌型:奖励分+目标分的58%",
+      "visual_metaphor": "两组相同成牌形成回声，后一组喷出加分粒子。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "finale",
+      "path": "jokers/joker_finale.png",
+      "name_zh": "尾声",
+      "name_en": "Finale",
+      "type": "support",
+      "rarity": "common",
+      "mechanic": "最后 2 秒内有操作:奖励分+目标分的24%",
+      "visual_metaphor": "最后时钟扇区中的一次牌动作喷出加分粒子。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "turnover",
+      "path": "jokers/joker_turnover.png",
+      "name_zh": "周转",
+      "name_en": "Turnover",
+      "type": "support",
+      "rarity": "common",
+      "mechanic": "每弃 1 张:奖励分+目标分的7%",
+      "visual_metaphor": "飞出的弃牌沿轨迹持续留下加分粒子。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "tipjar",
+      "path": "jokers/joker_tipjar.png",
+      "name_zh": "小费罐",
+      "name_en": "Tip Jar",
+      "type": "support",
+      "rarity": "common",
+      "mechanic": "整拍零弃牌:+2◆",
+      "visual_metaphor": "完全静止的手牌旁出现两枚金币。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "chord",
+      "path": "jokers/joker_chord.png",
+      "name_zh": "和弦",
+      "name_en": "Chord",
+      "type": "support",
+      "rarity": "common",
+      "mechanic": "缓存三张同花色:+140 奖励分",
+      "visual_metaphor": "紫色三格缓存装满同一花色并发出加分粒子。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "neonsign",
+      "path": "jokers/joker_neonsign.png",
+      "name_zh": "灯牌",
+      "name_en": "Neon Sign",
+      "type": "support",
+      "rarity": "common",
+      "mechanic": "每拍必发:奖励分+目标分的12%",
+      "visual_metaphor": "单张计分牌承载恒亮加号。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "popup",
+      "path": "jokers/joker_popup.png",
+      "name_zh": "快闪",
+      "name_en": "Pop-Up",
+      "type": "support",
+      "rarity": "common",
+      "mechanic": "每段第 1 拍:奖励分+目标分的80%",
+      "visual_metaphor": "序列第一张牌弹起并爆发加分粒子。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "vinyl",
+      "path": "jokers/joker_vinyl.png",
+      "name_zh": "黑胶",
+      "name_en": "Vinyl",
+      "type": "support",
+      "rarity": "common",
+      "mechanic": "每弃 1 张:基础分+1,永久累计",
+      "visual_metaphor": "连续弃牌轨迹卷成累积加号的圆环。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "chorus",
+      "path": "jokers/joker_chorus.png",
+      "name_zh": "副歌",
+      "name_en": "Chorus",
+      "type": "support",
+      "rarity": "uncommon",
+      "mechanic": "每段最后一拍:加成+75%",
+      "visual_metaphor": "短序列最后一张牌最亮并展开倍率扇光。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "interest",
+      "path": "jokers/joker_interest.png",
+      "name_zh": "利息",
+      "name_en": "Interest",
+      "type": "support",
+      "rarity": "uncommon",
+      "mechanic": "结算时每持 4◆:+1◆(上限 5)",
+      "visual_metaphor": "四枚金币汇入一枚新增金币。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "momentum",
+      "path": "jokers/joker_momentum.png",
+      "name_zh": "惯性",
+      "name_en": "Momentum",
+      "type": "support",
+      "rarity": "uncommon",
+      "mechanic": "每次提前收工:加成+10%,永久",
+      "visual_metaphor": "提前停下的时钟推动越来越亮的倍率牌扇。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "vip",
+      "path": "jokers/joker_vip.png",
+      "name_zh": "贵宾",
+      "name_en": "VIP",
+      "type": "support",
+      "rarity": "uncommon",
+      "mechanic": "J/Q/K 按 20 点计入基础分",
+      "visual_metaphor": "J/Q/K 人头牌汇入高额筹码柱。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "glowstick",
+      "path": "jokers/joker_glowstick.png",
+      "name_zh": "荧光棒",
+      "name_en": "Glow Stick",
+      "type": "support",
+      "rarity": "uncommon",
+      "mechanic": "加成+60%起步,每拍递减 6%",
+      "visual_metaphor": "倍率牌扇从亮到暗逐拍衰减。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "shortcut",
+      "path": "jokers/joker_shortcut.png",
+      "name_zh": "近道",
+      "name_en": "Shortcut",
+      "type": "support",
+      "rarity": "uncommon",
+      "mechanic": "顺子可以跳过一个点数",
+      "visual_metaphor": "顺子序列保留一个清晰空位并以短箭头跨过。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "fourfingers",
+      "path": "jokers/joker_fourfingers.png",
+      "name_zh": "四指",
+      "name_en": "Four Fingers",
+      "type": "support",
+      "rarity": "uncommon",
+      "mechanic": "顺子和同花,四张就够",
+      "visual_metaphor": "恰好四张同花连续牌构成完整牌型。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "blacktone",
+      "path": "jokers/joker_blacktone.png",
+      "name_zh": "黑调",
+      "name_en": "Black Tone",
+      "type": "support",
+      "rarity": "rare",
+      "mechanic": "♠♣ 算同一花色(黑同花)",
+      "visual_metaphor": "黑桃与梅花融合为一个冰青花色符号。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "redtone",
+      "path": "jokers/joker_redtone.png",
+      "name_zh": "红调",
+      "name_en": "Red Tone",
+      "type": "support",
+      "rarity": "rare",
+      "mechanic": "♥♦ 算同一花色(红同花)",
+      "visual_metaphor": "红心与方块融合为一个粉红花色符号。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "bassline",
+      "path": "jokers/joker_bassline.png",
+      "name_zh": "贝斯线",
+      "name_en": "Bassline",
+      "type": "support",
+      "rarity": "rare",
+      "mechanic": "每累计弃 12 张:倍率+0.25,永久",
+      "visual_metaphor": "十二个弃牌轨迹刻度汇入小型倍率扇光。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "mirror",
+      "path": "jokers/joker_mirror.png",
+      "name_zh": "镜面",
+      "name_en": "Mirror",
+      "type": "support",
+      "rarity": "rare",
+      "mechanic": "以 Target 一半的倍率再乘一次",
+      "visual_metaphor": "目标牌型映出半尺寸、半亮度的副本。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "wildcard",
+      "path": "jokers/joker_wildcard.png",
+      "name_zh": "百搭",
+      "name_en": "Wildcard",
+      "type": "support",
+      "rarity": "rare",
+      "mechanic": "两张万能牌加入牌库",
+      "visual_metaphor": "两张同时带四花色符号的虹彩万能牌。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "kaleido",
+      "path": "jokers/joker_kaleido.png",
+      "name_zh": "万花筒",
+      "name_en": "Kaleidoscope",
+      "type": "target",
+      "rarity": "rare",
+      "mechanic": "成牌且与上拍不同:×4 倍率",
+      "visual_metaphor": "两种不同成牌由切换箭头连接，新牌展开倍率扇光。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "variation",
+      "path": "jokers/joker_variation.png",
+      "name_zh": "变奏",
+      "name_en": "Variation",
+      "type": "support",
+      "rarity": "common",
+      "mechanic": "成牌且与上拍不同:奖励分+目标分的20%",
+      "visual_metaphor": "两种不同成牌由切换箭头连接，新牌喷出加分粒子。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "reprise",
+      "path": "jokers/joker_reprise.png",
+      "name_zh": "复读",
+      "name_en": "Reprise",
+      "type": "support",
+      "rarity": "uncommon",
+      "mechanic": "与上拍同牌型:加成+80%",
+      "visual_metaphor": "两组相同成牌重叠回响，后一组展开倍率扇光。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "fullcast",
+      "path": "jokers/joker_fullcast.png",
+      "name_zh": "全员",
+      "name_en": "Full Cast",
+      "type": "support",
+      "rarity": "common",
+      "mechanic": "打出顺/花/葫芦:奖励分+目标分的77%",
+      "visual_metaphor": "完整五张成牌被无数加号粒子围绕。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "superfan",
+      "path": "jokers/joker_superfan.png",
+      "name_zh": "铁粉",
+      "name_en": "Superfan",
+      "type": "support",
+      "rarity": "uncommon",
+      "mechanic": "每持 2◆:加成+5%(上限 15%)",
+      "visual_metaphor": "每两枚金币推动一档更亮的倍率牌扇并在三档封顶。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "shredder",
+      "path": "jokers/joker_shredder.png",
+      "name_zh": "速弹",
+      "name_en": "Shredder",
+      "type": "target",
+      "rarity": "rare",
+      "mechanic": "6 秒前收工且成牌:×4 倍率",
+      "visual_metaphor": "成牌抢在红色时限前冲出时钟并展开倍率光。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "opener",
+      "path": "jokers/joker_opener.png",
+      "name_zh": "开场",
+      "name_en": "Opener",
+      "type": "support",
+      "rarity": "uncommon",
+      "mechanic": "每段第 1 拍:加成+150%",
+      "visual_metaphor": "序列第一张牌抬高并展开最亮倍率扇光。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "rainbow",
+      "path": "jokers/joker_rainbow.png",
+      "name_zh": "彩虹",
+      "name_en": "Rainbow",
+      "type": "support",
+      "rarity": "common",
+      "mechanic": "成牌集齐四花色:奖励分+目标分的43%",
+      "visual_metaphor": "一手牌同时展示四花色并喷出加分粒子。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "nopair",
+      "path": "jokers/joker_nopair.png",
+      "name_zh": "清流",
+      "name_en": "No Pair",
+      "type": "support",
+      "rarity": "common",
+      "mechanic": "五张点数互不相同:奖励分+目标分的46%",
+      "visual_metaphor": "五张点数各异的牌均匀排开并喷出加分粒子。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "rehearsal",
+      "path": "jokers/joker_rehearsal.png",
+      "name_zh": "排练",
+      "name_en": "Rehearsal",
+      "type": "support",
+      "rarity": "common",
+      "mechanic": "缓存三张点数连续:+200 奖励分",
+      "visual_metaphor": "紫色三格缓存装入连续点数牌并喷出加分粒子。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "bassclef",
+      "path": "jokers/joker_bassclef.png",
+      "name_zh": "低音谱",
+      "name_en": "Bass Clef",
+      "type": "support",
+      "rarity": "uncommon",
+      "mechanic": "2~5 的小牌按 15 点计入基础分",
+      "visual_metaphor": "2 至 5 的低点数牌抬升为异常高的筹码柱。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "warmtone",
+      "path": "jokers/joker_warmtone.png",
+      "name_zh": "暖色",
+      "name_en": "Warm Tone",
+      "type": "support",
+      "rarity": "common",
+      "mechanic": "每张计分红牌:基础分+3",
+      "visual_metaphor": "红心与方块计分牌分别喷出加号粒子。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "cooltone",
+      "path": "jokers/joker_cooltone.png",
+      "name_zh": "冷色",
+      "name_en": "Cool Tone",
+      "type": "support",
+      "rarity": "common",
+      "mechanic": "每张计分黑牌:基础分+3",
+      "visual_metaphor": "黑桃与梅花计分牌分别喷出加号粒子。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "undertone",
+      "path": "jokers/joker_undertone.png",
+      "name_zh": "低声部",
+      "name_en": "Undertone",
+      "type": "support",
+      "rarity": "common",
+      "mechanic": "每张计分 ≤5 小牌:基础分+9",
+      "visual_metaphor": "2 至 5 的低点数牌承载更大的加号粒子。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "duo",
+      "path": "jokers/joker_duo.png",
+      "name_zh": "对唱",
+      "name_en": "Duo",
+      "type": "support",
+      "rarity": "common",
+      "mechanic": "成牌含对子:基础分+10",
+      "visual_metaphor": "一对同点数牌被少量加号粒子包围。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "duet",
+      "path": "jokers/joker_duet.png",
+      "name_zh": "二重唱",
+      "name_en": "Duet",
+      "type": "support",
+      "rarity": "uncommon",
+      "mechanic": "成牌含对子:加成+25%",
+      "visual_metaphor": "一对同点数牌被倍率扇光包围。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "triad",
+      "path": "jokers/joker_triad.png",
+      "name_zh": "三和弦",
+      "name_en": "Triad",
+      "type": "support",
+      "rarity": "common",
+      "mechanic": "三条或更好:基础分+25",
+      "visual_metaphor": "三张同点数牌被中等加号粒子包围。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "triplebill",
+      "path": "jokers/joker_triplebill.png",
+      "name_zh": "三重",
+      "name_en": "Triple Bill",
+      "type": "support",
+      "rarity": "uncommon",
+      "mechanic": "三条或更好:加成+60%",
+      "visual_metaphor": "三张同点数牌展开更强的倍率扇光。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "backer",
+      "path": "jokers/joker_backer.png",
+      "name_zh": "后台",
+      "name_en": "Backer",
+      "type": "support",
+      "rarity": "common",
+      "mechanic": "每持 2◆:基础分+1",
+      "visual_metaphor": "两枚金币把一个加号粒子注入计分牌。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "bench",
+      "path": "jokers/joker_bench.png",
+      "name_zh": "替补",
+      "name_en": "Bench",
+      "type": "support",
+      "rarity": "uncommon",
+      "mechanic": "缓存最高点数计入基础分",
+      "visual_metaphor": "紫色缓存中最高点数牌被抬高并发光。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "boxseats",
+      "path": "jokers/joker_boxseats.png",
+      "name_zh": "包厢",
+      "name_en": "Box Seats",
+      "type": "support",
+      "rarity": "rare",
+      "mechanic": "缓存每张人头牌:倍率+0.2",
+      "visual_metaphor": "紫色缓存中的 J/Q/K 逐张增强倍率扇光。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "trim",
+      "path": "jokers/joker_trim.png",
+      "name_zh": "修剪",
+      "name_en": "Trim",
+      "type": "support",
+      "rarity": "rare",
+      "mechanic": "牌库移除全部 2 和 3",
+      "visual_metaphor": "牌库中的 2 与 3 被红色切线剔除。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "doublebill",
+      "path": "jokers/joker_doublebill.png",
+      "name_zh": "联票",
+      "name_en": "Double Bill",
+      "type": "support",
+      "rarity": "rare",
+      "mechanic": "商店出 4 张,最多买 2 张",
+      "visual_metaphor": "四张商店牌中恰好两张被金币选中。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "sponsor",
+      "path": "jokers/joker_sponsor.png",
+      "name_zh": "赞助",
+      "name_en": "Sponsor",
+      "type": "support",
+      "rarity": "uncommon",
+      "mechanic": "商店所有卡便宜 1◆",
+      "visual_metaphor": "商店牌旁的金币价格被挖去一个刻度。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "jukebox",
+      "path": "jokers/joker_jukebox.png",
+      "name_zh": "点唱机",
+      "name_en": "Jukebox",
+      "type": "support",
+      "rarity": "rare",
+      "mechanic": "商店必出一张规则牌",
+      "visual_metaphor": "四张商店牌中固定出现一张带规则符号的牌。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "freeze",
+      "path": "jokers/joker_freeze.png",
+      "name_zh": "定格",
+      "name_en": "Freeze Frame",
+      "type": "support",
+      "rarity": "uncommon",
+      "mechanic": "提前收工:下一拍加成+30%",
+      "visual_metaphor": "提前停止的时钟冻结本牌，同时点亮下一张倍率牌。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "stilllife",
+      "path": "jokers/joker_stilllife.png",
+      "name_zh": "静物",
+      "name_en": "Still Life",
+      "type": "support",
+      "rarity": "common",
+      "mechanic": "整拍零交换:奖励分+目标分的14%",
+      "visual_metaphor": "紫色缓存完全静止、没有交换箭头，只喷出加分粒子。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "segue",
+      "path": "jokers/joker_segue.png",
+      "name_zh": "串场",
+      "name_en": "Segue",
+      "type": "support",
+      "rarity": "common",
+      "mechanic": "每张换入且计分的牌:奖励分+目标分的10%",
+      "visual_metaphor": "一张牌沿交换箭头进入紫色缓存并立即加分。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "stageexit",
+      "path": "jokers/joker_stageexit.png",
+      "name_zh": "让位",
+      "name_en": "Stage Exit",
+      "type": "support",
+      "rarity": "common",
+      "mechanic": "每弃 1 张人头牌:奖励分+目标分的7%",
+      "visual_metaphor": "J/Q/K 沿弃牌轨迹飞出并留下加分粒子。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "royalty",
+      "path": "jokers/joker_royalty.png",
+      "name_zh": "分成",
+      "name_en": "Royalties",
+      "type": "support",
+      "rarity": "uncommon",
+      "mechanic": "牌型自带的金币翻倍",
+      "visual_metaphor": "一手成牌直接产出两枚相同金币。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "skint",
+      "path": "jokers/joker_skint.png",
+      "name_zh": "穷开心",
+      "name_en": "Broke & Happy",
+      "type": "support",
+      "rarity": "rare",
+      "mechanic": "倍率+0.3;金币上限变 5",
+      "visual_metaphor": "五枚金币顶住封顶横杆，后方保留倍率扇光。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "curtain",
+      "path": "jokers/joker_curtain.png",
+      "name_zh": "谢幕",
+      "name_en": "Curtain Call",
+      "type": "support",
+      "rarity": "uncommon",
+      "mechanic": "最后 1 秒内有操作:加成+60%",
+      "visual_metaphor": "时钟最后一秒扇区触发牌动作与倍率扇光。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "stopwatch",
+      "path": "jokers/joker_stopwatch.png",
+      "name_zh": "秒表",
+      "name_en": "Stopwatch",
+      "type": "support",
+      "rarity": "uncommon",
+      "mechanic": "结算时每剩 1 秒:加成+8%",
+      "visual_metaphor": "剩余时钟扇区逐格汇入倍率扇光。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "earlyout",
+      "path": "jokers/joker_earlyout.png",
+      "name_zh": "早弃",
+      "name_en": "Early Purge",
+      "type": "support",
+      "rarity": "common",
+      "mechanic": "弃牌全部在前 4 秒:奖励分+目标分的19%",
+      "visual_metaphor": "多张牌在时钟早段飞出并留下加分粒子。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "digger",
+      "path": "jokers/joker_digger.png",
+      "name_zh": "淘碟",
+      "name_en": "Crate Digger",
+      "type": "support",
+      "rarity": "uncommon",
+      "mechanic": "每刷新一次商店:基础分+12,永久",
+      "visual_metaphor": "商店牌列随循环刷新箭头累积加号。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "collector",
+      "path": "jokers/joker_collector.png",
+      "name_zh": "收藏家",
+      "name_en": "Collector",
+      "type": "support",
+      "rarity": "uncommon",
+      "mechanic": "每买一张卡:基础分+15(上限+30)",
+      "visual_metaphor": "购买牌从一张叠到两张并在上限处封顶。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "rebrand",
+      "path": "jokers/joker_rebrand.png",
+      "name_zh": "转型",
+      "name_en": "Reinvention",
+      "type": "support",
+      "rarity": "uncommon",
+      "mechanic": "每换一次 Target:加成+40%,永久",
+      "visual_metaphor": "目标牌型经循环箭头变成另一牌型并累积倍率光。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "wrecker",
+      "path": "jokers/joker_wrecker.png",
+      "name_zh": "拆迁",
+      "name_en": "Demolition",
+      "type": "target",
+      "rarity": "rare",
+      "mechanic": "本拍弃满 3 张且成牌:×3.5 倍率",
+      "visual_metaphor": "三张弃牌砸开一手成牌并释放倍率扇光。",
+      "status": "generated_and_reviewed",
+      "stage": "isolated_review",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    }
+  ],
+  "blinds": [
+    {
+      "id": "unplugged",
+      "path": "blinds_concept/blind_unplugged.png",
+      "name_zh": "拔电",
+      "name_en": "Unplugged",
+      "tier": "未入池",
+      "mechanic": "备用概念，无已定义机制",
+      "signal": null,
+      "visual_metaphor": "断开的电源插头。",
+      "status": "generated_and_reviewed",
+      "stage": "concept_pending_monochrome_outline_approval",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "static",
+      "path": "blinds_concept/blind_static.png",
+      "name_zh": "杂讯",
+      "name_en": "Static",
+      "tier": "未入池",
+      "mechanic": "备用概念，无已定义机制",
+      "signal": null,
+      "visual_metaphor": "干扰条纹切过牌面。",
+      "status": "generated_and_reviewed",
+      "stage": "concept_pending_monochrome_outline_approval",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "rotation",
+      "path": "blinds_concept/blind_rotation.png",
+      "name_zh": "强制换血",
+      "name_en": "Forced Rotation",
+      "tier": "未入池",
+      "mechanic": "备用概念，无已定义机制",
+      "signal": null,
+      "visual_metaphor": "三张牌被圆形箭头强制轮换。",
+      "status": "generated_and_reviewed",
+      "stage": "concept_pending_monochrome_outline_approval",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "cover",
+      "path": "blinds_concept/blind_cover.png",
+      "name_zh": "入场费",
+      "name_en": "Cover Charge",
+      "tier": "未入池",
+      "mechanic": "备用概念，无已定义机制",
+      "signal": null,
+      "visual_metaphor": "金币挡住卡牌入口。",
+      "status": "generated_and_reviewed",
+      "stage": "concept_pending_monochrome_outline_approval",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "freshsheet",
+      "path": "blinds_concept/blind_freshsheet.png",
+      "name_zh": "翻篇",
+      "name_en": "Fresh Sheet",
+      "tier": "未入池",
+      "mechanic": "备用概念，无已定义机制",
+      "signal": null,
+      "visual_metaphor": "有标记的旧牌翻成空白新牌。",
+      "status": "generated_and_reviewed",
+      "stage": "concept_pending_monochrome_outline_approval",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "norepeat",
+      "path": "blinds_concept/blind_norepeat.png",
+      "name_zh": "禁回",
+      "name_en": "No Repeats",
+      "tier": "[1]",
+      "mechanic": "重复上一拍的牌型,得分减半",
+      "signal": "REPEAT ×50%",
+      "visual_metaphor": "重复牌型循环被半强度斜杠切断。",
+      "status": "generated_and_reviewed",
+      "stage": "concept_pending_monochrome_outline_approval",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "lostpage",
+      "path": "blinds_concept/blind_lostpage.png",
+      "name_zh": "丢谱",
+      "name_en": "Lost Pages",
+      "tier": "[1]",
+      "mechanic": "每拍开头标记一张缓存牌,拍末没收",
+      "signal": "CACHE −1",
+      "visual_metaphor": "紫色缓存的一格被红色撕走。",
+      "status": "generated_and_reviewed",
+      "stage": "concept_pending_monochrome_outline_approval",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "smallstage",
+      "path": "blinds_concept/blind_smallstage.png",
+      "name_zh": "窄台",
+      "name_en": "Small Stage",
+      "tier": "[1]",
+      "mechanic": "缓存只有两格",
+      "signal": "CACHE 2",
+      "visual_metaphor": "三格缓存被挤压成两格。",
+      "status": "generated_and_reviewed",
+      "stage": "concept_pending_monochrome_outline_approval",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "facedown",
+      "path": "blinds_concept/blind_facedown.png",
+      "name_zh": "蒙面",
+      "name_en": "Face Down",
+      "tier": "[1]",
+      "mechanic": "J/Q/K 盖面发牌,结算才翻开",
+      "signal": "JQK HIDE",
+      "visual_metaphor": "三张人头牌被红色遮眼带盖住。",
+      "status": "generated_and_reviewed",
+      "stage": "concept_pending_monochrome_outline_approval",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "lastcall",
+      "path": "blinds_concept/blind_lastcall.png",
+      "name_zh": "收线",
+      "name_en": "Last Call",
+      "tier": "[1]",
+      "mechanic": "最后 2 秒不能弃牌",
+      "signal": "CLOSE −2s",
+      "visual_metaphor": "时钟最后扇区锁住飞出的弃牌。",
+      "status": "generated_and_reviewed",
+      "stage": "concept_pending_monochrome_outline_approval",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "lockup",
+      "path": "blinds_concept/blind_lockup.png",
+      "name_zh": "封盘",
+      "name_en": "Lock Up",
+      "tier": "[1]",
+      "mechanic": "最后 2 秒不能交换",
+      "signal": "LOCK −2s",
+      "visual_metaphor": "时钟最后扇区锁住双向交换箭头。",
+      "status": "generated_and_reviewed",
+      "stage": "concept_pending_monochrome_outline_approval",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "onetake",
+      "path": "blinds_concept/blind_onetake.png",
+      "name_zh": "一口气",
+      "name_en": "One Take",
+      "tier": "[1]",
+      "mechanic": "每拍只能弃一次,张数不限",
+      "signal": "ONE TAKE",
+      "visual_metaphor": "单次弃牌轨迹穿过一档门。",
+      "status": "generated_and_reviewed",
+      "stage": "concept_pending_monochrome_outline_approval",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "oneswap",
+      "path": "blinds_concept/blind_oneswap.png",
+      "name_zh": "单换",
+      "name_en": "One Swap",
+      "tier": "[1]",
+      "mechanic": "每拍只能交换一次",
+      "signal": "ONE SWAP",
+      "visual_metaphor": "单次双向箭头穿过一档门。",
+      "status": "generated_and_reviewed",
+      "stage": "concept_pending_monochrome_outline_approval",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "setlist",
+      "path": "blinds_concept/blind_setlist.png",
+      "name_zh": "定调",
+      "name_en": "Set List",
+      "tier": "[2]",
+      "mechanic": "第一拍的牌型定为主打,打其他牌型分数减半",
+      "signal": "OTHERS ×50%",
+      "visual_metaphor": "第一手牌被钉住，替代牌型被半强度斜杠压暗。",
+      "status": "generated_and_reviewed",
+      "stage": "concept_pending_monochrome_outline_approval",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "blindspot",
+      "path": "blinds_concept/blind_blindspot.png",
+      "name_zh": "暗补",
+      "name_en": "Blind Spot",
+      "tier": "[2]",
+      "mechanic": "弃牌补入的牌盖面,结算才翻开",
+      "signal": "REFILL HIDE",
+      "visual_metaphor": "弃牌箭头返回一张背面牌。",
+      "status": "generated_and_reviewed",
+      "stage": "concept_pending_monochrome_outline_approval",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "throttle",
+      "path": "blinds_concept/blind_throttle.png",
+      "name_zh": "限流",
+      "name_en": "Throttle",
+      "tier": "[2]",
+      "mechanic": "弃牌与交换合计最多 3 次",
+      "signal": "ACTION 3",
+      "visual_metaphor": "弃牌轨迹与交换箭头汇入三档限流器。",
+      "status": "generated_and_reviewed",
+      "stage": "concept_pending_monochrome_outline_approval",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "request",
+      "path": "blinds_concept/blind_request.png",
+      "name_zh": "点歌",
+      "name_en": "Request",
+      "tier": "[2]",
+      "mechanic": "没完成本拍点歌,得分 −10%",
+      "signal": "MISS −10%",
+      "visual_metaphor": "目标牌型缺一张并被下行斜杠惩罚。",
+      "status": "generated_and_reviewed",
+      "stage": "concept_pending_monochrome_outline_approval",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "redlight",
+      "path": "blinds_concept/blind_redlight.png",
+      "name_zh": "红灯",
+      "name_en": "Red Light",
+      "tier": "[2]",
+      "mechanic": "红牌不能换进缓存",
+      "signal": "RED BLOCK",
+      "visual_metaphor": "红心与方块被挡在紫色缓存入口外。",
+      "status": "generated_and_reviewed",
+      "stage": "concept_pending_monochrome_outline_approval",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "lowend",
+      "path": "blinds_concept/blind_lowend.png",
+      "name_zh": "低音",
+      "name_en": "Low End",
+      "tier": "[2]",
+      "mechanic": "弃牌只会补到 2 至 9",
+      "signal": "RANK 2—9",
+      "visual_metaphor": "弃牌箭头进入受上下边界限制的点数带。",
+      "status": "generated_and_reviewed",
+      "stage": "concept_pending_monochrome_outline_approval",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "wetink",
+      "path": "blinds_concept/blind_wetink.png",
+      "name_zh": "墨迹",
+      "name_en": "Wet Ink",
+      "tier": "[2]",
+      "mechanic": "新进缓存的牌,下一拍才能取出",
+      "signal": "LOCK 1",
+      "visual_metaphor": "新牌进入紫色缓存并被一拍锁与时钟扣住。",
+      "status": "generated_and_reviewed",
+      "stage": "concept_pending_monochrome_outline_approval",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "handseal",
+      "path": "blinds_concept/blind_handseal.png",
+      "name_zh": "封条",
+      "name_en": "Hand Seal",
+      "tier": "[2]",
+      "mechanic": "开拍最低的那张手牌不能弃",
+      "signal": "LOW LOCK",
+      "visual_metaphor": "升序手牌中的最低牌被红色封条锁住。",
+      "status": "generated_and_reviewed",
+      "stage": "concept_pending_monochrome_outline_approval",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "rerun",
+      "path": "blinds_concept/blind_rerun.png",
+      "name_zh": "炒冷饭",
+      "name_en": "Rerun",
+      "tier": "[3]",
+      "mechanic": "重复上一拍的牌型,得分归零",
+      "signal": "REPEAT 0",
+      "visual_metaphor": "重复牌型循环的第二组被完全归零斜杠切断。",
+      "status": "generated_and_reviewed",
+      "stage": "concept_pending_monochrome_outline_approval",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "raisedbar",
+      "path": "blinds_concept/blind_raisedbar.png",
+      "name_zh": "加码",
+      "name_en": "Raised Bar",
+      "tier": "[3]",
+      "mechanic": "本段目标分提高 50%",
+      "signal": "TARGET +50%",
+      "visual_metaphor": "目标刻度被红色上升箭头整体抬高。",
+      "status": "generated_and_reviewed",
+      "stage": "concept_pending_monochrome_outline_approval",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "trilogy",
+      "path": "blinds_concept/blind_trilogy.png",
+      "name_zh": "曲目",
+      "name_en": "Trilogy",
+      "tier": "[3]",
+      "mechanic": "本段需打出 3 种牌型,每缺一种段目标+25%",
+      "signal": "VARIETY 3",
+      "visual_metaphor": "三种不同成牌围住同一警告三角。",
+      "status": "generated_and_reviewed",
+      "stage": "concept_pending_monochrome_outline_approval",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "blackout",
+      "path": "blinds_concept/blind_blackout.png",
+      "name_zh": "暗灯",
+      "name_en": "Blackout",
+      "tier": "[3]",
+      "mechanic": "人头牌和补牌全部盖面",
+      "signal": "FULL HIDE",
+      "visual_metaphor": "整扇背面牌被粗红遮光带覆盖。",
+      "status": "generated_and_reviewed",
+      "stage": "concept_pending_monochrome_outline_approval",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "doubleseal",
+      "path": "blinds_concept/blind_doubleseal.png",
+      "name_zh": "双封",
+      "name_en": "Double Seal",
+      "tier": "[3]",
+      "mechanic": "最低手牌不能弃,最旧缓存不能换",
+      "signal": "DOUBLE LOCK",
+      "visual_metaphor": "最低手牌与最旧缓存分别由两把锁连接。",
+      "status": "generated_and_reviewed",
+      "stage": "concept_pending_monochrome_outline_approval",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "patchin",
+      "path": "blinds_concept/blind_patchin.png",
+      "name_zh": "接线",
+      "name_en": "Patch In",
+      "tier": "[3]",
+      "mechanic": "小丑牌只发挥一半;打出开拍时缓存里的牌恢复全效",
+      "signal": "POWER ×50%",
+      "visual_metaphor": "半亮能量符号经缓存接线恢复完整亮度。",
+      "status": "generated_and_reviewed",
+      "stage": "concept_pending_monochrome_outline_approval",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "ration",
+      "path": "blinds_concept/blind_ration.png",
+      "name_zh": "配给",
+      "name_en": "Ration",
+      "tier": "[3]",
+      "mechanic": "整段只有 12 次弃牌额度",
+      "signal": "DISCARD 12",
+      "visual_metaphor": "十二个弃牌刻度被飞牌逐个消耗。",
+      "status": "generated_and_reviewed",
+      "stage": "concept_pending_monochrome_outline_approval",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "switchtrack",
+      "path": "blinds_concept/blind_switchtrack.png",
+      "name_zh": "岔轨",
+      "name_en": "Switch Track",
+      "tier": "[3]",
+      "mechanic": "第一个动作二选一定轨:弃牌或交换,另一种本拍关闭",
+      "signal": "ONE TRACK",
+      "visual_metaphor": "弃牌与交换两条岔轨由中央锁门二选一。",
+      "status": "generated_and_reviewed",
+      "stage": "concept_pending_monochrome_outline_approval",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "rush",
+      "path": "blinds_concept/blind_rush.png",
+      "name_zh": "赶场",
+      "name_en": "Rush Hour",
+      "tier": "[4]",
+      "mechanic": "每拍只有 6 秒",
+      "signal": "CLOCK 6s",
+      "visual_metaphor": "六刻度时钟被两侧压力条挤压。",
+      "status": "generated_and_reviewed",
+      "stage": "concept_pending_monochrome_outline_approval",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "overtime",
+      "path": "blinds_concept/blind_overtime.png",
+      "name_zh": "加场",
+      "name_en": "Overtime",
+      "tier": "[4]",
+      "mechanic": "每拍 6 秒,最后 2 秒不能弃牌",
+      "signal": "6s · CLOSE −2s",
+      "visual_metaphor": "六刻度时钟最后两格锁住弃牌。",
+      "status": "generated_and_reviewed",
+      "stage": "concept_pending_monochrome_outline_approval",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "teardown",
+      "path": "blinds_concept/blind_teardown.png",
+      "name_zh": "拆台",
+      "name_en": "Teardown",
+      "tier": "[4]",
+      "mechanic": "每拍 6 秒,最后 2 秒不能交换",
+      "signal": "6s · LOCK −2s",
+      "visual_metaphor": "六刻度时钟最后两格锁住交换箭头。",
+      "status": "generated_and_reviewed",
+      "stage": "concept_pending_monochrome_outline_approval",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": "closing",
+      "path": "blinds_concept/blind_closing.png",
+      "name_zh": "打烊",
+      "name_en": "Closing",
+      "tier": "[4]",
+      "mechanic": "每拍 6 秒,只能弃一次",
+      "signal": "6s · ONE TAKE",
+      "visual_metaphor": "六刻度时钟只允许一条弃牌轨迹穿门。",
+      "status": "generated_and_reviewed",
+      "stage": "concept_pending_monochrome_outline_approval",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    }
+  ],
+  "counts": {
+    "jokers": 63,
+    "blinds": 33,
+    "total": 96
+  },
+  "contact_sheets": {
+    "jokers": "contact_sheets/jokers.png",
+    "blinds": "contact_sheets/blinds.png"
+  }
+}

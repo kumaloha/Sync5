@@ -146,7 +146,7 @@ func _cache_stats(run: Run, p: Phrase, seed_v: int) -> Dictionary:
 	var vals: Array = []
 	var extra := {
 		"prev_kind": -99, "acted_late": false, "discards": 0, "coins": 99,
-		"phrase_idx": 0, "mod": "", "character": run.character,
+		"phrase_idx": 0, "mod": "",
 	}
 	for _i in range(CACHE_SAMPLES):
 		var f: Array = p.deck.peek_many(rng, GameConfig.HAND_SIZE)

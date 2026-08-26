@@ -25,7 +25,7 @@ func _initialize() -> void:
 func _process(_delta: float) -> bool:
 	_frames += 1
 	if _frames == 4:
-		_scene.choose_character(1)          # skip the pick screen
+		_scene.start_run()          # skip the pick screen
 	if _frames == 300:
 		# ⚠ resolve the face BEFORE _start_phrase(): the cache capacity is
 		# applied in Phrase.start(), so staging it afterwards would deal the

@@ -1,9 +1,0 @@
-{
-  "id": "duo",
-  "prompt": "Use case: stylized-concept. Asset type: Sync5 game Joker central totem for a compact 145×50 runtime window. Input images: high-level references only for the established hard-edged black-glass material, crisp cyan neon rim, restrained violet/magenta accents, and compact symbolic silhouette; do not copy any reference subject, text, frame, or composition. Primary request: Create ‘对唱 / Duo’: exactly two anthropomorphic playing-card silhouettes facing each other and sharing exactly one central upright stage microphone. The cards should lean inward like singers, forming one compact symmetrical emblem; no full people, no stage scene. Style/medium: original high-contrast hard-edged 2D cyberpunk nightclub illustration, black glass and dark metal, crisp cyan neon rim, one tiny magenta hotspot, Common cyan secondary. Composition: one compact centered near-square totem, complete silhouette visible, recognition-critical shapes large and countable, generous but not excessive padding, readable after conversion to a 145×50 window. Background: perfectly flat solid #00ff00 chroma-key, one uniform color, no texture, gradient, floor, shadow, reflection, or lighting variation; do not use #00ff00 in the subject. Constraints: no card frame, title, digits, letters, words, ranks, random glyphs, logo, watermark, detailed narrative scene, cropped subject, thin panoramic strip, or extra cards; crisp separated edges. Avoid photorealism, painterly haze, generic circles, tiny details.",
-  "revision": 1,
-  "source_sha256": "bf329a3329226a0a2967951f07bd8527881daecfeb26c5aa14352035624e7894",
-  "tool_mode": "built-in",
-  "reference": "assets/reference/ref_joker_holo_synth.png",
-  "raw_codex_path": "/Users/kuma/.codex/generated_images/019fe632-fdfa-76f2-850c-53239465ebcd/exec-b1aba208-04d4-4f8a-b1bc-fccfc725adca.png"
-}

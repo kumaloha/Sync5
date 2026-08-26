@@ -1,0 +1,674 @@
+[
+  {
+    "kind": "jokers",
+    "id": "backer",
+    "quiet_mean_luma": 12.324,
+    "v2_mean_luma": 35.926,
+    "ratio": 0.343
+  },
+  {
+    "kind": "jokers",
+    "id": "bassclef",
+    "quiet_mean_luma": 6.153,
+    "v2_mean_luma": 11.414,
+    "ratio": 0.5391
+  },
+  {
+    "kind": "jokers",
+    "id": "bassline",
+    "quiet_mean_luma": 8.847,
+    "v2_mean_luma": 20.851,
+    "ratio": 0.4243
+  },
+  {
+    "kind": "jokers",
+    "id": "bench",
+    "quiet_mean_luma": 7.516,
+    "v2_mean_luma": 23.901,
+    "ratio": 0.3144
+  },
+  {
+    "kind": "jokers",
+    "id": "blacktone",
+    "quiet_mean_luma": 7.401,
+    "v2_mean_luma": 14.985,
+    "ratio": 0.4939
+  },
+  {
+    "kind": "jokers",
+    "id": "boxseats",
+    "quiet_mean_luma": 5.493,
+    "v2_mean_luma": 11.02,
+    "ratio": 0.4985
+  },
+  {
+    "kind": "jokers",
+    "id": "chord",
+    "quiet_mean_luma": 8.965,
+    "v2_mean_luma": 16.792,
+    "ratio": 0.5339
+  },
+  {
+    "kind": "jokers",
+    "id": "chorus",
+    "quiet_mean_luma": 6.888,
+    "v2_mean_luma": 18.014,
+    "ratio": 0.3824
+  },
+  {
+    "kind": "jokers",
+    "id": "collector",
+    "quiet_mean_luma": 5.774,
+    "v2_mean_luma": 8.453,
+    "ratio": 0.6831
+  },
+  {
+    "kind": "jokers",
+    "id": "cooltone",
+    "quiet_mean_luma": 6.184,
+    "v2_mean_luma": 43.97,
+    "ratio": 0.1406
+  },
+  {
+    "kind": "jokers",
+    "id": "curtain",
+    "quiet_mean_luma": 7.516,
+    "v2_mean_luma": 22.066,
+    "ratio": 0.3406
+  },
+  {
+    "kind": "jokers",
+    "id": "digger",
+    "quiet_mean_luma": 6.634,
+    "v2_mean_luma": 11.996,
+    "ratio": 0.553
+  },
+  {
+    "kind": "jokers",
+    "id": "doublebill",
+    "quiet_mean_luma": 10.482,
+    "v2_mean_luma": 23.905,
+    "ratio": 0.4385
+  },
+  {
+    "kind": "jokers",
+    "id": "duet",
+    "quiet_mean_luma": 11.003,
+    "v2_mean_luma": 20.614,
+    "ratio": 0.5338
+  },
+  {
+    "kind": "jokers",
+    "id": "duo",
+    "quiet_mean_luma": 7.408,
+    "v2_mean_luma": 14.149,
+    "ratio": 0.5236
+  },
+  {
+    "kind": "jokers",
+    "id": "earlyout",
+    "quiet_mean_luma": 6.147,
+    "v2_mean_luma": 17.575,
+    "ratio": 0.3498
+  },
+  {
+    "kind": "jokers",
+    "id": "encore",
+    "quiet_mean_luma": 7.9,
+    "v2_mean_luma": 25.313,
+    "ratio": 0.3121
+  },
+  {
+    "kind": "jokers",
+    "id": "finale",
+    "quiet_mean_luma": 5.639,
+    "v2_mean_luma": 10.692,
+    "ratio": 0.5274
+  },
+  {
+    "kind": "jokers",
+    "id": "fourfingers",
+    "quiet_mean_luma": 7.387,
+    "v2_mean_luma": 25.202,
+    "ratio": 0.2931
+  },
+  {
+    "kind": "jokers",
+    "id": "freeze",
+    "quiet_mean_luma": 8.804,
+    "v2_mean_luma": 19.82,
+    "ratio": 0.4442
+  },
+  {
+    "kind": "jokers",
+    "id": "fullcast",
+    "quiet_mean_luma": 6.741,
+    "v2_mean_luma": 12.115,
+    "ratio": 0.5565
+  },
+  {
+    "kind": "jokers",
+    "id": "glowstick",
+    "quiet_mean_luma": 7.376,
+    "v2_mean_luma": 19.523,
+    "ratio": 0.3778
+  },
+  {
+    "kind": "jokers",
+    "id": "interest",
+    "quiet_mean_luma": 7.36,
+    "v2_mean_luma": 10.684,
+    "ratio": 0.6889
+  },
+  {
+    "kind": "jokers",
+    "id": "jukebox",
+    "quiet_mean_luma": 9.055,
+    "v2_mean_luma": 27.375,
+    "ratio": 0.3308
+  },
+  {
+    "kind": "jokers",
+    "id": "kaleido",
+    "quiet_mean_luma": 7.436,
+    "v2_mean_luma": 17.907,
+    "ratio": 0.4153
+  },
+  {
+    "kind": "jokers",
+    "id": "lonewolf",
+    "quiet_mean_luma": 7.808,
+    "v2_mean_luma": 26.564,
+    "ratio": 0.2939
+  },
+  {
+    "kind": "jokers",
+    "id": "mirror",
+    "quiet_mean_luma": 8.465,
+    "v2_mean_luma": 16.959,
+    "ratio": 0.4992
+  },
+  {
+    "kind": "jokers",
+    "id": "momentum",
+    "quiet_mean_luma": 8.752,
+    "v2_mean_luma": 32.891,
+    "ratio": 0.2661
+  },
+  {
+    "kind": "jokers",
+    "id": "mono",
+    "quiet_mean_luma": 6.436,
+    "v2_mean_luma": 11.028,
+    "ratio": 0.5836
+  },
+  {
+    "kind": "jokers",
+    "id": "neonsign",
+    "quiet_mean_luma": 5.605,
+    "v2_mean_luma": 17.49,
+    "ratio": 0.3205
+  },
+  {
+    "kind": "jokers",
+    "id": "nopair",
+    "quiet_mean_luma": 7.088,
+    "v2_mean_luma": 12.817,
+    "ratio": 0.553
+  },
+  {
+    "kind": "jokers",
+    "id": "opener",
+    "quiet_mean_luma": 6.751,
+    "v2_mean_luma": 17.866,
+    "ratio": 0.3779
+  },
+  {
+    "kind": "jokers",
+    "id": "popup",
+    "quiet_mean_luma": 7.141,
+    "v2_mean_luma": 20.062,
+    "ratio": 0.356
+  },
+  {
+    "kind": "jokers",
+    "id": "rainbow",
+    "quiet_mean_luma": 5.963,
+    "v2_mean_luma": 11.253,
+    "ratio": 0.5299
+  },
+  {
+    "kind": "jokers",
+    "id": "rebrand",
+    "quiet_mean_luma": 8.613,
+    "v2_mean_luma": 20.903,
+    "ratio": 0.412
+  },
+  {
+    "kind": "jokers",
+    "id": "redtone",
+    "quiet_mean_luma": 5.711,
+    "v2_mean_luma": 11.955,
+    "ratio": 0.4777
+  },
+  {
+    "kind": "jokers",
+    "id": "rehearsal",
+    "quiet_mean_luma": 11.331,
+    "v2_mean_luma": 27.796,
+    "ratio": 0.4076
+  },
+  {
+    "kind": "jokers",
+    "id": "reprise",
+    "quiet_mean_luma": 8.364,
+    "v2_mean_luma": 23.287,
+    "ratio": 0.3592
+  },
+  {
+    "kind": "jokers",
+    "id": "royalty",
+    "quiet_mean_luma": 11.174,
+    "v2_mean_luma": 28.344,
+    "ratio": 0.3942
+  },
+  {
+    "kind": "jokers",
+    "id": "segue",
+    "quiet_mean_luma": 7.322,
+    "v2_mean_luma": 20.026,
+    "ratio": 0.3656
+  },
+  {
+    "kind": "jokers",
+    "id": "shortcut",
+    "quiet_mean_luma": 10.348,
+    "v2_mean_luma": 32.057,
+    "ratio": 0.3228
+  },
+  {
+    "kind": "jokers",
+    "id": "shredder",
+    "quiet_mean_luma": 5.827,
+    "v2_mean_luma": 18.806,
+    "ratio": 0.3098
+  },
+  {
+    "kind": "jokers",
+    "id": "skint",
+    "quiet_mean_luma": 9.339,
+    "v2_mean_luma": 25.111,
+    "ratio": 0.3719
+  },
+  {
+    "kind": "jokers",
+    "id": "sponsor",
+    "quiet_mean_luma": 8.241,
+    "v2_mean_luma": 17.592,
+    "ratio": 0.4685
+  },
+  {
+    "kind": "jokers",
+    "id": "stageexit",
+    "quiet_mean_luma": 4.697,
+    "v2_mean_luma": 17.129,
+    "ratio": 0.2742
+  },
+  {
+    "kind": "jokers",
+    "id": "stair",
+    "quiet_mean_luma": 6.498,
+    "v2_mean_luma": 13.383,
+    "ratio": 0.4856
+  },
+  {
+    "kind": "jokers",
+    "id": "stilllife",
+    "quiet_mean_luma": 4.533,
+    "v2_mean_luma": 30.317,
+    "ratio": 0.1495
+  },
+  {
+    "kind": "jokers",
+    "id": "stopwatch",
+    "quiet_mean_luma": 9.898,
+    "v2_mean_luma": 21.152,
+    "ratio": 0.468
+  },
+  {
+    "kind": "jokers",
+    "id": "superfan",
+    "quiet_mean_luma": 7.774,
+    "v2_mean_luma": 15.477,
+    "ratio": 0.5023
+  },
+  {
+    "kind": "jokers",
+    "id": "tipjar",
+    "quiet_mean_luma": 7.538,
+    "v2_mean_luma": 24.842,
+    "ratio": 0.3034
+  },
+  {
+    "kind": "jokers",
+    "id": "triad",
+    "quiet_mean_luma": 5.879,
+    "v2_mean_luma": 13.118,
+    "ratio": 0.4481
+  },
+  {
+    "kind": "jokers",
+    "id": "trim",
+    "quiet_mean_luma": 7.325,
+    "v2_mean_luma": 20.546,
+    "ratio": 0.3565
+  },
+  {
+    "kind": "jokers",
+    "id": "triplebill",
+    "quiet_mean_luma": 7.912,
+    "v2_mean_luma": 18.741,
+    "ratio": 0.4222
+  },
+  {
+    "kind": "jokers",
+    "id": "triplet",
+    "quiet_mean_luma": 6.789,
+    "v2_mean_luma": 24.32,
+    "ratio": 0.2791
+  },
+  {
+    "kind": "jokers",
+    "id": "turnover",
+    "quiet_mean_luma": 5.439,
+    "v2_mean_luma": 11.24,
+    "ratio": 0.4839
+  },
+  {
+    "kind": "jokers",
+    "id": "twin",
+    "quiet_mean_luma": 5.727,
+    "v2_mean_luma": 19.402,
+    "ratio": 0.2952
+  },
+  {
+    "kind": "jokers",
+    "id": "undertone",
+    "quiet_mean_luma": 5.792,
+    "v2_mean_luma": 11.641,
+    "ratio": 0.4975
+  },
+  {
+    "kind": "jokers",
+    "id": "variation",
+    "quiet_mean_luma": 8.532,
+    "v2_mean_luma": 16.047,
+    "ratio": 0.5317
+  },
+  {
+    "kind": "jokers",
+    "id": "vinyl",
+    "quiet_mean_luma": 6.573,
+    "v2_mean_luma": 27.529,
+    "ratio": 0.2388
+  },
+  {
+    "kind": "jokers",
+    "id": "vip",
+    "quiet_mean_luma": 7.197,
+    "v2_mean_luma": 18.407,
+    "ratio": 0.391
+  },
+  {
+    "kind": "jokers",
+    "id": "warmtone",
+    "quiet_mean_luma": 8.103,
+    "v2_mean_luma": 24.083,
+    "ratio": 0.3365
+  },
+  {
+    "kind": "jokers",
+    "id": "wildcard",
+    "quiet_mean_luma": 7.176,
+    "v2_mean_luma": 23.313,
+    "ratio": 0.3078
+  },
+  {
+    "kind": "jokers",
+    "id": "wrecker",
+    "quiet_mean_luma": 9.734,
+    "v2_mean_luma": 26.445,
+    "ratio": 0.3681
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "blackout",
+    "quiet_mean_luma": 4.011,
+    "v2_mean_luma": 8.12,
+    "ratio": 0.494
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "blindspot",
+    "quiet_mean_luma": 4.081,
+    "v2_mean_luma": 13.136,
+    "ratio": 0.3107
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "closing",
+    "quiet_mean_luma": 4.314,
+    "v2_mean_luma": 6.422,
+    "ratio": 0.6717
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "cover",
+    "quiet_mean_luma": 5.217,
+    "v2_mean_luma": 9.052,
+    "ratio": 0.5764
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "doubleseal",
+    "quiet_mean_luma": 4.392,
+    "v2_mean_luma": 12.527,
+    "ratio": 0.3506
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "facedown",
+    "quiet_mean_luma": 4.343,
+    "v2_mean_luma": 9.766,
+    "ratio": 0.4447
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "freshsheet",
+    "quiet_mean_luma": 4.301,
+    "v2_mean_luma": 13.051,
+    "ratio": 0.3295
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "handseal",
+    "quiet_mean_luma": 4.001,
+    "v2_mean_luma": 7.199,
+    "ratio": 0.5557
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "lastcall",
+    "quiet_mean_luma": 4.12,
+    "v2_mean_luma": 9.741,
+    "ratio": 0.423
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "lockup",
+    "quiet_mean_luma": 4.011,
+    "v2_mean_luma": 9.235,
+    "ratio": 0.4343
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "lostpage",
+    "quiet_mean_luma": 4.091,
+    "v2_mean_luma": 15.182,
+    "ratio": 0.2694
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "lowend",
+    "quiet_mean_luma": 4.29,
+    "v2_mean_luma": 18.362,
+    "ratio": 0.2337
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "norepeat",
+    "quiet_mean_luma": 4.364,
+    "v2_mean_luma": 9.226,
+    "ratio": 0.473
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "oneswap",
+    "quiet_mean_luma": 4.349,
+    "v2_mean_luma": 11.225,
+    "ratio": 0.3874
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "onetake",
+    "quiet_mean_luma": 3.825,
+    "v2_mean_luma": 7.95,
+    "ratio": 0.4811
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "overtime",
+    "quiet_mean_luma": 4.417,
+    "v2_mean_luma": 11.168,
+    "ratio": 0.3955
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "patchin",
+    "quiet_mean_luma": 4.237,
+    "v2_mean_luma": 12.524,
+    "ratio": 0.3384
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "raisedbar",
+    "quiet_mean_luma": 4.326,
+    "v2_mean_luma": 6.164,
+    "ratio": 0.7017
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "ration",
+    "quiet_mean_luma": 5.557,
+    "v2_mean_luma": 17.421,
+    "ratio": 0.319
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "redlight",
+    "quiet_mean_luma": 4.564,
+    "v2_mean_luma": 10.957,
+    "ratio": 0.4166
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "request",
+    "quiet_mean_luma": 4.373,
+    "v2_mean_luma": 10.81,
+    "ratio": 0.4046
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "rerun",
+    "quiet_mean_luma": 5.142,
+    "v2_mean_luma": 9.453,
+    "ratio": 0.544
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "rotation",
+    "quiet_mean_luma": 4.064,
+    "v2_mean_luma": 8.525,
+    "ratio": 0.4768
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "rush",
+    "quiet_mean_luma": 5.604,
+    "v2_mean_luma": 12.972,
+    "ratio": 0.432
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "setlist",
+    "quiet_mean_luma": 4.201,
+    "v2_mean_luma": 7.653,
+    "ratio": 0.5489
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "smallstage",
+    "quiet_mean_luma": 4.973,
+    "v2_mean_luma": 15.646,
+    "ratio": 0.3178
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "static",
+    "quiet_mean_luma": 4.261,
+    "v2_mean_luma": 9.058,
+    "ratio": 0.4705
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "switchtrack",
+    "quiet_mean_luma": 4.376,
+    "v2_mean_luma": 11.14,
+    "ratio": 0.3928
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "teardown",
+    "quiet_mean_luma": 3.943,
+    "v2_mean_luma": 7.723,
+    "ratio": 0.5106
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "throttle",
+    "quiet_mean_luma": 4.545,
+    "v2_mean_luma": 17.04,
+    "ratio": 0.2667
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "trilogy",
+    "quiet_mean_luma": 4.23,
+    "v2_mean_luma": 8.932,
+    "ratio": 0.4736
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "unplugged",
+    "quiet_mean_luma": 4.647,
+    "v2_mean_luma": 14.505,
+    "ratio": 0.3203
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "wetink",
+    "quiet_mean_luma": 4.348,
+    "v2_mean_luma": 12.159,
+    "ratio": 0.3576
+  }
+]

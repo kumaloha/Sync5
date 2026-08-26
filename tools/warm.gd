@@ -109,8 +109,7 @@ func _chain(slots: Array, lam: float, out: Array, first: Array, rest: Array) -> 
 func _extra(sec: int = 0) -> Dictionary:
 	return {
 		"prev_kind": -99, "acted_late": false, "discards": 0, "coins": 99,
-		"phrase_idx": 0, "cache_cards": [], "mod": "", "character": null,
-		"section_idx": sec, "section_target": GameConfig.section_target(sec),
+		"phrase_idx": 0, "cache_cards": [], "mod": "", "section_idx": sec, "section_target": GameConfig.section_target(sec),
 	}
 
 

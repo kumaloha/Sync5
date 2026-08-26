@@ -42,8 +42,8 @@ INCREMENTAL=0
 
 # 机制文件:一改就影响**所有**卡与脸的读数, 增量在这里没有意义。
 # ⚠ 宁可多列不可漏列 —— 漏一个的代价是「门绿了但读数是旧的」, 静默且昂贵。
-# 2026-08-21 审查:boons/characters/director/ranking/tickets 也是结算链或排布的全局输入, 漏在外面 = 改了不跑门
-MECH_RE='^(core/|tools/(bot|solver|runloop|draft|report|stat|probe|beat)\.gd|data/(run|economy|sim|boons|characters|director|ranking|tickets)\.json|project\.godot)'
+# 2026-08-21 审查:boons/director/ranking 也是结算链或排布的全局输入, 漏在外面 = 改了不跑门
+MECH_RE='^(core/|tools/(bot|solver|runloop|draft|report|stat|probe|beat)\.gd|data/(run|economy|sim|boons|director|ranking)\.json|project\.godot)'
 
 # 未跟踪的新文件也算改动(2026-08-21 审查:新建的 core/*.gd 此前对增量门隐身)
 changed_files() { git diff --name-only HEAD -- . 2>/dev/null; git diff --cached --name-only HEAD -- . 2>/dev/null; git ls-files --others --exclude-standard 2>/dev/null; }

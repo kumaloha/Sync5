@@ -77,8 +77,7 @@ func _run(slots: Array, lam: float) -> Array:
 		"lam": lam, "lam_samples": SAMPLES}
 	var extra := {
 		"prev_kind": -99, "acted_late": false, "discards": 0, "coins": 99,
-		"phrase_idx": 0, "cache_cards": [], "mod": "", "character": null,
-	}
+		"phrase_idx": 0, "cache_cards": [], "mod": "", }
 	for r in range(N_RUNS):
 		_rng.seed = 810000 + r          # 跨 λ 共用种子 —— 配对的前提
 		var deck := Deck.new(r * 13 + 3)

@@ -8,9 +8,8 @@ extends AudioStreamPlayer
 ## ⚠ 循环点在运行时设(LOOP_FORWARD 到 8.000s), 不动 .import —— 素材是用户的地盘。
 ## ⚠ 探针静音:纯表现, 探针的帧预算与日志都不该为它买单(盲注特写同一条)。
 
-## ⚑ v2(2026-08-19 晚, META 资产循环拍板「买了就想玩」):**每场馆免费第一首,
-## 其余六首是「唱片」资产**(data/assets.json 的 track 出口)。v1 曾把十首全开着轮播 ——
-## 现在轮播池 = 免费首曲 + 已购唱片, 买了下一次进那个场馆就轮得到新歌。
+## ⚑ 2026-08-24 局外 build 删除:「唱片」资产连同曲池收口一起退役, 十首全开轮播
+## (回到 v1 的口径 —— 曲目是内容, 不再是商品)。
 const VENUES := [
 	["01_small_bar_minimal_deep_house", "02_small_bar_nu_disco_lounge"],
 	["03_club_filter_house", "04_club_acid_house", "05_club_disco_house"],
@@ -18,49 +17,39 @@ const VENUES := [
 	["08_stadium_electro_rock_anthem", "09_stadium_big_french_electro", "10_stadium_cosmic_disco_anthem"],
 ]
 
-var _section := -1
+var _run_track := ""
 
 
 func _init() -> void:
 	volume_db = -8.0
 
 
-## 这一段能轮到哪些曲目:免费首曲 + 这个场馆里已解锁的。**纯函数**(owned 由调用方给),
-## 测试直测这一层(t_asset)—— 播放器本体 headless 测不了。
-static func track_pool(section_idx: int, owned: Array) -> Array:
-	var venue: Array = VENUES[clampi(section_idx, 0, VENUES.size() - 1)]
-	var out: Array = [venue[0]]
-	for i in range(1, venue.size()):
-		if owned.has(String(venue[i])):
-			out.append(String(venue[i]))
+## 全部曲目(2026-08-25 用户:「一局的音乐不要换来换去, 不同局可以换」——
+## 一局开局抽一首用到底, 局间随机换;08-17「四段四场馆」的换曲弧作废, 场馆分组仅存档案)。
+static func track_pool() -> Array:
+	var out: Array = []
+	for v in VENUES:
+		out += v
 	return out
 
 
-## 段首拍调(编排器)。同段重复调不重启 —— 段中商店回来还是这一首。
-## 变体用普通 randi 挑:纯表现, 不碰共享种子流(与截图探针的纪律同源)。
-func play_section(section_idx: int) -> void:
-	if SaveState.is_probe():
-		return
-	if section_idx == _section and playing:
-		return
-	_section = section_idx
-	volume_db = -8.0   # 首页点唱机把音量收小过, 进局要拉回来
-	var pool := track_pool(section_idx, SaveState.owned_tracks())
-	_play_loop(String(pool[randi() % pool.size()]))
+## 新的一局:清掉本局曲目, 下一次 play_section 重抽(编排器在开局三步旁边调)。
+func new_run() -> void:
+	_run_track = ""
 
 
-## 首页点唱机(META 资产「turntable」):免费首曲 + 已购唱片攒成一张歌单, 随机放一首,
-## 音量收小 —— 首页是氛围不是演出。没买点唱机时 _open_home 根本不会调到这里。
-func play_home() -> void:
+## 段首拍调(编排器)。一局一首:同一局里重复调**不换曲不重启**(段中商店/段切换回来
+## 还是这一首);变体用普通 randi 挑 —— 纯表现, 不碰共享种子流(截图探针纪律同源)。
+func play_section(_section_idx: int) -> void:
 	if SaveState.is_probe():
 		return
-	var owned := SaveState.owned_tracks()
-	var pool: Array = []
-	for v in range(VENUES.size()):
-		pool += track_pool(v, owned)
-	_section = -1
-	volume_db = -14.0
-	_play_loop(String(pool[randi() % pool.size()]))
+	if _run_track != "" and playing:
+		return
+	if _run_track == "":
+		var pool := track_pool()
+		_run_track = String(pool[randi() % pool.size()])
+	volume_db = -8.0
+	_play_loop(_run_track)
 
 
 ## 拍首下拍(编排器在**钟起步的那一刻**调):把循环拉回 0.000s 的首 kick。
@@ -75,17 +64,44 @@ func sync_beat() -> void:
 		seek(0.0)
 
 
-## 回首页:停 —— 首页静音是现状(首页音景是 1.1 商业化之后的口味题)。
+## 回首页:停 —— 首页静音是现状。⚠ 不清 _run_track:回首页 ≠ 新局
+## (新局的清曲在 new_run, 由开局三步旁边调)。
 func stop_music() -> void:
 	stop()
-	_section = -1
+
+
+## 结算音效(2026-08-25 用户放入 assets/defeat.mp3 / victory.mp3):一次性短音,
+## 不循环不走拍对齐;mp3 的编码延迟对 one-shot 无所谓(循环才忌讳)。
+## 打断循环曲直接播;下一局 play_section 会自己把音量与曲目复位。探针静音同纪律。
+func play_jingle(win: bool) -> void:
+	if SaveState.is_probe():
+		return
+	var path := "res://assets/victory.mp3" if win else "res://assets/defeat.mp3"
+	if not ResourceLoader.exists(path):
+		return
+	stop()
+	var st = load(path)
+	if st is AudioStreamMP3:
+		st.loop = false
+	stream = st
+	volume_db = -6.0
+	play()
 
 
 func _play_loop(track: String) -> void:
-	var st = load("res://assets/audio/%s.wav" % track)
+	# ⚑ 2026-08-24 wav→ogg(用户批, 包 −13MB):优先 ogg;wav 兜底只为导入空窗/回滚期,
+	# 二者时长都是样本级 8.0000s, 循环语义一致。
+	var st = null
+	if ResourceLoader.exists("res://assets/audio/%s.ogg" % track):
+		st = load("res://assets/audio/%s.ogg" % track)
+	elif ResourceLoader.exists("res://assets/audio/%s.wav" % track):
+		st = load("res://assets/audio/%s.wav" % track)
 	if st == null:
 		return
-	if st is AudioStreamWAV:
+	if st is AudioStreamOggVorbis:
+		st.loop = true
+		st.loop_offset = 0.0
+	elif st is AudioStreamWAV:
 		st.loop_mode = AudioStreamWAV.LOOP_FORWARD
 		st.loop_begin = 0
 		st.loop_end = int(st.mix_rate * 8.0)

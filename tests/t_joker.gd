@@ -5,7 +5,7 @@ func run(t) -> void:
 	# roster shape (2026-08-12 流派批: 删 popup/backup, 加族内件×4 + backer/bench/boxseats + trim;
 	# 缘由与增删改清单见 docs/design/archetypes.md §5)
 	var pool := Joker.pool()
-	t.eq(pool.size(), 63, "pool holds 62 jokers(2026-08-16 双色调拆两张 61→62)")
+	t.eq(pool.size(), 76, "pool holds 76 jokers(2026-08-25 对抗批 +13:63→76)")
 	var targets := 0
 	var rarities := {"common": 0, "uncommon": 0, "rare": 0}
 	for j in pool:
@@ -27,8 +27,10 @@ func run(t) -> void:
 	# **顺子线**(组合 8.89% 而真人只打出 1.9%), 不是同花线(组合 6.79% / 真人 7.4%, 几乎没差)。
 	# 所以近道/四指**留在 uncommon**, 升回去的只有 twotone。
 	# 配额上两个方向都在往 jokers_atlas.md §0 的目标(罕见 ~18 · 稀有 ~10)靠。
-	t.eq(rarities["uncommon"], 22, "twenty-two uncommon supports")
-	t.eq(rarities["rare"], 10, "ten rare supports(双色调拆两张, rare 9→10)")
+	# 2026-08-25 对抗批 +13(全在 uncommon/rare:乘法出口按「稀有度=构筑依赖度」入 rare,
+	# 彩头/回收/客串/斗牛士/盲奏入 uncommon):uncommon 22→27 · rare 10→18。
+	t.eq(rarities["uncommon"], 27, "twenty-seven uncommon supports")
+	t.eq(rarities["rare"], 18, "eighteen rare supports")
 	t.eq(String(Joker.by_id("fourfingers").rarity), "uncommon", "fourfingers stays uncommon (顺子线要救)")
 	# ⚑ 拆分后单张实测 5.3×(先验层 N=20万, Δ同花族 +29.7pp), 两张都装 9.6× = 老 twotone。
 	# 仍是同类规则牌里最强(近道/四指只 1.8×), 所以 rare 保持不动。
@@ -167,26 +169,31 @@ func run(t) -> void:
 	t.eq(Settle.run(flush_res, [null, glow, null, null], {})["score"],
 		base, "glowstick burnt out after 10 phrases")
 
-	# bassline: ×0.25 per 12 discards
+	# bassline: ×0.25 per 8 discards(2026-08-25 提速 12→8, 弃牌链毕业曲线)
 	var bass := Joker.by_id("bassline")
-	bass.on_discard(11)
+	bass.on_discard(7)
 	t.eq(Settle.run(flush_res, [null, bass, null, null], {})["score"],
-		base, "bassline silent below 12 discards")
+		base, "bassline silent below 8 discards")
 	bass.on_discard(1)
 	t.eq(Settle.run(flush_res, [null, bass, null, null], {})["score"],
-		int(round(base * 1.25)), "bassline ×1.25 at 12 discards")
-	bass.on_discard(12)
+		int(round(base * 1.25)), "bassline ×1.25 at 8 discards")
+	bass.on_discard(8)
 	t.eq(Settle.run(flush_res, [null, bass, null, null], {})["score"],
-		int(round(base * 1.5)), "bassline ×1.5 at 24 discards")
+		int(round(base * 1.5)), "bassline ×1.5 at 16 discards")
 
-	# mirror: re-applies the target at half power
+	# mirror(2026-08-25 改造):连续两拍达成旗条件才生效 —— 上一拍也命中时复制半个,
+	# 上一拍没命中(或没有上一拍)时静默。必买卡从此要玩出来。
 	var mirror := Joker.by_id("mirror")
-	t.eq(Settle.run(flush_res, [Joker.by_id("mono"), mirror, null, null], {})["score"],
+	var streak := {"prev_target_hit": true}
+	t.eq(Settle.run(flush_res, [Joker.by_id("mono"), mirror, null, null], streak)["score"],
 		int(round(float(base) * t._tmult("mono", "FLUSH") * (1.0 + (t._tmult("mono", "FLUSH") - 1.0) * 0.5))),
-		"mirror copies the target at half power")
-	t.eq(Settle.run(flush_res, [null, mirror, null, null], {})["score"],
+		"mirror copies the target at half power on a streak")
+	t.eq(Settle.run(flush_res, [Joker.by_id("mono"), mirror, null, null], {})["score"],
+		int(round(float(base) * t._tmult("mono", "FLUSH"))),
+		"mirror silent on the first hit — the streak needs two")
+	t.eq(Settle.run(flush_res, [null, mirror, null, null], streak)["score"],
 		base, "mirror silent without a target")
-	t.eq(Settle.run(pair_res, [Joker.by_id("mono"), mirror, null, null], {})["score"],
+	t.eq(Settle.run(pair_res, [Joker.by_id("mono"), mirror, null, null], streak)["score"],
 		int(pair_res["score"]), "mirror silent when the target missed")
 
 	# interest: cap at +5

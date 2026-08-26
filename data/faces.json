@@ -118,9 +118,9 @@
    "id": "onetake",
    "name": "One Take",
    "cn": "一口气",
-   "fx": "Discard only once each phrase",
+   "fx": "Discard two cards max each phrase",
    "params": {
-    "discard_actions": 1
+    "discard_cards_max": 2
    },
    "proof": "solver",
    "tape_required": true,
@@ -164,9 +164,9 @@
    "id": "throttle",
    "name": "Throttle",
    "cn": "限流",
-   "fx": "Three discard or swap actions total",
+   "fx": "Move four cards max each phrase",
    "params": {
-    "action_limit": 3
+    "action_cards_max": 4
    },
    "proof": "solver",
    "tape_required": true,
@@ -192,8 +192,7 @@
    "params": {
     "cache_block_red": 1
    },
-   "proof": "solver",
-   "tier": 2
+   "proof": "solver"
   },
   {
    "id": "lowend",
@@ -205,6 +204,123 @@
     "refill_rank_max": 9
    },
    "proof": "solver",
+   "tier": 2
+  },
+  {
+   "id": "highend",
+   "name": "High End",
+   "cn": "高音",
+   "fx": "Discard refills draw nine and up",
+   "params": {
+    "refill_rank_min": 9,
+    "refill_rank_max": 15
+   },
+   "proof": "solver",
+   "tier": 2
+  },
+  {
+   "id": "roulette",
+   "name": "Roulette",
+   "cn": "轮盘",
+   "fx": "Seal one cache slot, half chance two",
+   "params": {
+    "cache_cap_delta": -1,
+    "roll_chance": 0.5,
+    "roll_cache_extra": 1
+   },
+   "proof": "solver",
+   "tier": 2
+  },
+  {
+   "id": "colorlight",
+   "name": "Color Light",
+   "cn": "变色灯",
+   "fx": "One rolled suit scores half all gig",
+   "params": {
+    "suit_half": 0.5,
+    "roll_suit": 1
+   },
+   "proof": "score",
+   "tier": 2
+  },
+  {
+   "id": "suitveil",
+   "name": "Suit Veil",
+   "cn": "蒙色",
+   "fx": "Suits stay hidden; ranks show",
+   "params": {
+    "hide_suits": 1
+   },
+   "proof": "belief"
+  },
+  {
+   "id": "rankfog",
+   "name": "Rank Fog",
+   "cn": "蒙点",
+   "fx": "Ranks stay hidden; suits show",
+   "params": {
+    "hide_ranks": 1
+   },
+   "proof": "belief"
+  },
+  {
+   "id": "callout",
+   "name": "Callout",
+   "cn": "点名",
+   "fx": "Play the named hand or score seventy",
+   "params": {
+    "callout_factor": 0.7,
+    "roll_kind": 1
+   },
+   "proof": "score",
+   "tier": 3
+  },
+  {
+   "id": "countdown",
+   "name": "Countdown",
+   "cn": "倒计时",
+   "fx": "Phrases shorten to six then four",
+   "params": {
+    "time_curve": [
+     0,
+     0,
+     2,
+     2,
+     4,
+     4
+    ]
+   },
+   "proof": "solver",
+   "tape_required": true,
+   "tier": 4
+  },
+  {
+   "id": "crescendo",
+   "name": "Crescendo",
+   "cn": "渐强",
+   "fx": "First three phrases half, then boosted",
+   "params": {
+    "phase_factors": [
+     0.5,
+     0.5,
+     0.5,
+     1.5,
+     1.5,
+     1.5
+    ]
+   },
+   "proof": "score",
+   "tier": 3
+  },
+  {
+   "id": "dimstage",
+   "name": "Dim Stage",
+   "cn": "暗场",
+   "fx": "Two random hand cards stay hidden",
+   "params": {
+    "hide_random": 2
+   },
+   "proof": "belief",
    "tier": 2
   },
   {
@@ -222,9 +338,9 @@
    "id": "handseal",
    "name": "Hand Seal",
    "cn": "封条",
-   "fx": "Lowest starting hand card cannot discard",
+   "fx": "One random starting card cannot discard",
    "params": {
-    "seal_lowest_start": 1
+    "seal_random_start": 1
    },
    "proof": "solver",
    "tape_required": true,
@@ -280,10 +396,10 @@
    "id": "doubleseal",
    "name": "Double Seal",
    "cn": "双封",
-   "fx": "Lowest hand and oldest cache lock",
+   "fx": "Random hand and cache cards lock",
    "params": {
-    "seal_lowest_start": 1,
-    "seal_oldest_cache": 1
+    "seal_random_start": 1,
+    "seal_random_cache": 1
    },
    "proof": "solver",
    "tape_required": true,
@@ -298,8 +414,7 @@
     "joker_power": 0.5,
     "restore_with_initial_cache": 1
    },
-   "proof": "score",
-   "tier": 3
+   "proof": "score"
   },
   {
    "id": "ration",
@@ -366,10 +481,10 @@
    "id": "closing",
    "name": "Closing",
    "cn": "打烊",
-   "fx": "Six seconds; discard only once",
+   "fx": "Six seconds; two discards max",
    "params": {
     "time_penalty": 2.0,
-    "discard_actions": 1
+    "discard_cards_max": 2
    },
    "proof": "solver",
    "tape_required": true,
@@ -386,14 +501,13 @@
  "weak_upper_bound": [
   "lastcall",
   "lockup",
-  "onetake",
   "wetink",
   "request",
   "lostpage",
   "rush",
   "overtime",
   "teardown",
-  "closing",
-  "lowend"
+  "lowend",
+  "crescendo"
  ]
 }

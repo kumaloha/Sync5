@@ -7,7 +7,7 @@
 > ② 数值与内容全部在 `data/*.json`,`core/db.gd` 校验(**测试期门禁**,见下);
 > ③ **规则只准有一份** —— 游戏与模型共用 `core/beat.gd`,探针共用 `tools/runloop.gd`。
 >
-> 本篇 2026-08-09 由 `tech.md` + `tech.md` + `tech.md` 合并而成 —— 见 [`README.md`](README.md) 的九篇结构。
+> 本篇 2026-08-09 由三篇旧编号文档合并而成 —— 见 [`README.md`](README.md) 的九篇结构。
 > **验证方案在末尾**(每篇自带)。
 
 ---
@@ -23,9 +23,11 @@
 >   多 `joker_upgrade`(5 级 / [4,7,11,16] / step 0.25)**;
 > · `tutorial.json` 示例写 6 步 × 12s、键只有 `seconds/unlock/command/signal` —— 现行 **4 步 × 8s**,键是
 >   `seconds/unlock/require/command/signal/focus`(**`require` 动作门与 `focus` 分区指向是现行核心键**,白名单在 `db.gd::validate_tutorial`);
-> · 文件表只列 7 个文件 —— `data/` 现有 **15 个**:另有 `tickets`(券)/ `assets`(META 资产)/ `director`(B 轴剧本 + `context` 四开关)/
->   `ranking`(仪器输出,`rankgen.py` 重刷)/ `boons` / `ui`(含 blindcard·jokercard 交叉校验)/ `tape`(含 `upload` 回传节)/ `lingo`(中→英对照表)。
-> ✅ 2026-08-21 晚:`run`/`economy`/`jokers`/`characters` 四块已改成「键名 + 指向校验函数」,`tutorial` 示例改成现行键;
+> · 文件表只列 7 个文件 —— `data/` 现有 **13 个**(2026-08-24 局外删除后 tickets/assets/characters 已退役):
+>   另有 `director`(B 轴剧本 + `context` 四开关)/ `ranking`(仪器输出,`rankgen.py` 重刷)/
+>   `boons` / `ui`(含 blindcard·jokercard 交叉校验)/ `tape`(含 `upload` 回传节)/
+>   `lingo`(中→英对照表)/ `profile`(体力与经验容量)。
+> ✅ 2026-08-21 晚:`run`/`economy`/`jokers` 等已改成「键名 + 指向校验函数」,`tutorial` 示例改成现行键;
 > 其余示例块(DSL 片段 / faces / sim / ui)仍是当年快照,**别抄这里的数字**。
 
 
@@ -47,16 +49,14 @@
 
 | file | content | entries |
 |---|---|---|
-| `jokers.json` | 23 张小丑牌: identity + effect DSL | 23 |
-| `characters.json` | 8 主角: identity + same DSL | 8 |
-| `faces.json` | 6 Boss 脸: identity + numeric params + wall pools | 6 + 4 pools |
+| `jokers.json` | 小丑牌: identity + effect DSL(2026-08-25 起 76 张;数字会继续涨, 以 data 为准) | 76 |
+| `faces.json` | Boss 脸: identity + numeric params(现役池 33 + 暂存/退役, 以 data 为准) | — |
 | `run.json` | 关卡结构: gigs × blinds, targets, clocks, timing windows | — |
 | `economy.json` | coins, prices, wage, swap, reroll | — |
 | `sim.json` | bot beliefs: cohorts, priors, EV params, chase shape | — |
 | `tutorial.json` | 教学关脚本:每拍的拍长 / 首次解锁的部件 / 提示行 | 6 步 |
 
-⚠ 上表的条目数是**当年的快照**,早就过期(小丑牌 61 张 / 脸 30 条)——
-**现役数量看 [STATUS.md](../../STATUS.md),别信这一列。**
+⚠ 条目数会持续演进 —— **现役数量以 data 与 [STATUS.md](../../STATUS.md) 为准。**
 
 JSON has no comments — use `"_comment"` keys where a why is worth keeping;
 the loader ignores them.
@@ -80,7 +80,7 @@ the loader ignores them.
 拍长 ≤0 · **有部件从没被解锁过**(教学关走完它仍是灰的 = 静默死锁)。
 ⚠ **只守结构,不守内容** —— 教哪几步、拍长多少是设计,用户直接改 JSON。
 
-### Effect DSL (jokers + characters share it)
+### Effect DSL (jokers)
 
 An entity carries `effects: [{when, do}, ...]`; effects are evaluated in
 order at settle time against the settle ctx (`core/settle.gd`). `when` is a
@@ -103,6 +103,9 @@ write.
 | `cache_mono_suit` | `true` | non-wild cache cards all one suit, cache non-empty |
 | `top_rank_gte` | int | max rank over scoring_cards |
 | `counter_gte` | `["n", 1]` | state counter ≥ x |
+| `chance` | `0.5` | 掷点谓词(2026-08-25 赌具组):Beat 预掷 `luck_rolls`, 结算纯函数;灌铅骰的 `odds_mult` 乘在阈值上 |
+| `target_streak` | `true` | 连续两拍达成旗条件(2026-08-25 镜面改造) |
+| `swaps_eq` / `early_finish` / `acted_final` / `early_discards` 等 | — | 完整白名单以 `core/db.gd::_PREDICATES` 为准 |
 
 #### Channels & modifiers (`do`)
 
@@ -121,8 +124,11 @@ write.
 
 - `amount` is a number, or `{"counter": "pct"}` to read a state counter.
 - `per` multiplies amount by a count source: `"discard"` | `"counter:<name>"`
-  | `"coins:<k>"` (floor(held/k)). `step` divides the count (bassline 每 12);
-  `cap` clamps the computed contribution. Contribution 0 ⇒ no popup.
+  | `"coins:<k>"` (floor(held/k)) | `"cache_rank_sum"`(回收)| `"hidden_scoring"`(盲奏)
+  等 —— 完整白名单以 `core/db.gd::_PER_SOURCES` 为准。`step` divides the count
+  (bassline 每 8);`cap` clamps the computed contribution. Contribution 0 ⇒ no popup.
+- `hold`(持有期恒生效):`coin_cap`(穷开心)· `cache_scoring`(合奏)· `odds_mult`(灌铅骰)·
+  `section_life`(客串)· `face_coins`(斗牛士)—— 白名单 `core/db.gd::_HOLD_KEYS`。
 - Popup text is generated from channel + value (matching current formats);
   no per-card popup strings.
 
@@ -156,14 +162,12 @@ Adding a third opcode requires the same bar as a new hook (docs/design/jokers.md
 **权威 = 文件本身 + `core/db.gd::validate_jokers`**。08-05 那份「full v1 content — numbers as shipped & sealed」
 (90 行 18 张卡的旧数值)已于 2026-08-21 整块删除:它封印的是配置化当天的数,此后卡池扩到 63 张、倍率表三版演进,
 **读者抄这里的数字比不抄更糟**。现行卡的键集:`acquire` · `cn` · `counters` · `curve` · `effects` · `fx` · `hold` · `id` · `kind` · `name` · `proof` · `rarity` · `shelf`;
-kind 分布:support 55 · target 8。
+kind 分布(2026-08-25 对抗批后):support 68 · target 8。
 数值演进与定价在 [`jokers.md`](jokers.md) / [`jokers_history.md`](jokers_history.md),升级放大规则在 CLAUDE.md「升级的三条原则」。
 
-### characters.json
+### characters.json(已删除)
 
-**权威 = 文件本身 + `core/db.gd::validate_characters`**(与 jokers 共用 `_validate_effects`)。
-08-05 的「full v1 content」块已删(2026-08-21):主角被动走同一套 Effect DSL,键 `idx/cn/title/fx/effects`,
-`core/character.gd::roster()` 只保留名字与立绘指向。
+> 主角系统随局外 build 于 2026-08-24 删除;文件与校验函数一并退役。
 
 ### faces.json — metadata + params in data, 生效逻辑留在结算链
 
@@ -383,7 +387,7 @@ _advance/_next_section` 编排、run_end/banner/picker 接线、settle 演出
 - `Widgets.StageCard` = 首页大玻璃卡与局内盲注板**共用的外观定义**(玻璃板/
   角标/点阵/渐变分隔/均衡器带/档位配色/难度星),`Widgets.BlindBoard` 是它的
   局内尺寸。用户拍板「关卡就是盲注」,所以两者必须是同一个对象。
-- meta 数值(等级/经验/双货币)是 `HomeScreen.PROFILE` 一处占位,docs/design/ui_meta.md 未做。
+- 局外成长(META)已于 2026-08-24 用户拍板整体删除;局外只剩体力/经验容量(`data/profile.json`)与图鉴。
 
 ### Non-goals
 
@@ -557,8 +561,9 @@ func _start_phrase() -> void:
 
 **⚠ 迁移中抓到四个会静默出错的地方**(每个都不报错,只是数悄悄偏):
 
-1. **RNG 消耗顺序** —— 多数探针是「先抽主角、后掷脸」,而 `RunLoop` 内部也抽主角。
-   不把主角提前抽好传进 `Opts.character`,顺序就反了,**全部读数整体漂移**。
+1. **RNG 消耗顺序** —— 共享流上每个消耗点的先后都是契约(抽主角那个消耗点已随
+   主角删除退役;现行消耗点:发牌/丢谱标记/随机封/掷类脸明掷/赌具预掷)。
+   任何一处顺序反了,**全部读数整体漂移**,而且不报错。
 2. **钩子时机** —— 方差分解那类测量必须挂在**玩家动手之前**(`on_begin`);
    挂到 `on_beat` 上量的是打完之后的局面,**结果依然是个合理的数**。
 3. **`prev_kind` 必须在 `Beat.settle` 之前抓** —— 它在里面就被更新了。

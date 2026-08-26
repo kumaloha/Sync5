@@ -15,7 +15,7 @@ func _initialize() -> void:
 func _process(_delta: float) -> bool:
 	_frames += 1
 	if _frames == 4:
-		_scene.choose_character(1)
+		_scene.start_run()
 		return false
 	if _frames < 120:
 		return false

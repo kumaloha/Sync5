@@ -158,6 +158,40 @@ func total() -> int:
 	return draw_pile.size() + discard_pile.size()
 
 
+## ---- 断点续玩(2026-08-24)----
+## 快照 = 恢复一副牌堆所需的全部事实:两堆的**顺序**、规则旗、万能牌开关、低段裁剪、RNG 状态。
+## ⚠ 顺序就是内容 —— 恢复后从同一副堆序重发, 玩家拿回的是同一手牌。
+func snapshot() -> Dictionary:
+	return {
+		"draw": cards_out(draw_pile), "disc": cards_out(discard_pile),
+		"wilds": wilds_enabled, "trim": trim_low,
+		"rules": rules.duplicate(true), "rng": _rng.state,
+	}
+
+
+## Card 数组 → [[rank, suit], …](Run.snapshot 的缓存区也用它)。
+static func cards_out(arr) -> Array:
+	var out: Array = []
+	for c in arr:
+		out.append([c.rank, c.suit])
+	return out
+
+
+static func from_snapshot(d: Dictionary) -> Deck:
+	var deck := Deck.new()
+	deck.draw_pile.clear()
+	deck.discard_pile.clear()
+	for p in d.get("draw", []):
+		deck.draw_pile.append(Card.new(int(p[0]), int(p[1])))
+	for p in d.get("disc", []):
+		deck.discard_pile.append(Card.new(int(p[0]), int(p[1])))
+	deck.wilds_enabled = bool(d.get("wilds", false))
+	deck.trim_low = bool(d.get("trim", false))
+	deck.rules = d.get("rules", {}).duplicate(true)
+	deck._rng.state = int(d.get("rng", 0))
+	return deck
+
+
 ## 复制一份牌堆给**假想推演**用(docs/design/solving.md 第三部分)。
 ## ⚠⚠ 必须有**自己的 RNG** —— 推演若用真实牌堆的 rng, 就会消耗真实局的随机数序列,
 ## 于是「算了一下买哪张牌」这个动作本身改变了这一局。那是最恶劣的一种污染:

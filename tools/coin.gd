@@ -115,8 +115,6 @@ func _play(cfg: Dictionary, per_phrase: int, shop: bool) -> Dictionary:
 		var o := RunLoop.Opts.new()
 		o.rng = _rng
 		o.deck_seed = r * 17 + 5
-		# o.character 留空:这条臂全程无脸, 不掷脸, 选主角是唯一消耗随机数的一步 ——
-		# 和 RunLoop 内部「建 Run → 抽主角」的顺序天然一致, 不需要在外面预抽。
 		o.player = "adaptive"
 		o.cfg = pcfg
 		o.shop = shop

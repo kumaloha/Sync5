@@ -279,6 +279,20 @@ static func roll_run(run_index: int, rng: RandomNumberGenerator,
 	var drawn: Array = []
 	for w in GameConfig.WALL_SECTIONS:
 		var idx := int(w)
+		# 首墙两层放水(2026-08-24 用户:「原作前两轮的盲注仅仅是分数要求」+
+		# 「后面的关也偶尔可以有简单关」):
+		# ① 新手缓冲 —— 前 s1_face_min_run−1 局首墙不掷脸(判定 = SectionMod 那一份);
+		# ② 常驻杠杆 —— 解锁后每局首墙以 s1_easy_chance 掷成纯分数关(偶尔的简单关,
+		#    对照原作小盲的位置;压轴 S2-S4 恒有脸, Boss 从不缺席)。
+		# ⚠ ② 只在真人局掷(run_index >= 1):探针世界按全脸标定(SectionMod.roll_run 注)。
+		# 无脸墙的盲注卡自动变下一场预告(BlindCard 的 preview 路径), 不是空壳。
+		if idx == 0 and run_index >= 1:
+			if not SectionMod.wall_face_unlocked(idx, run_index):
+				out[idx] = ""
+				continue
+			if rng.randf() < GameConfig.S1_EASY_CHANCE:
+				out[idx] = ""
+				continue
 		var ranked := ranked_pool(idx, ranking, run_index)
 		var f := ""
 		if ranked.is_empty():
@@ -290,7 +304,10 @@ static func roll_run(run_index: int, rng: RandomNumberGenerator,
 		out[idx] = f
 		if f != "":
 			drawn.append(f)
-	return out
+	# 序列杀伤预算(与 SectionMod.roll_run 同一份修复;versus.md 杠杆二):
+	# 同轴 ≥3 = 围殴, 重掷该轴最后一张。修复用素掷(无 bias)—— 被修的槽让掉
+	# Director 偏好, 换来的是「没有一族被整局按着打」。
+	return SectionMod.enforce_axis_budget(out, rng, run_index)
 
 
 ## 排序表里属于这一段池子的部分,保持排序表给的先后。

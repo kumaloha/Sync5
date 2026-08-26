@@ -16,10 +16,10 @@ const DOMAINS := [
 	"t_stat",
 	"t_card", "t_deck", "t_economy", "t_pattern", "t_phrase", "t_rules",
 	"t_db", "t_run", "t_shop", "t_hand", "t_face", "t_wild", "t_settle",
-	"t_boon", "t_joker", "t_character", "t_solver", "t_draft", "t_tape",
+	"t_boon", "t_joker", "t_solver", "t_draft", "t_tape",
 	# ⚠ 新域一律**追加在末尾** —— 上面那条「顺序即契约」说的是小丑牌的成长计数器跨用例
 	# 累积, 插在中间会静默改分。t_tutorial 自己不碰任何共享状态, 追加是安全的。
-	"t_tutorial", "t_director", "t_ticket", "t_lingo", "t_uplink", "t_asset",
+	"t_tutorial", "t_director", "t_lingo", "t_uplink",
 ]
 
 var _pass := 0

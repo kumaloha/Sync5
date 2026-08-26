@@ -39,7 +39,7 @@ class Split extends RefCounted:
 ## visible: 手牌 + 缓存(共 HAND_SIZE + CACHE_CAP 张)
 ## slots:   小丑牌 4 槽 (0 = Target)
 ## extra:   Settle 的上下文 (prev_kind / acted_late / discards / coins /
-##          phrase_idx / mod / character)。**cache_cards 由本函数按每个切法覆盖**,
+##          phrase_idx / mod)。**cache_cards 由本函数按每个切法覆盖**,
 ##          调用方不要自己塞。
 ## hidden:  visible 里**玩家看不见**的下标(盖着的牌)。空 = 完全信息, 老行为。
 ## subs:    K 组替身, `subs[s][j]` 是第 s 组里给 `hidden[j]` 的假想牌。
@@ -269,7 +269,7 @@ static func best_split(visible: Array, slots: Array, extra: Dictionary,
 	return all[bi]
 
 
-## Settle 是否是**恒等变换** —— 没有小丑牌、没有主角、没有 Boss 脸时,
+## Settle 是否是**恒等变换** —— 没有小丑牌、没有 Boss 脸时,
 ## score 就等于 `chips × 牌型倍率`, 也就是 Pattern 已经算好的那个数。
 ## 这个判断值钱是因为:中性基准、空槽一致性探针、λ 扫描**全都是这种情况**,
 ## 而 Settle 会建一个 15 键字典 + 复制数组 + 遍历四槽, 全是白工。
@@ -277,8 +277,6 @@ static func _settle_identity(slots: Array, extra: Dictionary) -> bool:
 	for j in slots:
 		if j != null:
 			return false
-	if extra.get("character") != null:
-		return false
 	# ⚠ 曾经写的是 `mod == ""` —— 于是**任何一张脸**都会关掉这条快路径, 实测
 	# 8.4 → 36 ms/拍(4.3×), 而 2026-08-07 那批脸里大多数根本不进 Settle
 	# (驱逐缓存 / 改容量 / 盖牌 / 收过路费 / 砍时间 / 抬目标分)。

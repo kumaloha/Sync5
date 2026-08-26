@@ -15,7 +15,7 @@ func _initialize() -> void:
 func _process(_d: float) -> bool:
 	_f += 1
 	if _f == 4:
-		_scene.choose_character(1)
+		_scene.start_run()
 		return false
 	if _f == 8 and _scene.intro != null and is_instance_valid(_scene.intro):
 		_scene.intro._dismiss()

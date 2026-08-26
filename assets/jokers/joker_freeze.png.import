@@ -15,9 +15,9 @@ dest_files=["res://.godot/imported/joker_freeze.png-8b950037e0f526281d2fa8a0d3e6
 
 [params]
 
-compress/mode=0
+compress/mode=1
 compress/high_quality=false
-compress/lossy_quality=0.7
+compress/lossy_quality=0.85
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1

@@ -161,11 +161,49 @@ static func slots_target_mult(slots: Array) -> float:
 ## 消费同一个口**, 各读各的 shelf 字典就是下一个「游戏里活、模型里死」。
 
 ## 货架位数(联票 doublebill: 3 → 4)。多张取最大, 不叠加 —— 5 张卡 720 宽摆不下。
-static func slots_shelf_size(slots: Array) -> int:
+## bonus = 点名的解除奖励(下次商店 +1 货架位), 与联票同受 4 的上限(布局硬约束)。
+static func slots_shelf_size(slots: Array, bonus: int = 0) -> int:
 	var n := 3
 	for j in slots:
 		if j != null:
 			n = maxi(n, int(j._shelf.get("shelf_slots", 3)))
+	return mini(4, n + maxi(0, bonus))
+
+
+## 合奏 ensemble(2026-08-25):缓存也上台, 结算从 8 张里挑最好 5 张。
+static func slots_cache_scoring(slots: Array) -> bool:
+	for j in slots:
+		if j != null and bool(j._hold.get("cache_scoring", false)):
+			return true
+	return false
+
+
+## 灌铅骰 loadeddice(2026-08-25):全场掷点概率乘数(多张取最大, 不叠加)。
+static func slots_odds_mult(slots: Array) -> float:
+	var m := 1.0
+	for j in slots:
+		if j != null:
+			m = maxf(m, float(j._hold.get("odds_mult", 1.0)))
+	return m
+
+
+## 客串(2026-08-25):段寿命计数 —— 每段末 +1 岁, 到寿返回 true(调用方清槽)。
+## 顺带把 reserved 的 on_section_end 钩子接上;寿命状态在 Joker.state(随快照)。
+func tick_section_life() -> bool:
+	on_section_end()
+	var life := int(_hold.get("section_life", 0))
+	if life <= 0:
+		return false
+	state["ages"] = int(state.get("ages", 0)) + 1
+	return int(state["ages"]) >= life
+
+
+## 这张卡有几个掷点谓词 —— Beat 预掷按它数, RNG 消耗量与持仓一一对应(可复现)。
+func chance_rolls_needed() -> int:
+	var n := 0
+	for e in _effects:
+		if (e.get("when", {}) as Dictionary).has("chance"):
+			n += 1
 	return n
 
 

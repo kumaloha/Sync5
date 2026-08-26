@@ -12,8 +12,7 @@ extends Probe
 ##
 ## Timing signals (acted_late / early_finish) are clock-derived in the real
 ## game; here they are behavior probabilities, biased by the bot's own build
-## (a player who drafted Finale plays to Finale). Characters are drawn
-## uniformly per run, so the roster averages out.
+## (a player who drafted Finale plays to Finale).
 
 # bot beliefs live in data/sim.json (docs/design/tech.md); card amounts and target
 # tiers are read from data/jokers.json so a balance edit reaches the bot too.
@@ -93,10 +92,6 @@ func _run_cohort(cfg: Dictionary) -> void:
 ## 局部的 deck/cache/slots/coins 只是 run 里那几个字段的别名, 留着是为了少改行。
 func _one_run(cfg: Dictionary, run_idx: int) -> void:
 	var no_jokers: bool = bool(cfg.get("no_jokers", false))
-	# ⚠⚠ **RNG 消耗顺序不许动**:原实现是「先抽主角, 后掷脸」。RunLoop 内部也会抽主角,
-	# 所以这里必须**自己抽好传进去**(Opts.character 非空时 RunLoop 就不抽了),
-	# 否则顺序变成「先掷脸后抽主角」, 全部 sim 读数整体漂移**而且不报错**。
-	var character: Character = Character.roster()[_rng.randi_range(0, 7)]
 	# ⚑ 一局四张脸走 SectionMod.roll_run 这一份(2026-08-14 收口, 原来 7 份)——
 	# 保证「一局之内不偶然重复」。RNG 消耗与旧代码逐次相同。
 	var faces := SectionMod.roll_run(_rng)
@@ -109,7 +104,6 @@ func _one_run(cfg: Dictionary, run_idx: int) -> void:
 	var o := RunLoop.Opts.new()
 	o.rng = _rng
 	o.deck_seed = run_idx * 7 + 1
-	o.character = character
 	o.faces = faces
 	o.player = "adaptive"
 	o.cfg = cfg

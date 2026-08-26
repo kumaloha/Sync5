@@ -60,7 +60,7 @@ s = ⟨ D, H, C, J, g, σ, ρ, k_prev, k_first, F, χ, Z ⟩
 | `k_prev` | 上一拍牌型 | `Run.prev_kind` |
 | `k_first` | **本段第一拍**的牌型 | `Run.first_kind` |
 | `F` | 四段的脸,**开局一次掷定** | `Run.run_faces` |
-| `χ` | 主角 | `Run.character` |
+| ~~`χ`~~ | ~~主角~~(2026-08-24 随局外删除, 状态空间少一维) | — |
 | `Z` | 盖着的牌(按 **Card 对象**记,不按下标) | `Phrase.hidden` |
 
 ⚠ **`k_prev` / `k_first` / `J.state` 是三个容易被漏掉的状态维度** —— 它们不在画面上,

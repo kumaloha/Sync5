@@ -21,8 +21,19 @@ var swapped_in: Dictionary = {}  # 本拍经交换进入手牌的 Card 集合(�
 var _initial_hand: Dictionary = {}   # 开拍时手牌快照 —— 试探性换回(bot)不算「换入」
 var discard_actions_used: int = 0
 var swap_actions_used: int = 0
+var discard_cards_used: int = 0  # 本拍已弃张数(一口气/打烊按张限:2026-08-25 张数重铸)
+var action_cards_used: int = 0   # 本拍弃+换合计张数(限流按张限;换一次记一张)
 var action_count: int = 0
 var action_track := ""         # "discard" | "swap" once switchtrack commits
+## 本拍在段内的序号(0 起), Beat.begin 从 run.phrase_in_section 灌入;-1 = 无段上下文
+## (kit 之类的单拍探针)。倒计时(time_curve)与渐强(phase_factors)按它取曲线值。
+var phrase_idx: int = -1
+## 掷类脸的段级明掷结果(Beat.begin 从 run.mod_roll 灌入;轮盘的容量加扣读它)。
+var mod_roll: Dictionary = {}
+## 合奏(2026-08-25):缓存也进结算牌集(Beat.begin 按持仓灌入)。
+var cache_scoring := false
+## 回收(2026-08-25):本拍直弃的缓存牌点数之和(奖励分按它折算)。
+var cache_discard_rank_sum := 0
 ## Remaining discard-card allowance supplied by Run for Ration; -1 = unlimited.
 var discard_budget: int = -1
 var locked: bool = false
@@ -76,6 +87,9 @@ func start() -> void:
 		if c != null:
 			hand.append(c)
 	var cap := SectionMod.cache_cap(mod)
+	if bool(mod_roll.get("worse", false)):
+		# 轮盘(2026-08-25):开局掷出「封 2 格」时在基础扣格上再扣。
+		cap = maxi(0, cap - SectionMod.roll_cache_extra(mod))
 	while cache.size() > cap:
 		deck.discard(cache.pop_back())
 	while cache.size() < cap:
@@ -93,6 +107,9 @@ func start() -> void:
 			_initial_hand[hc] = true
 	discard_actions_used = 0
 	swap_actions_used = 0
+	discard_cards_used = 0
+	action_cards_used = 0
+	cache_discard_rank_sum = 0
 	action_count = 0
 	action_track = ""
 	locked = false
@@ -106,8 +123,8 @@ func start() -> void:
 	if SectionMod.cache_evict(mod) == 1 and not cache.is_empty():
 		marked_cache_card = cache[deck.pick_index(cache.size())]
 	initial_cache = cache.duplicate()
-	sealed_hand_card = _lowest_starting_hand() if SectionMod.seals_lowest_start(mod) else null
-	sealed_cache_card = _oldest_cache_card() if SectionMod.seals_oldest_cache(mod) else null
+	sealed_hand_card = _pick_sealed_hand()
+	sealed_cache_card = _pick_sealed_cache()
 	if BlindBoon.spotlight_cards(boon) > 0:
 		spotlight_card = deck.draw()
 	# fresh phrase, fresh sight: last phrase's cards were revealed at its settle
@@ -119,6 +136,15 @@ func start() -> void:
 		for c in cache:
 			if c != null and c.rank >= 11 and c.rank <= 13:
 				hidden[c] = true
+	# 暗场(2026-08-25):每拍随机盖 N 张手牌 —— 不递增不全盲(「没抽到对策等于失败」
+	# 违反无必解, 渐暗因此被砍)。抽签走 deck.pick_index, 与随机封同一条 RNG 纪律。
+	var extra_hide := SectionMod.hide_random(mod)
+	if extra_hide > 0 and not hand.is_empty():
+		var pick_pool: Array = range(hand.size())
+		for _k in range(mini(extra_hide, pick_pool.size())):
+			var j := deck.pick_index(pick_pool.size())
+			hidden[hand[pick_pool[j]]] = true
+			pick_pool.remove_at(j)
 
 func can_discard(count: int) -> bool:
 	if locked or count <= 0 or coins < Economy.discard_cost(count):
@@ -128,6 +154,12 @@ func can_discard(count: int) -> bool:
 		return false
 	var shared := SectionMod.action_limit(mod)
 	if shared >= 0 and action_count >= shared:
+		return false
+	var cards_cap := SectionMod.discard_cards_max(mod)
+	if cards_cap >= 0 and discard_cards_used + count > cards_cap:
+		return false
+	var combo_cap := SectionMod.action_cards_max(mod)
+	if combo_cap >= 0 and action_cards_used + count > combo_cap:
 		return false
 	if SectionMod.exclusive_action_tracks(mod) and action_track == "swap":
 		return false
@@ -178,6 +210,9 @@ func discard_selected(hand_indices: Array, cache_indices: Array = []) -> bool:
 	# object, and the deck recycles those same Card objects on reshuffle, so a
 	# stale key would make a future draw arrive mysteriously face down.
 	var blind_refill := SectionMod.hide_refill(mod)
+	# facedown 的补牌一致性(2026-08-25 排查「非人头也盖」时抓到的反向洞):
+	# 卡面写「J/Q/K 盖面发牌」, 补牌也是发牌 —— 此前补进来的人头明着, 与开局发的规则不一致。
+	var face_refill := SectionMod.hide_faces(mod)
 	if BlindBoon.ghost_first_discard(boon) and ghost_cards.is_empty() and not hand_indices.is_empty():
 		for first_i in hand_indices:
 			var first_card: Card = hand[int(first_i)]
@@ -186,44 +221,26 @@ func discard_selected(hand_indices: Array, cache_indices: Array = []) -> bool:
 		hidden.erase(hand[i])
 		deck.discard(hand[i])
 		hand[i] = _draw_refill()
-		if blind_refill and hand[i] != null:
+		if hand[i] != null and (blind_refill \
+				or (face_refill and hand[i].rank >= 11 and hand[i].rank <= 13)):
 			hidden[hand[i]] = true
 	for i in cache_indices:
 		var old_cache: Card = cache[i]
+		cache_discard_rank_sum += old_cache.rank   # 回收:献祭按面值记账
 		hidden.erase(old_cache)
 		_forget_cache_age(old_cache)
 		deck.discard(old_cache)
 		cache[i] = _draw_refill()
 		_remember_cache_age(cache[i])
-		if blind_refill and cache[i] != null:
+		if cache[i] != null and (blind_refill \
+				or (face_refill and cache[i].rank >= 11 and cache[i].rank <= 13)):
 			hidden[cache[i]] = true
 	discard_actions_used += 1
+	discard_cards_used += total
+	action_cards_used += total
 	action_count += 1
 	if action_track == "":
 		action_track = "discard"
-	return true
-
-
-## 补牌券(redeal):整手重发一次。⚠⚠ **这不是弃牌** —— 2026-08-17 券的使用入口。
-##
-## 不计 `discards_used`/批量峰值/人头数、不占 `discard_budget`、不开 `action_track`、
-## 不触发首弃幽灵(boon)。券是**局外道具**, 让它冒充玩家的弃牌动作, 周转/早弃/断舍离
-## 这些「挂在弃牌上」的小丑牌就会被一张券白喂 —— 成长/触发只挂显式动作是铁律。
-## ⚠ 封印的手牌(sealed)**不换** —— 弃牌换不掉它(can_discard_selected 挡着),
-## 券绕过去就成了「破解脸规则的道具」, 而关卡是按无券设计的。
-## ⚠ 盖牌脸(hide_refill)照常盖新牌:券给的是「换一手」, 不是「掀桌上的规则」。
-func redeal_hand() -> bool:
-	if locked:
-		return false
-	var blind_refill := SectionMod.hide_refill(mod)
-	for i in range(hand.size()):
-		if hand[i] == null or hand[i] == sealed_hand_card:
-			continue
-		hidden.erase(hand[i])
-		deck.discard(hand[i])
-		hand[i] = _draw_refill()
-		if blind_refill and hand[i] != null:
-			hidden[hand[i]] = true
 	return true
 
 
@@ -264,6 +281,7 @@ func swap_with_cache(hand_index: int, cache_index: int, probe: bool = false) -> 
 ## 试探路径(probe)由调用方在**决定留下**时显式调。
 func commit_probe_swap() -> void:
 	swap_actions_used += 1
+	action_cards_used += 1
 	action_count += 1
 	if action_track == "":
 		action_track = "swap"
@@ -287,6 +305,9 @@ func can_swap_action() -> bool:
 		return false
 	var shared := SectionMod.action_limit(mod)
 	if shared >= 0 and action_count >= shared:
+		return false
+	var combo_cap := SectionMod.action_cards_max(mod)
+	if combo_cap >= 0 and action_cards_used + 1 > combo_cap:
 		return false
 	if SectionMod.exclusive_action_tracks(mod) and action_track == "discard":
 		return false
@@ -337,6 +358,21 @@ func _lowest_starting_hand() -> Card:
 		if out == null or card.rank < out.rank:
 			out = card
 	return out
+
+
+## 随机封优先(2026-08-25 用户:「封条不如随机封,双封也可以随机」);
+## 旧的最低/最老参数仍然认(白名单保留)。抽签走 deck.pick_index ——
+## 与丢谱标记同一条共享 RNG 纪律:游戏与探针同序、可复现。
+func _pick_sealed_hand() -> Card:
+	if SectionMod.seals_random_start(mod) and not hand.is_empty():
+		return hand[deck.pick_index(hand.size())]
+	return _lowest_starting_hand() if SectionMod.seals_lowest_start(mod) else null
+
+
+func _pick_sealed_cache() -> Card:
+	if SectionMod.seals_random_cache(mod) and not cache.is_empty():
+		return cache[deck.pick_index(cache.size())]
+	return _oldest_cache_card() if SectionMod.seals_oldest_cache(mod) else null
 
 
 func _sync_cache_ages() -> void:
@@ -398,6 +434,11 @@ func _scoring_cards() -> Array:
 		cards.append(spotlight_card)
 	for ghost in ghost_cards:
 		cards.append(ghost)
+	# 合奏(2026-08-25):缓存也上台 —— 8 张挑最好 5 张(与聚光灯 boon 同一条最优五张路)。
+	if cache_scoring:
+		for cc in cache:
+			if cc != null:
+				cards.append(cc)
 	return cards
 
 
@@ -412,6 +453,13 @@ func has_initial_cache_in_hand() -> bool:
 ## state; the solver only consumes it.
 func hidden_indices(visible: Array) -> Array:
 	var out: Array = []
+	# 蒙点/蒙色(2026-08-25):属性遮蔽在 bot 侧按「整张全盲」**保守近似** ——
+	# 现有盲牌采样只有整张一种粒度。方向安全:bot 只会更弱, 脸只会被标得更狠
+	# (与「目标读数偏严」同一安全方向);属性级信念是这两张脸补 tier 入池前的必修课。
+	if SectionMod.hide_ranks(mod) or SectionMod.hide_suits(mod):
+		for i in range(visible.size()):
+			out.append(i)
+		return out
 	if hidden.is_empty():
 		return out
 	for i in range(visible.size()):
@@ -431,6 +479,16 @@ func lock_and_settle() -> Dictionary:
 	result = Pattern.evaluate_best(_scoring_cards(), deck.rules)
 	if request_goal != "":
 		request_met = _request_satisfied(result)
+	# 盲奏(2026-08-25):盖着上台的得分牌在翻开前点清 —— 全盖(盖牌脸)按张数,
+	# 属性遮蔽(蒙色/蒙点)整手算盲(每张都只见一半)。翻开与结算是同一时刻。
+	var hs := 0
+	if SectionMod.hide_ranks(mod) or SectionMod.hide_suits(mod):
+		hs = result.get("resolved", []).size()
+	else:
+		for hc in result.get("resolved", []):
+			if hidden.has(hc):
+				hs += 1
+	result["hidden_scoring"] = hs
 	hidden.clear()
 	return result
 

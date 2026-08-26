@@ -62,8 +62,7 @@ func _run(target_id: String, rng: RandomNumberGenerator) -> void:
 					# 牌型频率/中性基准的仪器 ⇒ 会「测出」那族卡没用。**自我实现的错误结论。**
 					# 这是「规则在游戏里、不在模型里」的第 6 次的预防, 不是修 bug。
 					"section_idx": s, "section_target": GameConfig.section_target(s),
-					"mod": "", "character": null,
-				})
+					"mod": "", })
 				var k := int(res.get("kind", -1))
 				var sc := float(out["score"])
 				freq[k] = int(freq.get(k, 0)) + 1

@@ -5,7 +5,8 @@ extends Control
 ## (the authority for this screen, like success/fail.html are for the result
 ## screens).
 ##
-## Layout: player bar → the big glass STAGE CARD → tab rail. The card is the
+## Layout: 无框顶栏(♪盘/LV/NEON PLAYER/EXP/⚡体力/分享)→ the big glass STAGE CARD
+## → tab rail。顶栏两端的视觉边缘对齐卡的玻璃亮边(x 56/664, 2026-08-24 实量)。The card is the
 ## same object as the in-game blind board (`Widgets.StageCard` +
 ## `Widgets.BlindBoard`) because a level IS a blind — swiping it browses the
 ## tour's 12 blinds, it does NOT pick one: 盲注不可跳过 is user-locked, so
@@ -15,8 +16,9 @@ extends Control
 ## _gui_input (children would paint over the card, per the project rule).
 ## `frame-glass4.png` from the mock is not in the repo — the frame is drawn.
 
-signal start_pressed          # 开始游戏 → run starts (protagonist pick first)
-signal menu_pressed(idx: int) # 页签 → 图鉴页(1 主角 / 2 小丑牌 / 3 荣誉)
+signal start_pressed          # 开始游戏 → run starts
+signal menu_pressed(idx: int) # 页签 → 图鉴页(1 小丑牌)
+signal share_pressed          # 顶栏分享按钮(打点在编排器, 铁律)
 
 const W := 720.0
 const H := 1280.0
@@ -37,27 +39,21 @@ const CARD_INSET := 24.0                  # 霓虹轨距外框(玻璃的可见�
 # 页签轨几何在 Chrome(2026-08-11 三个图鉴页实装时迁出成四屏单源);
 # 下缝 51 比上缝多 3px 的理由不变:抵消倒影的光填缝带来的偏紧观感。
 
-# 档案栏(2026-08-22 用户拍板, meta.md §8):**没有一个数是 mock** ——
-# 头像 + 名字 = 当前主角(角色页选了谁就是谁)· LV / 经验条 / 称号 = 参与度等级(`SaveState.profile()`,
-# 累计通关段数推, 零数值, 表在 data/assets.json profile)· ◈ = 真钱包;◆ 跨局金币不存在, chip 已删。
-
 var section_idx := 0          # which blind the card is showing
 var tab := 0
 
 var _t := 0.0
-var _avatar_tex: Texture2D = null   # 当前主角的头像(512×512 圆裁), 按 SaveState.hero() 懒加载
-var _avatar_hero := -1              # 已加载的是哪位;选角变了就重载
-## manifest 的 avatar_crop([x,y,w,h] 归一化)——头像是四分之三身像,脸区窗口由美术线
-## 在 assets/characters/manifest.json 里给,运行时只读。圆盘取窗口内最大内切圆保纵横比。
-var _avatar_crop := Rect2(0.0, 0.0, 1.0, 1.0)
 var _drag_from := -1.0        # x where the current drag started, -1 = idle
 var _drag_dx := 0.0
 var _stamp := ""          # build_stamp.txt(commit+时间), 没有就空 = 不画
 var _btn_rect := Rect2()
 var _dot_rects: Array = []
 var _tab_rects: Array = []
+var _share_rect := Rect2() # 顶栏分享按钮的点击区(_draw_player_bar 排版时记下)
+var _share_t := 0.0        # 「已复制」提示的剩余秒数(动效层画, 见 draw_fx)
 
 static var _bg: GradientTexture2D = null
+static var _sheen: GradientTexture2D = null   # 115° 斜光带(v5 稿 line 25)
 var _tail: Control = null
 var _fx: Control = null          # 动效层:雨 / 均衡器 / 脉冲按钮 / 扫描线(唯一每帧重画的层)
 var _eq_rect := Rect2()          # 静态层排版时记下, 动效层照着画
@@ -96,8 +92,7 @@ func _ready() -> void:
 	if sf != null:
 		_stamp = sf.get_as_text().strip_edges()
 		sf.close()
-	# above the battle scene's own z_index users — the hand-frame Walker sits
-	# at 20 and would otherwise walk across the front page
+	# above the battle scene's own z_index users(局内组件用到 z 20 一带)
 	z_index = 80
 	# 玻璃壳走素材时(assets/frames/glass.png,2026-08-12 用户拍板换素材)
 	# 倒影已经烘在图里(y 1197–1355 那段),再挂镜像层就是双影 —— 跳过。
@@ -118,6 +113,10 @@ func _ready() -> void:
 	_fx.size = Vector2(W, H)
 	_fx.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_fx)
+	# 背景纹理提前建 + 生成完补一次重画(GradientTexture2D 像素生成延迟, 首帧可能是白占位;
+	# 本层又只按状态键重画, 不补这一枪白就钉住了 —— 2026-08-24 二分抓到的形状)
+	_ensure_bg_textures()
+	get_tree().create_timer(0.1).timeout.connect(queue_redraw)
 	set_process(true)
 
 
@@ -128,8 +127,11 @@ func _process(delta: float) -> void:
 		_drag_dx = lerpf(_drag_dx, 0.0, minf(1.0, delta * 14.0))
 	if _fx != null:
 		_fx.queue_redraw()
+	if _share_t > 0.0:
+		_share_t = maxf(0.0, _share_t - delta)
 	# 静态层与倒影:状态键变了才重画。键里放的是 _draw 读到的全部可变量(漏一个 = 那个量变了不刷新)
-	if Chrome.dirty(_key, [section_idx, tab, snappedf(_drag_dx, 0.25), SaveState.gems(), SaveState.hero(), SaveState.stats().get("sections", 0), _stamp]):
+	if Chrome.dirty(_key, [section_idx, tab, snappedf(_drag_dx, 0.25), _stamp,
+			SaveState.energy(), SaveState.profile()]):
 		queue_redraw()
 		if _tail != null:
 			_tail.queue_redraw()
@@ -164,6 +166,18 @@ func _tap(p: Vector2) -> void:
 	if _btn_rect.has_point(p):
 		start_pressed.emit()
 		return
+	if _share_rect.grow(8.0).has_point(p):
+		# 分享 v1 = 复制文案进剪贴板(桌面/Web 都通;真正的系统分享面板等平台侧需求)。
+		DisplayServer.clipboard_set(Lingo.t("Sync5 · 我的巡演已开 %d 局") % SaveState.runs_total())
+		_share_t = 1.8
+		share_pressed.emit()
+		return
+	if PEEK_L.grow(6.0).has_point(p):
+		_step(-1)
+		return
+	if PEEK_R.grow(6.0).has_point(p):
+		_step(1)
+		return
 	for i in range(_dot_rects.size()):
 		var r: Rect2 = _dot_rects[i]
 		if r.grow(6.0).has_point(p):
@@ -176,7 +190,7 @@ func _tap(p: Vector2) -> void:
 		if i == 0:
 			tab = 0
 		else:
-			menu_pressed.emit(i)      # 三个图鉴页由编排器开(phrase._open_menu)
+			menu_pressed.emit(i)      # 图鉴页由编排器开(phrase._open_menu)
 		return
 
 
@@ -194,16 +208,17 @@ func _draw() -> void:
 			HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(1, 1, 1, 0.25))
 
 
-## Vertical night gradient + three corner glows + the 115° sheen sweep.
+## 夜色渐变 + 三团角落柔光 + 115° 斜光带 —— 逐值取自 `docs/mockups/home.html`(v5,
+## 2026-08-24 用户:「顶部没有边框之后背景是纯黑, 但我给你发的图里面不是纯黑的」+
+## 「参考这个 html 代码实现」)。⚑ 这三件套正是 08-06「背景归黑/柔光全删」拍板删掉的
+## 结构, v5 设计稿把它请回首页;**局内**背景仍按归黑拍板走(stage_bg 不动)。
 func _draw_bg() -> void:
 	if _bg == null:
 		var g := Gradient.new()
 		g.offsets = PackedFloat32Array([0.0, 0.45, 0.78, 1.0])
-		# 2026-08-06 用户:「我们卡牌底下, 那个背景, 做成黑色吧」——
-		# 参考图的五张玻璃卡全躺在纯黑上, 霓虹只有贴在黑上才炸。
-		# 底色归零, 画面里的光全部交给角落柔光/扫描线/雨这些**光效层**。
-		g.colors = PackedColorArray([Color("000000"), Color("020204"),
-			Color("000000"), Color("000000")])
+		# 稿:linear-gradient(180deg,#070a1a 0%,#0a0d22 45%,#05060f 78%,#03030a 100%)
+		g.colors = PackedColorArray([Color("070a1a"), Color("0a0d22"),
+			Color("05060f"), Color("03030a")])
 		_bg = GradientTexture2D.new()
 		_bg.gradient = g
 		_bg.width = 8
@@ -211,8 +226,46 @@ func _draw_bg() -> void:
 		_bg.fill_from = Vector2(0, 0)
 		_bg.fill_to = Vector2(0, 1)
 	draw_texture_rect(_bg, Rect2(0, 0, W, H), false)
-	# 2026-08-06 用户:「柔光层全部给我去掉」—— 角落柔光、档位色柔光、全屏 sheen
-	# 三层**全部删除**。背景就是纯黑, 画面里的光只来自卡片自己那条霓虹边。
+	# 角落柔光三团(稿 line 24, 椭圆半径×2 = rect 尺寸, 圆心按百分比):
+	#   520×300 @ (10%,0%) 青 .16 · 560×320 @ (92%,4%) 粉 .15 · 500×420 @ (50%,46%) 紫 .10
+	# ⚠⚠ 纹理**不许在 _draw 里现建**:GradientTexture2D 的像素生成是延迟的, 现建现画
+	# 上屏的是**白色占位图**, 而本层只在状态键变化时重画 ⇒ 整屏钉在白上(2026-08-24
+	# 二分抓到:基线渐变正确、开柔光即全白)。⇒ 三团 + 斜光带全部建一次缓存在 static。
+	_ensure_bg_textures()
+	draw_texture_rect(_glows[0], Rect2(72.0 - 520.0, 0.0 - 300.0, 1040.0, 600.0), false)
+	draw_texture_rect(_glows[1], Rect2(662.4 - 560.0, 51.2 - 320.0, 1120.0, 640.0), false)
+	draw_texture_rect(_glows[2], Rect2(360.0 - 500.0, 588.8 - 420.0, 1000.0, 840.0), false)
+	# 115° 斜光带(稿 line 25)。⚠ 必须是**软边渐变**, 硬边 draw_line 会把上半屏洗白
+	# (第一版就是这么糊的, 截图当场抓到)。按 CSS 停点建一条横向渐变, 旋到 115° 轴铺满;
+	# CSS 115deg 的渐变线长 ≈ 720·sin115° + 1280·cos115°(取绝对值)= 1193, 轴过屏心。
+	draw_set_transform(Vector2(360.0, 640.0), 0.4363)
+	draw_texture_rect(_sheen, Rect2(-597.0, -1100.0, 1194.0, 2200.0), false)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+static var _glows: Array = []
+
+static func _ensure_bg_textures() -> void:
+	if not _glows.is_empty() and _sheen != null:
+		return
+	_glows = [
+		StageTheme.radial(Color(53.0 / 255, 232.0 / 255, 224.0 / 255, 0.16)),
+		StageTheme.radial(Color(1.0, 79.0 / 255, 163.0 / 255, 0.15)),
+		StageTheme.radial(Color(165.0 / 255, 107.0 / 255, 1.0, 0.10)),
+	]
+	var sg := Gradient.new()
+	sg.offsets = PackedFloat32Array([0.18, 0.32, 0.39, 0.50, 0.64, 0.76, 0.88])
+	sg.colors = PackedColorArray([
+		Color(0.627, 0.784, 1.0, 0.0), Color(0.627, 0.784, 1.0, 0.04),
+		Color(1.0, 1.0, 1.0, 0.07), Color(1.0, 1.0, 1.0, 0.0),
+		Color(0.627, 0.784, 1.0, 0.0), Color(0.627, 0.784, 1.0, 0.05),
+		Color(0.627, 0.784, 1.0, 0.0)])
+	_sheen = GradientTexture2D.new()
+	_sheen.gradient = sg
+	_sheen.width = 512
+	_sheen.height = 8
+	_sheen.fill_from = Vector2(0, 0)
+	_sheen.fill_to = Vector2(1, 0)
 
 
 ## (柔光层已于 2026-08-06 整体删除:「柔光层全部给我去掉」。
@@ -220,113 +273,72 @@ func _draw_bg() -> void:
 ## 三次说的"光晕"的真身;我却一直在改 StageCard 的边辉光, 所以"毫无变化"。)
 
 
-## Player bar: avatar + LV badge, name/title, XP track, coin and gem chips.
+## 顶栏(2026-08-24 参考图重做):**无边框、融入黑底** —— 不再画玻璃板,
+## 元素直接躺在背景上。左 = 圆盘(♪, 主角已删)+ LV 徽章 + NEON PLAYER + EXP 行;
+## 右 = ⚡ 体力(上限 − 今日局数, 只显示不拦人)+ 分享按钮(用户:「不是那个 +」)。
+## 金币/紫宝石按拍板不放。数字全真:LV/EXP = 累计通关段数推, 体力 = 真局数推。
 func _draw_player_bar() -> void:
-	# 和卡片**等宽**: 卡片的霓虹轨在 x 70..650(外框 40..680 内缩 30), 所以信息栏
-	# 的线也要落在 70..650 —— 它自己的内缩是 8, 外框就得往外让 8。
-	# **与卡片等宽**: 两者的"线"都落在 x 48..672(卡片外框 24..696 内缩 24)。
-	# 信息栏自己的内缩是 8, 所以它的外框再往外让 8。
-	# 高度**吃满卡片上方腾出来的空间**(离卡片留 24), 否则卡片下移后上面会空一块
-	# (用户:「信息栏没有把下面腾出来的位置补上」)。
-	# 顶栏是**全局 chrome**(玩家身份/货币), 不属于任何一关 —— 所以它固定中性近黑,
-	# 不跟着盲注档位变色(用户 2026-08-05 提的:「他一直蓝色, 但卡片颜色一直换,
-	# 很奇怪」)。这样整屏唯一会变的就是卡片的档位色, 焦点自然落在卡片上。
-	# 语义自带颜色的小件不受影响: 头像环、金币金、宝石紫。
-	var bar_ins := 8.0
-	var bar_top := 18.0
-	var r := Rect2(CARD.position.x + CARD_INSET - bar_ins, bar_top,
-		CARD.size.x - CARD_INSET * 2.0 + bar_ins * 2.0,
-		CARD.position.y - 16.0 - bar_top)
-	# 2026-08-06 用户:「顶部信息栏跟下面颜色不同, 好突兀」。根因是**两套做法**:
-	# 卡片走新的玻璃体(档位色 from_hsv), 顶栏还是 SLATE 蓝灰 + 半透黑 override,
-	# 色温也差着(SLATE 217° vs 青档 174°)。
-	# 解法不是让它跟着档位变艳(那条旧拍板还成立: 顶栏是玩家身份/货币, 不属于任何
-	# 一关, 滑赛程时整屏换色会吵), 而是**色相跟随、饱和度压到极低** —— 它仍读作
-	# "无色玻璃", 但和卡片同一个色温, 并肩放不打架。
-	var tier := Widgets.StageCard.accent_for(section_idx)
-	# 明度压到 0.42:顶栏是 chrome, 要**退到卡片后面**。给 0.70 时它的灰白线和
-	# 渗光在纯黑背景上比档位色卡片还抢眼(实测), 反客为主。
-	var acc := Color.from_hsv(tier.h, tier.s * 0.20, 0.42)
-	# body 交给统一的玻璃体算法(背景已归黑, 它本来就近黑) —— 不再用 override,
-	# 否则顶栏永远是"另一块材质"。
-	Widgets.StageCard.draw_card(self, r, acc, 18.0, bar_ins, false)
-	# 大卡换素材壳后,顶栏也贴同一块素材的「膜」——不然一屏两种玻璃
-	# (2026-08-12 用户:「顶部信息栏的光泽感配不上下面的玻璃板」)
-	Chrome.glass_film(self, r.grow(-2.0), 16.0)
-	# 内容锚在**线**那一圈(= 卡片轨的 70..650), 且按它的中线排 —— 直接 grow 会把
-	# 可用高度压掉 16, 右侧两个货币章会被下边线切掉。
-	r = r.grow(-bar_ins)
-	var cy := r.position.y + r.size.y * 0.5
-
-	# avatar disc —— 2026-08-11 起贴职业头像(512×512 圆裁贴多边形 UV);
-	# 2026-08-22 起跟**当前主角**走(角色页选了谁就是谁)。缺图退回首字母盘 —— 无素材环境的截图探针照跑。
-	var c := Vector2(r.position.x + 56.0, cy)
-	draw_circle(c, 34.0, Color(0.055, 0.09, 0.16, 0.9))
+	# 2026-08-24 用户:「玻璃卡和顶部之间的间距有点大, 把顶部放大一些、调整位置」——
+	# 元素整体放大约 1.25 倍, 内容中线从 87 下移到 116(卡的玻璃边 ~208, 空带收到 ~50px)。
+	var r := Rect2(CARD.position.x + CARD_INSET, 40.0,
+		CARD.size.x - CARD_INSET * 2.0, 152.0)
+	var cy := 116.0
 	var num := StageTheme.num("Bold")
 	var zh := StageTheme.zh()
-	var roster := Character.roster()
-	var hero_idx := clampi(SaveState.hero(), 0, roster.size() - 1)
-	var hero: Character = roster[hero_idx]
-	if _avatar_hero != hero_idx:
-		_avatar_hero = hero_idx
-		_avatar_tex = null
-		_avatar_crop = Rect2(0.0, 0.0, 1.0, 1.0)
-		var ap := "res://assets/characters/%s/avatar.png" % Walker.IDS[hero_idx]
-		if ResourceLoader.exists(ap):
-			_avatar_tex = load(ap)
-			var mf := FileAccess.open("res://assets/characters/manifest.json", FileAccess.READ)
-			if mf != null:
-				var md = JSON.parse_string(mf.get_as_text())
-				mf.close()
-				if md is Dictionary:
-					for ch in md.get("characters", []):
-						if int(ch.get("idx", -1)) == hero_idx and ch.has("avatar_crop"):
-							var cr: Array = ch["avatar_crop"]
-							_avatar_crop = Rect2(float(cr[0]), float(cr[1]), float(cr[2]), float(cr[3]))
-	if _avatar_tex != null:
-		Chrome.avatar_disc(self, c, 33.0, _avatar_tex, _avatar_crop)
-	else:
-		var initial := Lingo.t(hero.cn_name).left(2)
-		var aw := num.get_string_size(initial, HORIZONTAL_ALIGNMENT_LEFT, -1, 26).x
-		draw_string(num, c + Vector2(-aw * 0.5, 9.0), initial, HORIZONTAL_ALIGNMENT_LEFT, -1, 26,
-			Color("8ff5ee"))
-	draw_arc(c, 34.0, 0, TAU, 56, Color(StageTheme.CYAN.r, StageTheme.CYAN.g, StageTheme.CYAN.b, 0.8), 1.8, true)
 	var prof := SaveState.profile()
+	# ⚑ 配套变色(2026-08-24 用户:「主玻璃板颜色变了, 光晕、顶部头像圆框颜色都会变,
+	# 请注意配套」——v5 稿里圆环/LV 徽章用的就是当前档位色):头像环与 LV 徽章跟卡片
+	# 同一个 accent 走, 滑动切关整套一起换色(光晕本来就跟着 acc)。
+	var bacc := Widgets.StageCard.accent_for(section_idx)
+
+	# avatar disc + 档位色环, 缺口留给 LV 徽章
+	# 左端对卡:环外缘(中心 − 半径40.5 − 线宽半)落在卡玻璃亮边 x=56(实量 08-24)
+	var c := Vector2(r.position.x + 50.0, cy - 6.0)
+	draw_circle(c, 37.0, Color(0.055, 0.09, 0.16, 0.92))
+	var aw := zh.get_string_size("♪", HORIZONTAL_ALIGNMENT_LEFT, -1, 32).x
+	draw_string(zh, c + Vector2(-aw * 0.5, 11.0), "♪", HORIZONTAL_ALIGNMENT_LEFT, -1, 32,
+		Color(bacc.r * 0.55 + 0.45, bacc.g * 0.55 + 0.45, bacc.b * 0.55 + 0.45))
+	draw_arc(c, 40.5, 0, TAU, 64, Color(bacc.r, bacc.g, bacc.b, 0.85), 2.4, true)
 	var lv := "LV.%d" % int(prof["level"])
-	var lw := num.get_string_size(lv, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x
-	var lb := Rect2(c.x - lw * 0.5 - 10.0, c.y + 27.0, lw + 20.0, 19.0)
-	draw_style_box(StageTheme.box(StageTheme.CYAN, Color(0, 0, 0, 0), 0, 8), lb)
+	var lw := num.get_string_size(lv, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
+	var lb := Rect2(c.x - lw * 0.5 - 9.0, c.y + 30.0, lw + 18.0, 20.0)
+	draw_style_box(StageTheme.box(bacc, Color(0, 0, 0, 0), 0, 10), lb)
 	draw_string(num, Vector2(lb.position.x, lb.position.y + 14.5), lv,
-		HORIZONTAL_ALIGNMENT_CENTER, lb.size.x, 13, Color("03302c"))
+		HORIZONTAL_ALIGNMENT_CENTER, lb.size.x, 13, Color("0a1420"))
 
-	# name = 当前主角;title = 参与度等级的称号(data/assets.json profile.levels)
-	var tx := r.position.x + 104.0
-	var hname := Lingo.t(hero.cn_name)
-	draw_string(zh, Vector2(tx, cy - 10.0), hname, HORIZONTAL_ALIGNMENT_LEFT, -1, 23, Color("eaf6ff"))
-	var nw := zh.get_string_size(hname, HORIZONTAL_ALIGNMENT_LEFT, -1, 23).x
-	draw_string(zh, Vector2(tx + nw + 10.0, cy - 8.0), Lingo.pick(prof.get("title", {})),
-		HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("7487ac"))
+	# name + EXP(参考图的两行;名字是**标签不是存档数据** —— 没有玩家档案系统)
+	var tx := r.position.x + 108.0
+	draw_string(num, Vector2(tx, cy - 8.0), "N E O N   P L A Y E R",
+		HORIZONTAL_ALIGNMENT_LEFT, -1, 25, Color("f2f7ff"))
+	draw_string(StageTheme.num("Medium"), Vector2(tx, cy + 19.0),
+		"EXP %d / %d" % [int(prof["xp"]), int(prof["xp_max"])],
+		HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color("7487ac"))
 
-	# xp track
-	var bar := Rect2(tx, cy + 8.0, 300.0, 8.0)
-	draw_style_box(StageTheme.box(Color(0.078, 0.10, 0.21, 0.9),
-		Color(0.47, 0.59, 0.78, 0.18), 1, 4), bar)
-	var xp_max := int(prof["xp_max"])
-	var frac: float = 1.0 if xp_max <= 0 else clampf(float(prof["xp"]) / float(xp_max), 0.0, 1.0)   # 顶级 = 满格
-	var fill := Rect2(bar.position, Vector2(bar.size.x * frac, bar.size.y))
-	draw_style_box(StageTheme.box(StageTheme.CYAN, Color(0, 0, 0, 0), 0, 4), fill)
-	draw_style_box(StageTheme.box(Color(StageTheme.VIOLET.r, StageTheme.VIOLET.g,
-		StageTheme.VIOLET.b, 0.75), Color(0, 0, 0, 0), 0, 4),
-		Rect2(fill.position + Vector2(fill.size.x * 0.55, 0),
-			Vector2(fill.size.x * 0.45, fill.size.y)))
-	draw_string(num, Vector2(bar.end.x + 10.0, bar.end.y + 4.0),
-		("%d/%d" % [int(prof["xp"]), xp_max]) if xp_max > 0 else "MAX",
-		HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("66799f"))
+	# 分享按钮(最右圆钮)。图标 = 三点两线的 share 形。
+	# 右端对卡:分享钮外缘落在卡玻璃亮边 x=664(同一次实量)
+	var sc := Vector2(r.end.x - 29.0, cy)
+	_share_rect = Rect2(sc - Vector2(20.0, 20.0), Vector2(40.0, 40.0))
+	draw_circle(sc, 20.0, Color(1, 1, 1, 0.05))
+	draw_arc(sc, 20.0, 0, TAU, 48, Color(1, 1, 1, 0.20), 1.3, true)
+	var p1 := sc + Vector2(6.0, -7.5)
+	var p2 := sc + Vector2(-6.0, 0.0)
+	var p3 := sc + Vector2(6.0, 7.5)
+	var sink := Color(0.83, 0.88, 1.0, 0.85)
+	draw_line(p2, p1, sink, 1.6, true)
+	draw_line(p2, p3, sink, 1.6, true)
+	for pt in [p1, p2, p3]:
+		draw_circle(pt, 3.1, sink)
 
-	# currency chip:只有 ◈ 宝石(真钱包)。◆ 跨局金币 2026-08-22 用户拍板删掉 —— 那个系统不存在,
-	# 局内金币每局清零是资产循环的红线;单 chip 居中到原来两枚的中线。
-	Chrome.chip(self, Rect2(r.end.x - 152.0, cy - 15.0, 144.0, 31.0), StageTheme.VIOLET,
-		"◈", "%d" % SaveState.gems(), Color("cdb2ff"))
+	# ⚡ 体力(分享钮左侧;深底小胶囊, 与参考图同族)
+	var etxt := "%d/%d" % [SaveState.energy(), SaveState.energy_max()]
+	var ew := num.get_string_size(etxt, HORIZONTAL_ALIGNMENT_LEFT, -1, 20).x
+	var pill := Rect2(sc.x - 20.0 - 30.0 - (ew + 54.0), cy - 19.0, ew + 54.0, 38.0)
+	draw_style_box(StageTheme.box(Color(0.05, 0.06, 0.11, 0.85),
+		Color(1, 1, 1, 0.08), 1, 19), pill)
+	draw_string(zh, Vector2(pill.position.x + 15.0, cy + 7.0), "⚡",
+		HORIZONTAL_ALIGNMENT_LEFT, -1, 19, StageTheme.GOLD)
+	draw_string(num, Vector2(pill.position.x + 40.0, cy + 7.5), etxt,
+		HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color("eef3ff"))
 
 
 ## The stage card — one blind of the tour, in the same glass language the
@@ -335,9 +347,21 @@ func _draw_card() -> void:
 	var acc := Widgets.StageCard.accent_for(section_idx)
 	var is_wall := GameConfig.is_wall(section_idx)
 	var card := Rect2(CARD.position + Vector2(_drag_dx, 0.0), CARD.size)
+	# ⚑ 整卡外圈光晕(v5 稿:`filter:drop-shadow(0 0 26px cGlow)`)。
+	# ⚠ 三版技法史, 前两版都翻车且截图当场抓到:StyleBox shadow = 整面填充, 半屏泡色;
+	# 描边环 = 拐角露缝, 读成「第二个圈」(用户点名)。⇒ 只能做**真模糊剪影**:
+	# 低分辨率画圆角矩形剪影 → 双线性缩放来回近似高斯 → 缓存贴图, 画时按档位色调制。
+	# 画在壳的真实覆盖区(含倒影尾)外扩 pad×5;掺 22% 白提亮芯, 强度经三轮校淡。
+	var hrect := Rect2(card.position - Vector2(120.0, 120.0),
+		Vector2(card.size.x + 240.0, card.size.y * 1.132 + 240.0))
+	draw_texture_rect(_halo_tex(), hrect, false,
+		Color(acc.r * 0.78 + 0.22, acc.g * 0.78 + 0.22, acc.b * 0.78 + 0.22, 0.30))
 	# 传外框: 玻璃体的内缩(设计稿 inset:34px)由 StageCard 自己处理,
 	# 文字排版按外框算(PAD_L/PAD_T 相对外框), 两边都不用改。
 	Widgets.StageCard.draw_card(self, card, acc, 26.0, CARD_INSET, true)
+	# 侧条:邻卡玻璃壳「探进屏」的一条边(v5 稿两条 32×520 @y300, opacity .42;
+	# 点击切关 —— 命中区在 _tap, 与滑动/圆点同一个 _step 出口)。
+	_draw_side_peeks()
 
 	var x := card.position.x + PAD_L
 	var cw := card.size.x - PAD_L * 2.0
@@ -482,7 +506,145 @@ func _draw_card() -> void:
 
 
 
-## 倒影层的内容: 把卡片 1:1 翻转画到下方, 渐隐由本层的 shader 遮罩负责。
+## 侧条几何(v5 稿:left/right 0, top 300, 32×520, 圆角只开朝屏内的一侧)。
+const PEEK_L := Rect2(0.0, 300.0, 32.0, 520.0)
+const PEEK_R := Rect2(688.0, 300.0, 32.0, 520.0)
+
+## 整卡光晕的模糊剪影贴图(白色, 画时按档位色调制)。建一次缓存 —— 纹理不许在
+## _draw 里现建现画(白占位坑, 本文件背景那节踩过);像素级生成所以在这里手做模糊。
+static var _halo: ImageTexture = null
+
+## ⚑⚑ 真 drop-shadow(2026-08-24 用户三轮反馈定案:「特效方式不对」)——
+## 光晕 = **玻璃壳素材自身 alpha 剪影**的高斯模糊, 不是理想圆角矩形:
+## 壳的亮檐、顶弧、倒影尾都要在光里, 光强跟着壳的真实形状走(CSS drop-shadow 的定义)。
+## 技法史:StyleBox shadow(整面染色)→ 描边环(第二个圈)→ 距离场(形状是假的)→ 本版。
+## pad 给足 3σ, 高斯尾在可见度内自然归零(「到边界停了」那条由此消掉)。
+const HALO_PAD := 24          # 图内边距(×5 = 屏幕 120px 衰减跑道)
+
+static func _halo_tex() -> ImageTexture:
+	if _halo != null:
+		return _halo
+	var tex := Widgets.StageCard.glass_tex(true)
+	var w := 134 + HALO_PAD * 2      # 卡宽 672 × 1/5
+	var h := 220 + HALO_PAD * 2      # 卡高含倒影尾 972×1.132 × 1/5
+	var img := Image.create(w, h, false, Image.FORMAT_RGBA8)
+	if tex != null:
+		var sil: Image = tex.get_image()
+		sil.resize(134, 220, Image.INTERPOLATE_BILINEAR)
+		# 只留 alpha 剪影(drop-shadow 的定义), 颜色由 draw 端的档位色调制
+		for y in range(220):
+			for x in range(134):
+				var a := sil.get_pixel(x, y).a
+				if a > 0.0:
+					img.set_pixel(x + HALO_PAD, y + HALO_PAD, Color(1, 1, 1, a))
+	else:
+		# 无素材兜底(探针环境):矩形剪影, 形状糙但流程不断
+		img.fill_rect(Rect2i(HALO_PAD, HALO_PAD, 134, 220), Color(1, 1, 1, 1))
+	# 多趟双线性缩放 ≈ 高斯(σ ≈ 6 图px = 30 屏px;pad 24 图px = 4σ, 尾部自然归零)
+	for _i in range(3):
+		img.resize(w / 4, h / 4, Image.INTERPOLATE_BILINEAR)
+		img.resize(w, h, Image.INTERPOLATE_BILINEAR)
+	_halo = ImageTexture.create_from_image(img)
+	return _halo
+
+
+## 横向渐隐贴图(侧条的暗罩:屏外侧暗 → 屏内侧透)。同样建一次缓存。
+static var _peek_fade: GradientTexture2D = null
+
+func _draw_side_peeks() -> void:
+	var tex := Widgets.StageCard.glass_tex(true)
+	if _peek_fade == null:
+		var g := Gradient.new()
+		g.set_color(0, Color(0.016, 0.024, 0.063, 0.30))   # 稿 rgba(4,6,16,.7) × 整体 .42
+		g.set_color(1, Color(0.016, 0.024, 0.063, 0.0))
+		_peek_fade = GradientTexture2D.new()
+		_peek_fade.gradient = g
+		_peek_fade.width = 64
+		_peek_fade.height = 8
+		_peek_fade.fill_from = Vector2(0, 0)
+		_peek_fade.fill_to = Vector2(1, 0)
+	for side in [[PEEK_L, false], [PEEK_R, true]]:
+		var r: Rect2 = side[0]
+		var right: bool = side[1]
+		# 圆角只开朝屏内的一侧;顺时针从左上起, 圆角处用四分之一弧采样
+		var rad := 16.0
+		var pts := PackedVector2Array()
+		if right:   # 右把手:左侧两个圆角
+			pts.append(Vector2(r.end.x, r.position.y))
+			pts.append(Vector2(r.end.x, r.end.y))
+			_peek_arc(pts, Vector2(r.position.x + rad, r.end.y - rad), rad, PI * 0.5, PI)
+			_peek_arc(pts, Vector2(r.position.x + rad, r.position.y + rad), rad, PI, PI * 1.5)
+		else:       # 左把手:右侧两个圆角
+			pts.append(Vector2(r.position.x, r.position.y))
+			_peek_arc(pts, Vector2(r.end.x - rad, r.position.y + rad), rad, PI * 1.5, TAU)
+			_peek_arc(pts, Vector2(r.end.x - rad, r.end.y - rad), rad, 0.0, PI * 0.5)
+			pts.append(Vector2(r.position.x, r.end.y))
+		if tex != null:
+			# 源区 = 玻璃素材贴屏那一侧的边缘条(邻卡的壳「探进屏」;稿 background-size
+			# 640 × 118%, 露出的是靠窗那 32/640)
+			var tw := float(tex.get_width())
+			var th := float(tex.get_height())
+			var sw := tw * 32.0 / 640.0
+			var sx := (tw - sw) if not right else 0.0
+			var uvs := PackedVector2Array()
+			for p in pts:
+				uvs.append(Vector2((sx + (p.x - r.position.x) / r.size.x * sw) / tw,
+					clampf((p.y - r.position.y) / (r.size.y * 1.18), 0.0, 1.0)))
+			var cols := PackedColorArray()
+			for _p in pts:
+				cols.append(Color(1, 1, 1, 0.42))
+			draw_polygon(pts, cols, uvs, tex)
+		else:
+			draw_colored_polygon(pts, Color(0.06, 0.08, 0.17, 0.35))
+		# 暗罩:屏外侧压暗、向屏内渐透(稿 linear-gradient(90/270deg, rgba(4,6,16,.7), transparent))
+		var fuv := PackedVector2Array()
+		for p in pts:
+			var u := (p.x - r.position.x) / r.size.x
+			fuv.append(Vector2(u if right else 1.0 - u, 0.5))
+		var fcols := PackedColorArray()
+		for _p in pts:
+			fcols.append(Color(1, 1, 1, 1))
+		draw_polygon(pts, fcols, fuv, _peek_fade)
+
+
+static func _peek_arc(pts: PackedVector2Array, center: Vector2, radius: float,
+		from: float, to: float) -> void:
+	for i in range(7):
+		var a := from + (to - from) * float(i) / 6.0
+		pts.append(center + Vector2(cos(a), sin(a)) * radius)
+
+
+## CRT 扫描线(v5 稿 line 187 逐值):
+##   repeating-linear-gradient(168deg, 34px 透明 + 2px rgba(180,220,255,.20)) 周期 37
+## + repeating-linear-gradient(172deg, 58px 透明 + 3px rgba(150,200,255,.12)) 周期 62
+## 整层 opacity .35;动画 = 每 1.3s 位移 (-80,900) / (-60,760)。
+## 实现:线垂直于渐变轴, 沿轴按周期铺满整屏, 相位 = 位移在轴上的投影 / 1.3s。
+func _draw_scanlines(ci: CanvasItem) -> void:
+	# ⚠ 周期/速度不按 CSS 原值:稿的 720 画布在 Claude Design 里放大显示, 线距滚速
+	# 视觉上都被放大过 —— 按原始 px 实现会「更密更快」(2026-08-24 用户对比拍板)。
+	# 周期 ×~1.8、速度约减半, 对齐的是**看上去的样子**, 不是 CSS 数字。
+	var fams := [
+		# [轴向量, 周期, 线宽, 颜色, 每秒沿轴位移]
+		# 亮度再砍半(08-24 用户:「比他的显眼, 太显眼了」—— CSS 原值 ×.35 仍偏亮,
+		# 这层该是背景噪纹, 察觉得到、盯不住)
+		[Vector2(0.20791, 0.97815), 66.0, 2.2, Color(0.706, 0.863, 1.0, 0.034), 300.0],
+		[Vector2(0.13917, 0.99027), 110.0, 3.0, Color(0.588, 0.784, 1.0, 0.020), 255.0],
+	]
+	for f in fams:
+		var axis: Vector2 = f[0]
+		var period: float = f[1]
+		var lw: float = f[2]
+		var col: Color = f[3]
+		var speed: float = f[4]
+		var perp := Vector2(axis.y, -axis.x)
+		# 屏幕四角在轴上的投影范围, 铺满即可(原点取 (0,0))
+		var max_s := W * absf(axis.x) + H * absf(axis.y)
+		var phase := fmod(_t * speed, period)
+		var s := -period + phase
+		while s < max_s + period:
+			var p0 := axis * s
+			ci.draw_line(p0 - perp * 1500.0, p0 + perp * 1500.0, col, lw, true)
+			s += period
 func draw_tail(ci: CanvasItem) -> void:
 	var acc := Widgets.StageCard.accent_for(section_idx)
 	var card := Rect2(CARD.position + Vector2(_drag_dx, 0.0), CARD.size)
@@ -520,10 +682,20 @@ func draw_fx(ci: CanvasItem) -> void:
 	var sa: float = 0.6 * sin(PI * su)
 	ci.draw_line(Vector2(card.position.x + 24.0, sy), Vector2(card.end.x - 24.0, sy),
 		Color(acc.r, acc.g, acc.b, sa), 2.0)
-	Chrome.rain(ci, _t)
+	# 分享回执(复制进剪贴板后 1.8s 渐隐;挂动效层 —— 本体只在状态键变了才重画)
+	if _share_t > 0.0 and _share_rect.size.x > 0.0:
+		var ta := clampf(_share_t / 0.6, 0.0, 1.0)
+		ci.draw_string(zh, Vector2(_share_rect.end.x - 240.0, _share_rect.end.y + 22.0),
+			Lingo.t("已复制分享文案"), HORIZONTAL_ALIGNMENT_RIGHT, 240.0, 14,
+			Color(StageTheme.CYAN.r, StageTheme.CYAN.g, StageTheme.CYAN.b, 0.9 * ta))
+	# CRT 扫描线(v5 稿 line 187 的「rain」层本尊, 2026-08-24 用户:「类似传统闭路电视
+	# 没信号的效果, 整个屏幕, 斜着的光扫描」):两族 168°/172° 的重复细线整屏铺、
+	# 压在卡之上(稿 z9 > 卡 z6), 按稿的 background-position 动画 1.3s 无限下滚。
+	# ⚠ 不是 Chrome.rain(那是雨点短线段, 图鉴页继续用)—— 这层是**连续长线**在滚。
+	_draw_scanlines(ci)
 
 
-## Bottom rail: 关卡 / 主角 / 小丑牌 / 荣誉。画法在 Chrome(四屏单源);
+## Bottom rail: 关卡 / 小丑牌。画法在 Chrome(两屏单源);
 ## 三个图鉴页 2026-08-11 起都有真页面了,「尚未开放」角标一起退役。
 func _draw_tabs() -> void:
 	_tab_rects = Chrome.tab_rects()

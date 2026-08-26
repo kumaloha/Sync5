@@ -15,9 +15,9 @@ dest_files=["res://.godot/imported/joker_curtain.png-ff6969e1e788f64917041b3c71b
 
 [params]
 
-compress/mode=0
+compress/mode=1
 compress/high_quality=false
-compress/lossy_quality=0.7
+compress/lossy_quality=0.85
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1

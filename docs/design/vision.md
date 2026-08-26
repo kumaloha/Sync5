@@ -3,7 +3,7 @@
 > **这一篇管:为什么做这个游戏,它凭什么好玩。**
 > 它是判断的**依据**,不是可自动验证的对象 —— 见末尾。
 >
-> 本篇 2026-08-09 由 `vision.md` + `vision.md` + `vision.md` 合并而成 —— 见 [`README.md`](README.md) 的九篇结构。
+> 本篇 2026-08-09 由三篇旧编号文档合并而成 —— 见 [`README.md`](README.md) 的九篇结构。
 > **验证方案在末尾**(每篇自带,这是文档约定之一)。
 
 ---
@@ -18,7 +18,7 @@ The game delivers three values through three loops:
 |---|---|---|
 | Phrase | Release | draw, choose, auto-settle |
 | Section / Run | Skill growth | Joker, coins, Cache, build |
-| Day / Month | Asset growth | characters, temporary Jokers, cosmetics |
+| ~~Day / Month~~ | ~~Asset growth~~ | ⚠ 局外成长线 2026-08-24 用户拍板整体删除(仅保留局内玩法) |
 
 ### Core loop
 
@@ -84,11 +84,11 @@ Meta
 
 Phrase is the smallest complete experience unit.
 
-Baseline: **12 seconds**, bent per section by the setlist curve (see 08):
-13s on the teaching acts, 12s through the show, 11.5s / 11s in the finale
-squeeze. Every duration flows through `GameConfig.phrase_duration(section)`.
+Baseline(现行,2026-08-06 起): **统一 8 秒**,不再走 setlist 弯折曲线
+(「拍长一律取偶数秒」,音乐永远在小节边界收束);时长仍统一走
+`GameConfig.phrase_duration()` 钩子。⚠ 早期的 12s/13s 曲线设想已作废。
 
-### Lifecycle (12s phrase)
+### Lifecycle (one phrase, 8s)
 
 | Time | State | System | Player |
 |---:|---|---|---|
@@ -146,35 +146,10 @@ EARLY_FINISH_TIME 6.0.
 > 这份是早期的状态账本。**当前状态看 repo 根的 `STATUS.md`**,待办看 `TODO.md`。
 > 保留本文只为留住早期的阶段划分。
 
-## vision.md
+## 状态账本(已摘除)
 
-> Status ledger, 2026-08. Execution merged the original phases 2-3 and
-> pulled parts of phase 5 (pacing) forward.
-
-### Done (225 tests green)
-
-- Phrase - 12s clock with the setlist curve, discard-refill, best-five,
-  automatic settle, FLY/MERGE/BURST show.
-- Cache & economy - 3 always-full cache slots, free swaps, single-pool
-  coins, priced shop, clear wage.
-- Joker - Target 5 + Support 18 (incl. the rescue-rule batch), draft shop
-  with target swap, 16 design principles (05), 20 sim calibration rounds.
-- Run/Section - three-act setlist, S5/S8/S10 boss faces with preview,
-  run-end screens from the docs/mockups/ mocks.
-- Balance methodology - adaptive bots, EV drafting, routine harvester
-  (`tools/sim.gd`).
-
-### Remaining
-
-- **Human playtests** - numbers are locked against bots; the final trim
-  needs real players.
-- **User art** - joker illustrations (`assets/jokers/joker_<id>.png`
-  hot-loads), card back, protagonist art; the S10 finale screen.
-- Character (old phase 4) - 8 passives are first-draft numbers in
-  `core/character.gd roster()`.
-- Director (old phase 5) - designed in 07, not built; its telemetry inputs
-  double as the playtest data pipeline.
-- Meta (old phase 6) - designed in 09, not built.
+> 原地曾有一份 2026-08 早期的「Done/Remaining」快照(12s 钟 · 23 张卡 · 主角/Director/Meta 待做),
+> 全部字段早已过期 —— **现状只看 [`../STATUS.md`](../../STATUS.md),经过看 [`../CHANGELOG.md`](../../CHANGELOG.md)**。
 
 ---
 

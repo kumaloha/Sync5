@@ -20,12 +20,17 @@ func run(t) -> void:
 	t.eq(GameConfig.WALL_SECTIONS.size(), GameConfig.SECTIONS_PER_RUN, "no verses remain")
 	var expected_pools := [
 		["norepeat", "lostpage", "smallstage", "facedown", "lastcall", "lockup", "onetake", "oneswap"],
-		["setlist", "blindspot", "throttle", "request", "redlight", "lowend", "wetink", "handseal"],
-		["rerun", "raisedbar", "trilogy", "blackout", "doubleseal", "patchin", "ration", "switchtrack"],
+		# ⚑ 2026-08-25 红灯退役(管手脚不管结果, 花色打击归变色灯)· 接线退役(解法单一)。
+		# ⚑ 2026-08-26 对抗批七脸入池(蒙色/蒙点仍暂存, 欠属性级信念):
+		#   T2 +高音/轮盘/变色灯/暗场 · T3 +点名/渐强 · T4 +倒计时(时间族)。
+		["setlist", "blindspot", "throttle", "request", "lowend", "highend", "roulette",
+			"colorlight", "dimstage", "wetink", "handseal"],
+		["callout", "crescendo", "rerun", "raisedbar", "trilogy", "blackout",
+			"doubleseal", "ration", "switchtrack"],
 		# ⚑ 2026-08-14 用户:「tier4 可以补脸, 只不过都是时间相关的就行」——
 		# 末轮从「固定一张」变成「时间族四张」。六秒仍然始终成立:**每张都自带 time_penalty**,
 		# 所以 docs/design/blinds.md §6 删掉延音的那条理由(把六秒还回去 = 破坏第四轮主机制)不被违反。
-		["rush", "overtime", "teardown", "closing"],
+		["countdown", "rush", "overtime", "teardown", "closing"],
 	]
 	for idx in range(expected_pools.size()):
 		t.check(SectionMod.pool_for(idx) == expected_pools[idx],
@@ -57,9 +62,11 @@ func run(t) -> void:
 	# ⚠ 六秒是第四轮的**主机制** —— docs/design/blinds.md §6 删掉「延音」的理由就是
 	# 「把六秒恢复到七至八秒, 破坏第四轮主机制」。所以末轮每张脸都必须自带 time_penalty,
 	# 否则掷到它那一局的终章会**变软**, 正是延音被删的同一个错。
+	# ⚑ 2026-08-26 倒计时入池:契约放宽到「**末拍**必缩时」(time_penalty 恒定或
+	# time_curve 末值), 曲线族的前两拍 8 秒不违反主机制 —— 终章仍然是紧的。
 	for id in SectionMod.pool_for(GameConfig.SECTIONS_PER_RUN - 1):
-		t.check(SectionMod.time_penalty(String(id)) > 0.0,
-			"末轮的 '%s' 自带缩时 —— 六秒是第四轮的主机制, 不许有脸把它还回去" % id)
+		t.check(SectionMod.time_penalty_at(String(id), GameConfig.PHRASES_PER_SECTION - 1) > 0.0,
+			"末轮的 '%s' 末拍自带缩时 —— 六秒是第四轮的主机制, 不许有脸把它还回去" % id)
 	# ⚠⚠ 回归锁:**JSON 数字全是 float, `[4.0].has(4)` 是 false 且不报错**。
 	# 2026-08-07 当场踩到 —— fixed_tiers 写了 [4] 却一直判成没写。
 	# ⚠ 2026-08-14 补脸之后 `fixed_tiers` 空了, 原来那两条断言**双双变成空测**
@@ -191,10 +198,20 @@ func run(t) -> void:
 	#   —— 「転」那一段本就该是节奏变化处, 放第二轮只是把「承」变成单纯加量。
 	#   它曾在这张清单上, 理由是「不改玩法、只把目标分 ×1.5, 是难度靠抽签的极端形态」;
 	#   那**从来不是退役, 是待拍板**(docs/design/blinds.md 里一直写着「要放回来, 告诉我放哪一轮」)。
-	const RETIRED := ["unplugged", "static", "rotation", "cover", "freshsheet"]
+	# ⚑ 2026-08-25 对抗批两笔新豁免, 都是有意的:
+	#   退役 +2:redlight(管手脚不管结果, 补牌路径还从未过滤)· patchin(解法单一只剩硬吃,
+	#   「可解除」衣钵传给 callout);
+	#   暂存 +11:对抗批新脸, 机制已实装、**等 ranking 重跑后补 tier 入池**
+	#   (蒙色/蒙点还欠属性级信念)。入池时从 STAGED 划去 + faces.json 加 tier, 缺一头都红。
+	const RETIRED := ["unplugged", "static", "rotation", "cover", "freshsheet",
+		"redlight", "patchin"]
+	# 2026-08-26 七脸入池后只剩两张:蒙色/蒙点等属性级信念(入池前必修)。
+	const STAGED := ["suitveil", "rankfog"]
 	for m in SectionMod.roster():
 		if RETIRED.has(m.id):
 			t.check(not placed.has(m.id), "%s 保持退役(见 docs/design/blinds.md §5)" % m.id)
+		elif STAGED.has(m.id):
+			t.check(not placed.has(m.id), "%s 暂存中(入池 = faces.json 补 tier + 从 STAGED 划去)" % m.id)
 		else:
 			t.check(placed.has(m.id), "face %s 有 tier, 进了某一轮的池子" % m.id)
 	var rng := RandomNumberGenerator.new()
@@ -265,15 +282,17 @@ func run(t) -> void:
 	# --- 最终池新增参数全部通过 SectionMod 单一数据门面读取 ---
 	t.eq(SectionMod.discard_lock_last("lastcall"), 2.0, "lastcall closes discard for two seconds")
 	t.eq(SectionMod.swap_lock_last("lockup"), 2.0, "lockup closes swap for two seconds")
-	t.eq(SectionMod.discard_action_limit("onetake"), 1, "onetake allows one discard action")
+	t.eq(SectionMod.discard_cards_max("onetake"), 2, "onetake caps two discarded cards (2026-08-25 张数重铸)")
 	t.eq(SectionMod.swap_action_limit("oneswap"), 1, "oneswap allows one swap action")
-	t.eq(SectionMod.action_limit("throttle"), 3, "throttle shares three actions")
+	t.eq(SectionMod.action_cards_max("throttle"), 4, "throttle caps four moved cards total")
+	t.eq(SectionMod.discard_cards_max("closing"), 2, "closing caps two discarded cards")
 	t.check(SectionMod.cache_blocks_red("redlight"), "redlight rejects red cards entering cache")
 	t.eq(SectionMod.refill_rank_min("lowend"), 2, "lowend refill minimum comes from data")
 	t.eq(SectionMod.refill_rank_max("lowend"), 9, "lowend refill maximum comes from data")
+	t.eq(SectionMod.refill_rank_min("highend"), 9, "highend refill minimum comes from data (staged, no tier yet)")
 	t.eq(SectionMod.cache_lock_phrases("wetink"), 1, "wetink locks new cache cards for this phrase")
-	t.check(SectionMod.seals_lowest_start("handseal"), "handseal freezes the opening low card")
-	t.check(SectionMod.seals_oldest_cache("doubleseal"), "doubleseal freezes the oldest cache card")
+	t.check(SectionMod.seals_random_start("handseal"), "handseal freezes one random opening card (2026-08-25 随机封)")
+	t.check(SectionMod.seals_random_cache("doubleseal"), "doubleseal freezes one random cache card")
 	t.eq(SectionMod.required_kinds("trilogy"), 3, "trilogy requires three hand types")
 	t.check(SectionMod.restores_with_initial_cache("patchin"), "patchin has a recoverable full-power condition")
 	t.eq(SectionMod.section_discard_budget("ration"), 12, "ration shares twelve discarded cards")
@@ -316,7 +335,8 @@ func run(t) -> void:
 	var weak := 1.0 + (tf - 1.0) * SectionMod.target_power("unplugged")
 	t.eq(Settle.run(flush_res, [mono, null, null, null], {"mod": "unplugged"})["score"],
 		int(round(float(base) * weak)), "unplugged halves the target's power")
-	t.eq(Settle.run(flush_res, [mono, Joker.by_id("mirror"), null, null], {"mod": "unplugged"})["score"],
+	t.eq(Settle.run(flush_res, [mono, Joker.by_id("mirror"), null, null],
+		{"mod": "unplugged", "prev_target_hit": true})["score"],
 		int(round(float(base) * weak * (1.0 + (weak - 1.0) * 0.5))),
 		"the mirror copies the weakened factor")
 	# static: flat bonuses are eaten

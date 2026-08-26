@@ -191,12 +191,12 @@ func run(t) -> void:
 	t.check(p2.swap_with_cache(0, 0), "swap still free at zero coins")
 	t.check(not p2.can_discard(0), "an empty selection is still rejected")
 
-	# --- 第一轮:动作次数不是弃牌张数, 一次仍可批量处理 ---
+	# --- 第一轮:一口气按张数限(2026-08-25 重铸:「弃牌不在次数, 在张数」) ---
 	var one_take := Phrase.new(Deck.new(301), [], 0)
 	one_take.mod = "onetake"
 	one_take.start()
-	t.check(one_take.discard_selected([0, 1]), "onetake permits one batch discard")
-	t.check(not one_take.discard_selected([2]), "onetake rejects a second discard action")
+	t.check(one_take.discard_selected([0, 1]), "onetake permits two cards in one batch")
+	t.check(not one_take.discard_selected([2]), "onetake rejects the third card")
 
 	var one_swap := Phrase.new(Deck.new(302), [], 0)
 	one_swap.mod = "oneswap"
@@ -204,14 +204,15 @@ func run(t) -> void:
 	t.check(one_swap.swap_with_cache(0, 0), "oneswap permits the first swap")
 	t.check(not one_swap.swap_with_cache(1, 1), "oneswap rejects the second swap")
 
-	# --- 第二/三轮:共享动作额度与轨道选择 ---
+	# --- 第二/三轮:限流按弃换合计张数限(2026-08-25 重铸), 换一次记一张 ---
 	var throttle := Phrase.new(Deck.new(303), [], 0)
 	throttle.mod = "throttle"
 	throttle.start()
-	t.check(throttle.swap_with_cache(0, 0), "throttle action one")
-	t.check(throttle.discard_selected([1]), "throttle action two")
-	t.check(throttle.swap_with_cache(2, 1), "throttle action three")
-	t.check(not throttle.discard_selected([3]), "throttle rejects action four")
+	t.check(throttle.swap_with_cache(0, 0), "throttle card one (swap)")
+	t.check(throttle.discard_selected([1, 2]), "throttle cards two and three (batch discard)")
+	t.check(throttle.swap_with_cache(3, 1), "throttle card four (swap)")
+	t.check(not throttle.discard_selected([4]), "throttle rejects the fifth card via discard")
+	t.check(not throttle.swap_with_cache(0, 2), "throttle rejects the fifth card via swap")
 
 	var discard_track := Phrase.new(Deck.new(304), [], 0)
 	discard_track.mod = "switchtrack"
@@ -411,31 +412,3 @@ func run(t) -> void:
 	t.eq(sw.swapped_scoring_count([original]), 0,
 		"a swap-and-revert leaves no phantom credit —— 试探不算换入")
 
-	# --- 补牌券 redeal_hand(2026-08-17 券使用入口):**不是弃牌** ---
-	# 它冒充弃牌的话, 周转/早弃/断舍离这些挂在弃牌上的卡会被一张券白喂(零挂机成长铁律)。
-	var rd := Phrase.new(Deck.new(777), [], 9)
-	rd.start()
-	var rd_old: Array = rd.hand.duplicate()
-	var rd_cache0: Card = rd.cache[0]
-	var rd_coins := rd.coins
-	t.check(rd.redeal_hand(), "redeal lands")
-	t.eq(rd.hand.size(), 5, "hand still holds exactly 5")
-	for i in range(5):
-		t.check(rd.hand[i] != rd_old[i], "redeal replaces slot %d" % i)
-	t.eq(rd.discards_used, 0, "redeal is NOT a discard: discards_used untouched")
-	t.eq(rd.discard_batch_max, 0, "…no batch peak")
-	t.eq(rd.faces_discarded, 0, "…no face-discard credit")
-	t.eq(rd.discard_actions_used, 0, "…no discard action")
-	t.eq(rd.action_track, "", "…and it does not open the action track (switchtrack)")
-	t.eq(rd.coins, rd_coins, "redeal is free (the ticket is the price)")
-	t.check(rd.cache[0] == rd_cache0, "cache untouched — the ticket says HAND")
-	t.check(rd.deck.discard_pile.size() >= 5, "old hand reached the discard pile")
-	# 封印的手牌不换:弃牌换不掉它, 券绕过去就成了「破解脸规则的道具」
-	var rd2 := Phrase.new(Deck.new(778), [], 9)
-	rd2.start()
-	rd2.sealed_hand_card = rd2.hand[2]
-	var rd2_sealed: Card = rd2.hand[2]
-	t.check(rd2.redeal_hand(), "redeal with a sealed card still lands")
-	t.check(rd2.hand[2] == rd2_sealed, "…but the sealed slot keeps its card")
-	rd2.lock_and_settle()
-	t.check(not rd2.redeal_hand(), "a locked phrase refuses the redeal")

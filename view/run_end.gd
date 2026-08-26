@@ -93,7 +93,6 @@ func show_success(score: int, target: int, wage: int, finale: bool, gig_no: int 
 	_wage = wage
 	_finale = finale
 	_gig = gig_no
-	_meta = {}
 	_rng.randomize()
 	_make_confetti()
 	_make_sticks()
@@ -105,16 +104,7 @@ func show_fail(score: int, target: int) -> void:
 	_score = score
 	_target = maxi(1, target)
 	_finale = false
-	_meta = {}
 	_open()
-
-
-## META 收入(1.1 资产循环):{"earn": 基础, "yield": 资产分红}。编排器在 show_* 之后喂;
-## 空 = 不画(探针 settle_run_meta 恒空, 截图探针的画面因此不变)。
-var _meta: Dictionary = {}
-func set_meta_gain(m: Dictionary) -> void:
-	_meta = m
-	queue_redraw()
 
 
 func _open() -> void:
@@ -140,8 +130,7 @@ func _process(delta: float) -> void:
 func _make_confetti() -> void:
 	var colors := [Color("35e8e0"), Color("ff4fa3"), Color("a56bff"), Color("ffb347"), Color("9fe9ff"), Color("ff8bbd")]
 	_confetti.clear()
-	# 彩带机资产(META「买了就想玩」):庆功彩带加倍。探针恒无 ⇒ 截图稳定。
-	for i in range(52 if SaveState.has_flair("confetti") else 26):
+	for i in range(26):
 		_confetti.append({
 			"x": _rng.randf_range(0.02, 0.98) * W,
 			"w": _rng.randf_range(5.0, 12.0),
@@ -156,8 +145,7 @@ func _make_confetti() -> void:
 func _make_sticks() -> void:
 	var colors := [Color("35e8e0"), Color("ff4fa3"), Color("a56bff"), Color("ffb347"), Color("9fe9ff"), Color("ff8bbd"), Color("cdb2ff")]
 	_sticks.clear()
-	# 应援团资产:荧光棒海加倍(52 根塞同一条带里 = 间距减半, 声势自然翻上去)。
-	var n := 52 if SaveState.has_flair("crowd") else 26
+	var n := 26
 	for i in range(n):
 		var x := 14.0 + float(i) * (26.0 * 27.0 / float(n)) + _rng.randf() * 14.0
 		var dx := (_rng.randf() - 0.5) * 18.0
@@ -460,17 +448,6 @@ func _panel(ok: bool) -> void:
 		draw_string(zh, Vector2(x0, r.position.y + 128.0), msg_a, HORIZONTAL_ALIGNMENT_LEFT, -1, 19, Color("c96a85"))
 		draw_string(num, Vector2(x0 + wa, r.position.y + 128.0), msg_n, HORIZONTAL_ALIGNMENT_LEFT, -1, 26, Color("ffd9a0"))
 		draw_string(zh, Vector2(x0 + wa + wn, r.position.y + 128.0), msg_b, HORIZONTAL_ALIGNMENT_LEFT, -1, 19, Color("c96a85"))
-	# META 收入行(1.1 资产循环)—— 挂在面板正下方, 宝石紫(语义色不跟档位走)。
-	# 失败也有:参与收入挂通关段数, 这行正是「输了也在攒」的可见证据。
-	if not _meta.is_empty():
-		var earn := int(_meta.get("earn", 0))
-		var yielded := int(_meta.get("yield", 0))
-		if earn + yielded > 0:
-			var mtxt := Lingo.t("◈ 巡演收入 +%d") % (earn + yielded)
-			if yielded > 0:
-				mtxt += Lingo.t("(含资产分红 +%d)") % yielded
-			draw_string(zh, Vector2(r.position.x, r.end.y + 26.0), mtxt,
-				HORIZONTAL_ALIGNMENT_CENTER, r.size.x, 15, Color("cdb2ff"))
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 

@@ -38,6 +38,11 @@ const SOLVER_BLIND := {
 	"stopwatch": "① 时间:剩余秒数在推演里恒 0(没有时钟就没有'剩下多少')",
 	"earlyout": "① 时间:弃牌时刻在推演里不存在",
 	"mirror": "② 前置:没有 Target 时复制半个 0",
+	# ---- 2026-08-25 对抗批四张(kit 侧各有环境/前置臂, 见 tools/kit.gd) ----
+	"wrecker": "① 预算:弃 6 超出求解器单拍手速预算, 条件在推演里不可达(2026-08-25 弃 3→6;真人一批弃 6 无此限, 账在 Tape)",
+	"fastforward": "① 时间:提前收工在推演里不成立(与速弹/惯性同因)",
+	"loadeddice": "②③ 前置+概率:没赌卡时恒 0, 且掷点只在 Beat 预掷 —— 推演里 luck_rolls 恒空",
+	"blindplay": "④ 环境:推演世界无盖牌(hidden 恒空), 证物只在信息脸下发生(kit 已配暗场环境)",
 	# ⚑⚑ **encore / reprise 已于 2026-08-14 删除** —— 它们**不是**结构盲区, 是被
 	# `best_discard` 的窄枚举挡住的。旧理由写的是「完美玩家追最优, 牌型每拍在变,
 	# same_as_prev 恒假」, 而真相是:**保持牌型要靠主动弃牌塑形**, 而窄枚举只能弃
@@ -63,7 +68,6 @@ func run(t) -> void:
 	run.deck = Deck.new(3)
 	run.cache = []
 	run.joker_slots = [null, null, null, null]
-	run.character = Character.roster()[0]
 	run.coins = GameConfig.STARTING_COINS
 	run.run_faces = {0: "", 1: "setlist", 2: "unplugged", 3: "rush"}
 	var bot := Bot.new(rng, Report.new(1, GameConfig.SECTIONS_PER_RUN))

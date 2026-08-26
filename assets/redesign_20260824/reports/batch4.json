@@ -1,0 +1,121 @@
+{
+  "status": "DONE_WITH_CONCERNS",
+  "batch": 4,
+  "assets": [
+    {
+      "id": "local_fallback_joker_triplebill",
+      "path": "assets/redesign_20260824/jokers/joker_triplebill.png",
+      "summary": "Three matching rank cards with an oversized multiplier fan aura.",
+      "concerns": [
+        "Built-in image generation failed with native_hook_stdin_oversized; asset was rendered locally with deterministic vector-style primitives."
+      ]
+    },
+    {
+      "id": "local_fallback_joker_backer",
+      "path": "assets/redesign_20260824/jokers/joker_backer.png",
+      "summary": "Paired held coins feed plus particles onto one scoring card.",
+      "concerns": [
+        "Built-in image generation failed with native_hook_stdin_oversized; asset was rendered locally with deterministic vector-style primitives."
+      ]
+    },
+    {
+      "id": "local_fallback_joker_bench",
+      "path": "assets/redesign_20260824/jokers/joker_bench.png",
+      "summary": "Violet three-slot cache tray with highest-rank card elevated and sparked.",
+      "concerns": [
+        "Built-in image generation failed with native_hook_stdin_oversized; asset was rendered locally with deterministic vector-style primitives."
+      ]
+    },
+    {
+      "id": "local_fallback_joker_boxseats",
+      "path": "assets/redesign_20260824/jokers/joker_boxseats.png",
+      "summary": "J/Q/K cards in cache slots with progressively brighter multiplier fans.",
+      "concerns": [
+        "Built-in image generation failed with native_hook_stdin_oversized; asset was rendered locally with deterministic vector-style primitives."
+      ]
+    },
+    {
+      "id": "local_fallback_joker_trim",
+      "path": "assets/redesign_20260824/jokers/joker_trim.png",
+      "summary": "Deck cards ranked 2 and 3 are cleanly cut away by red slash lines.",
+      "concerns": [
+        "Built-in image generation failed with native_hook_stdin_oversized; asset was rendered locally with deterministic vector-style primitives."
+      ]
+    },
+    {
+      "id": "local_fallback_joker_doublebill",
+      "path": "assets/redesign_20260824/jokers/joker_doublebill.png",
+      "summary": "Four shop-card offers with two highlighted by purchase coins and checks.",
+      "concerns": [
+        "Built-in image generation failed with native_hook_stdin_oversized; asset was rendered locally with deterministic vector-style primitives."
+      ]
+    },
+    {
+      "id": "local_fallback_joker_sponsor",
+      "path": "assets/redesign_20260824/jokers/joker_sponsor.png",
+      "summary": "Single shop card with a gold price coin visibly reduced by a red minus cut.",
+      "concerns": [
+        "Built-in image generation failed with native_hook_stdin_oversized; asset was rendered locally with deterministic vector-style primitives."
+      ]
+    },
+    {
+      "id": "local_fallback_joker_jukebox",
+      "path": "assets/redesign_20260824/jokers/joker_jukebox.png",
+      "summary": "Four shop cards, one distinct rule card marked by a lock and arrow sigil.",
+      "concerns": [
+        "Built-in image generation failed with native_hook_stdin_oversized; asset was rendered locally with deterministic vector-style primitives."
+      ]
+    },
+    {
+      "id": "local_fallback_joker_freeze",
+      "path": "assets/redesign_20260824/jokers/joker_freeze.png",
+      "summary": "Frozen early clock/card pair beside the next glowing multiplier card.",
+      "concerns": [
+        "Built-in image generation failed with native_hook_stdin_oversized; asset was rendered locally with deterministic vector-style primitives."
+      ]
+    },
+    {
+      "id": "local_fallback_joker_stilllife",
+      "path": "assets/redesign_20260824/jokers/joker_stilllife.png",
+      "summary": "Stationary cache tray with no arrows and additive score particles.",
+      "concerns": [
+        "Built-in image generation failed with native_hook_stdin_oversized; asset was rendered locally with deterministic vector-style primitives."
+      ]
+    },
+    {
+      "id": "local_fallback_joker_segue",
+      "path": "assets/redesign_20260824/jokers/joker_segue.png",
+      "summary": "One card enters the violet cache on an arrow and emits plus particles.",
+      "concerns": [
+        "Built-in image generation failed with native_hook_stdin_oversized; asset was rendered locally with deterministic vector-style primitives."
+      ]
+    },
+    {
+      "id": "local_fallback_joker_stageexit",
+      "path": "assets/redesign_20260824/jokers/joker_stageexit.png",
+      "summary": "Discarded J/Q/K face cards fly outward with plus particles.",
+      "concerns": [
+        "Built-in image generation failed with native_hook_stdin_oversized; asset was rendered locally with deterministic vector-style primitives."
+      ]
+    },
+    {
+      "id": "local_fallback_joker_royalty",
+      "path": "assets/redesign_20260824/jokers/joker_royalty.png",
+      "summary": "A poker hand produces two identical doubled reward coins.",
+      "concerns": [
+        "Built-in image generation failed with native_hook_stdin_oversized; asset was rendered locally with deterministic vector-style primitives."
+      ]
+    },
+    {
+      "id": "local_fallback_joker_skint",
+      "path": "assets/redesign_20260824/jokers/joker_skint.png",
+      "summary": "Exactly five capped coins behind a bright fanned-card multiplier.",
+      "concerns": [
+        "Built-in image generation failed with native_hook_stdin_oversized; asset was rendered locally with deterministic vector-style primitives."
+      ]
+    }
+  ],
+  "concerns": [
+    "Built-in image generation tool rejected minimal prompts with native_hook_stdin_oversized, so no imagegen IDs are available."
+  ]
+}

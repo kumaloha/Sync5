@@ -1,9 +1,0 @@
-{
-  "id": "curtain",
-  "prompt": "Use case: stylized-concept. Asset type: Sync5 game Joker central totem for a compact 145×50 runtime window. Reference only guides black-glass material and sharp neon rim; do not copy its synth, text, frame, or composition. Original hard-edged 2D cyberpunk nightclub illustration, dark glass/metal, crisp cyan neon rim, one tiny magenta hotspot, memorable silhouette. One compact centered totem; full silhouette visible; subject fills at least 55% width and 60% height where possible; prefer compact near-square or sturdy vertical structure, no thin strip; readable at 145×50. Perfectly flat uniform solid #00ff00 background, no texture, gradient, floor, shadow, reflection, or variation; no #00ff00 in subject. No card frame, title, digits, letters, words, random glyphs, logo, watermark, crowded narrative, or crop. Crisp edges; avoid photorealism, haze, generic circles, tiny detail. Uncommon violet secondary. Create ‘谢幕 / Curtain’: heavy cybernetic curtains almost fully closed while one compact mask figure completes a final bow in the last narrow beam, instantly reading as final-second curtain call.",
-  "revision": 1,
-  "source_sha256": "612b940f51dce6cbf194059e69aa108a9c8f261cc275ca9b3964c056ba53857e",
-  "tool_mode": "built-in",
-  "reference": "assets/reference/ref_joker_holo_synth.png",
-  "raw_codex_path": "/Users/kuma/.codex/generated_images/019fe632-fdfa-76f2-850c-53239465ebcd/exec-ca9378dd-1c00-452b-861e-577cd09fb34c.png"
-}

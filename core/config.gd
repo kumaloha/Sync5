@@ -21,6 +21,9 @@ static var BLIND_NAMES: Array = _run["blind_names"]
 # venue arc placeholder (场地叙事弧 —— 文案在 data/run.json), shown on the home stage card
 static var GIG_NAMES: Array = _run["gig_names"]
 static var SECTION_TARGETS: Array = _ints(_run["section_targets"])
+# 首墙两层放水(2026-08-24 拍板, 语义见 data/run.json _comment_s1)
+static var S1_FACE_MIN_RUN: int = int(_run["s1_face_min_run"])
+static var S1_EASY_CHANCE: float = float(_run["s1_easy_chance"])
 
 # --- Phrase timing (seconds) ---
 static var RESOLVE_FEEDBACK := 0.25

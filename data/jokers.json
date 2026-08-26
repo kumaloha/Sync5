@@ -491,7 +491,7 @@
    "rarity": "rare",
    "curve": "growth",
    "proof": "score",
-   "fx": "Every 12 discards: ×0.25 forever",
+   "fx": "Every 8 discards: ×0.25 forever",
    "counters": {
     "n": {
      "on_discard": "sum"
@@ -502,13 +502,13 @@
      "when": {
       "counter_gte": [
        "n",
-       12
+       8
       ]
      },
      "do": {
       "mult_add": 0.25,
       "per": "counter:n",
-      "step": 12
+      "step": 8
      }
     }
    ]
@@ -521,9 +521,12 @@
    "rarity": "rare",
    "curve": "floating",
    "proof": "score",
-   "fx": "Copies your Target at half power",
+   "fx": "Two Target hands running: copy half",
    "effects": [
     {
+     "when": {
+      "target_streak": true
+     },
      "do": {
       "mult_from_target_factor": 0.5
      }
@@ -1325,11 +1328,11 @@
    "kind": "target",
    "rarity": "rare",
    "proof": "score",
-   "fx": "Three discards: made hands x3.5",
+   "fx": "Discard six: made hands x3.5",
    "effects": [
     {
      "when": {
-      "discards_gte": 3,
+      "discards_gte": 6,
       "kind_in": [
        "PAIR",
        "TWO_PAIR",
@@ -1344,6 +1347,267 @@
      },
      "do": {
       "mult": 3.5
+     }
+    }
+   ]
+  },
+  {
+   "id": "fastforward",
+   "name": "Fast Forward",
+   "cn": "快进",
+   "kind": "support",
+   "rarity": "rare",
+   "curve": "growth",
+   "proof": "score",
+   "fx": "Each early finish: ×0.1 forever",
+   "counters": {
+    "stacks": {
+     "on_early_finish": 1
+    }
+   },
+   "effects": [
+    {
+     "when": {
+      "counter_gte": [
+       "stacks",
+       1
+      ]
+     },
+     "do": {
+      "mult_add": 0.1,
+      "per": "counter:stacks"
+     }
+    }
+   ]
+  },
+  {
+   "id": "deejay",
+   "name": "Deejay",
+   "cn": "打碟",
+   "kind": "support",
+   "rarity": "rare",
+   "curve": "growth",
+   "proof": "shop",
+   "fx": "Each shop reroll: ×0.05 forever",
+   "counters": {
+    "n": {
+     "on_reroll": 1
+    }
+   },
+   "effects": [
+    {
+     "when": {
+      "counter_gte": [
+       "n",
+       1
+      ]
+     },
+     "do": {
+      "mult_add": 0.05,
+      "per": "counter:n"
+     }
+    }
+   ]
+  },
+  {
+   "id": "goldenvoice",
+   "name": "Golden Voice",
+   "cn": "金嗓",
+   "kind": "support",
+   "rarity": "rare",
+   "curve": "floating",
+   "proof": "score",
+   "fx": "×0.1 per six coins held",
+   "effects": [
+    {
+     "when": {
+      "coins_gte": 6
+     },
+     "do": {
+      "mult_add": 0.1,
+      "per": "coins:6"
+     }
+    }
+   ]
+  },
+  {
+   "id": "hush",
+   "name": "Hush",
+   "cn": "静场",
+   "kind": "support",
+   "rarity": "rare",
+   "curve": "burst",
+   "proof": "score",
+   "fx": "No discards or swaps: ×0.4",
+   "effects": [
+    {
+     "when": {
+      "discards_eq": 0,
+      "swaps_eq": 0
+     },
+     "do": {
+      "mult_add": 0.4
+     }
+    }
+   ]
+  },
+  {
+   "id": "harmony",
+   "name": "Harmony",
+   "cn": "和声",
+   "kind": "support",
+   "rarity": "rare",
+   "curve": "burst",
+   "proof": "score",
+   "fx": "Cache all one suit: ×0.3",
+   "effects": [
+    {
+     "when": {
+      "cache_mono_suit": true
+     },
+     "do": {
+      "mult_add": 0.3
+     }
+    }
+   ]
+  },
+  {
+   "id": "ensemble",
+   "name": "Ensemble",
+   "cn": "合奏",
+   "kind": "support",
+   "rarity": "rare",
+   "curve": "fixed",
+   "proof": "score",
+   "fx": "Cache joins: best five of eight",
+   "hold": {
+    "cache_scoring": 1
+   }
+  },
+  {
+   "id": "allin",
+   "name": "All In",
+   "cn": "孤注",
+   "kind": "support",
+   "rarity": "rare",
+   "curve": "burst",
+   "proof": "score",
+   "fx": "Coin flip: ×2 or ×0.5",
+   "effects": [
+    {
+     "do": {
+      "mult": 0.5
+     }
+    },
+    {
+     "when": {
+      "chance": 0.5
+     },
+     "do": {
+      "mult": 4.0
+     }
+    }
+   ]
+  },
+  {
+   "id": "jackpot",
+   "name": "Jackpot",
+   "cn": "彩头",
+   "kind": "support",
+   "rarity": "uncommon",
+   "curve": "burst",
+   "proof": "score",
+   "fx": "Last phrase: half chance ×3",
+   "effects": [
+    {
+     "when": {
+      "last_phrase": true,
+      "chance": 0.5
+     },
+     "do": {
+      "mult": 3.0
+     }
+    }
+   ]
+  },
+  {
+   "id": "loadeddice",
+   "name": "Loaded Dice",
+   "cn": "灌铅骰",
+   "kind": "support",
+   "rarity": "rare",
+   "curve": "fixed",
+   "proof": "score",
+   "fx": "All your odds are doubled",
+   "hold": {
+    "odds_mult": 2
+   }
+  },
+  {
+   "id": "recycle",
+   "name": "Recycle",
+   "cn": "回收",
+   "kind": "support",
+   "rarity": "uncommon",
+   "curve": "floating",
+   "proof": "score",
+   "fx": "Cache discards pay double their rank",
+   "effects": [
+    {
+     "do": {
+      "bonus": 2,
+      "per": "cache_rank_sum"
+     }
+    }
+   ]
+  },
+  {
+   "id": "gueststar",
+   "name": "Guest Star",
+   "cn": "客串",
+   "kind": "support",
+   "rarity": "uncommon",
+   "curve": "decay",
+   "proof": "score",
+   "fx": "Adds ×0.5; bows out next section",
+   "hold": {
+    "section_life": 1
+   },
+   "effects": [
+    {
+     "do": {
+      "mult_add": 0.5
+     }
+    }
+   ]
+  },
+  {
+   "id": "matador",
+   "name": "Matador",
+   "cn": "斗牛士",
+   "kind": "support",
+   "rarity": "uncommon",
+   "curve": "floating",
+   "proof": "coin",
+   "fx": "Face rules bite: +2 coins",
+   "hold": {
+    "face_coins": 2
+   }
+  },
+  {
+   "id": "blindplay",
+   "name": "Blind Play",
+   "cn": "盲奏",
+   "kind": "support",
+   "rarity": "uncommon",
+   "curve": "burst",
+   "proof": "score",
+   "fx": "Hidden scorers: +8 chips each",
+   "effects": [
+    {
+     "do": {
+      "additive": 8,
+      "per": "hidden_scoring"
      }
     }
    ]

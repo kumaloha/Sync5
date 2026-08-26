@@ -14,63 +14,61 @@
   a { color:#35e8e0; text-decoration:none; } a:hover { color:#ff4fa3; }
   @keyframes dcpulse { 0%,100% { opacity:.8; transform:scale(1); } 50% { opacity:1; transform:scale(1.03); } }
   @keyframes dceq2 { 0%,100% { transform:scaleY(.45); } 50% { transform:scaleY(1); } }
-  @keyframes dcflicker { 0%,7%,9%,100% { opacity:1; } 8% { opacity:.5; } 42%,44% { opacity:1; } 43% { opacity:.6; } }
   @keyframes dcrain { from { background-position:0 0, 0 0; } to { background-position:-80px 900px, -60px 760px; } }
   @keyframes dcbadge { 0%,100% { transform:scale(1); } 50% { transform:scale(1.18); } }
   @keyframes dcscan { 0% { top:4%; opacity:0; } 8% { opacity:.7; } 92% { opacity:.7; } 100% { top:94%; opacity:0; } }
-  @keyframes dcbeam { 0%,100% { transform:rotate(-3.5deg); } 50% { transform:rotate(3.5deg); } }
+  @keyframes dcbolt { 0%,100% { opacity:.75; } 50% { opacity:1; } }
 </style>
 </helmet>
 <div style="position:relative;width:720px;height:1280px;margin:0 auto;overflow:hidden;background:linear-gradient(180deg,#070a1a 0%,#0a0d22 45%,#05060f 78%,#03030a 100%);font-family:'Rajdhani','Noto Sans SC',sans-serif;color:#cfe6ef;user-select:none;">
   <div style="position:absolute;inset:0;background:radial-gradient(520px 300px at 10% 0%,rgba(53,232,224,.16),transparent 68%),radial-gradient(560px 320px at 92% 4%,rgba(255,79,163,.15),transparent 68%),radial-gradient(500px 420px at 50% 46%,rgba(165,107,255,.10),transparent 72%);"></div>
   <div style="position:absolute;inset:0;pointer-events:none;background:linear-gradient(115deg,transparent 18%,rgba(160,200,255,.04) 32%,rgba(255,255,255,.07) 39%,transparent 50%,transparent 64%,rgba(160,200,255,.05) 76%,transparent 88%);"></div>
 
-  <div style="position:absolute;left:-6px;top:-6px;width:0;height:0;pointer-events:none;z-index:7;mix-blend-mode:screen;">
-    <div style="position:absolute;left:0;top:0;animation:dcbeam 12s ease-in-out infinite;">
-      <div style="position:absolute;left:0;top:0;width:3px;height:1560px;transform:rotate(-26deg);transform-origin:50% 0;background:linear-gradient(180deg,#ffffff,{{ cA9 }} 7%,{{ cA6 }} 55%,transparent 95%);box-shadow:0 0 5px {{ cA9 }}, 0 0 16px {{ cA6 }}, 0 0 36px {{ cA4 }};"></div>
-      <div style="position:absolute;left:0;top:0;width:2.5px;height:1480px;transform:rotate(-37deg);transform-origin:50% 0;background:linear-gradient(180deg,#ffffff,{{ cA9 }} 8%,{{ cA6 }} 56%,transparent 95%);box-shadow:0 0 5px {{ cA9 }}, 0 0 14px {{ cA6 }}, 0 0 32px {{ cA4 }};"></div>
-      <div style="position:absolute;left:0;top:0;width:240px;height:1500px;transform:rotate(-31deg);transform-origin:0 0;margin-left:-120px;background:linear-gradient(180deg,{{ cA3 }},{{ cA2 }} 38%,transparent 85%);clip-path:polygon(50% 0,50% 0,100% 100%,0 100%);filter:blur(24px);opacity:.7;"></div>
-      <div style="position:absolute;left:-6px;top:-6px;width:13px;height:13px;border-radius:50%;background:#ffffff;box-shadow:0 0 16px 7px {{ cA8 }}, 0 0 48px 20px {{ cA4 }};"></div>
+  <div style="position:absolute;left:70px;right:70px;top:34px;display:flex;align-items:center;gap:16px;z-index:10;">
+    <div style="position:relative;width:62px;height:62px;flex-shrink:0;">
+      <svg width="62" height="62" viewBox="0 0 62 62" style="position:absolute;left:0;top:0;transform:rotate(-90deg);">
+        <circle cx="31" cy="31" r="28.5" stroke="rgba(120,150,200,.22)" stroke-width="2.5" fill="none"></circle>
+        <circle cx="31" cy="31" r="28.5" stroke="{{ c }}" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-dasharray="{{ expDash }}" style="filter:drop-shadow(0 0 5px {{ cA8 }});"></circle>
+      </svg>
+      <div style="position:absolute;inset:6px;border-radius:50%;background:linear-gradient(160deg,rgba(20,26,52,.85),rgba(8,11,26,.92));display:flex;align-items:center;justify-content:center;font-size:21px;font-weight:700;letter-spacing:1px;color:#dbe9ff;">DJ</div>
+      <div style="position:absolute;left:50%;bottom:-7px;transform:translateX(-50%);padding:0 8px;border-radius:7px;background:{{ c }};color:#07101c;font-size:11px;font-weight:700;line-height:15px;white-space:nowrap;box-shadow:0 0 10px {{ cA6 }};">LV.12</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:2px;min-width:0;">
+      <div style="font-size:21px;font-weight:700;color:#eaf6ff;letter-spacing:1.5px;white-space:nowrap;">NEON PLAYER</div>
+      <div style="font-size:12px;letter-spacing:2px;color:#66799f;white-space:nowrap;">EXP 340 / 500</div>
+    </div>
+    <div style="flex:1;"></div>
+    <div style="display:flex;align-items:center;gap:9px;flex-shrink:0;">
+      <div style="display:flex;align-items:center;gap:7px;padding:5px 13px;border-radius:13px;border:1px solid rgba(190,208,245,.16);background:linear-gradient(178deg,rgba(24,28,56,.42),rgba(7,9,22,.5));backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);animation:dcbolt 2.4s ease-in-out infinite;">
+        <span style="font-size:14px;line-height:1;color:#ffd76a;">⚡</span>
+        <span style="font-size:17px;font-weight:700;line-height:1;color:#ffe6ad;">{{ energy }}<span style="font-size:12px;font-weight:500;color:#8d7a4e;">/5</span></span>
+      </div>
+      <div style="display:flex;align-items:center;gap:7px;padding:5px 13px;border-radius:13px;border:1px solid rgba(190,208,245,.16);background:linear-gradient(178deg,rgba(24,28,56,.42),rgba(7,9,22,.5));backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);">
+        <div style="width:13px;height:13px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ffe9c9,#ffb347 62%,#c77b12);"></div>
+        <span style="font-size:17px;font-weight:700;line-height:1;color:#ffd9a0;">{{ coins }}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:7px;padding:5px 13px;border-radius:13px;border:1px solid rgba(190,208,245,.16);background:linear-gradient(178deg,rgba(24,28,56,.42),rgba(7,9,22,.5));backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);">
+        <div style="width:12px;height:12px;background:linear-gradient(135deg,#e7d6ff,#a56bff 62%,#6a35c2);transform:rotate(45deg);border-radius:2.5px;"></div>
+        <span style="font-size:17px;font-weight:700;line-height:1;color:#cdb2ff;">86</span>
+      </div>
+      <div style="width:30px;height:30px;border-radius:50%;border:1px solid rgba(190,208,245,.22);display:flex;align-items:center;justify-content:center;font-size:17px;line-height:1;color:rgba(190,208,245,.72);cursor:pointer;">+</div>
     </div>
   </div>
 
-  <div style="position:absolute;left:70px;right:70px;top:22px;display:flex;align-items:center;gap:14px;padding:12px 20px;border-radius:22px;border:1px solid {{ cA2 }};background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.07) 45%,transparent 58%),radial-gradient({{ cA2 }} 1px,transparent 1.4px),linear-gradient(178deg,rgba(24,28,56,.34),rgba(7,9,22,.42));background-size:auto,26px 26px,auto;backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);box-shadow:0 0 24px {{ cA2 }}, inset 0 0 24px {{ cA2 }};z-index:10;">
-    <div style="position:absolute;left:22px;right:22px;top:-1px;height:1.5px;border-radius:2px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.9) 26%,rgba(255,255,255,.75) 74%,transparent);box-shadow:0 0 9px {{ cA6 }}, 0 0 22px {{ cA4 }};pointer-events:none;"></div>
-    <div style="position:absolute;left:80px;right:80px;bottom:-1px;height:1px;background:linear-gradient(90deg,transparent,{{ cA4 }},transparent);pointer-events:none;"></div>
-    <div style="position:relative;width:56px;height:56px;flex-shrink:0;">
-      <div style="position:absolute;inset:0;border-radius:50%;border:1.5px solid rgba(53,232,224,.8);background:linear-gradient(160deg,rgba(18,32,58,.8),rgba(10,18,38,.9));box-shadow:0 0 12px rgba(53,232,224,.35);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:#8ff5ee;text-shadow:0 0 10px rgba(53,232,224,.8);">DJ</div>
-      <div style="position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);padding:0 9px;border-radius:8px;background:#35e8e0;color:#03302c;font-size:12px;font-weight:700;box-shadow:0 0 8px rgba(53,232,224,.7);white-space:nowrap;">LV.12</div>
-    </div>
-    <div style="flex:1;display:flex;flex-direction:column;gap:5px;min-width:0;">
-      <div style="display:flex;align-items:baseline;gap:9px;">
-        <div style="font-size:20px;font-weight:700;color:#eaf6ff;letter-spacing:1px;white-space:nowrap;">NEON PLAYER</div>
-        <div style="font-size:12px;letter-spacing:2px;color:#7487ac;white-space:nowrap;">雨夜俱乐部 VIP</div>
-      </div>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <div style="flex:1;height:6px;border-radius:4px;background:rgba(20,26,54,.9);border:1px solid rgba(120,150,200,.18);overflow:hidden;">
-          <div style="width:68%;height:100%;border-radius:4px;background:linear-gradient(90deg,#35e8e0,#a56bff);box-shadow:0 0 8px rgba(53,232,224,.7);"></div>
-        </div>
-        <div style="font-size:12px;color:#66799f;white-space:nowrap;">340/500</div>
-      </div>
-    </div>
-    <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
-      <div style="display:flex;align-items:center;gap:6px;padding:2px 11px;border-radius:12px;border:1px solid rgba(255,179,71,.45);background:rgba(30,18,4,.45);">
-        <div style="width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ffe9c9,#ffb347 60%,#c77b12);box-shadow:0 0 8px rgba(255,179,71,.7);"></div>
-        <div style="font-size:16px;font-weight:700;color:#ffd9a0;">{{ coins }}</div>
-        <div style="width:15px;height:15px;border-radius:50%;border:1px solid rgba(255,179,71,.6);color:#ffb347;font-size:12px;line-height:14px;text-align:center;cursor:pointer;">+</div>
-      </div>
-      <div style="display:flex;align-items:center;gap:6px;padding:2px 11px;border-radius:12px;border:1px solid rgba(165,107,255,.45);background:rgba(20,10,36,.45);">
-        <div style="width:13px;height:13px;background:linear-gradient(135deg,#e7d6ff,#a56bff 60%,#6a35c2);transform:rotate(45deg);border-radius:3px;box-shadow:0 0 8px rgba(165,107,255,.7);"></div>
-        <div style="font-size:16px;font-weight:700;color:#cdb2ff;">86</div>
-        <div style="width:15px;height:15px;border-radius:50%;border:1px solid rgba(165,107,255,.6);color:#a56bff;font-size:12px;line-height:14px;text-align:center;cursor:pointer;">+</div>
-      </div>
-    </div>
+  <div onClick="{{ prevLevel }}" style="position:absolute;left:0;top:300px;width:32px;height:520px;border-radius:0 16px 16px 0;overflow:hidden;opacity:.42;cursor:pointer;z-index:4;">
+    <div style="position:absolute;right:0;top:0;width:640px;height:100%;background-image:url('assets/frame-glass4.png');background-size:640px 118%;background-position:left top;filter:saturate(0) brightness(1.06);"></div>
+    <div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(4,6,16,.7),transparent);"></div>
+  </div>
+  <div onClick="{{ nextLevel }}" style="position:absolute;right:0;top:300px;width:32px;height:520px;border-radius:16px 0 0 16px;overflow:hidden;opacity:.42;cursor:pointer;z-index:4;">
+    <div style="position:absolute;left:0;top:0;width:640px;height:100%;background-image:url('assets/frame-glass4.png');background-size:640px 118%;background-position:right top;filter:saturate(0) brightness(1.06);"></div>
+    <div style="position:absolute;inset:0;background:linear-gradient(270deg,rgba(4,6,16,.7),transparent);"></div>
   </div>
 
   <div style="position:absolute;left:0;right:0;top:116px;display:flex;align-items:center;justify-content:center;z-index:6;">
     <div onPointerDown="{{ dragStart }}" onPointerMove="{{ dragMove }}" onPointerUp="{{ dragEnd }}" onPointerLeave="{{ dragEnd }}" style="position:relative;width:640px;height:972px;flex-shrink:0;filter:drop-shadow(0 0 26px {{ cGlow }});touch-action:pan-y;cursor:grab;transform:translateX({{ dragX }});transition:{{ dragTrans }};">
       <div style="position:absolute;inset:34px;border-radius:18px;background:linear-gradient(170deg,rgba(13,15,34,.66),rgba(6,8,20,.82));backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);"></div>
       <div style="position:absolute;left:0;right:0;top:0;height:113.2%;background-image:url('assets/frame-glass4.png');background-size:100% 100%;filter:saturate(0) brightness(1.06);pointer-events:none;"></div>
+
       <div style="position:absolute;left:44px;right:44px;top:952px;height:172px;display:flex;">
         <sc-for list="{{ tabs }}" as="tab" hint-placeholder-count="4">
           <div onClick="{{ tab.onClick }}" style-hover="transform:translateY(-3px);" style-active="transform:scale(.94);" style="position:relative;flex:1;cursor:pointer;transition:transform .18s;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;">
@@ -87,20 +85,28 @@
           </div>
         </sc-for>
       </div>
+
       <sc-if value="{{ fxOn }}" hint-placeholder-val="{{ false }}">
         <div style="position:absolute;left:8%;right:8%;height:2px;background:linear-gradient(90deg,transparent,{{ cA6 }},transparent);box-shadow:0 0 12px {{ cA6 }};animation:dcscan 5.5s linear infinite;pointer-events:none;"></div>
       </sc-if>
-      <div style="position:absolute;left:78px;right:78px;top:82px;bottom:88px;display:flex;flex-direction:column;">
+
+      <div style="position:absolute;left:78px;right:78px;top:82px;bottom:88px;display:flex;flex-direction:column;opacity:{{ bodyOpacity }};">
         <div style="display:flex;align-items:center;justify-content:space-between;">
-          <div style="font-size:14px;letter-spacing:3px;color:{{ cDim }};">MODE: STAGE</div>
+          <div style="display:flex;align-items:center;gap:9px;">
+            <div style="font-size:14px;letter-spacing:3px;color:{{ cDim }};">MODE: STAGE</div>
+            <div style="padding:1px 9px;border-radius:9px;border:1px solid {{ statusBorder }};background:{{ statusBg }};font-size:12px;letter-spacing:2px;color:{{ statusColor }};white-space:nowrap;">{{ statusText }}</div>
+          </div>
           <div style="display:flex;gap:7px;">
             <div style="width:22px;height:16px;border:1px solid {{ cA6 }};display:flex;flex-direction:column;justify-content:space-evenly;padding:2px 3px;box-sizing:border-box;"><div style="height:2px;background:{{ cA6 }};"></div><div style="height:2px;background:{{ cA6 }};"></div></div>
             <div style="width:22px;height:16px;border:1px solid {{ cA6 }};display:grid;grid-template-columns:1fr 1fr;gap:2px;padding:2px;box-sizing:border-box;"><div style="background:{{ cA6 }};"></div><div style="background:{{ cA6 }};"></div><div style="background:{{ cA6 }};"></div><div style="background:{{ cA6 }};"></div></div>
           </div>
         </div>
         <div style="margin-top:4px;display:flex;align-items:flex-end;justify-content:space-between;">
-          <div style="font-size:48px;font-weight:700;letter-spacing:4px;line-height:1.1;color:#fff;text-shadow:0 0 12px {{ cA9 }}, 0 0 34px {{ cA6 }};white-space:nowrap;">{{ levelName }}</div>
-          <div style="padding-bottom:8px;font-size:14px;letter-spacing:3px;color:{{ cDim }};white-space:nowrap;">LEVEL {{ levelNo }}/06</div>
+          <div style="font-size:48px;font-weight:700;letter-spacing:4px;line-height:1.1;color:{{ titleColor }};text-shadow:{{ titleGlow }};white-space:nowrap;">{{ levelName }}</div>
+          <div style="text-align:right;padding-bottom:6px;">
+            <div style="font-size:14px;letter-spacing:3px;color:{{ cDim }};white-space:nowrap;">LEVEL {{ levelNo }}/06</div>
+            <div style="margin-top:2px;font-size:13px;letter-spacing:2px;color:{{ bestColor }};white-space:nowrap;">最佳 {{ best }}</div>
+          </div>
         </div>
         <div style="margin-top:8px;height:2px;background:linear-gradient(90deg,{{ cA7 }},{{ cA2 }});box-shadow:0 0 8px {{ cA4 }};"></div>
 
@@ -111,13 +117,25 @@
           </sc-for>
         </div>
 
-        <div style="display:flex;align-items:baseline;justify-content:space-between;">
-          <div style="display:flex;align-items:baseline;gap:8px;"><span style="font-size:40px;font-weight:700;color:#fff;text-shadow:0 0 12px {{ cA8 }};">{{ target }}</span><span style="font-size:16px;letter-spacing:2px;color:{{ cDim }};">目标分</span></div>
-          <div style="font-size:17px;letter-spacing:2px;color:{{ c }};text-shadow:0 0 8px {{ cA6 }};">奖励 ¤{{ reward }}</div>
+        <div style="display:flex;align-items:flex-end;justify-content:space-between;">
+          <div style="display:flex;align-items:baseline;gap:8px;">
+            <span style="font-size:40px;font-weight:700;color:{{ titleColor }};text-shadow:{{ targetGlow }};line-height:1;">{{ target }}</span>
+            <span style="font-size:16px;letter-spacing:2px;color:{{ cDim }};">目标分</span>
+          </div>
+          <div style="display:flex;gap:14px;">
+            <sc-for list="{{ trophies }}" as="tr" hint-placeholder-count="3">
+              <div style="display:flex;flex-direction:column;align-items:center;gap:3px;">
+                <span style="font-size:22px;line-height:1;color:{{ tr.color }};text-shadow:{{ tr.glow }};">★</span>
+                <span style="font-size:13px;letter-spacing:1px;color:{{ tr.labelColor }};white-space:nowrap;">{{ tr.label }}</span>
+              </div>
+            </sc-for>
+          </div>
         </div>
-        <div style="margin-top:6px;display:flex;align-items:center;justify-content:space-between;">
-          <div style="font-size:17px;letter-spacing:2px;color:{{ cDim }};">出牌 ×4 · 弃牌 ×3</div>
-          <div style="display:flex;gap:4px;font-size:22px;line-height:1;"><span style="color:{{ star1 }};text-shadow:0 0 8px {{ star1 }};">★</span><span style="color:{{ star2 }};text-shadow:0 0 8px {{ star2 }};">★</span><span style="color:{{ star3 }};text-shadow:0 0 8px {{ star3 }};">★</span></div>
+        <div style="margin-top:8px;display:flex;align-items:center;gap:8px;">
+          <div style="padding:1px 10px;border-radius:9px;border:1px solid {{ cA5 }};font-size:14px;letter-spacing:1px;color:{{ cDim }};white-space:nowrap;">出牌 ×4</div>
+          <div style="padding:1px 10px;border-radius:9px;border:1px solid {{ cA5 }};font-size:14px;letter-spacing:1px;color:{{ cDim }};white-space:nowrap;">弃牌 ×3</div>
+          <div style="flex:1;"></div>
+          <div style="font-size:17px;letter-spacing:2px;color:{{ c }};text-shadow:0 0 8px {{ cA6 }};white-space:nowrap;">奖励 ¤{{ reward }}</div>
         </div>
         <div style="margin-top:10px;height:2px;background:linear-gradient(90deg,{{ cA2 }},{{ cA7 }},{{ cA2 }});box-shadow:0 0 8px {{ cA4 }};"></div>
 
@@ -133,16 +151,28 @@
           <div style="width:42px;height:42px;flex-shrink:0;border-radius:10px;border:1.5px solid {{ cA7 }};box-shadow:0 0 10px {{ cA4 }};display:flex;align-items:center;justify-content:center;font-size:16px;color:{{ c }};text-shadow:0 0 8px {{ c }};">✦</div>
         </div>
 
-        <a href="Neon Rain Card Game.dc.html" style="display:block;margin-top:16px;">
-          <div style-hover="transform:scale(1.02);" style-active="transform:scale(.98);" style="position:relative;padding:13px 0 11px;border-radius:14px;cursor:pointer;transition:transform .15s;text-align:center;border:1.5px solid {{ cA7 }};background:linear-gradient(178deg,{{ cA2 }},rgba(8,10,24,.5));box-shadow:0 0 14px {{ cA3 }}, inset 0 0 20px {{ cA2 }};animation:dcpulse 2.4s ease-in-out infinite;">
-            <div style="position:absolute;left:14px;right:14px;top:-1px;height:1.5px;border-radius:2px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.85) 30%,rgba(255,255,255,.7) 70%,transparent);"></div>
-            <div style="font-size:28px;font-weight:700;letter-spacing:12px;text-indent:12px;color:#fff;text-shadow:0 0 12px {{ cA9 }}, 0 0 30px {{ cA5 }};line-height:1.2;">开始游戏</div>
-            <div style="margin-top:2px;font-size:14px;color:{{ cDim }};white-space:nowrap;">⚡ 消耗 1 能量 · 目标 {{ target }}</div>
+        <sc-if value="{{ unlocked }}" hint-placeholder-val="{{ true }}">
+          <a href="Neon Rain Card Game.dc.html" style="display:block;margin-top:16px;">
+            <div style-hover="transform:scale(1.02);" style-active="transform:scale(.98);" style="position:relative;padding:13px 0 11px;border-radius:14px;cursor:pointer;transition:transform .15s;text-align:center;border:1.5px solid {{ cA7 }};background:linear-gradient(178deg,{{ cA2 }},rgba(8,10,24,.5));box-shadow:0 0 14px {{ cA3 }}, inset 0 0 20px {{ cA2 }};animation:dcpulse 2.4s ease-in-out infinite;">
+              <div style="position:absolute;left:14px;right:14px;top:-1px;height:1.5px;border-radius:2px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.85) 30%,rgba(255,255,255,.7) 70%,transparent);"></div>
+              <div style="font-size:28px;font-weight:700;letter-spacing:12px;text-indent:12px;color:#fff;text-shadow:0 0 12px {{ cA9 }}, 0 0 30px {{ cA5 }};line-height:1.2;">{{ ctaText }}</div>
+              <div style="margin-top:2px;font-size:14px;color:{{ cDim }};white-space:nowrap;">⚡ 消耗 1 能量 · 目标 {{ target }}</div>
+            </div>
+          </a>
+        </sc-if>
+        <sc-if value="{{ locked }}" hint-placeholder-val="{{ false }}">
+          <div style="position:relative;margin-top:16px;padding:13px 0 11px;border-radius:14px;text-align:center;border:1.5px dashed rgba(150,175,215,.4);background:rgba(10,13,28,.5);">
+            <div style="display:flex;align-items:center;justify-content:center;gap:9px;">
+              <svg width="20" height="20" viewBox="0 0 26 26" fill="none"><path d="M8,11.5 L18,11.5 L18,20 L8,20 Z M10,11.5 L10,8.5 a3,3 0 0,1 6,0 L16,11.5" stroke="rgba(160,185,225,.75)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+              <div style="font-size:26px;font-weight:700;letter-spacing:10px;text-indent:10px;color:rgba(190,208,240,.8);line-height:1.2;">未 解 锁</div>
+            </div>
+            <div style="margin-top:2px;font-size:14px;color:rgba(140,165,205,.75);white-space:nowrap;">{{ unlockHint }}</div>
           </div>
-        </a>
+        </sc-if>
+
         <div style="margin-top:13px;display:flex;justify-content:center;gap:9px;">
           <sc-for list="{{ levelDots }}" as="dot" hint-placeholder-count="6">
-            <div onClick="{{ dot.onClick }}" style="width:{{ dot.w }};height:7px;border-radius:4px;background:{{ dot.bg }};box-shadow:{{ dot.glow }};transition:all .25s;cursor:pointer;"></div>
+            <div onClick="{{ dot.onClick }}" style="width:{{ dot.w }};height:7px;border-radius:4px;background:{{ dot.bg }};box-shadow:{{ dot.glow }};border:{{ dot.border }};box-sizing:border-box;transition:all .25s;cursor:pointer;"></div>
           </sc-for>
         </div>
         <div style="margin-top:12px;display:flex;justify-content:space-between;opacity:.5;">
@@ -153,41 +183,37 @@
     </div>
   </div>
 
-
-
-
-
-
-
   <sc-if value="{{ rainOn }}" hint-placeholder-val="{{ false }}">
     <div style="position:absolute;inset:0;pointer-events:none;z-index:9;opacity:.35;background-image:repeating-linear-gradient(168deg,transparent 0px,transparent 34px,rgba(180,220,255,.20) 35px,transparent 37px),repeating-linear-gradient(172deg,transparent 0px,transparent 58px,rgba(150,200,255,.12) 59px,transparent 62px);animation:dcrain 1.3s linear infinite;"></div>
   </sc-if>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: 720, &quot;height&quot;: 1280}, &quot;coins&quot;: {&quot;editor&quot;: &quot;int&quot;, &quot;default&quot;: 2480, &quot;tsType&quot;: &quot;number&quot;, &quot;section&quot;: &quot;玩家信息&quot;}, &quot;rain&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;氛围&quot;}, &quot;cardScan&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;氛围&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: 720, &quot;height&quot;: 1280}, &quot;coins&quot;: {&quot;editor&quot;: &quot;int&quot;, &quot;default&quot;: 2480, &quot;tsType&quot;: &quot;number&quot;, &quot;section&quot;: &quot;玩家信息&quot;}, &quot;energy&quot;: {&quot;editor&quot;: &quot;int&quot;, &quot;default&quot;: 4, &quot;min&quot;: 0, &quot;max&quot;: 5, &quot;tsType&quot;: &quot;number&quot;, &quot;section&quot;: &quot;玩家信息&quot;}, &quot;rain&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;氛围&quot;}, &quot;cardScan&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;氛围&quot;}}">
 class Component extends DCLogic {
   state = { levelIdx: 2, tab: 0, dragX: 0, dragging: false };
   _dragStartX = null;
   levels = [
-    { name: '雨巷入门', target: 150, reward: 120, stars: 3, rule: '暖场考验：手牌上限 -1', hue: '0deg', c: '#ff4fa3' },
-    { name: '霓虹街角', target: 220, reward: 160, stars: 3, rule: '失真音墙：对子不计分', hue: '205deg', c: '#35e8e0' },
-    { name: '午夜俱乐部', target: 300, reward: 220, stars: 2, rule: '静默之幕：花色加成失效', hue: '295deg', c: '#a56bff' },
-    { name: '电音天台', target: 420, reward: 300, stars: 1, rule: '骤雨节拍：每回合目标 +10%', hue: '62deg', c: '#ffb347' },
-    { name: '全息剧场', target: 600, reward: 420, stars: 0, rule: '全息幻影：每轮两张暗牌', hue: '243deg', c: '#5fa8ff' },
-    { name: '风暴主场', target: 850, reward: 600, stars: 0, rule: '断电风暴：随机禁用一种花色', hue: '24deg', c: '#ff5f6e' }
+    { name: '雨巷入门', target: 150, reward: 120, stars: 3, best: 328, state: 'clear', rule: '暖场考验：手牌上限 -1', c: '#ff4fa3' },
+    { name: '霓虹街角', target: 220, reward: 160, stars: 3, best: 402, state: 'clear', rule: '失真音墙：对子不计分', c: '#35e8e0' },
+    { name: '午夜俱乐部', target: 300, reward: 220, stars: 1, best: 316, state: 'open', rule: '静默之幕：花色加成失效', c: '#a56bff' },
+    { name: '电音天台', target: 420, reward: 300, stars: 0, best: 0, state: 'open', rule: '骤雨节拍：每回合目标 +10%', c: '#ffb347' },
+    { name: '全息剧场', target: 600, reward: 420, stars: 0, best: 0, state: 'lock', unlock: '通关「电音天台」后开放', rule: '全息幻影：每轮两张暗牌', c: '#5fa8ff' },
+    { name: '风暴主场', target: 850, reward: 600, stars: 0, best: 0, state: 'lock', unlock: '集齐 3 张传说小丑牌后开放', rule: '断电风暴：随机禁用一种花色', c: '#ff5f6e' }
   ];
   bars(idx) {
     this._barCache = this._barCache || {};
     if (this._barCache[idx]) return this._barCache[idx];
     const rnd = (k) => { const x = Math.sin((idx * 100 + k + 1) * 12.9898) * 43758.5453; return x - Math.floor(x); };
+    // louder stage = denser, taller waveform
+    const heat = 0.6 + (this.levels[idx].target / 850) * 0.7;
     const N = 34;
     this._barCache[idx] = Array.from({ length: N }, (_, i) => {
       const env = Math.pow(Math.sin(Math.PI * (i + 0.5) / N), 1.7);
-      let h = 12 + env * (150 + rnd(i) * 70);
+      let h = 12 + env * (150 + rnd(i) * 70) * heat;
       if (rnd(i + 60) > 0.82) h *= 1.3;
       return {
         h: Math.round(Math.min(h, 250)) + 'px',
-        dur: (0.8 + rnd(i + 120) * 0.9).toFixed(2) + 's',
+        dur: (0.8 + rnd(i + 120) * 0.9 / heat).toFixed(2) + 's',
         delay: (rnd(i + 200) * 1.2).toFixed(2) + 's'
       };
     });
@@ -200,7 +226,14 @@ class Component extends DCLogic {
     const pad = (x) => String(x).padStart(2, '0');
     const hexA = (hex, a) => hex + Math.round(a * 255).toString(16).padStart(2, '0');
     const c = lv.c;
-    const starC = (i) => lv.stars >= i ? '#ffb347' : 'rgba(120,150,200,.3)';
+    const locked = lv.state === 'lock';
+    const cleared = lv.state === 'clear';
+    const statusMap = {
+      clear: { text: '已通关', color: '#8ef5b8', border: 'rgba(142,245,184,.5)', bg: 'rgba(10,34,24,.5)' },
+      open: { text: '待挑战', color: hexA(c, 0.9), border: hexA(c, 0.5), bg: 'rgba(12,14,32,.5)' },
+      lock: { text: '未解锁', color: 'rgba(160,182,220,.8)', border: 'rgba(150,175,215,.35)', bg: 'rgba(10,13,28,.5)' }
+    }[lv.state];
+    const trophyDefs = ['达标', '零弃牌', '三回合'];
     const tabDefs = [
       { name: '关卡', badge: 0, iconPath: 'M9.5,4.5 L18.5,4.5 Q20.5,4.5 20.5,6.5 L20.5,17.5 Q20.5,19.5 18.5,19.5 L9.5,19.5 Q7.5,19.5 7.5,17.5 L7.5,6.5 Q7.5,4.5 9.5,4.5 M14,8.5 L16.8,12 L14,15.5 L11.2,12 Z M7.5,8 L5.5,8.8 Q4,9.5 4.6,11.4 L7.5,19 Q8.2,20.8 10,20.5' },
       { name: '主角', badge: 1, iconPath: 'M13,4.5 a4,4 0 1,0 0.01,0 M6,21.5 Q6,15 13,15 Q20,15 20,21.5' },
@@ -209,20 +242,39 @@ class Component extends DCLogic {
     ];
     return {
       coins: this.props.coins ?? 2480,
+      energy: this.props.energy ?? 4,
+      expDash: (2 * Math.PI * 28.5 * 0.68).toFixed(1) + ' 999',
       rainOn: this.props.rain ?? true,
       fxOn: this.props.cardScan ?? true,
-      hue: lv.hue,
       levelName: lv.name,
       levelNo: pad(s.levelIdx + 1),
       levelCode: 'STG-' + pad(s.levelIdx + 1) + '-' + lv.target,
       target: lv.target,
       reward: lv.reward,
       rule: lv.rule,
+      best: lv.best ? lv.best : '——',
+      bestColor: lv.best ? hexA(c, 0.85) : 'rgba(120,145,190,.6)',
+      locked, unlocked: !locked,
+      unlockHint: lv.unlock || '',
+      ctaText: cleared ? '再次挑战' : '开始游戏',
+      bodyOpacity: locked ? 0.62 : 1,
+      titleColor: locked ? 'rgba(196,212,240,.85)' : '#fff',
+      titleGlow: locked ? 'none' : '0 0 12px ' + hexA(c, 0.9) + ', 0 0 34px ' + hexA(c, 0.6),
+      targetGlow: locked ? 'none' : '0 0 12px ' + hexA(c, 0.8),
+      statusText: statusMap.text, statusColor: statusMap.color, statusBorder: statusMap.border, statusBg: statusMap.bg,
       c, cDim: hexA(c, 0.62),
-      cGlow: hexA(c, 0.38),
+      cGlow: hexA(c, locked ? 0.16 : 0.38),
       cA2: hexA(c, 0.2), cA3: hexA(c, 0.3), cA4: hexA(c, 0.4), cA5: hexA(c, 0.5),
       cA6: hexA(c, 0.6), cA7: hexA(c, 0.7), cA8: hexA(c, 0.8), cA9: hexA(c, 0.9),
-      star1: starC(1), star2: starC(2), star3: starC(3),
+      trophies: trophyDefs.map((label, i) => {
+        const got = lv.stars > i;
+        return {
+          label,
+          color: got ? '#ffb347' : 'rgba(120,150,200,.3)',
+          glow: got ? '0 0 8px #ffb347' : 'none',
+          labelColor: got ? 'rgba(255,214,150,.92)' : 'rgba(158,182,222,.78)'
+        };
+      }),
       bars: this.bars(s.levelIdx),
       prevLevel: () => this.setState(st => ({ levelIdx: (st.levelIdx + n - 1) % n })),
       nextLevel: () => this.setState(st => ({ levelIdx: (st.levelIdx + 1) % n })),
@@ -238,22 +290,23 @@ class Component extends DCLogic {
         else if (dx > 60) this.setState(st => ({ levelIdx: (st.levelIdx + n - 1) % n, dragging: false, dragX: 0 }));
         else this.setState({ dragging: false, dragX: 0 });
       },
-      levelDots: this.levels.map((_, i) => ({
-        w: i === s.levelIdx ? '28px' : '8px',
-        bg: i === s.levelIdx ? c : 'rgba(120,150,200,.3)',
-        glow: i === s.levelIdx ? '0 0 10px ' + hexA(c, 0.7) : 'none',
-        onClick: () => this.setState({ levelIdx: i })
-      })),
+      levelDots: this.levels.map((l, i) => {
+        const cur = i === s.levelIdx;
+        const done = l.state === 'clear';
+        return {
+          w: cur ? '28px' : '8px',
+          bg: cur ? c : (done ? 'rgba(142,245,184,.55)' : (l.state === 'lock' ? 'transparent' : 'rgba(120,150,200,.3)')),
+          border: l.state === 'lock' && !cur ? '1px solid rgba(150,175,215,.35)' : '1px solid transparent',
+          glow: cur ? '0 0 10px ' + hexA(c, 0.7) : 'none',
+          onClick: () => this.setState({ levelIdx: i })
+        };
+      }),
       tabs: tabDefs.map((tb, i) => ({
         name: tb.name, iconPath: tb.iconPath,
         active: i === s.tab,
         hasBadge: tb.badge > 0, badge: tb.badge,
         color: i === s.tab ? '#ffffff' : 'rgba(185,200,232,.78)',
         accent: c,
-        border: i === s.tab ? hexA(c, 0.75) : 'rgba(185,205,245,.30)',
-        glow: i === s.tab
-          ? '0 0 16px ' + hexA(c, 0.32) + ', inset 0 0 22px ' + hexA(c, 0.16)
-          : '0 0 14px rgba(150,180,255,.07), inset 0 0 16px rgba(170,195,255,.05)',
         iconGlow: i === s.tab ? hexA(c, 0.85) : 'rgba(140,170,255,.25)',
         textGlow: i === s.tab ? '0 0 10px ' + hexA(c, 0.8) : 'none',
         onClick: () => this.setState({ tab: i })

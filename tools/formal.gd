@@ -182,7 +182,7 @@ func _claim_time() -> void:
 			var extra := {
 				"prev_kind": run.prev_kind, "acted_late": false,
 				"discards": p.discards_used, "coins": p.coins,
-				"phrase_idx": run.phrase_in_section, "mod": "", "character": run.character,
+				"phrase_idx": run.phrase_in_section, "mod": "",
 			}
 			var sp := Solver.splits(vis, run.joker_slots, extra, p.deck.rules)
 			if sp.is_empty():
@@ -263,7 +263,7 @@ func _collect_luck(run: Run, p: Phrase, mod: String, pidx: int,
 	var extra := {
 		"prev_kind": run.prev_kind, "acted_late": false,
 		"discards": p.discards_used, "coins": p.coins,
-		"phrase_idx": pidx, "mod": mod, "character": run.character,
+		"phrase_idx": pidx, "mod": mod,
 	}
 	var sp := Solver.splits(vis, run.joker_slots, extra, p.deck.rules)
 	if sp.is_empty():
@@ -282,7 +282,7 @@ func _cohort() -> Dictionary:
 
 ## 打 n 局, 全部走共用的 `RunLoop`(一局的骨架只此一份)。
 ## 这一个函数取代了原先的 `_play_many` / `_play_eps` / `_play_rule_bot` **三份循环**。
-## ⚠ RNG 消耗顺序与原实现逐位一致(seed → Deck.new → Character 抽取), 否则读数会整体漂移。
+## ⚠ RNG 消耗顺序与原实现逐位一致(seed → Deck.new), 否则读数会整体漂移。
 func _play_arm(faces: Dictionary, n: int, seed_base: int, player: String,
 		lam: float = 0.0, eps: float = 0.0, want_luck: bool = false) -> Dictionary:
 	var bot := Bot.new(_rng, Report.new(n, GameConfig.SECTIONS_PER_RUN))

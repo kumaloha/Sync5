@@ -17,6 +17,13 @@ const IDS := [
 	# 排在黑调旁边 —— code 是按下标推导的(`_expected_code`), 插在中间会让 bassline 起
 	# 40+ 张全体改号, 而 code 已经冻结在既有素材与 prompt 里。
 	"redtone",
+	# 2026-08-25 对抗批·波2 +5(docs/design/versus.md):素材取自
+	# assets/expansion_20260825_quiet_200 素材库(用户预生成, 按视觉隐喻配对)。
+	"fastforward", "deejay", "goldenvoice", "hush", "harmony",
+	# 2026-08-25 波3 +5:合奏/孤注/彩头/灌铅骰/回收(素材同库配对)。
+	"ensemble", "allin", "jackpot", "loadeddice", "recycle",
+	# 2026-08-25 波4 +3:客串/斗牛士/盲奏。
+	"gueststar", "matador", "blindplay",
 ]
 const REQUIRED := ["id", "cn", "code", "kind", "rarity", "trigger_zh", "amount", "art_subject"]
 const VALID_KIND := ["target", "support"]
@@ -187,9 +194,11 @@ func _check_assets() -> void:
 		var joker_id := String(id)
 		_check_image("source", "res://assets/jokers/source/joker_%s.png" % joker_id, Vector2i(1024, 1024))
 		_check_image("runtime", "res://assets/jokers/joker_%s.png" % joker_id, RUNTIME_ART_SIZE)
-		_check_image("card", "res://assets/jokers/cards/joker_%s.png" % joker_id, CARD_SIZE)
-		_check_image("preview", "res://assets/jokers/previews/joker_%s.png" % joker_id, PREVIEW_SIZE)
-		_check_prompt(joker_id)
+		# 运行时缩图(webslim 产物;album/槽位读它, 缺了会静默退回原画拖内存)
+		_check_image("art512", "res://assets/jokers/art512/joker_%s.png" % joker_id, Vector2i(512, 512))
+		# ⚑ cards/previews/prompts 三层检查已退役(2026-08-24 重设计接入):目录本就
+		# 「退役不进包」(STATUS), prompts 的 sha 溯源随旧美术线作废 —— 新素材的溯源
+		# 在 assets/redesign_20260824/reports/。校验器跟着素材线走, 别守一个死管线。
 
 
 func _check_image(label: String, path: String, expected: Vector2i) -> void:

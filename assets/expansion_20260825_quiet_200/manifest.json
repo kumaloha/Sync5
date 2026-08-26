@@ -1,0 +1,3517 @@
+{
+  "version": "2026-08-25-expansion-200",
+  "catalog": "catalog/catalog.json",
+  "catalog_validation": "catalog/validation.json",
+  "base_manifest": "assets/redesign_20260825_quiet_full/manifest.json",
+  "new_counts": {
+    "jokers": 137,
+    "blinds": 67,
+    "total": 204
+  },
+  "combined_counts": {
+    "jokers": 200,
+    "blinds": 100
+  },
+  "style": "Quiet Glyph",
+  "canvas": [
+    1024,
+    1024
+  ],
+  "safe_band": {
+    "x": 0,
+    "y": 312,
+    "width": 1024,
+    "height": 400
+  },
+  "jokers": [
+    {
+      "id": "hinged_pair",
+      "path": "jokers/joker_hinged_pair.png",
+      "family": "pair_arch",
+      "uniqueness_key": "pair_arch|paired_cards|hinge_pin|mirrored_horizontal|thin_center_slit|2",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 8.239,
+      "sha256": "3e4ca6311cc1fbbd46462c2ec0600fce715e2feb80895024c4544e753f4aaa0a",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "offset_doublet",
+      "path": "jokers/joker_offset_doublet.png",
+      "family": "pair_arch",
+      "uniqueness_key": "pair_arch|paired_cards|low_underline|offset_left|lower_corner_gap|3",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 9.044,
+      "sha256": "037b762e07b96f3a00c50d647e9addfefb95936bb23f851cfe96737481cdc3ed",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "pocket_pair",
+      "path": "jokers/joker_pocket_pair.png",
+      "family": "pair_arch",
+      "uniqueness_key": "pair_arch|paired_cards|pocket_slot|offset_right|top_notch|4",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 9.379,
+      "sha256": "9e57b8f65a2e4ded3a07582120650d3329f763da5b40691bf8faa823a344d015",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "stacked_twins",
+      "path": "jokers/joker_stacked_twins.png",
+      "family": "pair_arch",
+      "uniqueness_key": "pair_arch|paired_cards|double_cap|vertical_stack|stepped_mid_gap|5",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 5.924,
+      "sha256": "1408e76b8465cc30397902e128f9998b55a658115e9192f920c260a508917fe6",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "rising_pair",
+      "path": "jokers/joker_rising_pair.png",
+      "family": "pair_arch",
+      "uniqueness_key": "pair_arch|paired_cards|rank_step|diagonal_rise|diagonal_wedge|6",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 5.849,
+      "sha256": "bbbb3b764629e3f77a869f4fdcef4b86649117b16e7c29059a557ef90272013d",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "falling_pair",
+      "path": "jokers/joker_falling_pair.png",
+      "family": "pair_arch",
+      "uniqueness_key": "pair_arch|paired_cards|drop_bar|diagonal_fall|reverse_wedge|7",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 4.998,
+      "sha256": "cc6d36f8ced1a7e293e11c027901767d259e3c88e4f2771b5e85f5345d2a51cc",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "nested_pair",
+      "path": "jokers/joker_nested_pair.png",
+      "family": "pair_arch",
+      "uniqueness_key": "pair_arch|paired_cards|inner_frame|nested_center|card_inside_void|8",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 5.724,
+      "sha256": "a3930156d66fa5edb11bfd1f87f08734212b31d557cf44e1a184b9fed00b24ca",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "cross_pair",
+      "path": "jokers/joker_cross_pair.png",
+      "family": "pair_arch",
+      "uniqueness_key": "pair_arch|paired_cards|cross_clasp|crossed_axis|diamond_core|null",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 7.666,
+      "sha256": "21d632e39f9d2bda5241313de84a090932b9c3ac4f7e76737e8771b6f05403ce",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "skip_ribbon",
+      "path": "jokers/joker_skip_ribbon.png",
+      "family": "run_gap",
+      "uniqueness_key": "run_gap|rank_ribbon|short_bridge|horizontal_left|single_rank_hole|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 8.227,
+      "sha256": "b9bb718c0a3e10cf5183b846f3709a07cef561b7efb1c9dcb8b2f288ae7a611f",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "long_skip",
+      "path": "jokers/joker_long_skip.png",
+      "family": "run_gap",
+      "uniqueness_key": "run_gap|rank_ribbon|long_arc|horizontal_right|double_rank_hole|2",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 9.086,
+      "sha256": "0a86c3070c948152b14b2e493a9a90aab0675373f5343022675600c416f52dd9",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "broken_stair",
+      "path": "jokers/joker_broken_stair.png",
+      "family": "run_gap",
+      "uniqueness_key": "run_gap|rank_ribbon|broken_step|diagonal_rise|upper_corner_bite|3",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 5.276,
+      "sha256": "d72eda69bb378d898fc3b58380472d38432ee2d394969a6229d64dc638816907",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "reverse_run",
+      "path": "jokers/joker_reverse_run.png",
+      "family": "run_gap",
+      "uniqueness_key": "run_gap|rank_ribbon|return_hook|diagonal_fall|lower_hook_gap|4",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 6.163,
+      "sha256": "4e4c6024043ee1a84e06cdedc6c9932d515ecc2da001e33d8778fd90555e2107",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "center_gap",
+      "path": "jokers/joker_center_gap.png",
+      "family": "run_gap",
+      "uniqueness_key": "run_gap|rank_ribbon|center_window|arched_up|center_rect_void|5",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 9.038,
+      "sha256": "5a8cc51c66f106387ef802a14b022a605e8154c6f581883b0a6e919b0b876fe2",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "edge_gap",
+      "path": "jokers/joker_edge_gap.png",
+      "family": "run_gap",
+      "uniqueness_key": "run_gap|rank_ribbon|edge_cut|arched_down|right_end_void|6",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 8.733,
+      "sha256": "536dd1cb3eb54ff872086f49ced05a69d9f2d957a99ec08c9a93407618c0c465",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "low_bridge",
+      "path": "jokers/joker_low_bridge.png",
+      "family": "run_gap",
+      "uniqueness_key": "run_gap|rank_ribbon|low_clamp|low_flat|under_ribbon_channel|7",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 8.681,
+      "sha256": "4d7fd6fa49f0fb1adb2cd355d232894981a9df868d98433ba2e3f669dee5bb6a",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "high_bridge",
+      "path": "jokers/joker_high_bridge.png",
+      "family": "run_gap",
+      "uniqueness_key": "run_gap|rank_ribbon|high_clamp|high_flat|over_ribbon_channel|null",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 9.461,
+      "sha256": "257515205785b5e2d981130cdeb530297016a0fdae33f591eb302375a9504adc",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "half_suit",
+      "path": "jokers/joker_half_suit.png",
+      "family": "suit_relation",
+      "uniqueness_key": "suit_relation|fused_suit|half_seam|split_vertical|central_leaf_void|2",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 5.548,
+      "sha256": "7b2cdb4dd14fc3b414def66ff4c1fc64ae1088a13e7400e86142f303c2d715f2",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "suit_lock",
+      "path": "jokers/joker_suit_lock.png",
+      "family": "suit_relation",
+      "uniqueness_key": "suit_relation|fused_suit|lock_bar|upright_center|keyhole_void|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 6.857,
+      "sha256": "2c6f763831793c785ef3768019f90739e565e4d83c96ac895032d496e06666dd",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "suit_echo",
+      "path": "jokers/joker_suit_echo.png",
+      "family": "suit_relation",
+      "uniqueness_key": "suit_relation|fused_suit|echo_rim|offset_left|side_crescent_void|3",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 7.604,
+      "sha256": "1348c173d4d720c1fd814c5ddee7e4c32061cd76e5cfd04a8e59e287c50e9a88",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "suit_pivot",
+      "path": "jokers/joker_suit_pivot.png",
+      "family": "suit_relation",
+      "uniqueness_key": "suit_relation|fused_suit|pivot_dot|quarter_turn|axis_pin_void|4",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 4.992,
+      "sha256": "5db0e81953e2bc7cea5bec28ed157b75b9891e52b16f57f13dba5ada6d6e4b27",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "three_suit_braid",
+      "path": "jokers/joker_three_suit_braid.png",
+      "family": "suit_relation",
+      "uniqueness_key": "suit_relation|fused_suit|braid_band|tri_lobed|triple_teardrop_void|5",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 5.615,
+      "sha256": "8a9ab9fcf5da6cea945fe80234aa4bccc64e61707cf94b55dd34db618c717fc6",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "suit_splitter",
+      "path": "jokers/joker_suit_splitter.png",
+      "family": "suit_relation",
+      "uniqueness_key": "suit_relation|fused_suit|split_band|split_horizontal|middle_stripe_void|6",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 8.975,
+      "sha256": "d76c1a6828321f4f6d4301fedeb8fa2c8b2ce7351be576f601c08bda75e99acb",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "minor_suit",
+      "path": "jokers/joker_minor_suit.png",
+      "family": "suit_relation",
+      "uniqueness_key": "suit_relation|fused_suit|minor_petal|bottom_weighted|lower_petal_void|7",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 4.869,
+      "sha256": "0782cc44bcf248bb84778b858c5044ac803f658cd57e55530079e96d084bbeea",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "suit_crown",
+      "path": "jokers/joker_suit_crown.png",
+      "family": "suit_relation",
+      "uniqueness_key": "suit_relation|fused_suit|flat_crown|top_weighted|crown_slot_void|null",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 6.276,
+      "sha256": "e1c8dd4f7b875204593a087054d06fc1b2a0679e0339af730ed870d53b56b310",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "open_tray",
+      "path": "jokers/joker_open_tray.png",
+      "family": "cache_structure",
+      "uniqueness_key": "cache_structure|slot_tray|open_lip|front_flat|left_empty_slot|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 9.086,
+      "sha256": "2587b587b186aa92b028e87bd0b8c8d627590d5ee556d892a5d83e35a958d29c",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "sealed_tray",
+      "path": "jokers/joker_sealed_tray.png",
+      "family": "cache_structure",
+      "uniqueness_key": "cache_structure|slot_tray|seal_strip|front_tilted|sealed_middle_slot|2",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 7.495,
+      "sha256": "2a367bd375351f98b89a1cab2f799d873ce1c1e9ea79d6da5c70bc8319bf5b01",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "deep_tray",
+      "path": "jokers/joker_deep_tray.png",
+      "family": "cache_structure",
+      "uniqueness_key": "cache_structure|slot_tray|deep_wall|three_quarter_left|deep_shadow_channel|3",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 7.9,
+      "sha256": "d8ca42aeb17a23e2d781b94cb055a5779adbc4b13b1758d9d2a457852341f4f1",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "shallow_tray",
+      "path": "jokers/joker_shallow_tray.png",
+      "family": "cache_structure",
+      "uniqueness_key": "cache_structure|slot_tray|shallow_lip|three_quarter_right|wide_top_channel|4",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 6.634,
+      "sha256": "31c68797ccc113979a1dc40459676a9768aace00445b24d90510304219d36274",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "split_tray",
+      "path": "jokers/joker_split_tray.png",
+      "family": "cache_structure",
+      "uniqueness_key": "cache_structure|slot_tray|divider_wall|vertical_compact|twin_slot_voids|5",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 9.515,
+      "sha256": "f870ea44751c6e1ee29b947384052ce1b73ea0a939a87b402c2049d6d5782b1b",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "tilt_tray",
+      "path": "jokers/joker_tilt_tray.png",
+      "family": "cache_structure",
+      "uniqueness_key": "cache_structure|slot_tray|slide_mark|diagonal_rise|slanted_exit_gap|6",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 8.213,
+      "sha256": "43d6c7ce8a4841a39a578b19bffc6f3b8b02c5ab079c41ae9ba82960918e351c",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "inverted_tray",
+      "path": "jokers/joker_inverted_tray.png",
+      "family": "cache_structure",
+      "uniqueness_key": "cache_structure|slot_tray|inversion_mark|inverted|bottom_slot_void|7",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 9.055,
+      "sha256": "7aeb78d9b760a78def0e7d6903e1ce72720eeb9e3fb1b2d573d77ca017e02c7b",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "sidecar_tray",
+      "path": "jokers/joker_sidecar_tray.png",
+      "family": "cache_structure",
+      "uniqueness_key": "cache_structure|slot_tray|sidecar_box|side_attached|side_box_void|null",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 8.876,
+      "sha256": "3ed32086103e6514560a2909ddb9cac36592d773fa5364aa6df2b8d96b54768b",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "first_discard",
+      "path": "jokers/joker_first_discard.png",
+      "family": "discard_behavior",
+      "uniqueness_key": "discard_behavior|discard_ticks|first_cap|left_to_right|leading_tick_gap|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 8.72,
+      "sha256": "6025d62b2a03fc626f958b7b92b6eea8f107ab7803ed4a87a06d85329b67f35f",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "last_discard",
+      "path": "jokers/joker_last_discard.png",
+      "family": "discard_behavior",
+      "uniqueness_key": "discard_behavior|discard_ticks|tail_bar|right_to_left|trailing_tick_gap|2",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 9.585,
+      "sha256": "8f04a3e90dbaabe42bcc653df79afa70f53bc054816329292bf8cd5082661a36",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "even_discard",
+      "path": "jokers/joker_even_discard.png",
+      "family": "discard_behavior",
+      "uniqueness_key": "discard_behavior|discard_ticks|pair_brace|paired_horizontal|double_tick_channel|4",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 9.904,
+      "sha256": "86b87874f6728977bd3cd00ae9927208b92c5e81f80861e1e6d7746ad4328423",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "odd_discard",
+      "path": "jokers/joker_odd_discard.png",
+      "family": "discard_behavior",
+      "uniqueness_key": "discard_behavior|discard_ticks|single_spine|stacked_vertical|center_tick_void|3",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 6.363,
+      "sha256": "98c5826b5ba0df4235966e4d490f6449adf58407f3ba6cba2a815a60f25b9baf",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "clean_discard",
+      "path": "jokers/joker_clean_discard.png",
+      "family": "discard_behavior",
+      "uniqueness_key": "discard_behavior|discard_ticks|clean_sweep|diagonal_rise|swept_lane_void|5",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 6.837,
+      "sha256": "15a16e726e933dfa9707f596f0822cd01b76c486795ed862def00eb0fa9797b8",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "heavy_discard",
+      "path": "jokers/joker_heavy_discard.png",
+      "family": "discard_behavior",
+      "uniqueness_key": "discard_behavior|discard_ticks|heavy_weight|diagonal_fall|compressed_lower_gap|6",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 9.541,
+      "sha256": "50fb244c322fd568ef99d42cc51e3983e48bc1a4c8b7d27c7fc1d145771465e3",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "silent_discard",
+      "path": "jokers/joker_silent_discard.png",
+      "family": "discard_behavior",
+      "uniqueness_key": "discard_behavior|discard_ticks|still_frame|boxed_center|frame_inner_void|7",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 6.934,
+      "sha256": "01397bc61f112ea71a0dde0b14d1cbb4cebd1818d5ac2b3fa8b1d5547fb8c608",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "burn_count",
+      "path": "jokers/joker_burn_count.png",
+      "family": "discard_behavior",
+      "uniqueness_key": "discard_behavior|discard_ticks|count_ring|circular_loop|ring_break_void|null",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 6.429,
+      "sha256": "ca2c8de7afa6d1fc218c92911f69f92f100646e8ea6a8055d558f02a10871a99",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "left_swap",
+      "path": "jokers/joker_left_swap.png",
+      "family": "swap_behavior",
+      "uniqueness_key": "swap_behavior|swap_gate|left_arrow|opens_left|left_gate_slit|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 6.768,
+      "sha256": "1ed314907d27419470887ed8c3f141042c6b3e9d07684812c2ea9c473b02a91b",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "right_swap",
+      "path": "jokers/joker_right_swap.png",
+      "family": "swap_behavior",
+      "uniqueness_key": "swap_behavior|swap_gate|right_arrow|opens_right|right_gate_slit|2",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 7.162,
+      "sha256": "a18760b912ed6b15d83a0af8a3b86103068413e5ca21bb4c71d1330959814858",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "double_swap",
+      "path": "jokers/joker_double_swap.png",
+      "family": "swap_behavior",
+      "uniqueness_key": "swap_behavior|swap_gate|double_leaf|opens_center|central_gate_void|3",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 9.51,
+      "sha256": "b590ca020b3cc6ec6bc84cea8d5b92d06916b3a64fbc38285f80f109c4bc92f6",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "blocked_swap",
+      "path": "jokers/joker_blocked_swap.png",
+      "family": "swap_behavior",
+      "uniqueness_key": "swap_behavior|swap_gate|crossbar|closed_front|bar_shadow_gap|4",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 7.892,
+      "sha256": "f1293d4c24863935825406b45af5ccc11819bd251e8b965faf2a746ce21a6e2a",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "narrow_swap",
+      "path": "jokers/joker_narrow_swap.png",
+      "family": "swap_behavior",
+      "uniqueness_key": "swap_behavior|swap_gate|narrow_mark|vertical_slit|needle_gap|5",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 8.952,
+      "sha256": "bbfbce5b17afcdbbe042f7424e7f52ce2906bfe3870c075ce3540a59bd9ab843",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "wide_swap",
+      "path": "jokers/joker_wide_swap.png",
+      "family": "swap_behavior",
+      "uniqueness_key": "swap_behavior|swap_gate|wide_mark|wide_open|wide_mouth_void|6",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 7.653,
+      "sha256": "bbb695b36c242c62c63e1ac4b4d695abcce176f624c2c8e74e1c658fc12af75d",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "return_swap",
+      "path": "jokers/joker_return_swap.png",
+      "family": "swap_behavior",
+      "uniqueness_key": "swap_behavior|swap_gate|return_hook|diagonal_return|hook_inner_void|7",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 6.904,
+      "sha256": "f5c612fba9a69dad708b0b681e695c4ea2044ee7d0773ad287e6f8f4c6815630",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "phase_swap",
+      "path": "jokers/joker_phase_swap.png",
+      "family": "swap_behavior",
+      "uniqueness_key": "swap_behavior|swap_gate|phase_offset|offset_overlay|offset_axis_void|null",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 7.113,
+      "sha256": "e81092959ca17c05f0761a63e639c74290287339ecd01ebce4af4066a3ffe608",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "last_bar",
+      "path": "jokers/joker_last_bar.png",
+      "family": "time_window",
+      "uniqueness_key": "time_window|clock_wedge|end_cap|right|thin_terminal_slot|3",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 9.292,
+      "sha256": "742ccfd31bde52b8d76ef992f5afb878b224f60425d408f275255f86daed1620",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "first_light",
+      "path": "jokers/joker_first_light.png",
+      "family": "time_window",
+      "uniqueness_key": "time_window|clock_wedge|start_block|left|square_origin_cut|2",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 6.857,
+      "sha256": "af03b2c8247056b54caccd0677efe2b55cf098be63b087b40f51bbf93fd48219",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "midnight_mark",
+      "path": "jokers/joker_midnight_mark.png",
+      "family": "time_window",
+      "uniqueness_key": "time_window|clock_wedge|center_notch|upright|vertical_center_slit|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 6.582,
+      "sha256": "f00b09939c9ccef34c4f691b20c706268efe7d788fbdf23fb8d82bb069d93c0e",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "held_second",
+      "path": "jokers/joker_held_second.png",
+      "family": "time_window",
+      "uniqueness_key": "time_window|clock_wedge|pause_dots|up_right|two_round_pips|2",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 6.953,
+      "sha256": "4a631051eb360421fc7d5766df9b529c44dab1b10d8e1dc8ade161082083e60e",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "overtime_stub",
+      "path": "jokers/joker_overtime_stub.png",
+      "family": "time_window",
+      "uniqueness_key": "time_window|clock_wedge|overflow_tail|down_right|broken_outer_gap|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 6.821,
+      "sha256": "2f3d12d76a321fd467bcabd576844c8d4b66dcd42bd484fe1c7900967f662557",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "quiet_countdown",
+      "path": "jokers/joker_quiet_countdown.png",
+      "family": "time_window",
+      "uniqueness_key": "time_window|clock_wedge|outer_ticks|down|wide_inner_bite|4",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 4.973,
+      "sha256": "a0a149b6d7d6b53b4472d8cca4943799bf55d2b49163d1d9d8d03cc15d207728",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "split_timer",
+      "path": "jokers/joker_split_timer.png",
+      "family": "time_window",
+      "uniqueness_key": "time_window|clock_wedge|split_rule|horizontal|crossbar_gap|2",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 6.226,
+      "sha256": "ff0a10770160b332a524890794d06955efd833402b0c868a86b332188f2ad9f9",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "late_lock",
+      "path": "jokers/joker_late_lock.png",
+      "family": "time_window",
+      "uniqueness_key": "time_window|clock_wedge|tip_lock|right|single_keyhole|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 6.426,
+      "sha256": "b5c85d3c8a744f59e8e77cb52a7cf0532a3fe94be38209557648e3a822c64048",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "coin_rope",
+      "path": "jokers/joker_coin_rope.png",
+      "family": "coin_holding",
+      "uniqueness_key": "coin_holding|coin_chain|plain_link|horizontal|round_coin_holes|3",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 9.056,
+      "sha256": "e707a40677111483bd9ad076e9bf2530a122e48d52886454d4191c0039788676",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "heavy_purse",
+      "path": "jokers/joker_heavy_purse.png",
+      "family": "coin_holding",
+      "uniqueness_key": "coin_holding|coin_chain|weighted_sag|down_arc|crescent_under_gap|8",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 9.402,
+      "sha256": "a04a587b98b4b2c02de23a23e3ba66fa672f136609705236ca287339a30602dc",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "small_change",
+      "path": "jokers/joker_small_change.png",
+      "family": "coin_holding",
+      "uniqueness_key": "coin_holding|coin_chain|missing_link|left|wide_center_void|2",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 9.039,
+      "sha256": "7db8ec28e96866801ef850f455ac80541d8167dbe9aba71f8f06362abeee19ac",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "coin_anchor",
+      "path": "jokers/joker_coin_anchor.png",
+      "family": "coin_holding",
+      "uniqueness_key": "coin_holding|coin_chain|anchor_clasp|vertical|hook_cutout|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 4.947,
+      "sha256": "faf1c34985f69260633f5dd2cb2346f09d81b357fa1d172ec518171f33a82a5e",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "even_float",
+      "path": "jokers/joker_even_float.png",
+      "family": "coin_holding",
+      "uniqueness_key": "coin_holding|coin_chain|paired_stack|upright|equal_twin_slots|2",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 6.38,
+      "sha256": "48b38d5198a17ca6310074737bc3241d69e4fcc029bd01a1660d5d98faec7103",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "odd_float",
+      "path": "jokers/joker_odd_float.png",
+      "family": "coin_holding",
+      "uniqueness_key": "coin_holding|coin_chain|offset_middle|diagonal_up|staggered_side_gap|3",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 7.514,
+      "sha256": "a76c38d88fb4d6e8adc9cd91ac27479434eecf27374e485688362924ceb0d3e1",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "sealed_coffer",
+      "path": "jokers/joker_sealed_coffer.png",
+      "family": "coin_holding",
+      "uniqueness_key": "coin_holding|coin_chain|seal_band|right|narrow_band_slit|5",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 9.5,
+      "sha256": "7a14bbd46a67597002e599a66b968616e870566902fddfe7ec16a915aed0907c",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "empty_till",
+      "path": "jokers/joker_empty_till.png",
+      "family": "coin_holding",
+      "uniqueness_key": "coin_holding|coin_chain|hollow_links|horizontal|full_link_voids|0",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 9.319,
+      "sha256": "2e1d4f267b6253d5524ffc6fb976cc94469aa81260d460964ed11238ee292ea3",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "side_rack",
+      "path": "jokers/joker_side_rack.png",
+      "family": "shop_offer",
+      "uniqueness_key": "shop_offer|offer_strip|left_coupon|horizontal|left_square_cut|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 9.113,
+      "sha256": "b8081ea50124568ae7aaf388a0c4596000b4a5f3a46431525559a8963747a3f2",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "right_rack",
+      "path": "jokers/joker_right_rack.png",
+      "family": "shop_offer",
+      "uniqueness_key": "shop_offer|offer_strip|right_empty_slot|horizontal|right_rect_void|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 6.166,
+      "sha256": "f65e609e74cd675727ae71789be6a7413993d6745d2eadbdb03e67afbe2aaec5",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "marked_offer",
+      "path": "jokers/joker_marked_offer.png",
+      "family": "shop_offer",
+      "uniqueness_key": "shop_offer|offer_strip|center_tag|upright|tag_pin_hole|3",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 7.571,
+      "sha256": "9fa505d02a9ea75a6f113559bbed4d9d43f598c66f5d2dd9a5f4066356f53162",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "narrow_menu",
+      "path": "jokers/joker_narrow_menu.png",
+      "family": "shop_offer",
+      "uniqueness_key": "shop_offer|offer_strip|compressed_strip|vertical|side_margin_gutters|2",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 4.935,
+      "sha256": "25cd1e416141ac52a14b0251e959bf12458deb8695b9f7fe553086d583203197",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "wide_menu",
+      "path": "jokers/joker_wide_menu.png",
+      "family": "shop_offer",
+      "uniqueness_key": "shop_offer|offer_strip|extended_tabs|horizontal|twin_end_notches|4",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 9.871,
+      "sha256": "162bfd8547495ecf7dcff14dfe7385e5921347c756d2936ae7f122afc75eb519",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "raincheck",
+      "path": "jokers/joker_raincheck.png",
+      "family": "shop_offer",
+      "uniqueness_key": "shop_offer|offer_strip|folded_corner|down_right|corner_triangle_cut|3",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 8.679,
+      "sha256": "07ad84d81a809830e95fc9442f6344fb3627a74574f6870888ad2e4cd93337e1",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "sticker_price",
+      "path": "jokers/joker_sticker_price.png",
+      "family": "shop_offer",
+      "uniqueness_key": "shop_offer|offer_strip|round_sticker|up_left|offcenter_dot_cut|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 5.02,
+      "sha256": "d228389c1a7d19ca174639532bf21914469fc6468c95003e7c1eac0405591198",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "clearance_line",
+      "path": "jokers/joker_clearance_line.png",
+      "family": "shop_offer",
+      "uniqueness_key": "shop_offer|offer_strip|diagonal_mark|diagonal_down|slanted_split_gap|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 9.246,
+      "sha256": "1067b0488bc9c808535848e3b7d356b57d65dbc47d664263488a09212ed0a29d",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "root_note",
+      "path": "jokers/joker_root_note.png",
+      "family": "persistent_growth",
+      "uniqueness_key": "persistent_growth|growth_steps|root_block|up_right|single_base_gap|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 7.971,
+      "sha256": "299221517e3007efff305c5b6fbef68384978431488a379ec3f347dd2ac99b9b",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "slow_rise",
+      "path": "jokers/joker_slow_rise.png",
+      "family": "persistent_growth",
+      "uniqueness_key": "persistent_growth|growth_steps|long_tread|right|three_step_channel|3",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 9.488,
+      "sha256": "a5e7604f86952baeb828f3f82e7576c3fb204afa81b71601ae71aabd72932dd6",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "compound_mark",
+      "path": "jokers/joker_compound_mark.png",
+      "family": "persistent_growth",
+      "uniqueness_key": "persistent_growth|growth_steps|double_score|up|paired_riser_slots|2",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 7.359,
+      "sha256": "b149b0ce8cc1e46638c04779abe007009697fa1be6170ccdc734ceef884b5170",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "seed_stack",
+      "path": "jokers/joker_seed_stack.png",
+      "family": "persistent_growth",
+      "uniqueness_key": "persistent_growth|growth_steps|seed_row|up_right|four_seed_cuts|4",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 8.437,
+      "sha256": "981d1701a1f9792681a026c4d8af506004cb645a868f92d725ff754a6a0270c9",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "scar_tally",
+      "path": "jokers/joker_scar_tally.png",
+      "family": "persistent_growth",
+      "uniqueness_key": "persistent_growth|growth_steps|side_scars|left|three_side_cuts|3",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 5.828,
+      "sha256": "8c688eca4124158b1ba704d4eaabbf558b84f905e071d9dc5c3603d4870b039c",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "ledger_step",
+      "path": "jokers/joker_ledger_step.png",
+      "family": "persistent_growth",
+      "uniqueness_key": "persistent_growth|growth_steps|ledger_pips|horizontal|six_square_pips|6",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 7.751,
+      "sha256": "cf036db3d21efb9c242dbaf72a7373afa3df8a7e6c4af0a3598e523e798c0257",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "patina",
+      "path": "jokers/joker_patina.png",
+      "family": "persistent_growth",
+      "uniqueness_key": "persistent_growth|growth_steps|outer_lip|down_right|thin_shadow_channel|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 9.527,
+      "sha256": "76d2ec0f65197f0e9f17c40b20ce8ae5dca4fd14864cbef8a6b9f7868dd659db",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "banked_riser",
+      "path": "jokers/joker_banked_riser.png",
+      "family": "persistent_growth",
+      "uniqueness_key": "persistent_growth|growth_steps|bank_slots|up_left|four_riser_slots|4",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 9.09,
+      "sha256": "927cf0af8b4d4e4bf28ce327e888937386e58fa0225252cb3c708d481f49eb52",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "verse_head",
+      "path": "jokers/joker_verse_head.png",
+      "family": "phrase_position",
+      "uniqueness_key": "phrase_position|phrase_timeline|raised_second|left_to_right|second_tick_cut|2",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 7.638,
+      "sha256": "7831de2c7c8071a4153edcc4e8bddcf235eedad9de1121c99916905d265b82db",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "bridge_pin",
+      "path": "jokers/joker_bridge_pin.png",
+      "family": "phrase_position",
+      "uniqueness_key": "phrase_position|phrase_timeline|center_pin|horizontal|central_pin_hole|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 9.521,
+      "sha256": "e8ae7ea0f5c461c853e6bbde40bca334cadbecabb07d4d7de309be5c9cf7f921",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "outro_step",
+      "path": "jokers/joker_outro_step.png",
+      "family": "phrase_position",
+      "uniqueness_key": "phrase_position|phrase_timeline|penult_drop|right_to_left|penult_step_gap|2",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 9.022,
+      "sha256": "4c454909e39eced9441a5f1b7366cd1d21fc702545198d7026a1019238bae905",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "section_tail",
+      "path": "jokers/joker_section_tail.png",
+      "family": "phrase_position",
+      "uniqueness_key": "phrase_position|phrase_timeline|tail_loop|right|loop_eye|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 9.715,
+      "sha256": "5edd92b7e149bd154402b695f9391968b2ea36267ea4da3ed94a0e7b133b5805",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "skip_marker",
+      "path": "jokers/joker_skip_marker.png",
+      "family": "phrase_position",
+      "uniqueness_key": "phrase_position|phrase_timeline|bridge_gap|up_right|missing_tick_void|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 7.992,
+      "sha256": "0ba0e5c1c7cf4492adfaffd49ceeaeaa31c63553ab85609d4c4a129db1e692e7",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "anchor_beat",
+      "path": "jokers/joker_anchor_beat.png",
+      "family": "phrase_position",
+      "uniqueness_key": "phrase_position|phrase_timeline|square_anchor|horizontal|fourth_square_cut|4",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 9.584,
+      "sha256": "88908e1eee340e23734cbe638ba19fb3d599f07649e10948e6a13eea64c29a87",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "pre_drop",
+      "path": "jokers/joker_pre_drop.png",
+      "family": "phrase_position",
+      "uniqueness_key": "phrase_position|phrase_timeline|pre_end_flag|down|flag_stem_gap|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 7.495,
+      "sha256": "34ce0ab988aa4dbf5fc320620e05ae3458633e688e4c6701db524c4b4f7cc457",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "afterglow",
+      "path": "jokers/joker_afterglow.png",
+      "family": "phrase_position",
+      "uniqueness_key": "phrase_position|phrase_timeline|after_tick|right|detached_end_gap|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 9.824,
+      "sha256": "fa8994d39565aeb768cdc86ac111d95697151056e4940be2846aafea685f5a3f",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "soft_echo",
+      "path": "jokers/joker_soft_echo.png",
+      "family": "repeat_variation",
+      "uniqueness_key": "repeat_variation|echo_loop|twin_inner_loops|clockwise|paired_oval_voids|2",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 8.542,
+      "sha256": "81322cebbd2adc6e33a69dd4f4d073e517519c6799d66839bab3e3b6100699b7",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "hard_echo",
+      "path": "jokers/joker_hard_echo.png",
+      "family": "repeat_variation",
+      "uniqueness_key": "repeat_variation|echo_loop|corner_fold|counterclockwise|angled_center_cut|2",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 8.515,
+      "sha256": "4987320b8d93d7d535bfc63e362964426ed78c29caa9f448a2ae9a1dc876466e",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "third_pass",
+      "path": "jokers/joker_third_pass.png",
+      "family": "repeat_variation",
+      "uniqueness_key": "repeat_variation|echo_loop|triple_cut|upright|three_outer_bites|3",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 7.83,
+      "sha256": "b8c159279a68726e73937f13989a491a6c607dbfbc968636d7da4c3a2653d82e",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "fresh_turn",
+      "path": "jokers/joker_fresh_turn.png",
+      "family": "repeat_variation",
+      "uniqueness_key": "repeat_variation|echo_loop|new_exit|up_right|open_exit_gap|2",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 8.861,
+      "sha256": "564c06997e90aa73348dd11e4b7cdc1aaf20e6e638fde1fd5b670a14b518f895",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "mirror_count",
+      "path": "jokers/joker_mirror_count.png",
+      "family": "repeat_variation",
+      "uniqueness_key": "repeat_variation|echo_loop|mirror_pips|horizontal|symmetric_side_pips|2",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 6.846,
+      "sha256": "a466a35374a5190a651663e98689442418e89c58cc19152494bded47a2746f78",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "broken_refrain",
+      "path": "jokers/joker_broken_refrain.png",
+      "family": "repeat_variation",
+      "uniqueness_key": "repeat_variation|echo_loop|rejoined_break|down_left|offset_crack_gap|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 9.371,
+      "sha256": "7be6566bdc8ad95fdb446f306a71ccc18635036f19e93f8d4bda07cd6cad3fb8",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "alternate_lace",
+      "path": "jokers/joker_alternate_lace.png",
+      "family": "repeat_variation",
+      "uniqueness_key": "repeat_variation|echo_loop|woven_cross|diagonal_up|three_lace_windows|3",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 9.075,
+      "sha256": "77ba92d96aa35d02dcb452cb9a81a4ab438dc346d1c82695986016bf63350610",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "quiet_variant",
+      "path": "jokers/joker_quiet_variant.png",
+      "family": "repeat_variation",
+      "uniqueness_key": "repeat_variation|echo_loop|single_branch|left|branch_root_cut|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 5.576,
+      "sha256": "934d0d0d74d84ca004383016e1caf3f1451ac421bf2d5f32fa99311e234806b3",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "leaf_thinner",
+      "path": "jokers/joker_leaf_thinner.png",
+      "family": "deck_edit",
+      "uniqueness_key": "deck_edit|deck_cut|single_top_notch|horizontal_left|thin_crescent_gap|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 8.678,
+      "sha256": "24dd47b1bb16f7c84655cc7796277fed5d75d74f55957db5d3fe85c123db8976",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "bottom_drawer",
+      "path": "jokers/joker_bottom_drawer.png",
+      "family": "deck_edit",
+      "uniqueness_key": "deck_edit|deck_cut|bottom_drawer_tab|vertical_up|rectangular_base_slot|3",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 7.222,
+      "sha256": "cf71cd7fcb0085c63a3ee61de2ab431652d63a1a224873f7e973983ef87157fa",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "rank_sieve",
+      "path": "jokers/joker_rank_sieve.png",
+      "family": "deck_edit",
+      "uniqueness_key": "deck_edit|deck_cut|perforated_rank_bar|diagonal_rise|three_round_pinholes|3",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 6.917,
+      "sha256": "36236472763e263a6b83bdbbeb34349549c7930654af4172fc93562795a9d144",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "suit_splice",
+      "path": "jokers/joker_suit_splice.png",
+      "family": "deck_edit",
+      "uniqueness_key": "deck_edit|deck_cut|single_suit_wedge|horizontal_right|diamond_seam_void|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 9.02,
+      "sha256": "de350f119a20858f252cbbf4d429a536d499be70457a1874353acd2f5d5e41d3",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "ace_filing",
+      "path": "jokers/joker_ace_filing.png",
+      "family": "deck_edit",
+      "uniqueness_key": "deck_edit|deck_cut|ace_index_tab|vertical_down|a_shaped_notch|2",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 6.202,
+      "sha256": "9db142f102171ad24e8867534153d79cec1da881fe812cfb8fdc04561166201f",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "face_shear",
+      "path": "jokers/joker_face_shear.png",
+      "family": "deck_edit",
+      "uniqueness_key": "deck_edit|deck_cut|crown_shear_mark|diagonal_fall|crown_bite_void|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 6.243,
+      "sha256": "e429e14d91aa2ec8bf275f661a03cc9de05e3a00f83fefc41348c3329bf92dd3",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "pocket_deck",
+      "path": "jokers/joker_pocket_deck.png",
+      "family": "deck_edit",
+      "uniqueness_key": "deck_edit|deck_cut|pocket_outline|centered_stack|small_square_pocket|6",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 9.694,
+      "sha256": "c9790912d3709923e304c80f3abb3848d10aff90b9509f7e4397b6650bfca05f",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "archive_cut",
+      "path": "jokers/joker_archive_cut.png",
+      "family": "deck_edit",
+      "uniqueness_key": "deck_edit|deck_cut|archive_tag|steep_left|tag_eye_hole|4",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 6.136,
+      "sha256": "65e3c11e19ed7a091b3f71a12508f11c5d7045559b3a4b07686312acd5635e7b",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "court_tax",
+      "path": "jokers/joker_court_tax.png",
+      "family": "rank_face_rule",
+      "uniqueness_key": "rank_face_rule|rank_scale|crown_stamp|vertical_up|narrow_crown_slot|3",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 4.91,
+      "sha256": "5e399c993fb8479d55118a23ddce3abc45cbff36d0653bb8bae427e197f43040",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "jack_floor",
+      "path": "jokers/joker_jack_floor.png",
+      "family": "rank_face_rule",
+      "uniqueness_key": "rank_face_rule|rank_scale|floor_tick|horizontal_left|j_shaped_lower_gap|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 5.964,
+      "sha256": "7cb2ecc94f646bca33338018a40f845a870e8c47107ad710938b6963007aa15a",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "queen_scale",
+      "path": "jokers/joker_queen_scale.png",
+      "family": "rank_face_rule",
+      "uniqueness_key": "rank_face_rule|rank_scale|queen_pan|diagonal_rise|round_pan_hollow|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 5.823,
+      "sha256": "80809e16018cabf5d923331ac47981c2dcd5527de3cc0e25f64a491f34478e8c",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "king_weight",
+      "path": "jokers/joker_king_weight.png",
+      "family": "rank_face_rule",
+      "uniqueness_key": "rank_face_rule|rank_scale|heavy_k_block|horizontal_right|block_keyhole|3",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 8.706,
+      "sha256": "deb89ab6599b94d2cd38f36d8977f95e776612c463733e998b34a5827ae812f7",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "ace_ceiling",
+      "path": "jokers/joker_ace_ceiling.png",
+      "family": "rank_face_rule",
+      "uniqueness_key": "rank_face_rule|rank_scale|ace_ceiling_cap|vertical_down|wide_a_apex|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 5.035,
+      "sha256": "e5461c8ea58b8c7684013ed04de226c9358d950708ca032b4aa1b34cf167f07d",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "even_ladder",
+      "path": "jokers/joker_even_ladder.png",
+      "family": "rank_face_rule",
+      "uniqueness_key": "rank_face_rule|rank_scale|even_rung_bar|steep_right|four_step_gaps|4",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 5.631,
+      "sha256": "087e6cd436f440321de593c5dee8a5502083d2e5ec914a271552fc06d6fb1447",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "odd_lantern",
+      "path": "jokers/joker_odd_lantern.png",
+      "family": "rank_face_rule",
+      "uniqueness_key": "rank_face_rule|rank_scale|odd_lantern|diagonal_fall|five_dot_windows|5",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 7.983,
+      "sha256": "981f249860ac8c2578503633e79dfdba45bcc79aa9de0c59a4c174c1cb692af8",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "rank_echo",
+      "path": "jokers/joker_rank_echo.png",
+      "family": "rank_face_rule",
+      "uniqueness_key": "rank_face_rule|rank_scale|offset_echo_tick|centered_column|parallel_slit|2",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 4.807,
+      "sha256": "c4da09fe9b9928750fd5bdd57720641cda88371ee2ef0ad9a788a54bb9985698",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "ghost_suit",
+      "path": "jokers/joker_ghost_suit.png",
+      "family": "wild_copy_transform",
+      "uniqueness_key": "wild_copy_transform|split_mirror|ghost_suit_shard|vertical_up|suit_shaped_hollow|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 4.931,
+      "sha256": "7c17dcc4f04e560352ebce4df837bad32c5dd5ef234d366b294d6085916bbf7d",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "blank_mask",
+      "path": "jokers/joker_blank_mask.png",
+      "family": "wild_copy_transform",
+      "uniqueness_key": "wild_copy_transform|split_mirror|blank_mask_plate|horizontal_left|oval_eye_void|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 5.037,
+      "sha256": "995158702033b34e7d3a1f732e5e1810544bf9a334f1de70c2d631f40c8d103e",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "borrowed_rank",
+      "path": "jokers/joker_borrowed_rank.png",
+      "family": "wild_copy_transform",
+      "uniqueness_key": "wild_copy_transform|split_mirror|rank_beam|diagonal_rise|thin_beam_channel|2",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 4.964,
+      "sha256": "393a0e31cc3f77ba80519c698f7287193b6a1b87b48cda65601267f4819b60c6",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "echo_wild",
+      "path": "jokers/joker_echo_wild.png",
+      "family": "wild_copy_transform",
+      "uniqueness_key": "wild_copy_transform|split_mirror|echo_afterimage|horizontal_right|offset_card_void|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 6.393,
+      "sha256": "ec0967924868095f78f4aa7fb97ed525dc3872a0a847e8aeda8ba4e2a3a65aad",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "proxy_face",
+      "path": "jokers/joker_proxy_face.png",
+      "family": "wild_copy_transform",
+      "uniqueness_key": "wild_copy_transform|split_mirror|face_proxy_chip|vertical_down|small_crownless_gap|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 5.375,
+      "sha256": "978449ae4728f4904ffd195d84e56b5ce85a378aed907ea5b361afea111f352c",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "prism_copy",
+      "path": "jokers/joker_prism_copy.png",
+      "family": "wild_copy_transform",
+      "uniqueness_key": "wild_copy_transform|split_mirror|prism_kink|steep_right|triangular_prism_void|4",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 4.895,
+      "sha256": "2f9115c7f7497193b5ee73dd4e0729da55320554d0b4bb8df2451670a6afc243",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "clay_card",
+      "path": "jokers/joker_clay_card.png",
+      "family": "wild_copy_transform",
+      "uniqueness_key": "wild_copy_transform|split_mirror|soft_clay_corner|diagonal_fall|rounded_thumbprint|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 4.884,
+      "sha256": "c5e394ce628c3f1183a162176eeaa67a8c62ff7a9e45bfbe3609f8ed43a065fd",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "half_double",
+      "path": "jokers/joker_half_double.png",
+      "family": "wild_copy_transform",
+      "uniqueness_key": "wild_copy_transform|split_mirror|half_card_echo|centered_split|half_card_crescent|2",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 5.328,
+      "sha256": "ed9bfdb6444056ebb93e815f0ac3d51782e43751c35af873fa31a1d130141a2f",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "one_hand_vow",
+      "path": "jokers/joker_one_hand_vow.png",
+      "family": "risk_restriction",
+      "uniqueness_key": "risk_restriction|self_lock|single_wrist_clamp|vertical_up|keyhole_slit|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 5.208,
+      "sha256": "7ac19f2a3744109a8fbaab0cde2fd02c2284e8fa81d66762c837d814fac6418b",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "no_swap_oath",
+      "path": "jokers/joker_no_swap_oath.png",
+      "family": "risk_restriction",
+      "uniqueness_key": "risk_restriction|self_lock|crossed_swap_arrow|horizontal_left|arrowhead_void|2",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 7.669,
+      "sha256": "16c0bb1ae26aaacd459e5abe95813bde28e41617722929d3c79c38ffd25898d4",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "discard_debt",
+      "path": "jokers/joker_discard_debt.png",
+      "family": "risk_restriction",
+      "uniqueness_key": "risk_restriction|self_lock|coin_debt_tag|diagonal_rise|coin_bite_hole|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 5.762,
+      "sha256": "4382f8c09855490ced61856a4e6b1dc1aa0c514a9666c21d43576ed059bd4a39",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "coin_lock",
+      "path": "jokers/joker_coin_lock.png",
+      "family": "risk_restriction",
+      "uniqueness_key": "risk_restriction|self_lock|center_coin_clasp|horizontal_right|round_coin_void|8",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 9.076,
+      "sha256": "e9c4269ddc19e63aeae0e4444b5600ac89ae4f81f4dbd17a70b0269e8eeec4e3",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "late_chain",
+      "path": "jokers/joker_late_chain.png",
+      "family": "risk_restriction",
+      "uniqueness_key": "risk_restriction|self_lock|late_clock_latch|vertical_down|narrow_clock_notch|6",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 4.934,
+      "sha256": "4fae518d58a1ea5c6aa6b69bbe80d0c5f3d920c8ac3652c98b2d495c3f78a5f6",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "brittle_slot",
+      "path": "jokers/joker_brittle_slot.png",
+      "family": "risk_restriction",
+      "uniqueness_key": "risk_restriction|self_lock|cracked_slot_plate|steep_left|broken_rectangle_void|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 6.07,
+      "sha256": "2043d4a58067f73693ff91032969de92975db89788dcf8d211f620c31362af74",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "single_suit_pact",
+      "path": "jokers/joker_single_suit_pact.png",
+      "family": "risk_restriction",
+      "uniqueness_key": "risk_restriction|self_lock|single_suit_seal|diagonal_fall|suit_seal_void|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 5.237,
+      "sha256": "8edffd4144c157f172cd434fdd7e148c40e826c8e45cbd4cd16bfcfb8894880d",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "last_card_stake",
+      "path": "jokers/joker_last_card_stake.png",
+      "family": "risk_restriction",
+      "uniqueness_key": "risk_restriction|self_lock|corner_stake_pin|centered_lock|pinpoint_corner_hole|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 5.875,
+      "sha256": "dae39f66d67efbf338eece04528b79ea07f11b10f4738307b78e0af6316541f8",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "overflow_meter",
+      "path": "jokers/joker_overflow_meter.png",
+      "family": "settlement_shape",
+      "uniqueness_key": "settlement_shape|settle_meter|overflow_trough|vertical_up|spill_channel|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 7.902,
+      "sha256": "0b10b435c5acfc6f746801060f1b14c8002a0aea3c1e5c314208aea2e246258f",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "floor_settle",
+      "path": "jokers/joker_floor_settle.png",
+      "family": "settlement_shape",
+      "uniqueness_key": "settlement_shape|settle_meter|floor_beam|horizontal_left|flat_undercut|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 6.061,
+      "sha256": "9f8b1fa546a8fffffd4cc18ad361b7f8f848993e7af5365ff759a635bcfebabd",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "stair_payout",
+      "path": "jokers/joker_stair_payout.png",
+      "family": "settlement_shape",
+      "uniqueness_key": "settlement_shape|settle_meter|four_step_riser|diagonal_rise|stair_step_void|4",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 9.928,
+      "sha256": "6e816802508d0b7d881c9009b6541544286fa81c16a0367abee556a23d3a64b2",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "delayed_total",
+      "path": "jokers/joker_delayed_total.png",
+      "family": "settlement_shape",
+      "uniqueness_key": "settlement_shape|settle_meter|delayed_needle|horizontal_right|shadow_tick_gap|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 7.701,
+      "sha256": "7f89df6d29625a2fe17faee2fab93cf8cc26e4177adcd26016250fac7d3155d1",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "split_receipt",
+      "path": "jokers/joker_split_receipt.png",
+      "family": "settlement_shape",
+      "uniqueness_key": "settlement_shape|settle_meter|receipt_tear|vertical_down|double_column_slit|2",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 5.891,
+      "sha256": "7b0be10d78f0de5aa6f37dc1523d287ec786b9036be67499af9136f65194a929",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "target_anchor",
+      "path": "jokers/joker_target_anchor.png",
+      "family": "settlement_shape",
+      "uniqueness_key": "settlement_shape|settle_meter|anchor_pin|steep_left|anchor_notch|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 9.641,
+      "sha256": "e844023232048ee504b1693ce80a232c3d1a02a89f0c2d4cf0339a537ef28721",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "endcap_meter",
+      "path": "jokers/joker_endcap_meter.png",
+      "family": "settlement_shape",
+      "uniqueness_key": "settlement_shape|settle_meter|endcap_ring|diagonal_fall|ring_center_hole|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 9.676,
+      "sha256": "a9b02249c62c55030a37c9449feb2591f00278b173b9cd3f7c8c604890d9619a",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "carryover_bar",
+      "path": "jokers/joker_carryover_bar.png",
+      "family": "settlement_shape",
+      "uniqueness_key": "settlement_shape|settle_meter|carryover_side_bar|centered_meter|two_small_side_slots|2",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 7.009,
+      "sha256": "8e0573044c54a66eec5be4e8868f1ed586d4b78ea7e2ddd1670bb99827c319e2",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "coda_key",
+      "path": "jokers/joker_coda_key.png",
+      "family": "legendary",
+      "uniqueness_key": "legendary|convergence_key|single_convergence_tooth|centered_key|round_bow_aperture|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 9.828,
+      "sha256": "bc08b6a0e82044fba635a5fa13e1b21b96b4d2ed533a5678e845859e3ca6aed1",
+      "regenerated_for_differentiation": false
+    }
+  ],
+  "blinds": [
+    {
+      "id": "secondtax",
+      "path": "blinds_concept/blind_secondtax.png",
+      "family": "deadline_pressure",
+      "uniqueness_key": "deadline_pressure|compressed_clock|tax_stamp|upright|single_top_wedge|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 3.99,
+      "sha256": "20ae466fe8393f9860aac583ee316a3e5c0dc237f9b17d4d4945ace0dfa1a8c7",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "sandbar",
+      "path": "blinds_concept/blind_sandbar.png",
+      "family": "deadline_pressure",
+      "uniqueness_key": "deadline_pressure|compressed_clock|low_bar|tilted_right|bottom_bite|3",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 4.039,
+      "sha256": "9797ab00061a7d1f18f8cae42301c2c54fdcc7936dfdda05df4166c0d4070d26",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "earlybell",
+      "path": "blinds_concept/blind_earlybell.png",
+      "family": "deadline_pressure",
+      "uniqueness_key": "deadline_pressure|compressed_clock|bell_cap|tilted_left|left_sliver|3",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 4.193,
+      "sha256": "969b381a1554e24e44cb9755bb85ff3e63fe924eae9009da77cc3b9d2df33bee",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "splitminute",
+      "path": "blinds_concept/blind_splitminute.png",
+      "family": "deadline_pressure",
+      "uniqueness_key": "deadline_pressure|compressed_clock|center_split|upright|vertical_needle_gap|2",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 4.205,
+      "sha256": "783254dc4776c962307ed9f2d1e695f24577e123b5da683e8e5093f67cb42f3f",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "latenotch",
+      "path": "blinds_concept/blind_latenotch.png",
+      "family": "deadline_pressure",
+      "uniqueness_key": "deadline_pressure|compressed_clock|edge_notch|mirrored|right_ladder_cuts|4",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 4.346,
+      "sha256": "88d3f72f0a0894d35be9c26da5c6323db19e89f9767d091ef6ac4f6400aa6f45",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "redtick",
+      "path": "blinds_concept/blind_redtick.png",
+      "family": "deadline_pressure",
+      "uniqueness_key": "deadline_pressure|compressed_clock|outer_tick|rotated_quarter|crescent_gap|5",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 4.275,
+      "sha256": "8cd512930e4fc1054b35b7863088df388d75a45369eca56992008c58db4d20ec",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "fusemark",
+      "path": "blinds_concept/blind_fusemark.png",
+      "family": "deadline_pressure",
+      "uniqueness_key": "deadline_pressure|compressed_clock|short_fuse|tilted_right|pin_dot_hole|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 3.981,
+      "sha256": "44317e1507f9307e7e90ed5549c2274a54d2435eeb5e904dbe8487193b7ddd59",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "pulsecut",
+      "path": "blinds_concept/blind_pulsecut.png",
+      "family": "deadline_pressure",
+      "uniqueness_key": "deadline_pressure|compressed_clock|pulse_bar|inverted|three_step_gap|4",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 3.985,
+      "sha256": "025f2cc4250963d80dbcb6bd8dd7d3a11247d901b5ce7b887d662e13dc5c2cb3",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "coldlatch",
+      "path": "blinds_concept/blind_coldlatch.png",
+      "family": "action_lockout",
+      "uniqueness_key": "action_lockout|action_gate|latch_pin|upright|center_keyhole|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 4.841,
+      "sha256": "0836457927da51beeb454415e0dfdb5dad2383baf051e3aeefc7025be9cd5c65",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "returnbar",
+      "path": "blinds_concept/blind_returnbar.png",
+      "family": "action_lockout",
+      "uniqueness_key": "action_lockout|action_gate|return_bar|mirrored|offset_keyhole|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 4.035,
+      "sha256": "153246888a2338555b013bd35bce910aa11514d4304ca8ba5dbecc2a12cea1e9",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "indexseal",
+      "path": "blinds_concept/blind_indexseal.png",
+      "family": "action_lockout",
+      "uniqueness_key": "action_lockout|action_gate|slot_seal|tilted_left|left_slot_gap|2",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 4.629,
+      "sha256": "f706091207bd54b3affb0d054fddf9f0b986329367a636a1b013ba0f082de081",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "hingejam",
+      "path": "blinds_concept/blind_hingejam.png",
+      "family": "action_lockout",
+      "uniqueness_key": "action_lockout|action_gate|jam_block|tilted_right|hinge_crescent|2",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 4.238,
+      "sha256": "33db3e56183f5a33f3fb086dabdb61a8ea7d6ee51a8305cd4264c1b97c6bb1c0",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "quietlever",
+      "path": "blinds_concept/blind_quietlever.png",
+      "family": "action_lockout",
+      "uniqueness_key": "action_lockout|action_gate|resting_lever|upright|lower_rect_gap|3",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 5.758,
+      "sha256": "1fd33bf01d80d1470ee55280b541d134c7c903cb3bdb0fdee506a11896074314",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "crossbar",
+      "path": "blinds_concept/blind_crossbar.png",
+      "family": "action_lockout",
+      "uniqueness_key": "action_lockout|action_gate|diagonal_bar|inverted|narrow_center_gap|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 5.448,
+      "sha256": "ffa6a9722a29009f18fc7deeca1279418610080dffa2000b5dfef545d840d640",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "doublekey",
+      "path": "blinds_concept/blind_doublekey.png",
+      "family": "action_lockout",
+      "uniqueness_key": "action_lockout|action_gate|twin_key|rotated_quarter|paired_keyholes|2",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 4.133,
+      "sha256": "5cd11607af482563b978ee788e28b3f05dc37d7f47b0c6da5e141c91cf92a8d4",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "finalclamp",
+      "path": "blinds_concept/blind_finalclamp.png",
+      "family": "action_lockout",
+      "uniqueness_key": "action_lockout|action_gate|end_clamp|tilted_right|terminal_gap|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 4.396,
+      "sha256": "2564886b2fafe6296f4c140172804a889c8b2ce96ac2e6908423222c3d5e1859",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "suitveil",
+      "path": "blinds_concept/blind_suitveil.png",
+      "family": "hidden_information",
+      "uniqueness_key": "hidden_information|masked_card|suit_veil|upright|center_mask|2",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 4.026,
+      "sha256": "4ddedd792a6e134e0401b94660fd033b27b85885670c19c258dd47b4b222bb11",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "rankfog",
+      "path": "blinds_concept/blind_rankfog.png",
+      "family": "hidden_information",
+      "uniqueness_key": "hidden_information|masked_card|rank_band|tilted_left|upper_band_gap|2",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 4.679,
+      "sha256": "a4381a0f9b85ed9dbf5f6bb3d6c561c1b246fa1ed28b84f0bbac331c2fe69670",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "drawblind",
+      "path": "blinds_concept/blind_drawblind.png",
+      "family": "hidden_information",
+      "uniqueness_key": "hidden_information|masked_card|entry_flap|tilted_right|side_flap_gap|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 4.41,
+      "sha256": "3bcc6d23a181cb260ab6f02a7c585bb14226184ddc20d2d905e643951ddbba93",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "scoreveil",
+      "path": "blinds_concept/blind_scoreveil.png",
+      "family": "hidden_information",
+      "uniqueness_key": "hidden_information|masked_card|score_shade|inverted|lower_score_slot|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 3.934,
+      "sha256": "361edcb16093159de05afc36c1340c36fb1ec29583cd77a65345fac1dd226781",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "cacheveil",
+      "path": "blinds_concept/blind_cacheveil.png",
+      "family": "hidden_information",
+      "uniqueness_key": "hidden_information|masked_card|cache_mask|mirrored|three_square_holes|3",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 5.756,
+      "sha256": "d372879bd605d570f9ecef116a05f863037945111af68309b9759da20529cb7b",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "nextshade",
+      "path": "blinds_concept/blind_nextshade.png",
+      "family": "hidden_information",
+      "uniqueness_key": "hidden_information|masked_card|back_shadow|rotated_quarter|rear_crescent_gap|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 3.963,
+      "sha256": "8d0569ef2edec65051ded35a0a321f4945eaf7e3714bd999e653ee2077f107cb",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "targetmute",
+      "path": "blinds_concept/blind_targetmute.png",
+      "family": "hidden_information",
+      "uniqueness_key": "hidden_information|masked_card|target_plug|upright|round_target_hole|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 4.273,
+      "sha256": "f6e1e0fa2355cabf5c5dab76afa022f73ba86f6b48a81961c9e316e4451de1fa",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "mirrorback",
+      "path": "blinds_concept/blind_mirrorback.png",
+      "family": "hidden_information",
+      "uniqueness_key": "hidden_information|masked_card|mirror_plate|tilted_right|diamond_back_gap|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 4.14,
+      "sha256": "56282d3f5529013593532c04a6d0a644afd6d5df914ea58d48df2041e95701ae",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "slotrot",
+      "path": "blinds_concept/blind_slotrot.png",
+      "family": "cache_disruption",
+      "uniqueness_key": "cache_disruption|broken_slot|corner_turn|upright|single_crack|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 4.551,
+      "sha256": "aec2cc122482e8395049b9dfb0852fcedcb95924423add534ceff6225eb19947",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "dustbin",
+      "path": "blinds_concept/blind_dustbin.png",
+      "family": "cache_disruption",
+      "uniqueness_key": "cache_disruption|broken_slot|dust_lid|mirrored|right_rect_void|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 4.1,
+      "sha256": "f1dce6a718be6309fe053e33a6f085a35919759266e5c96f8016c7925d6f08fd",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "cachetilt",
+      "path": "blinds_concept/blind_cachetilt.png",
+      "family": "cache_disruption",
+      "uniqueness_key": "cache_disruption|broken_slot|oldest_weight|tilted_left|left_drop_gap|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 3.911,
+      "sha256": "e8e0e834a75ac9f0a931926c30d2a02057faa4334b2c1170ec252c5bc7b24e07",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "slotbruise",
+      "path": "blinds_concept/blind_slotbruise.png",
+      "family": "cache_disruption",
+      "uniqueness_key": "cache_disruption|broken_slot|bruise_block|tilted_right|center_chip|2",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 4.146,
+      "sha256": "7fca86a4cd1f8fd23c79627513aba06135f9b2a285af875709438e74a72afd1a",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "leakslot",
+      "path": "blinds_concept/blind_leakslot.png",
+      "family": "cache_disruption",
+      "uniqueness_key": "cache_disruption|broken_slot|leak_spout|inverted|bottom_drip_gap|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 3.913,
+      "sha256": "5c26e380d995af209b04321e44e8fe6211879e49398a2f0bf77832b92f07e7ad",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "cacheknot",
+      "path": "blinds_concept/blind_cacheknot.png",
+      "family": "cache_disruption",
+      "uniqueness_key": "cache_disruption|broken_slot|knot_clamp|rotated_quarter|pinched_middle|3",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 3.927,
+      "sha256": "9c9060525a42383f98a69aafe956281659df52116f4ab379a9e9de8822af78f3",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "splitslot",
+      "path": "blinds_concept/blind_splitslot.png",
+      "family": "cache_disruption",
+      "uniqueness_key": "cache_disruption|broken_slot|split_rib|upright|vertical_rift|2",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 5.242,
+      "sha256": "a9b9b5125c359642189f1bf7f84dbe1e6a572054f60e9ef78fd0d822239a2eca",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "deadcache",
+      "path": "blinds_concept/blind_deadcache.png",
+      "family": "cache_disruption",
+      "uniqueness_key": "cache_disruption|broken_slot|dead_plate|tilted_right|sealed_end_gap|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 4.629,
+      "sha256": "32a65c1d53b9358b77d989b876050c401dbceba7981b74d7400a2909ad882de2",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "thin_deck",
+      "path": "blinds_concept/blind_thin_deck.png",
+      "family": "deck_pressure",
+      "uniqueness_key": "deck_pressure|squeezed_deck|double_top_notch|horizontal_press|narrow_center_slot|2",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 6.42,
+      "sha256": "8907d2b98c67e0725c0dc6fc7f942b4ee79fede3552138353b4ad9d47884f846",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "cut_stack",
+      "path": "blinds_concept/blind_cut_stack.png",
+      "family": "deck_pressure",
+      "uniqueness_key": "deck_pressure|squeezed_deck|diagonal_cut|down_right_slant|offset_split_gap|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 5.086,
+      "sha256": "e75d774ea3afbeb33a23b8a4cd92bed0ae68917144141a38e1a1139de83db637",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "short_pack",
+      "path": "blinds_concept/blind_short_pack.png",
+      "family": "deck_pressure",
+      "uniqueness_key": "deck_pressure|squeezed_deck|triple_bottom_bite|vertical_press|three_floor_gaps|3",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 4.075,
+      "sha256": "f0c053d605cd5cb6e01e6a7dde313634bccf292d9e9095cc94d33b465c039a5b",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "late_shuffle",
+      "path": "blinds_concept/blind_late_shuffle.png",
+      "family": "deck_pressure",
+      "uniqueness_key": "deck_pressure|squeezed_deck|delayed_return_hook|clockwise_wrap|open_return_channel|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 4.665,
+      "sha256": "5f5608ebefd8f22e11d8521ab8811c43ed55126cc370ab4a93e5954575438fcb",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "rank_filter",
+      "path": "blinds_concept/blind_rank_filter.png",
+      "family": "deck_pressure",
+      "uniqueness_key": "deck_pressure|squeezed_deck|four_hole_sieve|center_band|four_round_holes|4",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 4.554,
+      "sha256": "cf4b3332ba862d7b175c2f739ead4417057e33b878e01817cd8ab14f477ee00a",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "suit_squeeze",
+      "path": "blinds_concept/blind_suit_squeeze.png",
+      "family": "deck_pressure",
+      "uniqueness_key": "deck_pressure|squeezed_deck|paired_side_clamps|inward_pair|alternating_color_slots|2",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 6.102,
+      "sha256": "14b2e129718157776b5aa52d361180c4f6e406bb848020367988081248845b26",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "edge_burn",
+      "path": "blinds_concept/blind_edge_burn.png",
+      "family": "deck_pressure",
+      "uniqueness_key": "deck_pressure|squeezed_deck|third_edge_cap|right_edge_stack|stepped_side_void|3",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 5.674,
+      "sha256": "3724581123eec5073367dc46b9f5b8ca4efcff30d9e1620dd65f2f727132dc24",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "draw_choke",
+      "path": "blinds_concept/blind_draw_choke.png",
+      "family": "deck_pressure",
+      "uniqueness_key": "deck_pressure|squeezed_deck|five_tooth_gate|exit_right|pinched_mouth_gap|5",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 5.355,
+      "sha256": "f1fac3f0ac727c96cad72c48d83b7b6cfd97a86fa6b0edcb40564581140855ca",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "high_bar",
+      "path": "blinds_concept/blind_high_bar.png",
+      "family": "score_pressure",
+      "uniqueness_key": "score_pressure|raised_target|single_lift_bar|upward|thin_under_gap|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 4.105,
+      "sha256": "bed446988f042adf76a2b3e50594d5d79499fc86ceed576134a74affdea60238",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "double_bar",
+      "path": "blinds_concept/blind_double_bar.png",
+      "family": "score_pressure",
+      "uniqueness_key": "score_pressure|raised_target|paired_short_bars|left_rise|twin_step_gaps|2",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 4.584,
+      "sha256": "86e27ec479bac0751ed1725870608999bf0e6dda666ccb9efd6b82b962659091",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "peak_tax",
+      "path": "blinds_concept/blind_peak_tax.png",
+      "family": "score_pressure",
+      "uniqueness_key": "score_pressure|raised_target|half_cap|flat_top|capped_peak_void|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 4.507,
+      "sha256": "a9b7ec0dd279ac4d35de802a2dfe2c8d13a162e304a38978a11a8da6b79b9008",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "floor_debt",
+      "path": "blinds_concept/blind_floor_debt.png",
+      "family": "score_pressure",
+      "uniqueness_key": "score_pressure|raised_target|debt_fold|down_then_up|hooked_shortfall_gap|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 4.879,
+      "sha256": "cf54aa2eec6a4b5bea8fe561637614a74d2fbae1975c1837264fc1c2ed151fbd",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "third_peak",
+      "path": "blinds_concept/blind_third_peak.png",
+      "family": "score_pressure",
+      "uniqueness_key": "score_pressure|raised_target|third_tall_tick|center_peak|three_tick_channel|3",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 4.578,
+      "sha256": "362ebfc9c51774c843127b3992304fc8fdbc5c9956f6a38a2459ee9e4b0e9684",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "even_load",
+      "path": "blinds_concept/blind_even_load.png",
+      "family": "score_pressure",
+      "uniqueness_key": "score_pressure|raised_target|leveling_bridge|side_by_side|balanced_double_gap|2",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 5.569,
+      "sha256": "07b92bf47a497f658597ffabbdfcc18a9872a3b474d6456d14ae20a4aa0ab48a",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "narrow_margin",
+      "path": "blinds_concept/blind_narrow_margin.png",
+      "family": "score_pressure",
+      "uniqueness_key": "score_pressure|raised_target|threshold_gate|front_gate|locked_lower_void|8",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 5.461,
+      "sha256": "a9186f4009aae37ca69c9fbf42c28e27df1bd142f7c5025afb41185c26976130",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "redline",
+      "path": "blinds_concept/blind_redline.png",
+      "family": "score_pressure",
+      "uniqueness_key": "score_pressure|raised_target|triple_redline|ascending_layers|layered_shave_slots|3",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 3.969,
+      "sha256": "3b5e07a0885c11fa3876e84691c52568994c2d656c753d3071b99f420d448e69",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "memory_lap",
+      "path": "blinds_concept/blind_memory_lap.png",
+      "family": "history_order",
+      "uniqueness_key": "history_order|sequence_loop|two_step_marker|clockwise_loop|two_gap_lap|2",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 4.826,
+      "sha256": "69c2b56d5efe4b08b789ecc8ad95d38d011d1336a3d531b22d761a50e49e482b",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "stale_order",
+      "path": "blinds_concept/blind_stale_order.png",
+      "family": "history_order",
+      "uniqueness_key": "history_order|sequence_loop|paired_rank_caps|left_pair|adjacent_node_voids|2",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 6.094,
+      "sha256": "8f80c1132d6a17e0653e7f2fe9305c03768e348c7362a8a717597282457a2fea",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "reverse_call",
+      "path": "blinds_concept/blind_reverse_call.png",
+      "family": "history_order",
+      "uniqueness_key": "history_order|sequence_loop|reverse_hook|counter_clockwise_pull|backtrack_channel|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 4.193,
+      "sha256": "ae5c8e867b264d40998e4f0711f56691a2e327318ec069bf045ae831cf5d1de6",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "fourth_echo",
+      "path": "blinds_concept/blind_fourth_echo.png",
+      "family": "history_order",
+      "uniqueness_key": "history_order|sequence_loop|fourth_node_plate|bottom_right_node|single_blocked_node|4",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 4.08,
+      "sha256": "cfb321ad44e82d30a14a38464cdd150c2e24c516bb9329c7024459e6c667f2d6",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "open_close",
+      "path": "blinds_concept/blind_open_close.png",
+      "family": "history_order",
+      "uniqueness_key": "history_order|sequence_loop|open_end_clamp|start_to_end|broken_closure_gap|2",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 4.228,
+      "sha256": "198bc5ec79e238e04bc37dae633006366c262112d702a3cdb7dd452a9eb095ed",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "step_lock",
+      "path": "blinds_concept/blind_step_lock.png",
+      "family": "history_order",
+      "uniqueness_key": "history_order|sequence_loop|five_tooth_spacing_rule|top_arc|wide_step_gap|5",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 4.372,
+      "sha256": "763d4791b62319612861524cbcc138ddcfa43d0d5ad6612cab53054899b1d7a0",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "no_backstep",
+      "path": "blinds_concept/blind_no_backstep.png",
+      "family": "history_order",
+      "uniqueness_key": "history_order|sequence_loop|downstep_slash_gate|descending_right|severed_arrow_gap|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 4.071,
+      "sha256": "691e94e737525213a433ee3732af06aed7bfbf1efe414342681f8fbef618c7a5",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "order_quota",
+      "path": "blinds_concept/blind_order_quota.png",
+      "family": "history_order",
+      "uniqueness_key": "history_order|sequence_loop|three_tier_quota|triangular_cycle|three_inner_slots|3",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 4.31,
+      "sha256": "9d407d3133a32741fdb1e4dcaec9a491e10d06d6079a3876cbe26152004d6b1c",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "thin_wallet",
+      "path": "blinds_concept/blind_thin_wallet.png",
+      "family": "economy_section",
+      "uniqueness_key": "economy_section|drained_coin|single_offer_void|center_empty|one_square_hole|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 4.42,
+      "sha256": "fb2140b145fef6c847eb40fb4d1806b43217831e21383b62e0119929b51f5398",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "rent_due",
+      "path": "blinds_concept/blind_rent_due.png",
+      "family": "economy_section",
+      "uniqueness_key": "economy_section|drained_coin|eight_tooth_meter|right_attached|meter_bite_gap|8",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 3.92,
+      "sha256": "3ccece00ea133bf5b9e71c8e84efc514b1a0a98769fafb421a1d2e458f087753",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "marked_price",
+      "path": "blinds_concept/blind_marked_price.png",
+      "family": "economy_section",
+      "uniqueness_key": "economy_section|drained_coin|double_price_tag|left_tag|tag_corner_cut|2",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 4.652,
+      "sha256": "e49035c99f5620422c3273335034e9fa0bdb499c41d72b56dc1da2e968427622",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "closed_till",
+      "path": "blinds_concept/blind_closed_till.png",
+      "family": "economy_section",
+      "uniqueness_key": "economy_section|drained_coin|till_bar|horizontal_lock|barred_coin_gap|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 4.36,
+      "sha256": "d75fa627a9d802b1edf28120a1f5d7645c546c1636ebc26eed261ae6eafba82d",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "slot_drain",
+      "path": "blinds_concept/blind_slot_drain.png",
+      "family": "economy_section",
+      "uniqueness_key": "economy_section|drained_coin|triple_offer_leak|downward_drain|three_drop_slots|3",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 4.385,
+      "sha256": "4fb1a59c85b11999170bcf0f0528ae3f5a74950a87797a71c75217ee2de68a73",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "coupon_void",
+      "path": "blinds_concept/blind_coupon_void.png",
+      "family": "economy_section",
+      "uniqueness_key": "economy_section|drained_coin|void_coupon_slash|upper_right_slash|folded_coupon_hole|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 4.491,
+      "sha256": "f99238348930ca1e1c0210a80df653e699cdb3c334799cc30f6a71afdfa669f2",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "section_fee",
+      "path": "blinds_concept/blind_section_fee.png",
+      "family": "economy_section",
+      "uniqueness_key": "economy_section|drained_coin|three_held_coins|overhead_hold|triple_coin_void|3",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 4.249,
+      "sha256": "21d69fc593028ffbeb6cdcffce0af033e6f743ec0ee1eb0bfee5166c1be8c6a7",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "late_shop",
+      "path": "blinds_concept/blind_late_shop.png",
+      "family": "economy_section",
+      "uniqueness_key": "economy_section|drained_coin|deferred_shop_gate|right_offset|shifted_door_void|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 5.675,
+      "sha256": "1eb214369ad6b8654a3a0898b995bb8ac7940ff17d6ac9391af4eef78ae0518b",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "black_sun",
+      "path": "blinds_concept/blind_black_sun.png",
+      "family": "finale",
+      "uniqueness_key": "finale|black_sun|eclipse_bite|centered_disc|thin_outer_crescent|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 4.264,
+      "sha256": "c185048bf9f34efb8d149ca05049ad1bd3b2bf16a31af9cff520b3c05e8eac6f",
+      "regenerated_for_differentiation": false
+    },
+    {
+      "id": "sealed_stage",
+      "path": "blinds_concept/blind_sealed_stage.png",
+      "family": "finale",
+      "uniqueness_key": "finale|sealed_stage|triple_slot_seal|front_locked|three_fixed_windows|3",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 4.706,
+      "sha256": "4715a776d3f368682b12140a1469658171fe3dae1f7e4ba874f61f83b24e67d0",
+      "regenerated_for_differentiation": true
+    },
+    {
+      "id": "silent_meter",
+      "path": "blinds_concept/blind_silent_meter.png",
+      "family": "finale",
+      "uniqueness_key": "finale|silent_meter|single_readout_slit|low_arc|muted_needle_gap|1",
+      "status": "generated_and_reviewed_expansion",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "safe_band_status": "passed_pixel_check",
+      "preview_150_status": "passed_visual_review",
+      "perceptual_status": "passed_no_phash_distance_le_8",
+      "quiet_mean_luma": 4.673,
+      "sha256": "a4a3f7109a309473130c6bd652537e8b35b1541d022a9c44e4f1ffd594da04fa",
+      "regenerated_for_differentiation": true
+    }
+  ],
+  "validation": {
+    "catalog": "PASS",
+    "visual_review": "PASS",
+    "strong_subject_pixels_outside_safe_band": 0,
+    "byte_duplicate_groups": 0,
+    "perceptual_pairs_phash_distance_le_8": 0,
+    "regenerated_assets": 59,
+    "luminance_min": 3.911,
+    "luminance_average": 6.5,
+    "luminance_max": 9.928
+  },
+  "contact_sheets": {
+    "jokers_150": "contact_sheets/jokers_150.png",
+    "jokers_150_hidden": "contact_sheets/jokers_150_hidden.png",
+    "jokers_band": "contact_sheets/jokers_band.png",
+    "blinds_150": "contact_sheets/blinds_150.png",
+    "blinds_150_hidden": "contact_sheets/blinds_150_hidden.png",
+    "blinds_band": "contact_sheets/blinds_band.png"
+  }
+}

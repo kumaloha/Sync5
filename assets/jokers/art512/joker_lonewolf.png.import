@@ -15,9 +15,9 @@ dest_files=["res://.godot/imported/joker_lonewolf.png-7d0a81528663f2b8e984d339ef
 
 [params]
 
-compress/mode=0
+compress/mode=1
 compress/high_quality=false
-compress/lossy_quality=0.7
+compress/lossy_quality=0.85
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1

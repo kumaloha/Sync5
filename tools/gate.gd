@@ -294,9 +294,11 @@ func _run_monotonic(cfg: Dictionary, n: int) -> void:
 ## 08-13 `−0.00 ❌`, 同一个零)。**效应若漂回 0, 抛硬币就会回来。**
 ## 真正的修法不是把 `FLAT_BAND` 调宽(那是**为门绿改仪器**), 而是**把带宽从实测标准误推出来**
 ## —— 而下面那个 ±0.005 的噪声值是 **S10 之前**测的, 它自己也已经过期。
-const KNOWN_FLAT := {
-	"起始金币 0 → +3": "S9 裁定:钱从来不是约束(买不起 0.1%、局末余额 34.7◆)—— 往已经溢出的桶里加 3 枚金币, bot 的通关段数不动;真人待定",
-}
+## ⚑ 2026-08-25:「起始金币 0 → +3」也摘掉了(表一度只剩它一条, 现在空表)——
+## 08-24 新基线(删主角被动 + 探针世界有 boon)下实测 +0.02 段压到判定带上沿,
+## 哨兵按自己的规则喊「不再是零效应」。S9 那句裁定的**世界已经变了**, 声明跟着世界走;
+## 空表留着:结构和拼写保护都在, 下一条零效应声明照旧往里写。
+const KNOWN_FLAT := {}
 ## 「零」的判定带:通关段数满分 4.00, 真效应实测 0.47~1.34 段, 噪声在 ±0.005 ——
 ## 0.02 段(0.5%)能干净地把两者分开, 且远小于任何真实效应。
 const FLAT_BAND := 0.02
@@ -306,7 +308,16 @@ var _flat_seen: Dictionary = {}
 
 func _mono(label: String, a: Array, b: Array, want_up: bool) -> void:
 	var d: float = Stat.mean(b) - Stat.mean(a)
+	# ⚑ 2026-08-26:带宽改从**实测标准误**推出 —— 正是上面「残留风险」段预告的真修法。
+	# 起因:金币 −3→0 在 08-26 新基线量出 −0.01 段(±SE ≈ 0.03), 统计上就是零,
+	# 但旧判定(d ≥ −0.0001)把噪声符号当方向 —— 抛硬币门第三次回来。
+	# |Δ| < 2·SE_diff ⇒ 方向**不可判**, 打 ⚠ 平坦进 _warn, 不红也不假绿;
+	# 方向反了且超出噪声带的照旧红。两臂共享 RNG 连续流、非配对, 用独立样本公式。
+	# ⚠ 这不是调宽 FLAT_BAND(那是拍的常数, 已过期过一次)—— SE 跟着 n 与方差走。
+	var se_d: float = sqrt(Stat.variance(a) / maxf(1.0, float(a.size()))
+		+ Stat.variance(b) / maxf(1.0, float(b.size())))
 	var ok: bool = d >= -0.0001 if want_up else d <= 0.0001
+	var noise_flat: bool = (not ok) and absf(d) < 2.0 * se_d
 	# 零效应 + 已声明 → ⚠ 而不是 ❌(行内就看得出来:一个印着 ❌ 却放行的读数
 	# 会让下一个人整体不信这道门, 这条教训今天刚在 kit.gd 上付过一次)
 	# ⚠ `_flat_seen` 记的是「这条 label **存在**」而不是「豁免生效了」——
@@ -314,15 +325,21 @@ func _mono(label: String, a: Array, b: Array, want_up: bool) -> void:
 	if KNOWN_FLAT.has(label):
 		_flat_seen[label] = true
 	var flat: bool = absf(d) < FLAT_BAND and KNOWN_FLAT.has(label)
-	print("    %-28s 通关段数 %.2f → %.2f  (%+.2f)  %s"
-		% [label, Stat.mean(a), Stat.mean(b), d,
-		("⚠ 已知零效应(已声明)" if flat else ("✓" if ok else "❌ 方向反了"))])
+	print("    %-28s 通关段数 %.2f → %.2f  (%+.2f ±%.2f)  %s"
+		% [label, Stat.mean(a), Stat.mean(b), d, se_d,
+		("⚠ 已知零效应(已声明)" if flat
+		else ("⚠ 平坦(|Δ|<2SE, 方向不可判)" if noise_flat
+		else ("✓" if ok else "❌ 方向反了")))])
 	if flat:
 		_warn.append("%s: 实测 %+.2f 段 ≈ 0 —— %s" % [label, d, KNOWN_FLAT[label]])
 		return
+	if noise_flat:
+		_warn.append("%s: 实测 %+.2f ±%.2f 段 —— 噪声带内, 方向不可判(想缩带加大 n)"
+			% [label, d, se_d])
+		return
 	if not ok:
-		_fail.append("单调性破了: %s 应该%s, 实际 %+.2f 段"
-			% [label, "变容易" if want_up else "变难", d])
+		_fail.append("单调性破了: %s 应该%s, 实际 %+.2f 段(±%.2f, 超出噪声带)"
+			% [label, "变容易" if want_up else "变难", d, se_d])
 	elif KNOWN_FLAT.has(label) and absf(d) >= FLAT_BAND:
 		# 反向锁:声明了「零效应」却量出真效应 —— 说明那条裁定过期了(比如经济系统
 		# 重做之后钱重新成为约束)。这是**好消息**, 但表必须跟着改, 否则下一次真的

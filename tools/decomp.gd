@@ -26,7 +26,7 @@ extends Probe
 ## 但 `solving.md §3.4` 实测 **λ 全谱只值 645 分, 而 ε 值 1894 分(2.9 倍)** ——
 ## 用 λ 量技巧惩罚会量到一个小得多的量。**ε 那一列才是主导维度。**
 ##
-## ⚠ **四臂共用随机数**(项目铁律):每局先抽主角、掷脸, 记下 RNG 状态,
+## ⚠ **四臂共用随机数**(项目铁律):每局掷脸后记下 RNG 状态,
 ## 四臂从**同一个状态**出发。不这么做的话噪声会吃掉臂间差异(踩过三次)。
 
 const N_DEFAULT := 15
@@ -58,19 +58,16 @@ func _initialize() -> void:
 
 	for r in range(n):
 		rng.seed = 880000 + r
-		# ⚠ RNG 顺序照 curve.gd:**先抽主角, 后掷脸**。RunLoop 内部也会抽主角,
-		# 所以这里抽好传进去, 否则各臂的随机数流会错位。
-		var character: Character = Character.roster()[rng.randi_range(0, 7)]
 		# ⚑ 一局四张脸走 SectionMod.roll_run 这一份(2026-08-14 收口, 原来 7 份)——
 		# 保证「一局之内不偶然重复」。RNG 消耗与旧代码逐次相同。
 		var faces := SectionMod.roll_run(rng)
 		var st0 := rng.state          # ⚑ 四臂的共同起点
 
-		_arm(acc["base"], rng, st0, r, character, faces, LAM_BASE, 0.0, false)
-		_arm(acc["noface"], rng, st0, r, character, {}, LAM_BASE, 0.0, false)
-		_arm(acc["eps"], rng, st0, r, character, faces, LAM_BASE, EPS_DEGRADED, false)
-		_arm(acc["lam0"], rng, st0, r, character, faces, 0.0, 0.0, false)
-		_arm(acc["oracle"], rng, st0, r, character, faces, LAM_BASE, 0.0, true)
+		_arm(acc["base"], rng, st0, r, faces, LAM_BASE, 0.0, false)
+		_arm(acc["noface"], rng, st0, r, {}, LAM_BASE, 0.0, false)
+		_arm(acc["eps"], rng, st0, r, faces, LAM_BASE, EPS_DEGRADED, false)
+		_arm(acc["lam0"], rng, st0, r, faces, 0.0, 0.0, false)
+		_arm(acc["oracle"], rng, st0, r, faces, LAM_BASE, 0.0, true)
 
 	_report(acc, S, n)
 	print("\n[decomp] %.1fs" % ((Time.get_ticks_msec() - t0) / 1000.0))
@@ -79,14 +76,13 @@ func _initialize() -> void:
 
 ## 跑一局并把 4 个段分记进 `sink`。⚠ 一局的循环走 `RunLoop`(铁律:不许再抄一份)。
 func _arm(sink: Array, rng: RandomNumberGenerator, st0: int, r: int,
-		character: Character, faces: Dictionary, lam: float, eps: float, oracle: bool) -> void:
+		faces: Dictionary, lam: float, eps: float, oracle: bool) -> void:
 	rng.state = st0
 	var prev_oracle := Solver.ORACLE
 	Solver.ORACLE = oracle
 	var o := RunLoop.Opts.new()
 	o.rng = rng
 	o.deck_seed = r * 17 + 5
-	o.character = character
 	o.faces = faces
 	o.player = "perfect"
 	o.lam = lam

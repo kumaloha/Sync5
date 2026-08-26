@@ -4,7 +4,7 @@
 > 待办看 [TODO.md](TODO.md) · 变更史看 [CHANGELOG.md](CHANGELOG.md) · 经验看 [LESSONS.md](LESSONS.md)
 > 规则与美术的**原则**在 [CLAUDE.md](CLAUDE.md) · 设计规格在 `docs/design/`
 >
-> **最后更新:2026-08-21**(08-09 之后的增量见文末「增量快照」节,数字冲突以那节为准)
+> **最后更新:2026-08-26**(增量见文末「增量快照」节,数字冲突以那节为准)
 
 ---
 
@@ -19,10 +19,10 @@ Lumines 的节奏推进 + Balatro 的构筑。一局 4 段 × 6 拍 × 8 秒 ≈
 
 | 项 | 状态 | 命令 |
 |---|---|---|
-| 单元测试 | **2479 passed / 0 failed**(2026-08-22,~13 分钟;四判据全满足,`^ERROR` 6 条全在白名单) | `./tools/unittest.sh`(四判据唯一一份;裸跑 = `godot --headless --path . --script res://tests/runner.gd`) |
+| 单元测试 | **2304 passed / 0 failed**(2026-08-26 对抗批;四判据全满足) | `./tools/unittest.sh`(四判据唯一一份;裸跑 = `godot --headless --path . --script res://tests/runner.gd`) |
 | CI | `.github/workflows/tests.yml`(push/PR 跑 `--import` + `unittest.sh`;**尚未在 GitHub 上验证过一次**,首跑可能要调 Godot 下载链接) | 推送即触发 |
-| 小丑牌覆盖门 | 63 张,由全量门覆盖(单卡 ~12 分钟起,含全量单测) | `SYNC5_KIT_ID=<id> godot --headless --path . --script res://tools/kit.gd` |
-| 内容门 | **2026-08-17 晚在跑**(⚠ 实测 ~4.5 小时,不是表里旧的 910s;上一次全绿 = 08-16 14:51,之后改了 14 处) | `./tools/gate.sh` |
+| 小丑牌覆盖门 | 76 张;单卡 kit 直跑 ~10 秒(不含单测) | `SYNC5_KIT_ID=<id> godot --headless --path . --script res://tools/kit.gd` |
+| 内容门 | **08-26 全量门跑完**(4.9h,对抗批新基线):五红三过期全部尸检处置(声明/仪器层,内容零改;细账 CHANGELOG 08-26b),ranking 已由 rankgen 重刷 | `./tools/gate.sh`(增量 = `--changed`) |
 | 求解器一致性 | **三关配对差 +0.0**(08-16 分级门) | `godot --headless --path . --script res://tools/pair.gd` |
 | 流程/打点/重放 | 0 违规 | 已并进 `gate.sh` |
 
@@ -32,7 +32,7 @@ Lumines 的节奏推进 + Balatro 的构筑。一局 4 段 × 6 拍 × 8 秒 ≈
 
 ### ① 游戏本体 —— **可玩,已封盘**
 
-一局能完整走完:首页 → 选主角 → 4 段 × 6 拍 → **7 次商店**(段中 4 + 段末 3)→ 结算两屏。
+一局能完整走完:首页 → 开局(体力/教学判定)→ 4 段 × 6 拍 → **7 次商店**(段中 4 + 段末 3)→ 结算两屏。
 ⚠ **不是 8 次** —— 末段没有段末商店(Tape 实测 37/37 局)。旧文档里的「8 次」按 7 读,
 多出来那一次曾经只存在于 `tools/runloop.gd`,2026-08-09 已修。
 
@@ -40,7 +40,7 @@ Lumines 的节奏推进 + Balatro 的构筑。一局 4 段 × 6 拍 × 8 秒 ≈
 |---|---|
 | 小丑牌 | **63 张**(2026-08-16 twotone 拆黑调/红调后;⚠ 曾长期写着 23/61,以 `data/jokers.json` 计数为准) |
 | Boss 脸 | **28 张在池**(按 `tier` 计 8/8/8/4,以 `faces.json` 有无 `tier` 为准)+ 5 张无 tier 未入池(unplugged/static/rotation/cover/freshsheet)。⚠ 此前三处写着 29/30/28 打架(2026-08-21 评审),以本行为准 |
-| 主角 | 8 个,被动数值是初稿 |
+| 主角 | ~~8 个~~ **已删除**(2026-08-24 局外 build 整体删除,含被动层与全部立绘素材) |
 | 结构 | 4 段 × 6 拍 × 8 秒,每 3 拍一次商店 |
 
 **UI/美术已完成并暂告段落**(霓虹舞台风格已锁定)。唯一未达标的是玻璃卡的**光影**
@@ -95,9 +95,8 @@ tools/bot.gd                   玩家策略(完美玩家 / 规则 bot)
 | `jokers.json` | 小丑牌(效果 DSL,`core/fx.gd` 解释) |
 | `faces.json` | Boss 脸(参数表 + `tier` + `proof` 通路 + `weak_upper_bound`)。**纯数据,散文一律在 `docs/design/blinds.md`,`db.gd` 拒绝散文键** |
 | `run.json` | 关卡结构 · 目标分 · `death_spec` · `beat_budget` |
-| `economy.json` `characters.json` `sim.json` `ui.json` `tape.json` | 经济(含 `joker_upgrade` 升级曲线)/ 主角 / 机器人信念 / 界面坐标文案(blindcard·jokercard 与脸·卡**交叉校验**)/ 打点开关(含 `upload` 回传节) |
-| `tickets.json` | 券(消耗品层,日清零;id 必须在 `core/ticket.gd WIRED` 登记 —— 券的用法在代码里接线) |
-| `assets.json` | META 资产(唱片/声势/合约;价格升序即阶梯;`season_now` 赛季脚手架) |
+| `economy.json` `sim.json` `ui.json` `tape.json` | 经济(含 `joker_upgrade` 升级曲线)/ 机器人信念 / 界面坐标文案(blindcard·jokercard 与脸·卡**交叉校验**)/ 打点开关(含 `upload` 回传节) |
+| ~~`characters.json` `tickets.json` `assets.json`~~ | **已删除**(2026-08-24 局外 build 整体删除) |
 | `director.json` | B 轴剧本 + `context` 四开关(novelty/streak_shift/returning/explore_shelf) |
 | `ranking.json` | **仪器输出**(`price.gd` → `rankgen.py`),手改无效;校验守池脸完备性 |
 | `lingo.json` | 中→英对照表(**改英文文案改这里**;`t_lingo` 守完整性) |
@@ -157,7 +156,7 @@ tools/bot.gd                   玩家策略(完美玩家 / 规则 bot)
 
 ---
 
-## 真人数据:**有了**(2026-08-12 起,详见下方增量快照;本节以下为 08-09 旧文)
+## 真人数据:**有了但薄**(2026-08-12 起)
 
 磁盘上 1067 局 Tape 日志**全部是探针产物**(时长 >60s 的只有 1 局,而真人一局 ≈ 294s)。
 
@@ -172,10 +171,9 @@ tools/bot.gd                   玩家策略(完美玩家 / 规则 bot)
 
 **目录页 = [`docs/design/README.md`](docs/design/README.md)。**
 
-2026-08-09 去号按主题命名;现 35 篇,**完整表只在 README 里维护**(这里不再抄第二份——
-2026-08-21 评审时这里的地图已漏 9 篇并把已实施的 META 标成前瞻)。
-⚠ 评审结论:`levels.md`(经济)/ `tech.md`(schema)/ `difficulty.md`(Director 状态)三篇落后 1-3 代,
-修订前**以代码与 `data/*.json` 为准**,见 `docs/review_20260821.md`。
+2026-08-09 去号按主题命名;篇数与状态**只在 README 里维护**(这里不再抄第二份)。
+2026-08-26 文档洁癖清理:退役篇已删(meta/候选图谱/GPT 提示词包/评审原始稿),
+现役篇的主角/券/旧数字已扫(细账 CHANGELOG);任何残留过时处**以代码与 `data/*.json` 为准**。
 
 ---
 
@@ -183,16 +181,31 @@ tools/bot.gd                   玩家策略(完美玩家 / 规则 bot)
 
 1. **`run.json section_targets` 是真人试玩重锚的值(08-15~17,`[420,1500,3100,5600]`),`sim.json bot_targets` 是仪器刻度** ——
    两张表不是一回事,**别用 sim 验前者**(它结构上读的是后者)。死亡率形状 `death_spec` 是设计常量。
-2. **模型绝对值不可信,只信相对排序** —— 通关率低估 8.4 个百分点,主因未完全定位;S4 的读数还在一个**没有 boon 的探针世界**里
-   量的(2026-08-21 评审 R6,修复中)。
+2. **模型绝对值不可信,只信相对排序** —— 通关率低估 8.4 个百分点,主因未完全定位
+   (探针世界缺 boon 那半已于 08-22 修复,新基线起 boon 缺省掷)。
 3. **真人样本薄**(用户本人十来局,新手零局)—— 发挥系数仍禁拍初值、禁用机器人代算;回传通道已建但端点未部署。
    ⚠ 本节 2026-08-21 重写:旧版三条(「目标分占位 / 真人数据为零」)已被同文件下文推翻却没打标。
 
 
 ---
 
-## 增量快照(2026-08-10 ~ 08-19,与上文冲突时以本节为准)
+## 增量快照(2026-08-10 ~ 08-25,与上文冲突时以本节为准)
 
+- **2026-08-25 · 对抗批实装完毕、未量**(细账 CHANGELOG 08-25b;设计总纲 docs/design/versus.md):
+  盲注池 28→26(红灯/接线退役)+ **11 张新脸机制完工暂存**(无 tier, 待 ranking 重跑入池);
+  一口气/限流/打烊按**张数**重铸 · 封条/双封随机封;小丑 **13 新 + 3 改**(63→76 张在库,
+  素材全配, 82 条资产校验绿);新 DSL:chance/target_streak + 四个 hold 键 + 两个 per 源;
+  序列杀伤预算(attack_axes 自动推导, 探针/Director 共用)· 开局亮整局(特写路线行)·
+  胜负音效(victory/defeat.mp3)。流程探针 43/43 · hundred 400 放置 ✅。
+  ⚠⚠ **所有仪器读数再次过期**(RNG 消耗点新增:随机封/掷类脸/赌具预掷;三张脸语义变了):
+  sim/curve/gate/price/ranking 全部要重跑, bot_targets 大概率再重锚。
+  ⚠ 三个素材库目录(expansion_20260825/redesign_20260825/fh100_dedup_kept_47)已进导出排除。
+- **2026-08-24 · 局外 build 整体删除**(细账 CHANGELOG 08-24):用户拍板「仅保留局内玩法」——
+  主角/券/META 资产(宝石·唱片·彩带机·应援团·赛季)/成就·荣誉·档案栏**代码与素材全删**(172+ 文件,含
+  assets/characters 77MB);保留图鉴、Director 千人千面、教学关、局内金币。结算链收窄(无主角被动层)、
+  开局入口 `choose_character(i)` → `start_run()`、存档 v2 清退役键、曲池十首全开、首页页签 4→2。
+  ⚠⚠ **仪器又是新基线**(少一次抽主角的 RNG 消耗 + 结算链变短):sim/curve/gate/price 旧读数全部不可比。
+  上文各节凡提到主角/券/资产/荣誉的,一律按本条为准。画风切换一事搁置未动。
 - **2026-08-21 · 全面评审 + 按批次修复**(细账 CHANGELOG 08-21;评审报告 `docs/review_20260821.md`):
   A 玩家可见 ✅(8 张卡升级无效 · 重开绕过 Director/min_run · 教学商店没收 · 资产页错位 · 四小件)·
   B 发布线代码侧 ✅(导出过滤 + .gdignore;**签名/包名/版本归用户**)· D 校验补洞 ✅ · C 仪器 ✅(gate.sh 四判据 ·
@@ -206,7 +219,7 @@ tools/bot.gd                   玩家策略(完美玩家 / 规则 bot)
   探针世界有 boon(`RunLoop.Opts.boon` 缺省掷;**所有仪器新基线**)· replay 只取真人局 + 真注入(此前几天验的是机器局空集)·
   popup 补臂 + 反向校验 · context 四阈值进 `director.json context_tuning` · 商店 boost 改注入 · 分数滚动复活。
   首页档案栏**全真**(08-22 拍板落地):参与度等级(`assets.json profile.levels`,零数值校验锁)· 称号 · 头像/名字跟当前主角 · ◈ 真钱包;
-  ◆ 跨局金币 chip 删;成就页读终身计数 `SaveState.stats()`。meta.md §8 已从待拍转为实装记录。
+  ◆ 跨局金币 chip 删;成就页读终身计数 `SaveState.stats()`。meta.md §8 已从待拍转为实装记录(⚠ 本段所记的档案栏/META 已于 08-24 随局外删除退役,meta.md 08-26 删)。
 - **2026-08-20 · 设计稿推荐项全落地**(用户:「一切先按你的设计来,我的工作是试玩」):
   回归局(≥3 天回来首局 = 温和+熟脸)· Boon novelty · 探索型货架(没用过的 Target ×1.5,
   weighted_pick 空 boost 逐字节不变有断言)· 点唱机资产(首页音景)· 赛季脚手架

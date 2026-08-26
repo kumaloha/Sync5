@@ -107,6 +107,7 @@ const SUPPORT_SLOT := 1
 ## 否则量到的是「前置 + 它」的合力, 而不是它自己。
 const PREREQ := {
 	"mirror": ["twin"],    # 复制 Target 的一半 —— 没 Target 时它恒等于 0
+	"loadeddice": ["allin"],   # 概率放大器:没有赌卡时恒等于 0(2026-08-25 波3)
 	# ⚠ 打包(doggybag)一度挂在这里, 已撤 —— 它的条件是「段分达目标两倍」,
 	# 而 kit 的臂是**单卡臂**(基准只装前置、不装构筑), 段分天生打不到 2×目标:
 	# 加 PREREQ 救不回来(试过, 触发仍 0%)。那不是「前置」缺失, 是**这道门量的是
@@ -136,6 +137,20 @@ const WEAK_MAGNITUDE := {
 	"chord": "触发 4.0% 太窄, 数额救不了(要 300%/拍才够格) —— 待改条件或删, 见 TODO",
 	# ~~stageexit~~ 2026-08-16 已移除:换成 `bonus_target_pct` 后它变强了(S4 +30 → +67),
 	# 门反查到「声明了豁免却其实量到了」。⚑ 这正是反查存在的意义 —— **豁免表不许留过期条目**。
+}
+
+
+## 「bot 结构性不可达」的显式声明(2026-08-26,同 WEAK_MAGNITUDE 的哲学:把债写明白)。
+## 与量级豁免的区别:那边是「量到了但效应小」, 这边是「**触发条件在 bot 的动作空间里
+## 根本做不出来**」—— 四型失败里的 ②, 但换玩法也救不了, 因为缺的是动作粒度不是动机。
+## ⚠ 声明的是「对**这个 bot** 不可达」, 不是「这张卡没用」—— 一律标「真人待定」。
+## ⚠ 反向也锁(_initialize 末尾):声明了却量到了 = bot 变强了, 表过期, 该删条目。
+const UNREACHABLE := {
+	# 拆迁要求单拍弃 6 张;bot 的弃牌预算按**逐张动作**计(beat_budget.discards = 4),
+	# 6 > 4 ⇒ discard_bias 直接不生效(「超预算整个不凑」判据), 触发恒 0%。
+	# 真人一次跨区多选 6 张 = **一个动作** —— 缺口在 bot 的动作粒度(多选弃应计 1 动作),
+	# 粒度修复排在 TODO(数值批 ⑥ 前置);修完这张卡量到了, 反查会喊删这行。
+	"wrecker": "弃6 超出 bot 逐张动作预算(4/拍), 结构性不可达;真人多选=1动作, 真人待定 —— 粒度修复见 TODO",
 }
 
 ## solver 通路那四张的**证物**:它该造出来的东西真的出现了吗。
@@ -181,6 +196,7 @@ const SHOP_WITNESS := {
 	"digger": "counter",
 	"collector": "counter",
 	"rebrand": "counter",
+	"deejay": "counter",   # 2026-08-25 波2:每刷新倍率永久涨 —— 与淘碟同证物(计数动了=规则活着)
 }
 
 var _rng := RandomNumberGenerator.new()
@@ -188,6 +204,7 @@ var _only := ""
 var _fail: Array = []
 var _warn: Array = []
 var _weak_seen: Dictionary = {}     # 本次真的用上了豁免的卡(反向检查用)
+var _unreach_seen: Dictionary = {}  # 本次真的用上了不可达声明的卡(反向检查用)
 
 
 func _initialize() -> void:
@@ -245,6 +262,9 @@ func _initialize() -> void:
 		for wid in WEAK_MAGNITUDE:
 			if not _weak_seen.has(wid):
 				_fail.append("%s 声明了量级豁免却其实量到了 —— 把它从 WEAK_MAGNITUDE 删掉" % wid)
+		for uid in UNREACHABLE:
+			if not _unreach_seen.has(uid):
+				_fail.append("%s 声明了 bot 不可达却其实量到了 —— bot 变强了, 把它从 UNREACHABLE 删掉" % uid)
 
 	print("\n=== 判据 ===")
 	for w in _warn:
@@ -276,15 +296,19 @@ func _run_score(cfg: Dictionary, ids: Array, n: int) -> void:
 	var bases := {}
 	for jid in ids:
 		var pre: Array = _prereq(jid)
-		var key := str(pre)
+		_arm_faces = ENV_FACES.get(jid, {})
+		# ⚠ 基准缓存键必须含环境 —— 带脸的卡要配「同样带脸」的基准, 否则量出的是脸本身。
+		var key := str(pre) + "|" + str(_arm_faces)
 		if not bases.has(key):
 			bases[key] = _play(cfg, _install(pre), false, false, n)
-			print("    基准总分 %.0f   (基准臂装:%s)"
-				% [Stat.mean(bases[key]["score"]), "空" if pre.is_empty() else str(pre)])
+			print("    基准总分 %.0f   (基准臂装:%s%s)"
+				% [Stat.mean(bases[key]["score"]), "空" if pre.is_empty() else str(pre),
+					"" if _arm_faces.is_empty() else " · 环境脸 " + str(_arm_faces.get(0, ""))])
 		var base: Dictionary = bases[key]
 		var arm := _play(cfg, _install(pre + [jid]), false, false, n)
 		_judge(jid, base["score"], arm["score"], Stat.mean(base["score"]),
 			_trigger_txt(arm, jid))
+		_arm_faces = {}
 
 
 ## --- ② solver 通路:完美玩家, 无商店。 ---
@@ -379,9 +403,15 @@ func _run_coin(cfg: Dictionary, ids: Array, n: int) -> void:
 	var cbase := _play(cfg, [], false, false, n)
 	print("    基准一局金币 %.1f◆" % Stat.mean(cbase["coins"]))
 	for jid in ids:
+		_arm_faces = ENV_FACES.get(jid, {})
+		var cb: Dictionary = cbase
+		if not _arm_faces.is_empty():
+			# 带环境脸的卡要配同环境的基准(斗牛士:两臂都在渐强世界里)。
+			cb = _play(cfg, [], false, false, n)
 		var arm := _play(cfg, _install([jid]), false, false, n)
-		_judge("%s: 累计金币" % jid, cbase["coins"], arm["coins"],
-			Stat.mean(cbase["coins"]), _trigger_txt(arm, jid), true, true)
+		_judge("%s: 累计金币" % jid, cb["coins"], arm["coins"],
+			Stat.mean(cb["coins"]), _trigger_txt(arm, jid), true, true)
+		_arm_faces = {}
 
 	print("\n  ---- ③b coin 通路 · 行为臂(规则 bot, **开商店**)—— ⚠ 整段**只作参考, 不作判据** ----")
 	print("    覆盖已经由上面的金币臂证完(钱到没到账)。这一段问的是**这笔钱换不换得出分**,")
@@ -524,9 +554,12 @@ func _judge(label: String, a: Array, b: Array, base: float, extra: String,
 	var jid := label.split(":")[0].strip_edges()
 	var exempt: bool = hard and why == "量级不够" and sig and p["d"] > 0.0 \
 		and WEAK_MAGNITUDE.has(jid)
+	# 不可达豁免只吃「量不到」的形态(why 非空);量到了就走反查那条路(声明过期)。
+	var unreach: bool = hard and why != "" and UNREACHABLE.has(jid)
 	if why != "":
 		verdict = ("⚠ 豁免(效应小, 已声明)" if exempt
-			else ("❌ " if hard else "⚠ 参考:") + why)
+			else ("⚠ 豁免(bot 不可达, 已声明)" if unreach
+			else ("❌ " if hard else "⚠ 参考:") + why))
 	# ⚠ z 大到某个程度就没有信息了, 只有噪声:`neonsign` 是无条件 +80、24 拍 +1920,
 	# 逐局几乎一模一样(实测 se=0.0117), z 印出来是 **+163607** —— 数字没错,
 	# 但它长得像一个爆掉的读数, 下一个人会先怀疑仪器坏了。封顶印 `>1000` 即可。
@@ -543,6 +576,9 @@ func _judge(label: String, a: Array, b: Array, base: float, extra: String,
 		if exempt:
 			_warn.append("%s —— 已声明量级豁免(%s)" % [msg, WEAK_MAGNITUDE[jid]])
 			_weak_seen[jid] = true
+		elif unreach:
+			_warn.append("%s —— 已声明 bot 不可达(%s)" % [msg, UNREACHABLE[jid]])
+			_unreach_seen[jid] = true
 		elif hard:
 			_fail.append(msg)
 		else:
@@ -566,14 +602,22 @@ func _prereq(jid: String) -> Array:
 
 
 ## id 列表 → [[槽位, id], ...]。槽位由卡自己的 kind 决定(坑 ③)。
+## ⚠ 2026-08-25:支援槽必须**递增分配** —— 旧写法把所有支援装进同一个槽,
+## 「支援前置 + 支援本卡」的臂里后者会顶掉前者(灌铅骰的 kit 读数恰好是
+## 孤注增益的精确负值, 连 ± 都相同, 就是这么来的;镜面没中招纯因它的前置是旗)。
 func _install(ids: Array) -> Array:
 	var out: Array = []
+	var next_support := SUPPORT_SLOT
 	for jid in ids:
 		var j := Joker.by_id(String(jid))
 		if j == null:
 			_fail.append("装不上 '%s' —— 不在 jokers.json 里" % jid)
 			continue
-		out.append([TARGET_SLOT if j.kind == "target" else SUPPORT_SLOT, String(jid)])
+		if j.kind == "target":
+			out.append([TARGET_SLOT, String(jid)])
+		else:
+			out.append([next_support, String(jid)])
+			next_support += 1
 	return out
 
 
@@ -638,6 +682,19 @@ const COHORT_PATCH := {
 }
 
 
+## **前置脸**(2026-08-26;前置环境的脸版):这张卡的证物需要某张脸在场才发生。
+## 盲奏要有盖牌(暗场每拍必盖 2 张 = 确定性证物);斗牛士要有会咬人的脸
+## (渐强前 3 拍打折 = 每段确定咬 3 口)。两条臂共用同一环境, 配对性保留 ——
+## 改的是「实验在什么环境里做」, 不是判据(与 COHORT_PATCH 同一条纪律)。
+const ENV_FACES := {
+	"blindplay": {0: "dimstage", 1: "dimstage", 2: "dimstage", 3: "dimstage"},
+	"matador": {0: "crescendo", 1: "crescendo", 2: "crescendo", 3: "crescendo"},
+}
+
+## 当前臂的环境脸(_run_* 逐卡设置, _play 读;空 = 全程无脸的老口径)。
+var _arm_faces: Dictionary = {}
+
+
 func _cohort_for(jid: String) -> Dictionary:
 	var c := _cohort()
 	if not COHORT_PATCH.has(jid):
@@ -696,8 +753,7 @@ func _play(cfg: Dictionary, install: Array, shop: bool, perfect: bool, n: int) -
 		var o := RunLoop.Opts.new()
 		o.rng = _rng
 		o.deck_seed = r * 17 + 5
-		# o.faces 留空 —— 全程无脸, 所以不掷脸;选主角是唯一消耗随机数的一步,
-		# 和 RunLoop 内部「建 Run → 抽主角」的顺序天然一致, 不需要在外面预抽。
+		o.faces = _arm_faces   # 缺省空 = 全程无脸;前置脸卡走 ENV_FACES(两臂同环境)
 		o.player = "adaptive"                # 实际策略由 pcfg["bot"] 分派(见 RunLoop.Opts)
 		o.cfg = pcfg
 		o.shop = shop

@@ -21,7 +21,7 @@ const HOLD := 40
 
 func _initialize() -> void:
 	# ⚑ 真路径(2026-08-18):环境变量让 seen_tutorial() 在探针里返回 false ——
-	# choose_character 于是走**和真人一样**的教学分岔(公示卡闸/掷脸教学分支/步进),
+	# start_run 于是走**和真人一样**的教学分岔(公示卡闸/掷脸教学分支/步进),
 	# 不再需要事后手按 run.tutorial(那正是两次「教学关冒出 BOSS 脸」假象的来源)。
 	OS.set_environment("SYNC5_PROBE_FRESH", "1")
 	_scene = Shot.stage(self)
@@ -30,7 +30,7 @@ func _initialize() -> void:
 func _process(_delta: float) -> bool:
 	_frames += 1
 	if _frames == 4:
-		_scene.choose_character(1)          # 跳过选角;教学分岔由 SYNC5_PROBE_FRESH 触发
+		_scene.start_run()          # 跳过选角;教学分岔由 SYNC5_PROBE_FRESH 触发
 		assert(_scene.run.tutorial, "真路径没生效 —— seen_tutorial 的探针口子被动过?")
 		return false
 	if _frames < 120:

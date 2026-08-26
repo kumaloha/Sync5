@@ -118,7 +118,6 @@ func _test_run_machine(t) -> void:
 	var br := Run.new()
 	br.reset(7)
 	br.run_faces = {}                            # 不挂脸: 这里测编排, 不测脸
-	br.character = Character.roster()[0]
 	br.phrase_in_section = 0
 	t.eq(br.stage, Run.Stage.DECISION, "a run starts a phrase in DECISION")
 	var bp := Phrase.new(br.deck, br.cache, br.coins)
@@ -173,6 +172,9 @@ func _test_run_machine(t) -> void:
 	t.eq(boon_run.boon(), "", "the boon is hidden before round four")
 	boon_run.section_idx = GameConfig.SECTIONS_PER_RUN - 1
 	t.eq(boon_run.boon(), boon_run.run_boon, "entering round four reveals the rolled boon")
+	# ⚑ 2026-08-26 倒计时进 T4 池:随机局第四段可能掷到它(首两拍 8 秒),
+	# 断言的本意是「爽点不动钟」—— 把脸钉成赶场, 别让掷点决定测试。
+	boon_run.run_faces[GameConfig.SECTIONS_PER_RUN - 1] = "rush"
 	for boon_id in BlindBoon.ids():
 		boon_run.run_boon = boon_id
 		t.eq(boon_run.phrase_duration(), 6.0, "%s never changes Rush timing" % boon_id)
@@ -293,28 +295,6 @@ func _test_run_machine(t) -> void:
 	out = r.advance()
 	t.check(bool(out["finale"]), "the last section is the finale")
 
-	# --- 券(boost)的局外乘子 meta_mult(2026-08-17)---
-	# 探针拿不到券(SaveState 闸)⇒ 永远不传这个 flag ⇒ 缺省必须逐字节等于没有这个通道。
-	var mm_run := Run.new()
-	mm_run.reset(818)
-	var mm_p1 := Beat.begin(mm_run)
-	var mm_plain := Beat.settle(mm_run, mm_p1)
-	t.check(not mm_plain.has("meta_bonus"), "no flag → no meta_bonus key (探针路径零痕迹)")
-	t.eq(int(mm_plain["score"]), int(mm_plain["raw_score"]) + int(mm_plain["boon_bonus"]),
-		"no flag → score is exactly raw + boon")
-	Beat.phrase_end(mm_run, mm_p1)
-	mm_run.phrase_in_section = 1
-	var mm_p2 := Beat.begin(mm_run)
-	var mm_o := Beat.settle(mm_run, mm_p2, {"meta_mult": 1.5})
-	var mm_base := int(mm_o["raw_score"]) + int(mm_o["boon_bonus"])
-	t.eq(int(mm_o["meta_bonus"]), int(round(mm_base * 0.5)),
-		"boost adds (mult-1) of the full beat score, after boons")
-	t.eq(int(mm_o["score"]), mm_base + int(mm_o["meta_bonus"]),
-		"boosted score lands in the section ledger via the ONE scoring path")
-	t.check(int(mm_o["score"]) > mm_base,
-		"boost lifted the ledger score but raw/boon stayed un-boosted(复读/回放读原始分)")
-	t.eq(mm_run.previous_raw_score, int(mm_o["raw_score"]),
-		"afterglow chain keeps reading the raw score, not the boosted one")
 
 
 ## 2026-08-21 外部审查:RunLoop.fork 漏拷七个字段 ⇒ 买牌推演的世界与本尊分叉。
@@ -358,3 +338,61 @@ func _t_fork_complete(t) -> void:
 	t.check(not r.section_kinds.has(9), "fork's section_kinds is a copy, not an alias")
 	f.cache_meta["ages"]["y"] = 1
 	t.check(not r.cache_meta["ages"].has("y"), "fork's cache_meta is a deep copy")
+
+
+	# --- 断点续玩:snapshot → JSON 圆环 → restore(2026-08-24)---
+	# 快照就是这么存进 user:// 的(JSON.stringify), 所以圆环必须过 JSON:
+	# int 键变字符串、类型收窄, 全在这一环里现形。
+	var sr := Run.new()
+	sr.reset(4242)
+	sr.section_idx = 2
+	sr.phrase_index = 13
+	sr.phrase_in_section = 1
+	sr.section_score = 777
+	sr.prev_kind = 3
+	sr.first_kind = 5
+	sr.previous_raw_score = 456
+	sr.request_last = "color_mix"
+	sr.run_faces = {0: "norepeat", 2: "rush"}
+	sr.run_boon = "spotlight"
+	sr.coins = 23
+	sr.section_discards_used = 4
+	sr.section_kinds = {2: true, 4: true}
+	sr.cache = [t._c(9, 1), t._c(12, 2), t._c(7, 0)]
+	sr.cache_meta = {"ages": {sr.cache[0]: 4, sr.cache[2]: 6}, "next": 7}
+	sr.joker_slots[0] = Joker.by_id("twin")
+	sr.joker_slots[0].level = 3
+	sr.joker_slots[2] = Joker.by_id("vinyl")
+	sr.joker_slots[2].state = {"n": 7}
+	for _i in range(5):
+		sr.deck.discard(sr.deck.draw())   # 两堆都攒点内容, 顺序才有的可验
+	var snap: Dictionary = sr.snapshot(9)
+	snap = JSON.parse_string(JSON.stringify(snap))
+	var rr := Run.new()
+	rr.reset(1)
+	t.check(rr.restore(snap), "restore 认得 JSON 圆环后的快照")
+	for k2 in ["section_idx", "phrase_index", "phrase_in_section", "section_score",
+			"prev_kind", "first_kind", "previous_raw_score", "request_last",
+			"run_boon", "coins", "section_discards_used"]:
+		t.eq(rr.get(k2), sr.get(k2), "restore 还原 %s" % k2)
+	t.eq(rr.run_faces, sr.run_faces, "restore 还原 run_faces(int 键从 JSON 字符串键转回)")
+	t.eq(rr.section_kinds, sr.section_kinds, "restore 还原 section_kinds(集合语义原样)")
+	t.eq(rr.cache.size(), 3, "缓存三张都在")
+	t.eq(rr.cache[1].label(), sr.cache[1].label(), "缓存的牌面一致")
+	t.eq(int(rr.cache_meta["ages"][rr.cache[0]]), 4, "缓存年龄按下标重挂到新实例上")
+	t.check(not rr.cache_meta["ages"].has(rr.cache[1]), "没记年龄的格子不凭空长出年龄")
+	t.eq(int(rr.cache_meta["next"]), 7, "年龄计数器还原")
+	t.eq(String(rr.joker_slots[0].id), "twin", "槽 0 的卡还原")
+	t.eq(rr.joker_slots[0].level, 3, "等级还原")
+	t.check(rr.joker_slots[1] == null, "空槽还是空槽")
+	t.eq(int(rr.joker_slots[2].state.get("n", 0)), 7, "成长计数器还原")
+	t.check(not rr.tutorial, "恢复的局恒是正式局")
+	t.eq(rr.stage, Run.Stage.DECISION, "恢复落在拍边界 = DECISION")
+	t.eq(int(snap.get("run_index", -1)), 9, "快照带着局数(恢复不重新 note_run_started)")
+	# 牌堆:同一副堆序 —— 连抽五张逐张同面
+	for _j in range(5):
+		t.eq(rr.deck.draw().label(), sr.deck.draw().label(), "恢复后的堆序逐张一致")
+	t.eq(rr.deck.discard_pile.size(), sr.deck.discard_pile.size() - 0, "弃牌堆同长")
+	# 坏快照:不认就拒, 不许半恢复
+	t.check(not Run.new().restore({}), "空快照被拒")
+	t.check(not Run.new().restore({"v": 99, "deck": {}, "faces": {}}), "未知版本被拒")

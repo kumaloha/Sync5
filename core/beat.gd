@@ -42,8 +42,12 @@ extends RefCounted
 ## 游戏里商店会在两拍之间动钱, 所以那一步不能省。
 static func begin(run: Run) -> Phrase:
 	var mod := run.face()
+	run.ensure_mod_roll()              # 掷类脸的开局明掷(同段幂等)
 	var p := Phrase.new(run.deck, run.cache, run.coins)
 	p.mod = mod                        # ⚠ 必须在 start() 之前
+	p.phrase_idx = run.phrase_in_section   # 倒计时/渐强的拍序曲线靠它
+	p.mod_roll = run.mod_roll          # 轮盘的容量加扣在 start() 里读它
+	p.cache_scoring = Joker.slots_cache_scoring(run.joker_slots)   # 合奏
 	p.boon = run.boon()
 	p.cache_meta = run.cache_meta
 	var section_budget := SectionMod.section_discard_budget(mod)
@@ -78,8 +82,32 @@ static func settle(run: Run, p: Phrase, flags: Dictionary = {}) -> Dictionary:
 		return {}
 	var res := p.lock_and_settle()
 	run.section_kinds[int(res.get("kind", -99))] = true
+	# 点名(2026-08-25):打出指定牌型前全场打折;**打出的那一拍就恢复全额**
+	# (解除判定在算分之前), 并给下次商店 +1 货架位(解除奖励走经营通道)。
+	# 赌具组(2026-08-25):掷点在这**预掷**, 结算保持纯函数 —— 掷数 = 持仓里
+	# 掷点谓词的总数(消耗量与持仓一一对应, 探针可复现);无赌卡零消耗。
+	var luck_rolls: Array = []
+	for lj in run.joker_slots:
+		if lj != null:
+			for _k in range(lj.chance_rolls_needed()):
+				luck_rolls.append(float(run.deck.pick_index(10000)) / 10000.0)
+	var callout_unsolved := false
+	if run.mod_roll.has("kind") and SectionMod.callout_factor(run.face()) < 1.0:
+		if bool(run.mod_roll.get("solved", false)):
+			pass
+		elif int(res.get("kind", -99)) == int(run.mod_roll["kind"]):
+			run.mod_roll["solved"] = true
+			run.shelf_bonus += 1
+		else:
+			callout_unsolved = true
 	var outcome := Settle.run(res, run.joker_slots, {
 		"prev_kind": run.prev_kind,
+		"prev_target_hit": run.prev_target_hit,
+		"rolled_suit": int(run.mod_roll.get("suit", -1)),
+		"callout_unsolved": callout_unsolved,
+		"luck_rolls": luck_rolls,
+		"odds_mult": Joker.slots_odds_mult(run.joker_slots),
+		"cache_rank_sum": p.cache_discard_rank_sum,
 		"acted_late": bool(flags.get("late", false)),
 		"discards": p.discards_used,
 		"coins": p.coins,
@@ -100,7 +128,6 @@ static func settle(run: Run, p: Phrase, flags: Dictionary = {}) -> Dictionary:
 		"section_score": run.section_score,
 		"section_target": run.target(),
 		"mod": run.face(),
-		"character": run.character,
 		"first_kind": run.first_kind,
 		"request_met": p.request_met,
 		"patch_restored": SectionMod.restores_with_initial_cache(run.face()) \
@@ -117,21 +144,11 @@ static func settle(run: Run, p: Phrase, flags: Dictionary = {}) -> Dictionary:
 	outcome["raw_score"] = raw_score
 	outcome["boon_bonus"] = boon_bonus
 	outcome["score"] = raw_score + boon_bonus
-	# ---- 局外乘子(券 boost)· 2026-08-17 ----
-	# ⚑ 券不进模型:探针拿不到券(SaveState 的探针闸), 也就永远不传这个 flag ——
-	# 缺省 1.0 = 全部既有调用方逐字节不变。放在 boon 之后:它是**局外浮层**,
-	# 吃完整的拍分;raw_score 保持不动(复读/回放读的是无浮层的原始分)。
-	# ⚠ 记分必须留在这里而不是 view —— 「判生死只有一份」的同一条线:
-	# view 自己乘再加回 section_score, 就是第二份记分。
-	var meta_mult := float(flags.get("meta_mult", 1.0))
-	if meta_mult != 1.0:
-		var meta_bonus := int(round(float(outcome["score"]) * (meta_mult - 1.0)))
-		outcome["meta_bonus"] = meta_bonus
-		outcome["score"] = int(outcome["score"]) + meta_bonus
 	run.previous_raw_score = raw_score
 	if run.phrase_in_section == 0:
 		run.first_kind = int(res.get("kind", -99))
 	run.prev_kind = int(res.get("kind", -99))
+	run.prev_target_hit = bool(outcome.get("target_hit", false))
 	p.coins = Economy.grant(p.coins, int(outcome["coins"]), run.joker_slots)
 	run.coins = p.coins
 	if SectionMod.section_discard_budget(run.face()) >= 0:

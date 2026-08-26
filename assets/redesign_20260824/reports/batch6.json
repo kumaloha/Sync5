@@ -1,0 +1,105 @@
+{
+  "batch": 6,
+  "status": "DONE_WITH_CONCERNS",
+  "mode": "built-in imagegen, one selected generation per asset",
+  "assets": [
+    {
+      "id": "call_n98CyKUaVo68rZ12FVDEMq2q",
+      "name": "blind_smallstage",
+      "path": "assets/redesign_20260824/blinds_concept/blind_smallstage.png",
+      "summary": "Two-slot cache tray compressed by inward red bars on black.",
+      "concerns": "Tray rendered mostly red rather than visibly violet, but the two-slot compression silhouette is clear."
+    },
+    {
+      "id": "call_v2N02Olk0dBzpjc6infJ5YJw",
+      "name": "blind_facedown",
+      "path": "assets/redesign_20260824/blinds_concept/blind_facedown.png",
+      "summary": "Three face-down cards hidden behind a red mask band.",
+      "concerns": null
+    },
+    {
+      "id": "call_1nm8rO85vwTxb3ARUUliCkqe",
+      "name": "blind_lastcall",
+      "path": "assets/redesign_20260824/blinds_concept/blind_lastcall.png",
+      "summary": "Final clock wedge with a lock over a flying discard card.",
+      "concerns": null
+    },
+    {
+      "id": "call_yuIIBqm2pEJ1ck7J9GvPtcBA",
+      "name": "blind_lockup",
+      "path": "assets/redesign_20260824/blinds_concept/blind_lockup.png",
+      "summary": "Final clock wedge with lock and two-way swap arrow.",
+      "concerns": null
+    },
+    {
+      "id": "call_Tu9DpL4ZxCXd1mmt9HEiwaSa",
+      "name": "blind_onetake",
+      "path": "assets/redesign_20260824/blinds_concept/blind_onetake.png",
+      "summary": "Single flying-card trail passing through a one-notch gate.",
+      "concerns": null
+    },
+    {
+      "id": "call_AAF2ByuLgL7Nuz7AaIOerlYf",
+      "name": "blind_oneswap",
+      "path": "assets/redesign_20260824/blinds_concept/blind_oneswap.png",
+      "summary": "One bidirectional swap arrow passing through a one-notch gate.",
+      "concerns": "Gate shape reads more like a notched portal than a literal notch, but the one-swap symbol is clean."
+    },
+    {
+      "id": "call_z3q5ulgFRNOt6laQAXp8D73g",
+      "name": "blind_setlist",
+      "path": "assets/redesign_20260824/blinds_concept/blind_setlist.png",
+      "summary": "Pinned bright hand above a dim alternate hand with a half slash.",
+      "concerns": null
+    },
+    {
+      "id": "call_Cu7K4zDTpRk1YKLr3YEClC6w",
+      "name": "blind_blindspot",
+      "path": "assets/redesign_20260824/blinds_concept/blind_blindspot.png",
+      "summary": "Discard card path returning as a face-down card.",
+      "concerns": "The face-down card uses a patterned back, which is slightly detailed but still thumbnail-legible."
+    },
+    {
+      "id": "call_25y6ri0yq3ZRXlKTCWACzwN0",
+      "name": "blind_throttle",
+      "path": "assets/redesign_20260824/blinds_concept/blind_throttle.png",
+      "summary": "Discard trail and swap arrow converging into a three-notch limiter.",
+      "concerns": null
+    },
+    {
+      "id": "call_4uvT8NORge95MvojtHESwTMo",
+      "name": "blind_request",
+      "path": "assets/redesign_20260824/blinds_concept/blind_request.png",
+      "summary": "Target hand with one missing dashed-card slot and a red down slash.",
+      "concerns": "Includes an extra target motif on the center card, but no musical note or prose."
+    },
+    {
+      "id": "call_22HQcbEYuUKEv1GevscX6Cyf",
+      "name": "blind_redlight",
+      "path": "assets/redesign_20260824/blinds_concept/blind_redlight.png",
+      "summary": "Heart and diamond blocked at a violet cache entrance by a red stop bar.",
+      "concerns": null
+    },
+    {
+      "id": "call_6q4RvLQoIVt2BdAwqShMFPir",
+      "name": "blind_lowend",
+      "path": "assets/redesign_20260824/blinds_concept/blind_lowend.png",
+      "summary": "Discard arrow entering a bounded low-rank band with 2 and 9 endpoints.",
+      "concerns": "Contains the allowed numeric endpoints 2 and 9; no extra prose."
+    },
+    {
+      "id": "call_ZchKpoNsYH2XoivwcPEK9U14",
+      "name": "blind_wetink",
+      "path": "assets/redesign_20260824/blinds_concept/blind_wetink.png",
+      "summary": "Fresh card entering a violet cache under a red lock-clock.",
+      "concerns": "Cache has small slot ticks that could read as marks, but not as prose."
+    },
+    {
+      "id": "call_X78h94CNV24a1y64qy1IJfpq",
+      "name": "blind_handseal",
+      "path": "assets/redesign_20260824/blinds_concept/blind_handseal.png",
+      "summary": "Ascending card hand with the lowest card pinned by a seal lock.",
+      "concerns": null
+    }
+  ]
+}

@@ -1,0 +1,99 @@
+{
+  "batch": "batch1",
+  "status": "DONE_WITH_CONCERNS",
+  "generated_with": "built-in image_gen tool",
+  "asset_count": 14,
+  "destination_dir": "assets/redesign_20260824/jokers",
+  "shared_prompt_summary": "Neon glass poker joker icons on pure black-to-#07070f backgrounds, centered single poker-native subjects, cyan/pink/violet/gold rim light, no outer card frame, no watermark, no characters or scenes, 12% safe margin.",
+  "concerns": [
+    "The built-in image tool returned native_hook_stdin_oversized status messages even though PNG outputs were produced.",
+    "The generated image directory was noisy from concurrent batches, so final selections were made by timestamp plus visual inspection.",
+    "Some cards retain rank/suit glyphs where needed for poker readability."
+  ],
+  "assets": [
+    {
+      "id": "joker_twin",
+      "destination": "assets/redesign_20260824/jokers/joker_twin.png",
+      "source_asset_id": "call_U4StGj7yQQ7xFZhxM8HTkwUB",
+      "prompt_summary": "Two matched cards fanned as a bright paired combo for twin/two-pair multiplier."
+    },
+    {
+      "id": "joker_stair",
+      "destination": "assets/redesign_20260824/jokers/joker_stair.png",
+      "source_asset_id": "call_65XfSPqdu5LGMx50yrjsG8JS",
+      "prompt_summary": "Five ascending playing cards arranged like stair steps for straight scoring."
+    },
+    {
+      "id": "joker_mono",
+      "destination": "assets/redesign_20260824/jokers/joker_mono.png",
+      "source_asset_id": "call_LAmDqRvWscgLRhRARoHLa1em",
+      "prompt_summary": "Five same-suit spade cards glowing in one color for flush scoring."
+    },
+    {
+      "id": "joker_triplet",
+      "destination": "assets/redesign_20260824/jokers/joker_triplet.png",
+      "source_asset_id": "call_ep2704ZQuCz88fuBQk0KXDAZ",
+      "prompt_summary": "Three matching-rank cards fanned for trips/full-house/quads scoring."
+    },
+    {
+      "id": "joker_lonewolf",
+      "destination": "assets/redesign_20260824/jokers/joker_lonewolf.png",
+      "source_asset_id": "call_ExXhMn2Bvxpxw19EYjQEEWnx",
+      "prompt_summary": "Untouched poker hand beside three gold coins for zero-discard coin reward."
+    },
+    {
+      "id": "joker_encore",
+      "destination": "assets/redesign_20260824/jokers/joker_encore.png",
+      "source_asset_id": "call_bUoIBXHCbtT0ZiblSsDFwhv3",
+      "prompt_summary": "Two identical poker hands echoed with plus sparks for repeat-hand scoring."
+    },
+    {
+      "id": "joker_finale",
+      "destination": "assets/redesign_20260824/jokers/joker_finale.png",
+      "source_asset_id": "call_4LCJLHJOUoiuqPbxtBmngL2F",
+      "prompt_summary": "Clock at the final wedge with cards for final-seconds action scoring."
+    },
+    {
+      "id": "joker_turnover",
+      "destination": "assets/redesign_20260824/jokers/joker_turnover.png",
+      "source_asset_id": "call_QKgLzqlH4ZNgjiw3j8hGujqc",
+      "prompt_summary": "Flying discarded card trail with plus sparks for score per discard."
+    },
+    {
+      "id": "joker_tipjar",
+      "destination": "assets/redesign_20260824/jokers/joker_tipjar.png",
+      "source_asset_id": "call_GEX1cSKWJQ5r7vTSv7Z8GQEj",
+      "prompt_summary": "Pristine stationary hand beside two gold coins for zero-discard coin reward."
+    },
+    {
+      "id": "joker_chord",
+      "destination": "assets/redesign_20260824/jokers/joker_chord.png",
+      "source_asset_id": "call_LUEI3tqmgamxSvmUzuuWu9jI",
+      "prompt_summary": "Violet three-slot cache tray filled with same-suit spade cards and plus sparks."
+    },
+    {
+      "id": "joker_neonsign",
+      "destination": "assets/redesign_20260824/jokers/joker_neonsign.png",
+      "source_asset_id": "call_EozRYXLqSsaJ6sWVY1ejhHCp",
+      "prompt_summary": "Single scoring card with a steady luminous plus sign for flat score bonus."
+    },
+    {
+      "id": "joker_popup",
+      "destination": "assets/redesign_20260824/jokers/joker_popup.png",
+      "source_asset_id": "call_c5MsJ2FZY16B4e5CW7M5t3ba",
+      "prompt_summary": "Plain first card rising from a short stack with an oversized plus burst."
+    },
+    {
+      "id": "joker_vinyl",
+      "destination": "assets/redesign_20260824/jokers/joker_vinyl.png",
+      "source_asset_id": "call_NkBiqtOBSz6Z9S6iTmTt17YR",
+      "prompt_summary": "Circular record-like trail made from successive flying discard cards with plus marks."
+    },
+    {
+      "id": "joker_chorus",
+      "destination": "assets/redesign_20260824/jokers/joker_chorus.png",
+      "source_asset_id": "call_tSW8hoEkpeln71PUXASsLkGW",
+      "prompt_summary": "Short sequence of cards with final-card emphasis and fanned multiplier motif."
+    }
+  ]
+}

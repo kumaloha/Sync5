@@ -702,6 +702,136 @@
    "trigger_zh": "红色两花色视为同一花色",
    "amount": "RULE",
    "art_subject": "一盏只打红粉光的单色舞台灯(红心与方块在光束里交汇)"
+  },
+  {
+   "id": "fastforward",
+   "cn": "快进",
+   "code": "S-62",
+   "kind": "support",
+   "rarity": "rare",
+   "trigger_zh": "每次提前收工",
+   "amount": "×+0.1",
+   "art_subject": "停住两枚秒孔的时钟楔形(素材库 held_second)"
+  },
+  {
+   "id": "deejay",
+   "cn": "打碟",
+   "code": "S-63",
+   "kind": "support",
+   "rarity": "rare",
+   "trigger_zh": "每刷新一次商店",
+   "amount": "×+0.05",
+   "art_subject": "被清仓斜线划过的报价条(素材库 clearance_line)"
+  },
+  {
+   "id": "goldenvoice",
+   "cn": "金嗓",
+   "code": "S-64",
+   "kind": "support",
+   "rarity": "rare",
+   "trigger_zh": "每持有 6 金币",
+   "amount": "×+0.1",
+   "art_subject": "沉重下垂的硬币链(素材库 heavy_purse)"
+  },
+  {
+   "id": "hush",
+   "cn": "静场",
+   "code": "S-65",
+   "kind": "support",
+   "rarity": "rare",
+   "trigger_zh": "本拍不弃不换",
+   "amount": "×+0.4",
+   "art_subject": "自锁扣环固定住的一只牌手(素材库 one_hand_vow)"
+  },
+  {
+   "id": "harmony",
+   "cn": "和声",
+   "code": "S-66",
+   "kind": "support",
+   "rarity": "rare",
+   "trigger_zh": "缓存三张同花色",
+   "amount": "×+0.3",
+   "art_subject": "只许一枚花色穿过的扣环(素材库 single_suit_pact)"
+  },
+  {
+   "id": "ensemble",
+   "cn": "合奏",
+   "code": "S-67",
+   "kind": "support",
+   "rarity": "rare",
+   "trigger_zh": "缓存也上台",
+   "amount": "8选5",
+   "art_subject": "槽盘侧边挂着的小附仓(素材库 sidecar_tray)"
+  },
+  {
+   "id": "allin",
+   "cn": "孤注",
+   "code": "S-68",
+   "kind": "support",
+   "rarity": "rare",
+   "trigger_zh": "每拍抛硬币",
+   "amount": "×2/×0.5",
+   "art_subject": "中央偏置抛起的硬币(素材库 odd_float)"
+  },
+  {
+   "id": "jackpot",
+   "cn": "彩头",
+   "code": "S-69",
+   "kind": "support",
+   "rarity": "uncommon",
+   "trigger_zh": "段末拍一半概率",
+   "amount": "×3",
+   "art_subject": "时间线尾端卷成的短尾环(素材库 section_tail)"
+  },
+  {
+   "id": "loadeddice",
+   "cn": "灌铅骰",
+   "code": "S-70",
+   "kind": "support",
+   "rarity": "rare",
+   "trigger_zh": "概率翻倍",
+   "amount": "×2 odds",
+   "art_subject": "增长台阶上的双层短痕(素材库 compound_mark)"
+  },
+  {
+   "id": "recycle",
+   "cn": "回收",
+   "code": "S-71",
+   "kind": "support",
+   "rarity": "uncommon",
+   "trigger_zh": "直弃缓存牌",
+   "amount": "2×点数",
+   "art_subject": "切口旁压着归档签的牌叠(素材库 archive_cut)"
+  },
+  {
+   "id": "gueststar",
+   "cn": "客串",
+   "code": "S-72",
+   "kind": "support",
+   "rarity": "uncommon",
+   "trigger_zh": "只演一段",
+   "amount": "×+0.5",
+   "art_subject": "末端前一格下沉的时间线(素材库 outro_step)"
+  },
+  {
+   "id": "matador",
+   "cn": "斗牛士",
+   "code": "S-73",
+   "kind": "support",
+   "rarity": "uncommon",
+   "trigger_zh": "脸咬到的拍",
+   "amount": "+2◆",
+   "art_subject": "台阶侧面的失败刻痕(素材库 scar_tally)"
+  },
+  {
+   "id": "blindplay",
+   "cn": "盲奏",
+   "code": "S-74",
+   "kind": "support",
+   "rarity": "uncommon",
+   "trigger_zh": "盖着上台的牌",
+   "amount": "+8/张",
+   "art_subject": "裂镜上的无字面具(素材库 blank_mask)"
   }
  ]
 }

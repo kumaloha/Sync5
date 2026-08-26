@@ -1,0 +1,578 @@
+[
+  {
+    "kind": "jokers",
+    "id": "backer",
+    "strong_inside": 24149,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "bassclef",
+    "strong_inside": 12309,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "bassline",
+    "strong_inside": 14248,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "bench",
+    "strong_inside": 16698,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "blacktone",
+    "strong_inside": 12523,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "boxseats",
+    "strong_inside": 12252,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "chord",
+    "strong_inside": 34928,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "chorus",
+    "strong_inside": 14884,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "collector",
+    "strong_inside": 8345,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "cooltone",
+    "strong_inside": 10020,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "curtain",
+    "strong_inside": 12833,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "digger",
+    "strong_inside": 12429,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "doublebill",
+    "strong_inside": 24401,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "duet",
+    "strong_inside": 27796,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "duo",
+    "strong_inside": 13772,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "earlyout",
+    "strong_inside": 8416,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "encore",
+    "strong_inside": 23241,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "finale",
+    "strong_inside": 13766,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "fourfingers",
+    "strong_inside": 16077,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "freeze",
+    "strong_inside": 20437,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "fullcast",
+    "strong_inside": 7003,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "glowstick",
+    "strong_inside": 18159,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "interest",
+    "strong_inside": 11122,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "jukebox",
+    "strong_inside": 15148,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "kaleido",
+    "strong_inside": 15681,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "lonewolf",
+    "strong_inside": 19247,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "mirror",
+    "strong_inside": 17816,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "momentum",
+    "strong_inside": 19979,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "mono",
+    "strong_inside": 14726,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "neonsign",
+    "strong_inside": 6969,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "nopair",
+    "strong_inside": 14014,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "opener",
+    "strong_inside": 8982,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "popup",
+    "strong_inside": 15058,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "rainbow",
+    "strong_inside": 14337,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "rebrand",
+    "strong_inside": 21006,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "redtone",
+    "strong_inside": 5244,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "rehearsal",
+    "strong_inside": 40569,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "reprise",
+    "strong_inside": 16853,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "royalty",
+    "strong_inside": 20071,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "segue",
+    "strong_inside": 15942,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "shortcut",
+    "strong_inside": 23993,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "shredder",
+    "strong_inside": 12203,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "skint",
+    "strong_inside": 16764,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "sponsor",
+    "strong_inside": 12954,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "stageexit",
+    "strong_inside": 5796,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "stair",
+    "strong_inside": 20767,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "stilllife",
+    "strong_inside": 8009,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "stopwatch",
+    "strong_inside": 24020,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "superfan",
+    "strong_inside": 15970,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "tipjar",
+    "strong_inside": 14469,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "triad",
+    "strong_inside": 6472,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "trim",
+    "strong_inside": 21626,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "triplebill",
+    "strong_inside": 14420,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "triplet",
+    "strong_inside": 13160,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "turnover",
+    "strong_inside": 15977,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "twin",
+    "strong_inside": 14933,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "undertone",
+    "strong_inside": 11792,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "variation",
+    "strong_inside": 17939,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "vinyl",
+    "strong_inside": 13540,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "vip",
+    "strong_inside": 19739,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "warmtone",
+    "strong_inside": 23740,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "wildcard",
+    "strong_inside": 12887,
+    "strong_outside": 0
+  },
+  {
+    "kind": "jokers",
+    "id": "wrecker",
+    "strong_inside": 17776,
+    "strong_outside": 0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "blackout",
+    "strong_inside": 5529,
+    "strong_outside": 0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "blindspot",
+    "strong_inside": 5522,
+    "strong_outside": 0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "closing",
+    "strong_inside": 5575,
+    "strong_outside": 0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "cover",
+    "strong_inside": 14679,
+    "strong_outside": 0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "doubleseal",
+    "strong_inside": 7290,
+    "strong_outside": 0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "facedown",
+    "strong_inside": 7669,
+    "strong_outside": 0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "freshsheet",
+    "strong_inside": 8764,
+    "strong_outside": 0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "handseal",
+    "strong_inside": 8246,
+    "strong_outside": 0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "lastcall",
+    "strong_inside": 5649,
+    "strong_outside": 0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "lockup",
+    "strong_inside": 5410,
+    "strong_outside": 0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "lostpage",
+    "strong_inside": 6173,
+    "strong_outside": 0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "lowend",
+    "strong_inside": 4771,
+    "strong_outside": 0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "norepeat",
+    "strong_inside": 8651,
+    "strong_outside": 0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "oneswap",
+    "strong_inside": 7635,
+    "strong_outside": 0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "onetake",
+    "strong_inside": 3917,
+    "strong_outside": 0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "overtime",
+    "strong_inside": 7919,
+    "strong_outside": 0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "patchin",
+    "strong_inside": 4717,
+    "strong_outside": 0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "raisedbar",
+    "strong_inside": 5913,
+    "strong_outside": 0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "ration",
+    "strong_inside": 13690,
+    "strong_outside": 0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "redlight",
+    "strong_inside": 8075,
+    "strong_outside": 0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "request",
+    "strong_inside": 5233,
+    "strong_outside": 0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "rerun",
+    "strong_inside": 14986,
+    "strong_outside": 0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "rotation",
+    "strong_inside": 5481,
+    "strong_outside": 0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "rush",
+    "strong_inside": 15306,
+    "strong_outside": 0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "setlist",
+    "strong_inside": 7565,
+    "strong_outside": 0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "smallstage",
+    "strong_inside": 15251,
+    "strong_outside": 0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "static",
+    "strong_inside": 7635,
+    "strong_outside": 0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "switchtrack",
+    "strong_inside": 3874,
+    "strong_outside": 0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "teardown",
+    "strong_inside": 5572,
+    "strong_outside": 0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "throttle",
+    "strong_inside": 9731,
+    "strong_outside": 0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "trilogy",
+    "strong_inside": 4743,
+    "strong_outside": 0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "unplugged",
+    "strong_inside": 12667,
+    "strong_outside": 0
+  },
+  {
+    "kind": "blinds_concept",
+    "id": "wetink",
+    "strong_inside": 6111,
+    "strong_outside": 0
+  }
+]

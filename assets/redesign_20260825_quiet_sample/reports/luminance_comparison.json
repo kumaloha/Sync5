@@ -1,0 +1,62 @@
+[
+  {
+    "id": "chord",
+    "quiet_mean_luma": 8.97,
+    "v2_mean_luma": 16.79,
+    "ratio": 0.534
+  },
+  {
+    "id": "finale",
+    "quiet_mean_luma": 5.64,
+    "v2_mean_luma": 10.69,
+    "ratio": 0.527
+  },
+  {
+    "id": "shortcut",
+    "quiet_mean_luma": 10.35,
+    "v2_mean_luma": 32.06,
+    "ratio": 0.323
+  },
+  {
+    "id": "tipjar",
+    "quiet_mean_luma": 7.54,
+    "v2_mean_luma": 24.84,
+    "ratio": 0.303
+  },
+  {
+    "id": "twin",
+    "quiet_mean_luma": 5.73,
+    "v2_mean_luma": 19.4,
+    "ratio": 0.295
+  },
+  {
+    "id": "wrecker",
+    "quiet_mean_luma": 9.73,
+    "v2_mean_luma": 26.44,
+    "ratio": 0.368
+  },
+  {
+    "id": "lastcall",
+    "quiet_mean_luma": 4.12,
+    "v2_mean_luma": 9.74,
+    "ratio": 0.423
+  },
+  {
+    "id": "norepeat",
+    "quiet_mean_luma": 4.36,
+    "v2_mean_luma": 9.23,
+    "ratio": 0.473
+  },
+  {
+    "id": "rush",
+    "quiet_mean_luma": 5.6,
+    "v2_mean_luma": 12.97,
+    "ratio": 0.432
+  },
+  {
+    "id": "smallstage",
+    "quiet_mean_luma": 4.97,
+    "v2_mean_luma": 15.65,
+    "ratio": 0.318
+  }
+]

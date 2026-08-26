@@ -36,7 +36,7 @@ func _process(_delta: float) -> bool:
 		_scene._on_home_start()          # leave the home screen
 		return false
 	if _frames == 8:
-		_scene.choose_character(0)
+		_scene.start_run()
 		return false
 	if _frames < 12:
 		return false
@@ -80,7 +80,7 @@ func _process(_delta: float) -> bool:
 	match st:
 		0:    # FRONT — start another tour
 			_scene._on_home_start()
-			_scene.choose_character(0)
+			_scene.start_run()
 		1:    # INTRO
 			_scene.intro._dismiss()
 		2:    # DECISION — guarantee the clear, force the settle

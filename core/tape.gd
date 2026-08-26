@@ -31,7 +31,7 @@ extends RefCounted
 
 # 事件表(e 字段)。每条都自带 n(序号)/ms(run 内相对毫秒)/e(事件名):
 #
-#   run     开局        char, faces, targets, struct, coins
+#   run     开局        faces, targets, struct, coins
 #   sec     进段        i, target, face, wall, coins
 #   sec_end 段末判定    i, score, target, ok, coins, beats
 #   beat    起拍        i, p, dur, coins, hand, cache
@@ -211,14 +211,12 @@ static func slots(arr: Array) -> Array:
 	return out
 
 
-## 结算 popup(slot 制)-> 触发者 id;slot -1 = 主角
+## 结算 popup(slot 制)-> 触发者 id
 static func fired(popups: Array, slot_arr: Array) -> Array:
 	var out: Array = []
 	for p in popups:
 		var s := int(p.get("slot", -99))
-		if s < 0:
-			out.append("@character")
-		elif s < slot_arr.size() and slot_arr[s] != null:
+		if s >= 0 and s < slot_arr.size() and slot_arr[s] != null:
 			out.append(String(slot_arr[s].id))
 	return out
 

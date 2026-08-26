@@ -7,7 +7,7 @@ func run(t) -> void:
 	var slots: Array = [null, null, null, null]
 	var extra := {
 		"prev_kind": -99, "acted_late": false, "discards": 0, "coins": 99,
-		"phrase_idx": 0, "cache_cards": [], "mod": "", "character": null,
+		"phrase_idx": 0, "cache_cards": [], "mod": "",
 	}
 	var visible: Array = []
 	for i in range(GameConfig.HAND_SIZE + GameConfig.CACHE_CAP):
@@ -75,12 +75,12 @@ func run(t) -> void:
 		for _j in range(GameConfig.HAND_SIZE + GameConfig.CACHE_CAP):
 			vis.append(d3.draw())
 		var e_plain := {"prev_kind": -99, "acted_late": false, "discards": 0,
-			"coins": 9, "phrase_idx": 0, "mod": "", "character": null}
+			"coins": 9, "phrase_idx": 0, "mod": ""}
 		if Solver.best_score(vis, slots, e_plain) != float(Solver.best_split(vis, slots, e_plain).score):
 			mism_plain += 1
 		# 带小丑牌 + Boss 脸:必须走完整 Settle, 快路径不许在这里生效
 		var e_full := {"prev_kind": Pattern.Kind.FLUSH, "acted_late": true, "discards": 1,
-			"coins": 9, "phrase_idx": 0, "mod": "norepeat", "character": null}
+			"coins": 9, "phrase_idx": 0, "mod": "norepeat"}
 		if Solver.best_score(vis, jslots, e_full) != float(Solver.best_split(vis, jslots, e_full).score):
 			mism_full += 1
 		# ⚠ 2026-08-07:恒等快路径的判据从「有没有脸」改成「这张脸进不进 Settle」
@@ -88,7 +88,7 @@ func run(t) -> void:
 		# 的优化, 所以**每一张脸**都逐位对拍, 不是抽两张代表。
 		for m in SectionMod.roster():
 			var e_m := {"prev_kind": Pattern.Kind.FLUSH, "acted_late": true, "discards": 0,
-				"coins": 9, "phrase_idx": 0, "mod": m.id, "character": null,
+				"coins": 9, "phrase_idx": 0, "mod": m.id,
 				"first_kind": Pattern.Kind.PAIR}
 			if Solver.best_score(vis, slots, e_m) != float(Solver.best_split(vis, slots, e_m).score):
 				mism_full += 1

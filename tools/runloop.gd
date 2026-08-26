@@ -34,7 +34,7 @@ const BOON_AUTO := "<auto>"
 
 
 ## 探针的 boon 掷法:与游戏同一份 `BlindBoon.roll`, 但喂它一条从 deck_seed 派生的**独立** RNG ——
-## 共享主流(主角/脸/补牌)一个数都不多消耗。seen 恒空:探针是老玩家世界, 不做 novelty。
+## 共享主流(脸/补牌)一个数都不多消耗。seen 恒空:探针是老玩家世界, 不做 novelty。
 static func roll_boon(deck_seed: int) -> String:
 	var brng := RandomNumberGenerator.new()
 	brng.seed = deck_seed * 53 + 11
@@ -45,7 +45,6 @@ class Opts extends RefCounted:
 	var rng: RandomNumberGenerator      # 外部传入 —— 配对实验靠共用种子, 不许内部 new
 	var deck_seed: int = 0
 	var faces: Dictionary = {}          # 段号 -> 脸 id。空 = 全程无脸
-	var character = null                # null = 由 rng 抽(注意它会消耗一个随机数)
 	## 谁在打:
 	##   "perfect" —— 直接调 `Bot._play_perfect`(完美玩家, 用下面的 lam/eps)
 	##   "none"    —— 不动手, 照发到的牌打(量牌面本身的决策空间时用)
@@ -107,9 +106,6 @@ static func play(o: Opts, bot: Bot) -> Dictionary:
 	run.deck = Deck.new(o.deck_seed)
 	run.cache = []
 	run.joker_slots = [null, null, null, null]
-	# ⚠ 顺序不许动 —— 配对臂靠的是两边 RNG 消耗序列完全一致。
-	run.character = o.character if o.character != null \
-		else Character.roster()[o.rng.randi_range(0, 7)]
 	run.coins = maxi(0, GameConfig.STARTING_COINS + o.coin_delta)
 	run.run_faces = o.faces
 	run.run_boon = roll_boon(o.deck_seed) if o.boon == BOON_AUTO else o.boon
@@ -239,7 +235,6 @@ static func fork(run: Run, seed_value: int) -> Run:
 	for j in run.joker_slots:
 		r.joker_slots.append(null if j == null else j.clone())
 	r.coins = run.coins
-	r.character = run.character          # 无状态, 共享安全
 	r.run_faces = run.run_faces.duplicate()
 	r.section_idx = run.section_idx
 	r.phrase_in_section = run.phrase_in_section

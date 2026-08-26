@@ -1,8 +1,11 @@
-# 小丑牌与主角设计
+# 小丑牌设计
 
-> **两者归一篇**:它们是同一类东西 —— 构筑侧的数值内容,
-> 各自的平衡数值在一张表里(`data/jokers.json` 与 `core/character.gd::roster()`),
-> **改平衡只动那里,别散到代码各处**。
+> (标题原为「小丑牌与主角」—— 主角随局外 build 于 2026-08-24 整体删除,本篇只剩小丑牌。)
+> 平衡数值在一张表里(`data/jokers.json`),**改平衡只动那里,别散到代码各处**。
+>
+> ⚑ **2026-08-25 起,新卡先过 [`versus.md`](versus.md)(对抗设计总纲)**:
+> 卡形三种 · 职能四分 · 三档矩阵(被克/避开/顺应)· 组合三纪律 · 抵消赔一半红线。
+> 本篇的 16 条原则仍有效,与总纲冲突时以总纲为准。
 
 > **Revised 2026-08** after the Balatro deep-dive (`research_balatro_jokers.md`).
 > Supersedes the previous version of this file: the candidate-draw era support
@@ -39,7 +42,7 @@ buying it replaces yours outright: the pivot arc). Support defines **HOW**.
 ## Locked decisions (2026-08)
 
 - **All passive.** Effects trigger on the settle chain or on acquire. No
-  clickable abilities in v0.1 — the 12s clock owns the player's attention.
+  clickable abilities in v0.1 — the 8s clock owns the player's attention.
 - **Rarity system: Common / Uncommon / Rare.** Draft choices are drawn by
   rarity weight (placeholder 70/25/5). Rarity replaces the old
   upgrade-once system; full slots → replace one or skip.
@@ -81,7 +84,7 @@ currency, never just inflates the number):
   chain and get a beat in the settle show. Mid-phrase, jokers are silent rule
   reminders.
 - **A2 — Conditions must be plan-level or muscle-memory behaviors.** The only
-  levers a player consciously controls in 12s: what to discard, what to swap
+  levers a player consciously controls in 8s: what to discard, what to swap
   with cache, how fast to act, which pattern to chase. Every condition lands on
   one of these four. No mid-phrase reading tasks.
 - **A3 — Growth and resets hang on explicit actions only, never on settled
@@ -108,7 +111,7 @@ currency, never just inflates the number):
   counters) carry the back half. Additive growth may be Common; multiplicative
   growth is Rare-only.
 - **B4 — Slot order is meaningless, by design.** Channels are segregated and
-  merged at the end of the chain. No placement metagame in a 12s game.
+  merged at the end of the chain. No placement metagame in an 8s game.
 
 ### C. Experience and build principles
 
@@ -198,6 +201,34 @@ Every Section clear is a shop visit:
 ## Roster v0.1 (approved 2026-08, implemented in `core/joker.gd`)
 
 All +N / % / × numbers are relative scales pending the simulation balance pass.
+
+### ⚑ 2026-08-25 对抗批增量(13 新 + 3 改, 全部已实装带图;职能框架见 versus.md)
+
+设计出处 = 对话定稿的「小丑牌设计总表」。数值均为方向锚, 待 kit/price 归仪器。
+
+| 卡 | 效果(玩家话) | 职能 / 引擎点 |
+|---|---|---|
+| 快进 fastforward | 每次提前收工, 倍率永久 +0.1 | 抢收链乘法出口(counter on_early_finish) |
+| 打碟 deejay | 每刷新一次商店, 倍率永久 +0.05 | 商店链乘法出口(on_reroll) |
+| 金嗓 goldenvoice | 每持 6◆, 倍率 +0.1 | 经济链乘法出口;金币成为构筑资源 |
+| 静场 hush | 本拍不弃不换, 倍率 +0.4 | 零动链出口(整族触发率**待验证**:用户「基本不会什么都不动」) |
+| 和声 harmony | 缓存三张同花色, 倍率 +0.3 | 缓存链出口;窄台下物理死(反组合) |
+| 合奏 ensemble | 缓存也上台, 8 张挑最好 5 张 | hold cache_scoring;走聚光灯 boon 的最优五张路 |
+| 孤注 allin | 每拍抛硬币 ×2 或 ×0.5 | 赌具;「恒 ×0.5 + 半率 ×4」合成, EV 1.25 |
+| 彩头 jackpot | 段末拍一半概率 ×3 | 赌具;与副歌同槽对赌 |
+| 灌铅骰 loadeddice | 所有概率翻倍 | 概率放大器(hold odds_mult);单卡无用合体质变 |
+| 回收 recycle | 直弃缓存牌按点数两倍给奖励分 | 献祭职能首张;弃牌×缓存桥件(per cache_rank_sum) |
+| 客串 gueststar | 倍率 +0.5, 下个段末谢幕离场 | 租赁正规军(hold section_life);换阵润滑剂 |
+| 斗牛士 matador | 脸的规则咬到你的拍 +2◆ | 盲注节拍件(结算 face_bit 事实口径;hold face_coins) |
+| 盲奏 blindplay | 每张盖着上台的得分牌基础分 +8 | 信息脸唯一顺应位;蒙色/蒙点下整手算盲 |
+| 镜面(改) | 连续两拍达成旗条件才生效 | target_streak 谓词;必买卡要玩出来, 首次怕禁回 |
+| 拆迁(改) | 弃满 6 张才 ×3.5 | 用户拍板;弃 6 事实绑定对子(自由牌数学) |
+| 贝斯线(改) | 每 8 张弃牌一档(原 12) | bot 手抄的 12 被抓, 改从 json 推导步长 |
+
+**挂起六张**(每张要独立小引擎, 不硬塞):试音/延音踏板/指挥棒/定金(交互 UI)·
+幸运币(逐事件掷点)· 定存(跨拍牌身份, 防 deck 回收对象复用坑)。
+**新 DSL 面**:chance(Beat 预掷 luck_rolls)· target_streak · per: cache_rank_sum /
+hidden_scoring · hold: cache_scoring / odds_mult / section_life / face_coins。
 
 ### Targets (5, no rarity)
 
@@ -400,118 +431,11 @@ Structural findings:
 
 ---
 
-## 主角
+## 主角(已删除)
 
-### Definition
+> 主角系统随局外 build 于 2026-08-24 整体删除(用户拍板「仅保留局内玩法」)。
+> 结算链不再有主角被动层;历史设计与实测归 [jokers_history.md](jokers_history.md) 与 CHANGELOG 08-24。
 
-A character is a Run-long global rule extracted from a Balatro-style defining Joker.
-
-Character:
-
-- is selected before Run
-- stays active for the entire Run
-- changes the pressure model or Phrase rhythm
-- does not define the target poker pattern
-- is a permanent account asset
-
-### Hierarchy
-
-```text
-Character
-defines how pressure is experienced
-→ Target Joker
-defines what answer is valuable
-→ Support Jokers
-define how to reach the answer
-```
-
-### Initial characters
-
-#### Punk
-
-**Rule**
-
-> After 2 seconds, the player may lock early. Each unused second gives +20% score.
-
-**Rhythm**
-
-decisive, off-beat, active release
-
-**Skill**
-
-knowing when the current result is already enough
-
----
-
-#### Lo-fi Producer
-
-**Rule**
-
-> If Final Best is not worse than Initial Best, Flow +1. Each stack gives +12%, max 5. Regression resets Flow.
-
-**Rhythm**
-
-stable, continuous, low volatility
-
-**Skill**
-
-maintaining consistency instead of chasing every extreme
-
----
-
-#### Gambler
-
-**Rule**
-
-> Each paid draw gives +15% this Phrase. If Final Best does not improve, all bonus is lost.
-
-**Rhythm**
-
-high risk, escalating pressure
-
-**Skill**
-
-distinguishing useful pursuit from sunk-cost pursuit
-
----
-
-#### Sampler
-
-**Rule**
-
-> At Phrase end, choose one rank from the best five. Next Phrase initial hand guarantees one card of that rank.
-
-**Rhythm**
-
-repetition, variation, cross-Phrase memory
-
-**Skill**
-
-building around a recurring motif
-
-### Candidate characters
-
-#### Conductor
-
-> Every four Phrases form a group; 20% of the first three scores is released on the fourth.
-
-#### Minimalist
-
-> Hand capacity is exactly five; all score ×1.5.
-
-#### Collector
-
-> Cache +2; all paid draws cost +1.
-
-### Character design rules
-
-- one sentence must explain the rule
-- must change how pressure is experienced
-- must support several Target Jokers
-- cannot be a direct permanent power advantage
-- should remain competitive without becoming mandatory
-
----
 
 ## 附:从 `CLAUDE.md` 迁来的推导与实测(2026-08-09)
 

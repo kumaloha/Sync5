@@ -33,7 +33,8 @@ const _RUN_KEYS := ["phrases_per_section", "phrases_per_shop", "sections_per_gig
 	"gigs_per_run", "blind_names", "gig_names", "section_targets", "gig_clocks",
 	"warning_offset", "lock_offset", "late_act_window", "final_act_window",
 	"early_finish_time", "early_discard_window", "early_lock_min",
-	"hand_size", "cache_cap", "beat_budget", "death_spec"]
+	"hand_size", "cache_cap", "beat_budget", "death_spec",
+	"s1_face_min_run", "s1_easy_chance"]
 const _ECO_KEYS := ["starting_coins", "discard_cost", "section_clear_reward",
 	"draft_rarity_weights", "joker_prices", "joker_price_overrides",
 	"reroll", "joker_upgrade"]
@@ -46,17 +47,15 @@ static func load_error() -> String:
 	economy()
 	faces()
 	boons()
-	characters()
 	jokers()
 	sim()
 	ui()
 	tape()
 	tutorial()
 	director()
-	tickets()
 	ranking()
 	lingo()
-	assets()
+	profile()
 	return _err
 
 
@@ -76,10 +75,6 @@ static func faces() -> Dictionary:
 
 static func boons() -> Dictionary:
 	return _load("boons", func(d): return validate_boons(d))
-
-
-static func characters() -> Array:
-	return _load("characters", func(d): return validate_characters(d)).get("characters", [])
 
 
 static func jokers() -> Array:
@@ -106,121 +101,18 @@ static func tutorial() -> Dictionary:
 	return Lingo.localize(_load("tutorial", func(d): return validate_tutorial(d)), "tutorial")
 
 
-## 消耗品层(券)。`core/ticket.gd` 是它唯一的消费者。
-static func tickets() -> Dictionary:
-	return _load("tickets", func(d): return validate_tickets(d))
+## 首页顶栏的两个数(2026-08-24;`core/save.gd` 是它唯一的消费者)。
+static func profile() -> Dictionary:
+	return _load("profile", func(d): return validate_profile(d))
 
 
-## ⚠ `scope` 目前只是声明(消费端在代码里按 id 接线, 见 core/ticket.gd WIRED 头注释);
-## 白名单校验留着是为了 JSON 不长出第四种值。
-static func validate_tickets(d: Dictionary) -> String:
-	var e := _keys_ok(d, ["enabled", "reset_hour", "max_held", "tickets"])
+static func validate_profile(d: Dictionary) -> String:
+	var e := _keys_ok(d, ["energy_max", "xp_per_level"])
 	if e != "":
 		return e
-	if int(d["reset_hour"]) < 0 or int(d["reset_hour"]) > 23:
-		return "reset_hour 必须在 0..23"
-	if int(d["max_held"]) < 1:
-		return "max_held 必须 >= 1"
-	var seen: Array = []
-	for t in d["tickets"]:
-		for k in t:
-			if not ["id", "cn", "name", "fx", "scope", "params"].has(String(k)) \
-					and not String(k).begins_with("_"):
-				return "ticket '%s' unknown key '%s'" % [t.get("id", "?"), k]
-		var tid := String(t.get("id", ""))
-		if tid == "" or seen.has(tid):
-			return "ticket id 缺失或重复: '%s'" % tid
-		seen.append(tid)
-		if not ["phrase", "shop", "run"].has(String(t.get("scope", ""))):
-			return "ticket '%s' scope 必须是 phrase/shop/run" % tid
-		# 券要代码接线(core/ticket.gd WIRED 头注释):没接的券进了 JSON 会被每日发到手里却用不了
-		if not Ticket.WIRED.has(tid):
-			return "ticket '%s' 没在 core/ticket.gd 的 WIRED 里登记(托盘/使用入口按 id 接线)" % tid
-		# mult_min / mult_max 要成对:只写一个 = 静默变成不掷值的券
-		var pr: Dictionary = t.get("params", {})
-		if pr.has("mult_min") != pr.has("mult_max"):
-			return "ticket '%s' 的 mult_min/mult_max 必须成对" % tid
-		if String(t.get("fx", "")).split(" ", false).size() > 7:
-			return "ticket '%s' 卡面超过 7 词(与小丑牌同一条 1.5 秒规矩)" % tid
-	return ""
-
-
-## META 资产层(1.1)。`core/asset.gd` 是它唯一的消费者。
-static func assets() -> Dictionary:
-	return _load("assets", func(d): return validate_assets(d))
-
-
-## ⚠ `ticket` 引用坏券 id 会**静默不发**(daily 结算查不到就跳过)—— 硬校验拦在测试期。
-static func validate_assets(d: Dictionary) -> String:
-	var e := _keys_ok(d, ["gems", "assets", "season_now", "profile"])
-	if e != "":
-		return e
-	# 玩家档案等级表(meta.md §8):xp 升序、首档 0、双语称号齐全、零数值(键白名单就是它的零数值保证)
-	var pr = d.get("profile", {})
-	if not pr is Dictionary or not (pr.get("levels", []) is Array) or pr.get("levels", []).is_empty():
-		return "profile.levels 要是非空数组"
-	if String(pr.get("xp_source", "")) != "sections":
-		return "profile.xp_source 只认 'sections'(参与度 = 累计通关段数, 不挂分数)"
-	var last_xp := -1
-	for lv in pr["levels"]:
-		for k in lv:
-			if not ["xp", "cn", "name"].has(String(k)) and not String(k).begins_with("_"):
-				return "profile.levels 未知键 '%s'(等级只给称号, 不许带数值)" % k
-		var x := int(lv.get("xp", -1))
-		if x <= last_xp or (last_xp < 0 and x != 0):
-			return "profile.levels 的 xp 要从 0 起严格升序, got %s" % str(x)
-		last_xp = x
-		if String(lv.get("cn", "")) == "" or String(lv.get("name", "")) == "":
-			return "profile.levels 每档要有 cn 与 name 双语称号"
-	var g = d.get("gems", {})
-	if not g is Dictionary:
-		return "gems 要是对象"
-	var ge := _keys_ok(g, ["per_section", "full_clear_bonus"])
-	if ge != "":
-		return "gems: " + ge
-	if int(g.get("per_section", 1)) < 0 or int(g.get("full_clear_bonus", 0)) < 0:
-		return "gems 的两个数额不能为负"
-	var tids: Array = []
-	for t in tickets().get("tickets", []):
-		tids.append(String(t.get("id", "")))
-	var seen: Array = []
-	var last_price := 0
-	for a in d.get("assets", []):
-		for k in a:
-			if not ["id", "cn", "name", "cn_fx", "price", "yield_gems", "ticket",
-					"track", "flair", "season"].has(String(k)) and not String(k).begins_with("_"):
-				return "asset '%s' unknown key '%s'" % [a.get("id", "?"), k]
-		var aid := String(a.get("id", ""))
-		if aid == "" or seen.has(aid):
-			return "asset id 缺失或重复: '%s'" % aid
-		seen.append(aid)
-		for req in ["cn", "name", "cn_fx"]:
-			if String(a.get(req, "")) == "":
-				return "asset '%s' 缺 %s(英文化后新内容必须双语齐全)" % [aid, req]
-		if int(a.get("price", 0)) < 1:
-			return "asset '%s' price 必须 >= 1" % aid
-		# 阶梯按价格升序排 —— 「买更多资产」是往上爬, 表乱序会让资产页读不出阶梯
-		if int(a["price"]) < last_price:
-			return "asset '%s' 价格乱序(表要按价格升序, 它就是阶梯本身)" % aid
-		last_price = int(a["price"])
-		var yg := int(a.get("yield_gems", 0))
-		var tk := String(a.get("ticket", ""))
-		var tr := String(a.get("track", ""))
-		var fl := String(a.get("flair", ""))
-		if yg < 0:
-			return "asset '%s' yield_gems 不能为负" % aid
-		if tk != "" and not tids.has(tk):
-			return "asset '%s' 引用未知券 '%s'(data/tickets.json)" % [aid, tk]
-		# 唱片必须指向真实音频 —— 文件名打错 = 买了张放不出声的唱片, 而且不报错
-		if tr != "" and not FileAccess.file_exists("res://assets/audio/%s.wav" % tr):
-			return "asset '%s' track '%s' 在 assets/audio 里不存在" % [aid, tr]
-		# 视觉声势要有消费端 —— 白名单 = view 侧真的接了的关键字
-		if fl != "" and not ["confetti", "crowd", "homejuke"].has(fl):
-			return "asset '%s' flair '%s' 没有消费端(白名单: confetti/crowd)" % [aid, fl]
-		if yg == 0 and tk == "" and tr == "" and fl == "":
-			return "asset '%s' 没有任何出口(钱/券/曲目/声势全空)—— 纯装饰不属于这张表" % aid
-	if seen.is_empty():
-		return "assets 是空的"
+	# 0 或负数不是「关掉」而是静默除零/恒零 —— 要关体力显示去改 view, 别改成 0
+	if int(d["energy_max"]) < 1 or int(d["xp_per_level"]) < 1:
+		return "energy_max / xp_per_level 必须 >= 1"
 	return ""
 
 
@@ -387,6 +279,12 @@ static func validate_run(d: Dictionary) -> String:
 	for v in ds:
 		if float(v) < 0.0 or float(v) >= 1.0:
 			return "death_spec entries are 到达者死亡率, must be in [0, 1) — got %s" % v
+	# 首墙两层放水(2026-08-24)。min_run < 1 会让「第 0 局」这种不存在的局号当真;
+	# chance 越界 = 静默变成「永远简单/永远不简单」, 两头都要喊。
+	if int(d["s1_face_min_run"]) < 1:
+		return "s1_face_min_run must be >= 1 (1 = 第 1 局起就掷脸)"
+	if float(d["s1_easy_chance"]) < 0.0 or float(d["s1_easy_chance"]) >= 1.0:
+		return "s1_easy_chance must be in [0, 1) — 1.0 就不是「偶尔」了, 那是删掉首墙"
 	return ""
 
 
@@ -461,14 +359,18 @@ static func validate_tape(d: Dictionary) -> String:
 ## fast path and the face would quietly stop working. Both lists are asserted
 ## against SectionMod in tests/runner.gd.
 const _FACE_PARAMS_SETTLE := ["target_power", "bonus_disabled", "repeat_factor",
-	"zero_discard_factor", "lock_first", "request_factor", "joker_power"]
+	"zero_discard_factor", "lock_first", "request_factor", "joker_power",
+	"phase_factors", "suit_half", "callout_factor"]
 const _FACE_PARAMS_OTHER := ["time_penalty", "phrase_toll", "cache_evict",
 	"cache_cap_delta", "target_mult", "hide_refill", "hide_faces",
 	"discard_lock_last", "swap_lock_last", "discard_actions", "swap_actions",
 	"action_limit", "cache_block_red", "refill_rank_min", "refill_rank_max",
 	"cache_lock_phrases", "seal_lowest_start", "required_kinds", "variety_penalty",
 	"seal_oldest_cache", "restore_with_initial_cache", "section_discard_budget",
-	"exclusive_action_tracks"]
+	"exclusive_action_tracks", "discard_cards_max", "action_cards_max",
+	"seal_random_start", "seal_random_cache", "time_curve", "hide_random",
+	"roll_chance", "roll_cache_extra", "roll_suit", "roll_kind",
+	"hide_suits", "hide_ranks"]
 const _FACE_PARAMS := _FACE_PARAMS_SETTLE + _FACE_PARAMS_OTHER
 const _BOON_PARAMS := ["score_replay_factor", "spotlight_cards",
 	"previous_raw_factor", "ghost_first_discard"]
@@ -896,7 +798,9 @@ const _PREDICATES := ["kind", "kind_in", "same_as_prev", "diff_from_prev",
 	"first_phrase", "section_eq", "early_finish", "all_suits", "no_pair",
 	"cache_all_faces", "cache_run", "cache_trio",
 	"swaps_eq", "discard_batch_gte", "section_doubled",
-	"acted_final", "early_discards"]
+	"acted_final", "early_discards",
+	"target_streak",  # 2026-08-25 镜面改造:连续两拍达成旗条件(core/fx.gd::_when_ok)
+	"chance"]         # 2026-08-25 赌具组:掷点谓词(Beat 预掷, 结算保持纯函数)
 const _DO_KEYS := ["mult", "mult_add", "additive", "bonus", "bonus_target_pct", "bonus_pct",
 	"coins", "per", "step", "cap", "mult_from_target_factor", "additive_face_value",
 	"additive_low_value", "additive_cache_top", "chips_per_card", "card_filter",
@@ -912,12 +816,15 @@ const _COUNTER_KEYS := ["init", "decay_per_phrase", "floor", "on_discard",
 
 ## 持有期恒生效的经济/规则参数(穷开心 skint 的 coin_cap)。
 ## 与 shelf(货架影响)、acquire(一次性)三分天下, 键都要锁。
-const _HOLD_KEYS := ["coin_cap"]
+const _HOLD_KEYS := ["coin_cap", "cache_scoring", "odds_mult",
+	"section_life", "face_coins"]
 
 ## `per` 的合法值(计数来源)。⚠ 拼错 per 会让 `Fx._count` 静默返回 1.0 ——
 ## 效果从「按 N 计数」退化成「恒 ×1」,不报错。和 card_filter 同一条纪律:值也要锁。
 const _PER_SOURCES := ["discard", "cache_face", "face_discard", "swapped_scoring",
-	"second_left"]
+	"second_left",
+	"cache_rank_sum",  # 2026-08-25 回收:本拍直弃缓存牌的点数和(core/fx.gd::_count)
+	"hidden_scoring"]  # 2026-08-25 盲奏:盖着上台的得分牌张数
 
 ## `acquire` 的合法键与 deck_rule 的合法值。曾经不校验 —— 拼错的 acquire 键
 ## 会让规则牌**静默什么都不做**(joker.gd on_acquire 查不到就跳过),
@@ -946,7 +853,7 @@ const _JOKER_CURVES := ["burst", "fixed", "growth", "floating", "decay"]
 
 
 ## 效果 DSL 的校验(2026-08-21 评审:主角 effects 此前**完全不过白名单**, 未知谓词要到
-## 运行期 `Fx._when_ok` 才 push_error, 测试期 load_error 仍为空)。jokers/characters 共用这一份。
+## 运行期 `Fx._when_ok` 才 push_error, 测试期 load_error 仍为空)。
 ## `counters` = 该卡声明的计数器表:`per: counter:X` / `counter_gte: [X, n]` 的 X 必须在里面,
 ## 否则恒 0 = 卡静默失效(db.gd 自己说过的「静默不涨」)。
 static func _validate_effects(effects: Array, owner: String, counters: Dictionary) -> String:
@@ -1040,22 +947,6 @@ static func validate_jokers(d: Dictionary) -> String:
 	return ""
 
 
-static func validate_characters(d: Dictionary) -> String:
-	if not d.has("characters"):
-		return "wants 'characters'"
-	var arr: Array = d["characters"]
-	for i in range(arr.size()):
-		if int(arr[i]["idx"]) != i:
-			return "idx must be dense 0..N in order (slot %d)" % i
-		for k in arr[i]:
-			if not ["idx", "cn", "title", "fx", "effects"].has(k) and not String(k).begins_with("_"):
-				return "character unknown key '%s'" % k
-		var ce := _validate_effects(arr[i].get("effects", []), "character %d" % i, {})
-		if ce != "":
-			return ce
-	return ""
-
-
 static func validate_sim(d: Dictionary) -> String:
 	for k in ["runs", "cohorts", "kind_prior", "counterfactual_tv",
 			"lonewolf_value", "ev", "chase", "solver"]:
@@ -1112,9 +1003,8 @@ static func validate_ui(d: Dictionary) -> String:
 		# `tutor_focus` = 教学关的分区指向矩形(2026-08-15)。⚑ 它进 ui.json 而不是
 		# tutorial.json, 因为**坐标归 ui.json** 是既定铁律(改布局改文案 = 改 JSON);
 		# tutorial.json 里只放**区域名**, `core/tutorial.gd` 也因此不认识像素。
-		# `tickets` = 局内券托盘的坐标与文案(2026-08-17 券使用入口)。
 		if not ["stage", "hud", "shop", "hand", "banner", "blindcard", "jokercard",
-				"tutor_focus", "tickets", "patterns"].has(k):
+				"tutor_focus", "patterns"].has(k):
 			return "unknown section '%s'" % k
 	# 交叉校验(2026-08-21 评审 D):blindcard 覆盖每张入池脸 + 每个 boon, jokercard 覆盖每张
 	# 小丑牌;反向不许有孤儿条目(5 条退役卡的 jokercard 曾经一直躺在表里)。
