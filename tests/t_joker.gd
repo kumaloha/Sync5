@@ -106,12 +106,13 @@ func run(t) -> void:
 
 	# chord: cache all one suit (wilds match anything)
 	var same_suit := [t._c(3, 1), t._c(9, 1), t._c(12, 1)]
-	var mixed := [t._c(3, 1), t._c(9, 2), t._c(12, 1)]
+	# 放宽为全同色(2026-08-26)后, 「混」必须是**异色**:红桃+方块是全红, 会触发。
+	var mixed := [t._c(3, 1), t._c(9, 0), t._c(12, 1)]
 	var with_wild := [t._c(3, 1), Card.new(Card.JOKER_RANK, Card.JOKER_BIG), t._c(12, 1)]
 	t.eq(Settle.run(flush_res, [null, Joker.by_id("chord"), null, null], {"cache_cards": same_suit})["score"],
 		base + t._bonus("chord"), "chord bonus on a one-suit cache")
 	t.eq(Settle.run(flush_res, [null, Joker.by_id("chord"), null, null], {"cache_cards": mixed})["score"],
-		base, "chord silent on a mixed cache")
+		base, "chord silent on a mixed-color cache")
 	t.eq(Settle.run(flush_res, [null, Joker.by_id("chord"), null, null], {"cache_cards": with_wild})["score"],
 		base + t._bonus("chord"), "a wild in the cache matches any suit")
 

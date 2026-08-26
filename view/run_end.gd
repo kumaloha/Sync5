@@ -403,7 +403,7 @@ func _panel(ok: bool) -> void:
 	var acc := StageTheme.CYAN if ok else Color("ff4f7d")
 	var pw := 460.0
 	# fail + 死因:面板向下多让 28px 放一行小字, 顶缘不动(设计稿的 490 锚点)
-	var ph := 150.0 if ok else (166.0 if _why != "" else 138.0)
+	var ph := 150.0 if ok else 138.0
 	var c := Vector2(360.0, 490.0 + ph * 0.5)
 	draw_set_transform(c, 0.0, Vector2(sc, sc))
 	var r := Rect2(-pw * 0.5, -ph * 0.5, pw, ph)
@@ -451,12 +451,15 @@ func _panel(ok: bool) -> void:
 		var wn: float = num.get_string_size(msg_n, HORIZONTAL_ALIGNMENT_LEFT, -1, 26).x
 		var wb: float = zh.get_string_size(msg_b, HORIZONTAL_ALIGNMENT_LEFT, -1, 19).x
 		var x0 := -(wa + wn + wb) * 0.5
-		draw_string(zh, Vector2(x0, r.position.y + 128.0), msg_a, HORIZONTAL_ALIGNMENT_LEFT, -1, 19, Color("c96a85"))
-		draw_string(num, Vector2(x0 + wa, r.position.y + 128.0), msg_n, HORIZONTAL_ALIGNMENT_LEFT, -1, 26, Color("ffd9a0"))
-		draw_string(zh, Vector2(x0 + wa + wn, r.position.y + 128.0), msg_b, HORIZONTAL_ALIGNMENT_LEFT, -1, 19, Color("c96a85"))
+		if _why == "":
+			# 「还差 N 分」只在真·分数不达标时念 —— 预支违约等死因下分数可能是达标的,
+			# 「还差 0 分」会显得系统在说胡话(2026-08-27 截图验收抓到)。
+			draw_string(zh, Vector2(x0, r.position.y + 128.0), msg_a, HORIZONTAL_ALIGNMENT_LEFT, -1, 19, Color("c96a85"))
+			draw_string(num, Vector2(x0 + wa, r.position.y + 128.0), msg_n, HORIZONTAL_ALIGNMENT_LEFT, -1, 26, Color("ffd9a0"))
+			draw_string(zh, Vector2(x0 + wa + wn, r.position.y + 128.0), msg_b, HORIZONTAL_ALIGNMENT_LEFT, -1, 19, Color("c96a85"))
 		if _why != "":
 			# 死因行(如预支违约):小一号、比脚注亮一档 —— 分数达标却失败时它是唯一的解释
-			draw_string(zh, Vector2(r.position.x, r.position.y + 154.0), _why,
+			draw_string(zh, Vector2(r.position.x, r.position.y + 128.0), _why,
 				HORIZONTAL_ALIGNMENT_CENTER, pw, 16, Color("ff9ecb"))
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 

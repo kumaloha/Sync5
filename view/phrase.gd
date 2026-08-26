@@ -1568,6 +1568,10 @@ func _refresh() -> void:
 	hand.reshuffle_key.visible = decide and not phrase.deck.wild_extra.is_empty()
 	hand.reshuffle_key.fee = Economy.reshuffle_cost()
 	hand.reshuffle_key.active = phrase.can_reshuffle()
+	# 弃牌键亮价(2026-08-27 journey #1):经济 v2 弃牌 1◆/张, 键上必须念价 ——
+	# 否则是暗扣钱。fee = 选中张数 × 单价;没选中时念单价(先知道要钱再选)。
+	var sel_n: int = hand.sel_hand.size() + hand.sel_cache.size()
+	hand.discard_key.fee = GameConfig.DISCARD_COST * maxi(1, sel_n)
 
 	# 「当前牌型」读数面板已删除(用户 2026-08-05:「PAIR 100 那个区域去掉,
 	# 根本不知道什么意思」)——它没有任何说明, 又和结算三段式的分数演算重复。
