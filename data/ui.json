@@ -606,6 +606,10 @@
   "reshuffle_sz": 72,
   "reshuffle_dy": 84
  },
+ "banner": {
+  "_comment": "结算屏文案。fail_loan = fail 屏的死因行(show_fail 的 why, %d = 还不上的预支金额;2026-08-27 加行:分数达标却因预支违约死掉, 只念分数会让玩家困惑)。",
+  "fail_loan": "预支违约：还不上 %d◆"
+ },
  "tutor_focus": {
   "_comment": "教学关高亮的**合法区域名白名单**(core/db.gd 校验 + Tutorial.regions())。⚠⚠ **值只是说明, 不是坐标** —— 2026-08-16 这里原本手写着四个矩形, 而手牌行/缓存行/弃牌键的位置是**运行时按 stage 的 card_w/gap/cache_y 算出来的**, 这里那份是目测抄的第二份, 键做窄(key_w)之后更对不上 ⇒ 用户报「高光位置不对、跟原图不对应」。真值现在从活部件取:`Hand.focus_rect()`(hand/cache/discard)与本文件的 `hud.pos`+`hud.size`(hud)。**别再往这里写坐标。**",
   "hud": "顶栏(分数/金币/拍数)",
