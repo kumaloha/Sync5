@@ -618,10 +618,11 @@ static func validate_director(d: Dictionary) -> String:
 			var se := _director_no_forbidden(st, "states.%s." % sname)
 			if se != "":
 				return se
-	# `context` 是可选键, 摘掉再对白名单(_keys_ok 把 allowed 同时当必备键用)。
+	# `context` / `cycle` 是可选键, 摘掉再对白名单(_keys_ok 把 allowed 同时当必备键用)。
 	var d_req := d.duplicate()
 	d_req.erase("context")
 	d_req.erase("context_tuning")
+	d_req.erase("cycle")
 	var e := _keys_ok(d_req, _DIRECTOR_KEYS)
 	if e != "":
 		return e
@@ -652,6 +653,43 @@ static func validate_director(d: Dictionary) -> String:
 				return "context_tuning 未知键 '%s'(白名单: %s)" % [tk, ", ".join(bounds.keys())]
 			if not (tn[tk] is float or tn[tk] is int) or float(tn[tk]) < float(bounds[tk]):
 				return "context_tuning.%s 要 ≥ %s, got %s" % [tk, str(bounds[tk]), str(tn[tk])]
+	# cycle 节(可选):10-run 周期机制课程(difficulty.md §2.5, 2026-08-26 用户拍板)。
+	# 结构铁律与 states 同一条线:**它只偏置「哪张脸上场」**, 能写的只有轴名 +
+	# 考试题型 + 一个权重乘数 —— 多一个键就是多一条按局数漂的通道。
+	if d.has("cycle"):
+		var cy = d["cycle"]
+		if not cy is Dictionary:
+			return "cycle 要是对象"
+		for ck in cy:
+			if String(ck).begins_with("_"):
+				continue
+			if not ["groups", "bias_mult"].has(String(ck)):
+				return "cycle 未知键 '%s'(只有 groups / bias_mult)" % ck
+		if cy.has("bias_mult"):
+			var bm = cy["bias_mult"]
+			if not (bm is float or bm is int) or float(bm) < 1.0:
+				return "cycle.bias_mult 要 ≥ 1(1 = 没有课程;<1 会把课程静默反转成回避), got %s" % str(bm)
+		var gs = cy.get("groups", [])
+		if not (gs is Array) or gs.is_empty():
+			return "cycle.groups 是空的 —— 周期表至少要有一组"
+		var axes: Array = SectionMod.axis_ids()
+		for gi in range(gs.size()):
+			var row = gs[gi]
+			if not (row is Array) or row.size() != 10:
+				return "cycle.groups[%d] 要恰好 10 位(10-run 周期是用户拍的数), got %s" \
+					% [gi, str(row.size() if row is Array else row)]
+			for p in range(row.size()):
+				var slot := String(row[p])
+				if p == 4 or p == 9:
+					# 考试位(第 5/10 局)。⚠ 轴名写在这里会**静默变成学习位**才要拦。
+					if not ["wall", "combo"].has(slot):
+						return "cycle.groups[%d] 第 %d 位是考试位, 只能是 wall/combo, got '%s'" \
+							% [gi, p + 1, slot]
+				elif not axes.has(slot):
+					# ⚠ 拼错的轴名会让那两局**静默没有课程**(attack_axes 匹配不到任何脸),
+					# 正是这个项目栽过六次的形状。轴名单只有一份 —— SectionMod._AXIS_PARAMS。
+					return "cycle.groups[%d] 第 %d 位 '%s' 不是攻击轴(有 %s;考试题型只许在第 5/10 位)" \
+						% [gi, p + 1, slot, ", ".join(axes)]
 	# 档宽:0 会让每一档都空(pick_face 无解), >1 等于「整池」也就是没有倾向。
 	var bf := float(d["band_fraction"])
 	if bf <= 0.0 or bf > 1.0:

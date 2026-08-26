@@ -428,6 +428,101 @@ func run(t) -> void:
 	cint["context"] = {"novelty": 1}
 	t.check(DB.validate_director(cint) != "", "non-bool context switch rejected")
 
+	# ---- 10-run 周期机制课程(difficulty.md §2.5, 2026-08-26 用户拍板)----
+	# 锁**结构**不锁内容:哪组挂哪条轴是设计, 用户直接改 JSON;这里守的是
+	# 「10 位齐全 / 轴名合法 / 考试位在 5·10 / 组间轮换 / 考试局含加码族」。
+	var groups: Array = Director.cycle_groups()
+	t.check(not groups.is_empty(), "出厂表带 cycle 节(周期课程是 §2.5 拍板)")
+	var axes: Array = SectionMod.axis_ids()
+	for gi in range(groups.size()):
+		var row: Array = groups[gi]
+		t.eq(row.size(), Director.CYCLE_LEN, "第 %d 组 10 位齐全" % (gi + 1))
+		for p in range(row.size()):
+			var slot := String(row[p])
+			if p == 4 or p == 9:
+				t.check(Director.EXAM_KINDS.has(slot),
+					"第 %d 组第 %d 位是考试位(wall/combo), got '%s'" % [gi + 1, p + 1, slot])
+			else:
+				t.check(axes.has(slot),
+					"第 %d 组第 %d 位是合法轴名, got '%s'" % [gi + 1, p + 1, slot])
+	# 位 → 格映射:按局数取位, 走完一组换下一组, 轮着来(全部从数据推导, 不抄内容)
+	for r in range(1, Director.CYCLE_LEN * groups.size() * 2 + 1):
+		var row2: Array = groups[int(floor(float(r - 1) / float(Director.CYCLE_LEN))) % groups.size()]
+		t.eq(Director.cycle_slot(r), String(row2[(r - 1) % Director.CYCLE_LEN]),
+			"第 %d 局落在周期表的正确格子" % r)
+	t.eq(Director.cycle_axis(5), "", "考试位没有学习轴")
+	t.check(Director.cycle_exam(5) != "", "第 5 局是考试位")
+	t.check(Director.cycle_exam(Director.CYCLE_LEN) != "", "第 10 局是考试位")
+	t.eq(Director.cycle_exam(1), "", "学习位没有考试")
+	t.check(Director.cycle_axis(1) != "", "第 1 局是学习位")
+	t.eq(Director.cycle_axis(1), Director.cycle_axis(2), "学习位成对(1-2 同轴, 连续两局同类题)")
+	t.eq(Director.cycle_axis(6), Director.cycle_axis(7), "学习位成对(6-7 同轴)")
+	t.check(Director.cycle_mult() > 1.0, "bias_mult > 1(= 1 等于没有课程)")
+	t.eq(Director.cycle_slot(0), "", "第 0 局没有格子(钳板是 state 的事, 课程从第 1 局起)")
+	# 加码族判据:raisedbar 本尊 + base 声明的档位族;别的脸/空脸都不算
+	t.check(Director.exam_family("raisedbar"), "raisedbar 本尊是加码族")
+	t.check(not Director.exam_family("rush"), "时间族不是加码族")
+	t.check(not Director.exam_family(""), "空脸不是加码族")
+	# 固定 seed:考试局四墙至少一张加码族(zero-RNG 保证, 所以任何 seed 都该过)
+	for sd2 in [1, 4242, 20260826]:
+		for er in [5, Director.CYCLE_LEN, Director.CYCLE_LEN * groups.size() + 5]:
+			var rex := RandomNumberGenerator.new()
+			rex.seed = sd2
+			var exf: Dictionary = Director.roll_run(er, rex, rk)
+			var fam := false
+			for w3 in GameConfig.WALL_SECTIONS:
+				if Director.exam_family(String(exf.get(int(w3), ""))):
+					fam = true
+			t.check(fam, "seed %d 局 %d(考试位)四墙至少一张加码族" % [sd2, er])
+	# 带权掷点:weights 缺省逐字节退回旧签名(RNG 消耗也一样)
+	var pw1 := RandomNumberGenerator.new()
+	var pw2 := RandomNumberGenerator.new()
+	pw1.seed = 55
+	pw2.seed = 55
+	t.eq(Director.pick_face(rk[0], "median", pw1),
+		Director.pick_face(rk[0], "median", pw2, [], {}, false, {}),
+		"空 weights 逐字节等于旧签名")
+	t.eq(pw1.state, pw2.state, "…RNG 消耗也一样")
+	# 压零权重把掷点完全引向唯一的非零候选 —— 加权真的在起作用(确定性, 不靠大数)
+	var wband: Array = Director.band(rk[0], "mild")
+	if wband.size() >= 2:
+		var wtarget := String(wband[wband.size() - 1])
+		var wzero := {}
+		for id in wband:
+			if String(id) != wtarget:
+				wzero[String(id)] = 0.0
+		for sd3 in [3, 9, 81]:
+			var rw3 := RandomNumberGenerator.new()
+			rw3.seed = sd3
+			t.eq(Director.pick_face(rk[0], "mild", rw3, [], {}, false, wzero), wtarget,
+				"权重把掷点完全引向目标脸(seed %d)" % sd3)
+	# schema:cycle 越界表红, 且为**正确的理由**红
+	var cyok := _cfg({"a": {"face_bias": "mild", "shelf": {}}}, ["a"])
+	cyok["cycle"] = {"groups": [["discard", "discard", "cache", "cache", "wall",
+		"info", "info", "tempo", "tempo", "wall"]]}
+	t.eq(DB.validate_director(cyok), "", "最小合法 cycle 通过")
+	var cy9 := cyok.duplicate(true)
+	cy9["cycle"]["groups"] = [["discard", "cache", "wall", "info", "tempo"]]
+	t.check(DB.validate_director(cy9).contains("10 位"), "不足 10 位被拒(10-run 是用户拍的数)")
+	var cyax := cyok.duplicate(true)
+	cyax["cycle"]["groups"][0][0] = "score"
+	t.check(DB.validate_director(cyax).contains("攻击轴"), "不是攻击轴的轴名被拒(拼错会静默没课程)")
+	var cyex := cyok.duplicate(true)
+	cyex["cycle"]["groups"][0][4] = "discard"
+	t.check(DB.validate_director(cyex).contains("考试位"), "考试位写轴名被拒(会静默变学习位)")
+	var cylearn := cyok.duplicate(true)
+	cylearn["cycle"]["groups"][0][0] = "wall"
+	t.check(DB.validate_director(cylearn) != "", "学习位写考试题型被拒")
+	var cymult := cyok.duplicate(true)
+	cymult["cycle"]["bias_mult"] = 0.5
+	t.check(DB.validate_director(cymult).contains("bias_mult"), "bias_mult < 1 被拒(静默反转成回避)")
+	var cykey := cyok.duplicate(true)
+	cykey["cycle"]["nope"] = 1
+	t.check(DB.validate_director(cykey) != "", "cycle 未知键被拒")
+	var cyempty := cyok.duplicate(true)
+	cyempty["cycle"]["groups"] = []
+	t.check(DB.validate_director(cyempty) != "", "空 groups 被拒")
+
 	# --- 首墙两层放水(2026-08-24 用户:原作对照 + 「后面的关也偶尔可以有简单关」)---
 	var wr := RandomNumberGenerator.new()
 	wr.seed = 424242
