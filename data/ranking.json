@@ -8,7 +8,9 @@
   "oneswap",
   "norepeat",
   "lastcall",
-  "lockup"
+  "lockup",
+  "norepeat75",
+  "raisedbar125"
  ],
  "1": [
   "blindspot",
@@ -21,7 +23,11 @@
   "roulette",
   "colorlight",
   "throttle",
-  "setlist"
+  "setlist",
+  "crescendo07",
+  "lastcall4",
+  "throttle6",
+  "wetink2"
  ],
  "2": [
   "blackout",
@@ -32,7 +38,17 @@
   "switchtrack",
   "callout",
   "rerun",
-  "raisedbar"
+  "raisedbar",
+  "callout50",
+  "colorlight25",
+  "dimstage3",
+  "onetake1",
+  "raisedbar175",
+  "ration8",
+  "request80",
+  "setlist25",
+  "trilogy4",
+  "raisedbar200"
  ],
  "3": [
   "countdown",
@@ -40,5 +56,6 @@
   "rush",
   "overtime",
   "teardown"
- ]
+ ],
+ "_comment_bootstrap_20260826b": "档位扩池批 16 档:先垫到各段末(按 tier),单脸/全量门定价后 rankgen 重刷正位。"
 }

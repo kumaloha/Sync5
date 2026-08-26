@@ -389,12 +389,20 @@ static func validate_faces(d: Dictionary) -> String:
 	for e in d["faces"]:
 		for k in e:
 			if not ["id", "name", "cn", "fx", "params", "proof", "tape_required", "tier", "tiers",
-					"min_run"].has(k):
+					"min_run", "base"].has(k):
 				return "face '%s' unknown key '%s' — faces.json is data-only now, design notes belong in docs/design/blinds.md §7" % [e.get("id", "?"), k]
 		if e.has("tape_required") and not e["tape_required"] is bool:
 			return "face '%s' tape_required wants bool" % e.get("id", "?")
 		if ids.has(e["id"]):
 			return "duplicate face id '%s'" % e["id"]
+		# 档位脸(2026-08-26):base 必须指向存在的脸 —— 拼错 = 图标回落静默失效。
+		if e.has("base"):
+			var base_found := false
+			for e2 in d["faces"]:
+				if String(e2["id"]) == String(e["base"]):
+					base_found = true
+			if not base_found:
+				return "face '%s' base '%s' 不存在" % [e["id"], e["base"]]
 		var params: Dictionary = e.get("params", {})
 		if params.is_empty():
 			return "face '%s' has no params — it would do nothing" % e["id"]

@@ -963,6 +963,12 @@ class BlindCard:
 		if not ResourceLoader.exists(p):
 			# 2026-08-25 起新脸的特写用素材库 PNG(键控透明), svg 优先、png 兜底。
 			p = "res://assets/blinds/fp_%s.png" % fid
+		if not ResourceLoader.exists(p):
+			# 档位扩池(2026-08-26, blinds.md §2.6):同机制不同数值 = 同图标 + 档记号,
+			# 缺图时回落 faces.json 的 `base` 指向的原脸图标(db 校验 base 必存在)。
+			var bid := SectionMod.base_of(fid)
+			if bid != "":
+				return _fingerprint(bid)
 		_fp_cache[fid] = load(p) if ResourceLoader.exists(p) else false
 		return _fp_cache[fid] if _fp_cache[fid] is Texture2D else null
 

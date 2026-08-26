@@ -19,17 +19,25 @@ func run(t) -> void:
 	# them carries a face. 教学空间因此归零, 首段的池必须留在最温和档。
 	t.eq(GameConfig.WALL_SECTIONS.size(), GameConfig.SECTIONS_PER_RUN, "no verses remain")
 	var expected_pools := [
-		["norepeat", "lostpage", "smallstage", "facedown", "lastcall", "lockup", "onetake", "oneswap"],
+		["norepeat", "lostpage", "smallstage", "facedown", "lastcall", "lockup", "onetake", "oneswap",
+			"raisedbar125", "norepeat75"],
 		# ⚑ 2026-08-25 红灯退役(管手脚不管结果, 花色打击归变色灯)· 接线退役(解法单一)。
 		# ⚑ 2026-08-26 对抗批七脸入池(蒙色/蒙点仍暂存, 欠属性级信念):
 		#   T2 +高音/轮盘/变色灯/暗场 · T3 +点名/渐强 · T4 +倒计时(时间族)。
+		# ⚑ 2026-08-26b 档位扩池 16 档(blinds.md §2.6, 用户:「盲注包里能改数字的都多列几个」):
+		#   同机制同图标 + 档记号(faces.json `base` 键), 数字是方向锚, 门定价后 rankgen 正位。
 		["setlist", "blindspot", "throttle", "request", "lowend", "highend", "roulette",
-			"colorlight", "dimstage", "wetink", "handseal"],
+			"colorlight", "dimstage", "wetink", "handseal",
+			"throttle6", "wetink2", "lastcall4", "crescendo07"],
 		["callout", "crescendo", "rerun", "raisedbar", "trilogy", "blackout",
-			"doubleseal", "ration", "switchtrack"],
+			"doubleseal", "ration", "switchtrack",
+			"raisedbar175", "raisedbar200", "ration8", "onetake1", "setlist25",
+			"request80", "colorlight25", "callout50", "dimstage3", "trilogy4"],
 		# ⚑ 2026-08-14 用户:「tier4 可以补脸, 只不过都是时间相关的就行」——
 		# 末轮从「固定一张」变成「时间族四张」。六秒仍然始终成立:**每张都自带 time_penalty**,
 		# 所以 docs/design/blinds.md §6 删掉延音的那条理由(把六秒还回去 = 破坏第四轮主机制)不被违反。
+		# ⚑ 2026-08-26b:加倍(×2.0)原想放 T4 当呼吸位, 被「末轮每张自带缩时」断言
+		# 正确拦下 —— 六秒是第四轮主机制, 纯抬分脸不缩时 = 把六秒还回去(删延音同理)。挪 T3。
 		["countdown", "rush", "overtime", "teardown", "closing"],
 	]
 	for idx in range(expected_pools.size()):
@@ -238,14 +246,11 @@ func run(t) -> void:
 			"roll_run 的 S%d 取自它自己的池子" % (int(w) + 1))
 		t.check(not seen.has(run_faces[w]), "roll_run 一局之内不重复掷到同一张脸")
 		seen[run_faces[w]] = true
-	# ⚠ 逐字节不变的证据:同一个种子, roll_run 与「逐段独立掷」结果相同 ——
-	# 单轮时代 exclude 永远筛不掉东西, 所以收口不该改变任何既有读数。
-	var rng3 := RandomNumberGenerator.new()
-	rng3.seed = 11
-	var manual := {}
-	for w in GameConfig.WALL_SECTIONS:
-		manual[int(w)] = SectionMod.roll(int(w), rng3)
-	t.eq(run_faces, manual, "roll_run == 逐段独立掷(当前数据下逐字节不变)")
+	# ~~roll_run == 逐段独立掷~~ 2026-08-26b 档位扩池后退役:该断言是 08-2x 收口迁移的
+	# 逐字节证据(前提 = 序列杀伤预算在当时数据下永不触发), 池扩到 49 张后 seed 11 首次
+	# 触发同轴修复(lockup/throttle6/teardown 同动作轴 ≥3 → 段 3 被合法重掷)——
+	# **那是预算机制在正确工作, 不是回归**。roll_run 的现行契约由上面三条盖住:
+	# 每段取自各自池 · 一局不重复 · (预算修复的收敛性在 t_director 的镜像测试里)。
 	t.eq(SectionMod.time_penalty("rush"), 2.0, "rush shaves 2 seconds")
 	# ⚠ 不抄死数额 —— 平衡要反复调, 抄死等于给每次调参加一道返工(CLAUDE.md 的老教训:
 	# Target 倍率那批抄死的断言一改就红 10 条)。这里锁的是**契约**:入场费真的收钱。

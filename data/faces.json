@@ -489,6 +489,213 @@
    "proof": "solver",
    "tape_required": true,
    "tier": 4
+  },
+  {
+   "id": "raisedbar125",
+   "name": "Raised Bar Lite",
+   "cn": "小加码",
+   "fx": "Section target rises a quarter",
+   "params": {
+    "target_mult": 1.25
+   },
+   "proof": "target",
+   "tier": 1,
+   "base": "raisedbar"
+  },
+  {
+   "id": "raisedbar175",
+   "name": "Raised Bar Plus",
+   "cn": "狠加码",
+   "fx": "Section target rises three quarters",
+   "params": {
+    "target_mult": 1.75
+   },
+   "proof": "target",
+   "tier": 3,
+   "base": "raisedbar"
+  },
+  {
+   "id": "raisedbar200",
+   "name": "Double Bar",
+   "cn": "加倍",
+   "fx": "Section target doubles",
+   "params": {
+    "target_mult": 2.0
+   },
+   "proof": "target",
+   "tier": 3,
+   "base": "raisedbar"
+  },
+  {
+   "id": "ration8",
+   "name": "Tight Ration",
+   "cn": "紧配给",
+   "fx": "Eight discards shared across section",
+   "params": {
+    "section_discard_budget": 8
+   },
+   "proof": "solver",
+   "tier": 3,
+   "base": "ration"
+  },
+  {
+   "id": "throttle6",
+   "name": "Loose Throttle",
+   "cn": "宽限流",
+   "fx": "Move six cards max each phrase",
+   "params": {
+    "action_cards_max": 6
+   },
+   "proof": "solver",
+   "tier": 2,
+   "tape_required": true,
+   "base": "throttle"
+  },
+  {
+   "id": "onetake1",
+   "name": "Single Take",
+   "cn": "单弃",
+   "fx": "Discard one card max each phrase",
+   "params": {
+    "discard_cards_max": 1
+   },
+   "proof": "solver",
+   "tier": 3,
+   "tape_required": true,
+   "base": "onetake"
+  },
+  {
+   "id": "setlist25",
+   "name": "Hard Setlist",
+   "cn": "重定调",
+   "fx": "Off setlist hands score quarter",
+   "params": {
+    "lock_first": 0.25
+   },
+   "proof": "score",
+   "tier": 3,
+   "base": "setlist"
+  },
+  {
+   "id": "norepeat75",
+   "name": "Soft No Repeats",
+   "cn": "轻禁回",
+   "fx": "Repeating last hand loses quarter",
+   "params": {
+    "repeat_factor": 0.75
+   },
+   "proof": "score",
+   "tier": 1,
+   "min_run": 6,
+   "base": "norepeat"
+  },
+  {
+   "id": "request80",
+   "name": "Loud Request",
+   "cn": "狠点歌",
+   "fx": "Miss request and lose twenty percent",
+   "params": {
+    "request_factor": 0.8
+   },
+   "proof": "score",
+   "tier": 3,
+   "tape_required": true,
+   "base": "request"
+  },
+  {
+   "id": "colorlight25",
+   "name": "Deep Color Light",
+   "cn": "强变色",
+   "fx": "Rolled suit scores a quarter all gig",
+   "params": {
+    "suit_half": 0.25,
+    "roll_suit": 1
+   },
+   "proof": "score",
+   "tier": 3,
+   "base": "colorlight"
+  },
+  {
+   "id": "callout50",
+   "name": "Loud Callout",
+   "cn": "狠点名",
+   "fx": "Play the named hand or score half",
+   "params": {
+    "callout_factor": 0.5,
+    "roll_kind": 1
+   },
+   "proof": "score",
+   "tier": 3,
+   "base": "callout"
+  },
+  {
+   "id": "dimstage3",
+   "name": "Darker Stage",
+   "cn": "深暗场",
+   "fx": "Three random hand cards stay hidden",
+   "params": {
+    "hide_random": 3
+   },
+   "proof": "solver",
+   "tier": 3,
+   "base": "dimstage"
+  },
+  {
+   "id": "wetink2",
+   "name": "Thick Ink",
+   "cn": "浓墨迹",
+   "fx": "New cache cards lock two phrases",
+   "params": {
+    "cache_lock_phrases": 2
+   },
+   "proof": "solver",
+   "tier": 2,
+   "base": "wetink"
+  },
+  {
+   "id": "lastcall4",
+   "name": "Long Last Call",
+   "cn": "长收线",
+   "fx": "No discards in final four seconds",
+   "params": {
+    "discard_lock_last": 4.0
+   },
+   "proof": "solver",
+   "tier": 2,
+   "tape_required": true,
+   "base": "lastcall"
+  },
+  {
+   "id": "trilogy4",
+   "name": "Quadrilogy",
+   "cn": "四曲目",
+   "fx": "Four hand types, or target rises",
+   "params": {
+    "required_kinds": 4,
+    "variety_penalty": 0.25
+   },
+   "proof": "target",
+   "tier": 3,
+   "base": "trilogy"
+  },
+  {
+   "id": "crescendo07",
+   "name": "Soft Crescendo",
+   "cn": "缓渐强",
+   "fx": "First three phrases softer, then boosted",
+   "params": {
+    "phase_factors": [
+     0.7,
+     0.7,
+     0.7,
+     1.3,
+     1.3,
+     1.3
+    ]
+   },
+   "proof": "score",
+   "tier": 2,
+   "base": "crescendo"
   }
  ],
  "families": {
@@ -508,6 +715,7 @@
   "overtime",
   "teardown",
   "lowend",
-  "crescendo"
+  "crescendo",
+  "crescendo07"
  ]
 }

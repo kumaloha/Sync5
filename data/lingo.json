@@ -280,6 +280,22 @@
   "洗牌": "Reshuffle",
   "金币不够洗牌": "Not enough coins to reshuffle",
   "四张 JOKER 加入牌库;洗牌键付费重掷整手, 弃牌堆洗回": "Four JOKERs join the deck; pay to redeal your hand, discards shuffled back",
-  "超级百搭": "Super Wildcard"
+  "超级百搭": "Super Wildcard",
+  "本段目标分提高 25%": "Section target +25%",
+  "本段目标分提高 75%": "Section target +75%",
+  "本段目标分翻倍": "Section target doubles",
+  "整段只有 8 次弃牌额度": "Only 8 discards this section",
+  "每拍弃牌加交换合计最多 6 张": "Six card moves max per phrase",
+  "每拍一口气最多只弃 1 张": "One discard max per phrase",
+  "偏离定调的牌型只得 25% 分": "Off-setlist hands score 25%",
+  "重复上一拍的牌型只得 75% 分": "Repeats score 75%",
+  "没完成本拍点歌,得分 −20%": "Missed request costs 20%",
+  "开场掷一种花色,整关它只算 25% 分": "Rolled suit scores 25%",
+  "打出点名牌型,否则本拍只得 50% 分": "Named hand or score 50%",
+  "每拍随机盖住 3 张手牌": "Three hand cards hidden",
+  "新进缓存的牌锁定两拍": "Cache locks for two phrases",
+  "最后 4 秒不能弃牌": "No discards in last 4s",
+  "本段要打出 4 种牌型,缺种加税": "Four hand types or pay",
+  "前三拍得分 ×0.7,后三拍 ×1.3": "Early ×0.7, late ×1.3"
  }
 }

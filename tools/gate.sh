@@ -111,14 +111,25 @@ tests() {
 	tools/unittest.sh "$LOGDIR/tests.log"
 }
 
+unit_step() {
+	# ⚑ 提速①b(2026-08-26 用户:「门拖了一周工期」):门首的全量单测 ~12 分钟,
+	# 若调用者**几分钟内刚跑过全绿**可显式声明跳过 —— 显式 env 而不是自动嗅探旧日志:
+	# 一份过期的绿日志被自动采信 = 第九种假绿。跳过时大字说明, 责任在声明者。
+	if [[ "${SYNC5_GATE_SKIP_UNIT:-0}" == "1" ]]; then
+		printf '\n\033[33m── 测试:跳过(SYNC5_GATE_SKIP_UNIT=1 —— 调用者声明刚有全绿单测)\033[0m\n'
+	else
+		step "测试" tests
+	fi
+}
+
 if [[ -n "$FACE" ]]; then
 	# 增量模式:一张新脸只需要证明它自己 + 结构断言没被它带红。
 	# ⚠ 参数是**脸的 id**。加了一张新**小丑牌**时用的是另一条:
 	#     SYNC5_KIT_ID=<joker_id> godot --headless --path . --script res://tools/kit.gd
-	step "测试" tests
+	unit_step
 	step "覆盖自证 · $FACE" env SYNC5_GATE_FACE="$FACE" godot --headless --path . --script res://tools/gate.gd
 else
-	step "测试" tests
+	unit_step
 	# 覆盖自证:增量模式下只验改动过的脸/卡。**单调性与哨兵仍然全跑** ——
 	# 它们是全局不变量(不针对某张脸), 而且便宜。
 	if [[ $INCREMENTAL -eq 1 && -n "$CHANGED_FACES" ]]; then
@@ -129,10 +140,36 @@ else
 	elif [[ $INCREMENTAL -eq 1 ]]; then
 		printf '\n\033[36m── 覆盖自证 · 脸\033[0m\n   \033[33m⚠ 跳过:本次没有改动任何脸\033[0m\n'
 	else
-		step "覆盖自证 + 单调性 + 哨兵" godot --headless --path . --script res://tools/gate.gd
+		# ⚑ 提速①a(2026-08-26 用户:「门拖了一周工期,亏肯定是亏了」):
+		# 脸门(gate.gd ~2.7h)与卡门(kit.gd ~1.9h)是两个互不读写的 godot 进程,
+		# 串行纯属历史 —— 并行后全量 wall-clock ≈ max(两门)。各自写日志, 完成后按序
+		# 原样回放保持可读;判据照旧直读各自退出码(不隔管道)。
+		# ⚠ 并行的两进程只**读**工作树 —— 门跑着仍然不许改代码/数据(另开 worktree 开发)。
+		printf '\n\033[1m── 覆盖自证 + 单调性 + 哨兵 ∥ 小丑牌覆盖自证(并行)\033[0m\n'
+		TPAR=$SECONDS
+		godot --headless --path . --script res://tools/gate.gd > "$LOGDIR/gate_faces.log" 2>&1 &
+		PID_FACES=$!
+		godot --headless --path . --script res://tools/kit.gd > "$LOGDIR/gate_cards.log" 2>&1 &
+		PID_CARDS=$!
+		wait "$PID_FACES"; R_FACES=$?
+		wait "$PID_CARDS"; R_CARDS=$?
+		cat "$LOGDIR/gate_faces.log"
+		if [[ $R_FACES -eq 0 ]]; then
+			printf '   \033[32m✓ 覆盖自证 + 单调性 + 哨兵\033[0m\n'
+		else
+			printf '   \033[31m✗ 覆盖自证 + 单调性 + 哨兵\033[0m\n'
+			FAILED+=("覆盖自证 + 单调性 + 哨兵")
+		fi
+		cat "$LOGDIR/gate_cards.log"
+		if [[ $R_CARDS -eq 0 ]]; then
+			printf '   \033[32m✓ 小丑牌覆盖自证\033[0m\n'
+		else
+			printf '   \033[31m✗ 小丑牌覆盖自证\033[0m\n'
+			FAILED+=("小丑牌覆盖自证")
+		fi
+		printf '   (并行段合计 %ds)\n' "$((SECONDS - TPAR))"
 	fi
-	# ⚠ **+611s**(2026-08-13 实测, roster 57 张;文件头那个 309s 是 23 张时代的数)。
-	# 贵在 solver 通路的规则牌要跑完美玩家。增量只验改动过的卡。
+	# 增量模式的卡门(全量已并行跑过, 只剩增量分支需要)
 	if [[ $INCREMENTAL -eq 1 && -n "$CHANGED_JOKERS" ]]; then
 		step "小丑牌覆盖自证 · 改动的卡($CHANGED_JOKERS)" \
 			env SYNC5_KIT_ID="$CHANGED_JOKERS" godot --headless --path . --script res://tools/kit.gd
@@ -140,8 +177,6 @@ else
 		printf '   \033[33m⚠ 增量:只验了改动的卡;池里共 %s 张未全量复验\033[0m\n' "$N_CARDS"
 	elif [[ $INCREMENTAL -eq 1 ]]; then
 		printf '\n\033[36m── 小丑牌覆盖自证\033[0m\n   \033[33m⚠ 跳过:本次没有改动任何卡\033[0m\n'
-	else
-		step "小丑牌覆盖自证" godot --headless --path . --script res://tools/kit.gd
 	fi
 	# 下面四段**增量也跑** —— 它们是全局回归(流程/打点/重放/尺子), 与「改了哪张卡」无关,
 	# 合计约 190s。⚠ 尺子自检那条尤其不许省:它是「bot_targets 还没失效」的唯一警报。

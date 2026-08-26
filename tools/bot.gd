@@ -159,7 +159,9 @@ func _card_ev(id: String, st: Dictionary, slots: Array, phrases_left: int) -> fl
 			var bm: float = score_mean / maxf(1.0, mult_mean)
 			return (float(ot[1]) * float(ot[2]) * bm) if tid == String(ot[0]) \
 				else float(p["off_target"]) * score_mean
-		"wildcard":
+		"wildcard", "superwild":
+			# 超级百搭(2026-08-26)与百搭同键形:base + 对位 Target 加成;
+			# 差异(4 张注入 + 洗牌钓卡)已折进 ev.cards 的 base 先验(0.2 vs 0.1)。
 			var tb: Array = p["target_bonus"]
 			var bonus: float = float(tb[1]) if tid in tb[0] else 0.0
 			return (float(p["base"]) + bonus) * score_mean

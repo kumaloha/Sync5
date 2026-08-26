@@ -164,6 +164,70 @@
   "rankfog": {
    "command": "所有牌的点数被遮住,只看得见花色",
    "signal": "RANK FOG"
+  },
+  "raisedbar125": {
+   "command": "本段目标分提高 25%",
+   "signal": "TARGET +25%"
+  },
+  "raisedbar175": {
+   "command": "本段目标分提高 75%",
+   "signal": "TARGET +75%"
+  },
+  "raisedbar200": {
+   "command": "本段目标分翻倍",
+   "signal": "TARGET ×2"
+  },
+  "ration8": {
+   "command": "整段只有 8 次弃牌额度",
+   "signal": "DISCARD 8"
+  },
+  "throttle6": {
+   "command": "每拍弃牌加交换合计最多 6 张",
+   "signal": "MOVE 6"
+  },
+  "onetake1": {
+   "command": "每拍一口气最多只弃 1 张",
+   "signal": "DISCARD 1"
+  },
+  "setlist25": {
+   "command": "偏离定调的牌型只得 25% 分",
+   "signal": "SETLIST 25%"
+  },
+  "norepeat75": {
+   "command": "重复上一拍的牌型只得 75% 分",
+   "signal": "REPEAT 75%"
+  },
+  "request80": {
+   "command": "没完成本拍点歌,得分 −20%",
+   "signal": "MISS −20%"
+  },
+  "colorlight25": {
+   "command": "开场掷一种花色,整关它只算 25% 分",
+   "signal": "COLOR 25%"
+  },
+  "callout50": {
+   "command": "打出点名牌型,否则本拍只得 50% 分",
+   "signal": "CALLOUT 50%"
+  },
+  "dimstage3": {
+   "command": "每拍随机盖住 3 张手牌",
+   "signal": "HIDE 3"
+  },
+  "wetink2": {
+   "command": "新进缓存的牌锁定两拍",
+   "signal": "INK ×2"
+  },
+  "lastcall4": {
+   "command": "最后 4 秒不能弃牌",
+   "signal": "LOCK 4s"
+  },
+  "trilogy4": {
+   "command": "本段要打出 4 种牌型,缺种加税",
+   "signal": "KINDS 4"
+  },
+  "crescendo07": {
+   "command": "前三拍得分 ×0.7,后三拍 ×1.3",
+   "signal": "PHASE 0.7"
   }
  },
  "jokercard": {
