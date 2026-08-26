@@ -78,6 +78,15 @@ static func tier_of(mod_id: String) -> int:
 	return 0
 
 
+## 档位脸的原型 id(2026-08-26 档位扩池, blinds.md §2.6)。"" = 不是档位脸。
+## 消费者:BlindCard 图标回落(同机制同图标 + 档记号)。db 校验 base 指向存在的脸。
+static func base_of(mod_id: String) -> String:
+	for e in DB.faces().get("faces", []):
+		if String(e["id"]) == mod_id:
+			return String(e.get("base", ""))
+	return ""
+
+
 ## 这张脸的全部合法轮次。空 = 没入池。
 static func tiers_of(mod_id: String) -> Array:
 	for e in DB.faces().get("faces", []):

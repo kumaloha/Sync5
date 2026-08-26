@@ -25,52 +25,9 @@ var rarity: String      # "common" | "uncommon" | "rare" | "" for targets
 var fx_text: String     # card text — EN, ≤7 words (principle D2)
 var state: Dictionary = {}   # per-run counters for growth/decay cards
 
-## ---- 升级(2026-08-16, 金币的主出口)----
-##
-## ⚑ **一局内的等级, 1 起。** 和 `state` 同性质:属于**这一局的这张卡**, 不是卡的定义,
-## 所以不进 `data/jokers.json`, 也不跨局保留。
-## ⚠ **它必须被求解器/bot 读到** —— 升级是一条**改数值的规则**, 而 `tools/bot.gd` 与
-## solver 一直是从 jokers.json 直接读数额的。漏了它就是第 7 次「规则在游戏里、不在模型里」,
-## 这个项目最贵的一类错。所以放大发生在 `Joker.apply()` 这**一处**, 谁调 apply 谁自动拿到。
-var level := 1
-
-
-## 这一级把**增量**放大多少倍。Lv1 = 1.0(原样), 每级 +`step`。
-##
-## ⚠⚠ **是「增量」不是「整个数」** —— ×1.5 的卡按整数升会变成 ×3.05(4 级指数爆炸),
-## 按增量升满级正好翻倍(增量 0.5 → 1.0 ⇒ ×2.0)。`tests/t_joker.gd` 锁着这条。
-func increment_scale() -> float:
-	return 1.0 + GameConfig.UPGRADE_STEP * float(level - 1)
-
-
-## 还能不能升。⚠ **规则牌一律不能** —— 它们没有数值可升(改的是判定规则),
-## 而这正好是红调/黑调的平衡杠杆:开局 5.3× 很强, 但**吃不到升级红利**。
-func can_upgrade() -> bool:
-	return not is_rule_card() and has_scalable_effect() and level < GameConfig.UPGRADE_MAX_LEVEL
-
-
-## 有没有任何一个通道会吃升级放大(2026-08-21 评审 R1)。**金币通道不放大**(升级不印钱),
-## 所以只有 coins / coins_factor 的卡(皇室 royalty)挂升级报价 = 卖一个空气 —— 这里直接不卖。
-## 通道清单与 `Fx._do` 放大的那几档**一一对应**, 加通道要两处同改(t_joker 锁着「可升级 ⇒ 满级 ≠ Lv1」)。
-const _SCALABLE := ["mult", "mult_add", "additive", "bonus", "bonus_target_pct", "bonus_pct",
-	"mult_from_target_factor", "additive_face_value", "additive_low_value",
-	"additive_cache_top", "chips_per_card"]
-func has_scalable_effect() -> bool:
-	for e in _effects:
-		var d: Dictionary = e.get("do", {})
-		for k in d:
-			if _SCALABLE.has(String(k)):
-				return true
-	return false
-
-
-## 升到下一级要多少钱;−1 = 升不了(满级或规则牌)。
-func upgrade_cost() -> int:
-	if not can_upgrade():
-		return -1
-	var costs: Array = GameConfig.UPGRADE_COSTS
-	var i := level - 1
-	return int(costs[i]) if i >= 0 and i < costs.size() else -1
+## ~~升级系统~~(2026-08-16 曾是金币的主出口) 2026-08-26 用户拍板整体删除(路线 ③):「升级太复杂等于要做好几套
+## 经济……删掉是为了减负,不太会影响游戏乐趣」—— level/increment_scale/can_upgrade/
+## upgrade_cost 与 Fx 的 scale 放大通道一并退役,金币出口回到「买牌 + 洗牌」。
 var _effects: Array
 var _counters: Dictionary
 var _acquire: Dictionary
@@ -257,7 +214,12 @@ func on_acquire(deck: Deck) -> void:
 	if deck == null:
 		return
 	if _acquire.has("wilds"):
-		deck.enable_wilds()
+		# 值 = 张数(2026-08-26 起):≤2 走大小王开关(百搭, 旧行为逐位不变);
+		# >2 走按来源记账的注入(超级百搭 4 张;卖卡再买不翻倍, deck 侧挡)。
+		if int(_acquire["wilds"]) <= 2:
+			deck.enable_wilds()
+		else:
+			deck.add_wilds(id, int(_acquire["wilds"]))
 	if _acquire.has("deck_rule"):
 		deck.rules[String(_acquire["deck_rule"])] = true
 	if _acquire.has("trim_low"):
@@ -299,10 +261,8 @@ func on_section_end() -> void:
 	pass
 
 
-## ⚑ 升级的放大**只发生在这一处** —— 游戏、bot、求解器全都走 `apply()`,
-## 所以谁都不会拿到没放大的数(见 `level` 那条注释里说的第 7 次)。
 func apply(ctx: Dictionary) -> String:
-	return Fx.apply_effects(_effects, state, ctx, increment_scale())
+	return Fx.apply_effects(_effects, state, ctx)
 
 
 ## 有无 effects 决定 kit 的 solver 臂用哪把判据(证物率 vs 分差)—— 见 tools/kit.gd::_run_solver。
@@ -332,6 +292,5 @@ func clone() -> Joker:
 		if String(e["id"]) == id:
 			var j := Joker.new(e)
 			j.state = state.duplicate(true)
-			j.level = level   # 评审:漏拷 level ⇒ 求解器/bot 的推演把满级卡当 Lv1 算
 			return j
 	return null

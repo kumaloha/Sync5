@@ -547,6 +547,20 @@
    }
   },
   {
+   "id": "superwild",
+   "name": "Super Wildcard",
+   "cn": "超级百搭",
+   "kind": "support",
+   "rarity": "rare",
+   "curve": "fixed",
+   "proof": "solver",
+   "fx": "Four jokers join your deck",
+   "acquire": {
+    "wilds": 4
+   },
+   "_comment": "2026-08-26 用户创意:四张 JOKER 入堆 + 付费洗牌钓卡(reshuffle_cost, 金币第三出口)。与百搭共存还是取代待拍板;弃牌仍免费不动。"
+  },
+  {
    "id": "kaleido",
    "name": "Kaleidoscope",
    "cn": "万花筒",

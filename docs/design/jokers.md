@@ -44,8 +44,9 @@ buying it replaces yours outright: the pivot arc). Support defines **HOW**.
 - **All passive.** Effects trigger on the settle chain or on acquire. No
   clickable abilities in v0.1 — the 8s clock owns the player's attention.
 - **Rarity system: Common / Uncommon / Rare.** Draft choices are drawn by
-  rarity weight (placeholder 70/25/5). Rarity replaces the old
+  rarity weight (placeholder 70/25/5; 现行 35/30/25). Rarity replaced the old
   upgrade-once system; full slots → replace one or skip.
+  (2026-08-16 的 5 级升级系统亦已于 2026-08-26 用户拍板整体删除 —— 别再提议加回。)
 - **Roster size: Target 5 + Support 18** (batch 2 added three rule rescues).
 - Targets carry no rarity — one per run, drafted equally.
 - **⚑ 2026-08-10 用户拍板:roster 目标总数 60**(Target 8 + Support 52)。终选名单、

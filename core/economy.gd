@@ -11,6 +11,12 @@ static func discard_cost(count: int) -> int:
 	return count * GameConfig.DISCARD_COST
 
 
+## 洗牌(2026-08-26, 超级百搭配套):整手回堆 + 弃牌堆洗回 + 重发。
+## 金币的第三出口(买牌/升级之外);数字在 economy.json, 方向锚待 ⑥ 数值批。
+static func reshuffle_cost() -> int:
+	return GameConfig.RESHUFFLE_COST
+
+
 ## Shop price of a joker. The FIRST target is free (build direction); a
 ## target bought while one is installed costs the swap price. Supports are
 ## priced by rarity (with per-card overrides) — unaffordable cards still

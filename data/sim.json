@@ -344,6 +344,17 @@
    },
    "matador": {
     "bites_per_beat": 0.5
+   },
+   "superwild": {
+    "base": 0.2,
+    "target_bonus": [
+     [
+      "stair",
+      "triplet"
+     ],
+     0.15
+    ],
+    "_comment": "方向锚:百搭(0.1)的注入加倍版, 数值批 SOP 未走(TODO 路线⑥)"
    }
   },
   "timing": {

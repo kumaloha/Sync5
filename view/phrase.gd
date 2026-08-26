@@ -250,6 +250,7 @@ func _build_ui() -> void:
 	for i in range(joker_views.size()):
 		joker_views[i].tapped.connect(_on_slot_tapped.bind(i))  # only live in replace mode
 	hand.sort_pressed.connect(_on_hand_sort)
+	hand.reshuffle_pressed.connect(_on_hand_reshuffle)
 	hand.discard_pressed.connect(_on_hand_discard)
 	hand.single_discard.connect(_on_hand_single_discard)
 	hand.swap_requested.connect(_on_hand_swap)
@@ -262,7 +263,6 @@ func _build_ui() -> void:
 	shop.replace_requested.connect(_on_shop_replace)
 	shop.skipped.connect(_on_shop_skipped)
 	shop.reroll_paid.connect(_on_shop_reroll)
-	shop.upgrade_requested.connect(_on_shop_upgrade)
 	shop.denied.connect(func(why: String) -> void: Tape.on("deny", {"why": why}))
 	settle_fx.burst_started.connect(_on_settle_burst)
 	run_end.next_pressed.connect(_on_end_next)
@@ -993,7 +993,6 @@ func _open_draft() -> void:
 		and run.phrase_in_section < GameConfig.PHRASES_PER_SECTION
 	# 教学段商店不摆升级栏(2026-08-18 用户:「下面 4 个是干嘛, 不应该要」——
 	# 栏里列的是借展样品, 给要收回的卡挂升级报价既误导又花钱打水漂;教学商店只教「买」)
-	shop.set_upgrades_on(not run.tutorial)
 	# Director 的货架偏置(establish 抬 common / experiment 抬 rare…):探针中性
 	shop.set_shelf_rarity_mult({} if SaveState.is_probe() else Director.shelf_rarity_mult(_run_index))
 	# 探索型货架的原料(玩过的 Target):探针恒空 ⇒ 货架掷法逐字节不变
@@ -1089,29 +1088,6 @@ func _on_shop_bought(j, price: int) -> void:
 ##
 ## ⚠ **钱和等级只在这里动**(CLAUDE.md:金币/装槽等经济动作只发生在编排器)。
 ## 组件只发意图, 所以 `shop.gd` 里那个按钮不碰 `_coins` 也不碰 `level`。
-## ⚠ 这里**重新取一次 cost 并复查钱** —— 信号里带的 cost 是组件按它那一刻的状态算的,
-## 中间要是有别的路径改了等级/金币, 照着旧数扣就会扣错。**信号带的数当提示, 不当依据。**
-func _on_shop_upgrade(slot_idx: int, _cost_hint: int) -> void:
-	if state != St.DRAFT:
-		return
-	if slot_idx < 0 or slot_idx >= run.joker_slots.size():
-		return
-	var j = run.joker_slots[slot_idx]
-	if j == null or not j.can_upgrade():
-		return
-	var cost: int = j.upgrade_cost()
-	if cost < 0 or phrase.coins < cost:
-		Tape.on("deny", {"why": "upgrade_coins", "id": String(j.id), "coins": phrase.coins})
-		return
-	phrase.coins -= cost
-	j.level += 1
-	# ⚑ 只记事实(等级到了几、花了多少、剩多少), 不记「这一级值多少分」——
-	# 那是**特征**, 会随平衡迭代而变;口径铁律 = 只记事实, 分析侧自己去推。
-	Tape.on("upgrade", {"id": String(j.id), "lv": j.level, "cost": cost, "coins": phrase.coins})
-	# ⚑ 升级 = 本次进店的那「一下」(2026-08-24 用户:「升级也只能选一下」)——
-	# 与买入同款收口:选择落定, 关店开拍。此前 sold() 刷新后留在店里, 可以连点
-	# 把钱一次掼完 —— 商店的节奏是「每次进店做一个选择」, 升级不该是例外。
-	shop.close()
 	_start_phrase()
 
 
@@ -1417,6 +1393,31 @@ func _deny_swap_why() -> String:
 	return String(d.get("blocked", "这张换不了"))
 
 
+## 洗牌(2026-08-26 超级百搭配套):付费整手重掷 + 弃牌堆洗回 —— 钓 JOKER 的实体。
+## 金币动作, 所以判定/扣费都在 core(phrase.reshuffle 自守 can_reshuffle);
+## 这里只做编排:拒绝要浮原因(键抖动只说「不行」不说「为什么」的教训), 打点记事实。
+func _on_hand_reshuffle() -> void:
+	if state != St.DECISION:
+		if state == St.RESOLVE:
+			fx.float_text(String(DB.ui().get("hand", {}).get("deny", {})
+				.get("locked", "")),
+				hand.discard_key_pos() + Vector2(34, -110), StageTheme.PINK)
+		return
+	if not phrase.can_reshuffle():
+		hand.reshuffle_key.shake()
+		fx.float_text(String(DB.ui().get("hand", {}).get("deny", {})
+			.get("reshuffle", "")),
+			hand.discard_key_pos() + Vector2(34, -110), StageTheme.PINK)
+		Tape.on("deny", {"why": "reshuffle", "at": elapsed})
+		return
+	phrase.reshuffle()
+	hand.clear_selection()
+	hand.deal_flip()
+	Tape.on("rsfl", {"cost": Economy.reshuffle_cost(), "at": elapsed})
+	_action_feedback()
+	_refresh()
+
+
 func _on_hand_discard(sel_h: Array, sel_c: Array) -> void:
 	if state != St.DECISION:
 		if state == St.RESOLVE:
@@ -1527,6 +1528,11 @@ func _refresh() -> void:
 		"score": _shown_score, "target": target, "phrase_no": run.phrase_index,
 		# 教学关 target = 0 ⇒ 0/0 = NaN(GDScript 浮点除零不报错), 进度条会画成残条(评审)
 		"fraction": 0.0 if target <= 0 else float(run.section_score) / float(target)})
+	# 洗牌键:牌堆里有万能才亮(装了百搭/超级百搭);付不起时压暗但不藏 —— 玩家要看得见价。
+	hand.reshuffle_key.visible = decide \
+		and (phrase.deck.wilds_enabled or not phrase.deck.wild_extra.is_empty())
+	hand.reshuffle_key.fee = Economy.reshuffle_cost()
+	hand.reshuffle_key.active = phrase.can_reshuffle()
 
 	# 「当前牌型」读数面板已删除(用户 2026-08-05:「PAIR 100 那个区域去掉,
 	# 根本不知道什么意思」)——它没有任何说明, 又和结算三段式的分数演算重复。

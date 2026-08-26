@@ -212,6 +212,8 @@ static func _score_five(five: Array, rules: Dictionary = {}) -> Dictionary:
 			wild_idx.append(i)
 	if wild_idx.is_empty():
 		return _pack(five, five, rules)
+	if wild_idx.size() >= 3:
+		return _score_many_wilds(five, rules)
 
 	# brute force: every wild tries all 52 real cards, keep the best result.
 	# The hand is five cards and at most two wilds exist, so this stays small.
@@ -238,6 +240,126 @@ static func _score_five(five: Array, rules: Dictionary = {}) -> Dictionary:
 				if int(res["score"]) > best_score:
 					best_score = int(res["score"])
 					best = res
+	return best
+
+
+## ≥3 张万能的解析捷径(2026-08-26 超级百搭的引擎前提)。
+## 52^k 暴力在 k≥3 爆炸;更糟的是旧的 2-wild 分支对 k≥3 会**漏替换**,
+## rank 15 直达 _classify_fast 的计数数组越界 —— 所以这不是优化, 是正确性。
+## 做法 = **候选构造**:实牌 ≤2 张时最优解只落在少数形态里
+## (同花顺窗[含皇家/轮子]/四条/满堂/同花), 把每个形态的 resolved 直接造出来,
+## 打分仍走 _pack → _classify(rules) —— 近道/四指/红调/黑调**自动生效**,
+## 规则不开第二份(「规则只准有一份」)。完备性由 tests 的缩减域对拍守着。
+static func _score_many_wilds(five: Array, rules: Dictionary) -> Dictionary:
+	var reals: Array = []
+	for c in five:
+		if not c.is_wild():
+			reals.append(c)
+	var suits_pool: Array = []
+	for c in reals:
+		if not suits_pool.has(c.suit):
+			suits_pool.append(c.suit)
+	if suits_pool.is_empty():
+		suits_pool = [0]
+	var cands: Array = []
+	# ① 同花顺窗(顶窗朝下枚举 + 轮子):实牌 rank 必须互异且全在窗内;
+	#    wild 补齐缺口, 花色对 suits_pool 各出一版(混花实牌时 _classify 自会判成纯顺)。
+	var distinct: bool = reals.size() < 2 or reals[0].rank != reals[1].rank
+	if distinct:
+		var windows: Array = []
+		for t in range(14, 5, -1):
+			windows.append([t - 4, t - 3, t - 2, t - 1, t])
+		windows.append([14, 5, 4, 3, 2])   # 轮子 A2345
+		for w in windows:
+			var in_win := true
+			for c in reals:
+				if not w.has(c.rank):
+					in_win = false
+			if not in_win:
+				continue
+			var gaps: Array = []
+			for r in w:
+				var taken := false
+				for c in reals:
+					if c.rank == r:
+						taken = true
+				if not taken:
+					gaps.append(r)
+			for s in suits_pool:
+				var cand: Array = reals.duplicate()
+				for r in gaps:
+					cand.append(Card.new(r, s))
+				cands.append(cand)
+	# ② 四条:目标 R 取实牌各 rank 与 A;剩余 wild 做最高 kicker(A, 与 R 撞则 K)。
+	var targets: Array = [14]
+	for c in reals:
+		if not targets.has(c.rank):
+			targets.append(c.rank)
+	for tr in targets:
+		var have := 0
+		for c in reals:
+			if c.rank == tr:
+				have += 1
+		var need: int = 4 - have
+		var spare: int = (5 - reals.size()) - need
+		if need < 0 or spare < 0:
+			continue
+		var cand: Array = reals.duplicate()
+		for i in range(need):
+			cand.append(Card.new(tr, i % 4))
+		var kick: int = 14 if tr != 14 else 13
+		for i in range(spare):
+			# 只有当 kicker 不会把四条顶成"5 张同 rank"时才用 A;实牌占位已排除。
+			cand.append(Card.new(kick, (i + 2) % 4))
+		if cand.size() == 5:
+			cands.append(cand)
+	# ③ 满堂:三条×两对的组合, 从 {实牌 ranks, A} 里配 (R3, R2)。
+	for r3 in targets:
+		for r2 in targets:
+			if r2 == r3:
+				continue
+			var h3 := 0
+			var h2 := 0
+			for c in reals:
+				if c.rank == r3:
+					h3 += 1
+				elif c.rank == r2:
+					h2 += 1
+			# 实牌必须全被用上(五张里没有第三种 rank 的位置)。
+			if h3 + h2 != reals.size():
+				continue
+			var need3: int = 3 - h3
+			var need2: int = 2 - h2
+			if need3 < 0 or need2 < 0 or need3 + need2 != 5 - reals.size():
+				continue
+			var cand: Array = reals.duplicate()
+			for i in range(need3):
+				cand.append(Card.new(r3, i % 4))
+			for i in range(need2):
+				cand.append(Card.new(r2, (i + 1) % 4))
+			cands.append(cand)
+	# ④ 同花(非顺, 兜底给规则牌角落):wild 变同花高牌, 从 A 往下避开实牌 rank。
+	for s in suits_pool:
+		var cand: Array = reals.duplicate()
+		var r := 14
+		while cand.size() < 5 and r >= 2:
+			var clash := false
+			for c in cand:
+				if c.rank == r:
+					clash = true
+			if not clash:
+				cand.append(Card.new(r, s))
+			r -= 1
+		if cand.size() == 5:
+			cands.append(cand)
+	# 全部候选交给 _pack, 判型与算分照旧 —— 这里只负责"猜得全", 不负责"判得对"。
+	var best := {}
+	var best_score := -1
+	for cand in cands:
+		var res: Dictionary = _pack(five, cand, rules)
+		if int(res["score"]) > best_score:
+			best_score = int(res["score"])
+			best = res
 	return best
 
 

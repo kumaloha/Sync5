@@ -5,7 +5,7 @@ func run(t) -> void:
 	# roster shape (2026-08-12 流派批: 删 popup/backup, 加族内件×4 + backer/bench/boxseats + trim;
 	# 缘由与增删改清单见 docs/design/archetypes.md §5)
 	var pool := Joker.pool()
-	t.eq(pool.size(), 76, "pool holds 76 jokers(2026-08-25 对抗批 +13:63→76)")
+	t.eq(pool.size(), 77, "pool holds 77 jokers(08-25 +13 · 08-26 superwild +1)")
 	var targets := 0
 	var rarities := {"common": 0, "uncommon": 0, "rare": 0}
 	for j in pool:
@@ -30,7 +30,7 @@ func run(t) -> void:
 	# 2026-08-25 对抗批 +13(全在 uncommon/rare:乘法出口按「稀有度=构筑依赖度」入 rare,
 	# 彩头/回收/客串/斗牛士/盲奏入 uncommon):uncommon 22→27 · rare 10→18。
 	t.eq(rarities["uncommon"], 27, "twenty-seven uncommon supports")
-	t.eq(rarities["rare"], 18, "eighteen rare supports")
+	t.eq(rarities["rare"], 19, "nineteen rare supports(08-26 superwild +1)")
 	t.eq(String(Joker.by_id("fourfingers").rarity), "uncommon", "fourfingers stays uncommon (顺子线要救)")
 	# ⚑ 拆分后单张实测 5.3×(先验层 N=20万, Δ同花族 +29.7pp), 两张都装 9.6× = 老 twotone。
 	# 仍是同类规则牌里最强(近道/四指只 1.8×), 所以 rare 保持不动。
@@ -374,82 +374,3 @@ func run(t) -> void:
 	var full: Array = [sup, sup, sup, sup]
 	t.eq(Joker.first_free_support(full), -1, "全满没有空位")
 	t.check(Joker.has_room_for(full, "target"), "全满时 Target 仍装得进(换旗)")
-	_t_upgrade(t)
-
-
-## 升级(2026-08-16, 金币的主出口)—— 规格在 data/economy.json 的 joker_upgrade 注释。
-func _t_upgrade(t) -> void:
-	var base := {"mult": 1.0, "additive": 0, "bonus": 0, "bonus_pct": 0.0,
-		"coins_bonus": 0, "chips": 0, "kind": 0, "base_score": 0,
-		"scoring_cards": [], "cache_cards": []}
-	# ⚠⚠⚠ **这条是整套升级里唯一会静默炸掉平衡的地方。**
-	# 乘子必须按 `1 + (x−1)×scale` 放大:×1.5 的卡满级 = **×2.0**。
-	# 若误写成 `x × scale`, 满级会变成 ×3.05 —— 而且它**不报错**, 只是所有乘子卡
-	# 悄悄变成三倍强。四级下来是指数, 不是线性。
-	var c5 := base.duplicate()
-	Fx.apply_effects([{"do": {"mult": 1.5}}], {}, c5, 2.0)
-	t.check(absf(float(c5["mult"]) - 2.0) < 0.001,
-		"满级乘子 ×1.5 → ×2.0(按**增量**放大);写成整数放大会得到 ×3.05 = 指数爆炸")
-	var c1 := base.duplicate()
-	Fx.apply_effects([{"do": {"mult": 1.5}}], {}, c1, 1.0)
-	t.check(absf(float(c1["mult"]) - 1.5) < 0.001, "Lv1 逐字节不变 —— 加功能不许改既有行为")
-	var cb := base.duplicate()
-	Fx.apply_effects([{"do": {"bonus": 240.0}}], {}, cb, 2.0)
-	t.eq(int(cb["bonus"]), 480, "满级加分 240 → 480(加分族按整数放大是对的)")
-	# ⚠ 金币不放大 —— 升级印钱就是正反馈:钱越多升得越多, 升得越多钱越多。
-	var cc := base.duplicate()
-	Fx.apply_effects([{"do": {"coins": 3.0}}], {}, cc, 2.0)
-	t.eq(int(cc["coins_bonus"]), 3, "金币通道**不**随等级放大")
-	# ⚑ 规则牌不可升级 —— 这不只是「没数值可升」, 它是红调/黑调的**平衡杠杆**:
-	# 它们开局 5.3× 最强, 但吃不到升级红利, 中后期被满级乘子卡压过去。
-	var rule := Joker.by_id("blacktone")
-	t.check(rule != null and not rule.can_upgrade(), "规则牌不可升级(红调/黑调靠这条被时间轴拉平)")
-	var up := Joker.by_id("neonsign")
-	t.check(up != null and up.can_upgrade(), "带 effects 的普通卡可升级")
-	t.eq(up.upgrade_cost(), int(GameConfig.UPGRADE_COSTS[0]), "第一级价格取自 economy.json")
-	up.level = GameConfig.UPGRADE_MAX_LEVEL
-	t.check(not up.can_upgrade(), "满级不可再升")
-	t.eq(up.upgrade_cost(), -1, "满级 upgrade_cost() = −1, 不是 0 —— 0 会被读成「免费」")
-	up.level = 1
-	# ---- 2026-08-21 评审 R1:六个逃生口操作码此前在放大段之前就 return ——
-	# 8 张卡的升级是纯扣钱。下面逐个操作码做 A/B:满级 ≠ Lv1(且 ≥ Lv1)。
-	var faces := [Card.new(11, 0), Card.new(12, 1), Card.new(13, 2), Card.new(2, 3), Card.new(4, 0)]
-	var esc := {
-		"additive_face_value": {"do": {"additive_face_value": 20}},
-		"additive_low_value": {"do": {"additive_low_value": 15}},
-		"additive_cache_top": {"do": {"additive_cache_top": 1}},
-		"chips_per_card(red)": {"do": {"chips_per_card": 3, "card_filter": "red"}},
-		"chips_per_card(black)": {"do": {"chips_per_card": 3, "card_filter": "black"}},
-		"chips_per_card(rank_lte_5)": {"do": {"chips_per_card": 9, "card_filter": "rank_lte_5"}},
-	}
-	for name in esc:
-		var a1 := base.duplicate()
-		a1["scoring_cards"] = faces
-		a1["cache_cards"] = faces
-		var a2 := a1.duplicate()
-		Fx.apply_effects([esc[name]], {}, a1, 1.0)
-		Fx.apply_effects([esc[name]], {}, a2, 2.0)
-		t.check(int(a1["additive"]) > 0, "%s fires at Lv1 (fixture sanity)" % name)
-		t.eq(int(a2["additive"]), int(a1["additive"]) * 2,
-			"%s doubles at max level (escape hatch must scale like the rest)" % name)
-	var m1 := base.duplicate()
-	m1["target_factor"] = 12.0
-	var m2 := m1.duplicate()
-	Fx.apply_effects([{"do": {"mult_from_target_factor": 0.5}}], {}, m1, 1.0)
-	Fx.apply_effects([{"do": {"mult_from_target_factor": 0.5}}], {}, m2, 2.0)
-	t.check(absf(float(m1["mult"]) - 6.5) < 0.001, "mirror Lv1: 1 + 11×0.5 = ×6.5")
-	t.check(absf(float(m2["mult"]) - 12.0) < 0.001, "mirror max: 1 + 5.5×2 = ×12 (increment scaled)")
-	# 金币倍增器不放大, 且只有金币通道的卡**不许挂升级报价**(卖空气)
-	var r1 := base.duplicate()
-	var r2 := base.duplicate()
-	Fx.apply_effects([{"do": {"coins_factor": 2}}], {}, r1, 1.0)
-	Fx.apply_effects([{"do": {"coins_factor": 2}}], {}, r2, 2.0)
-	t.eq(float(r1["coins_factor"]), float(r2["coins_factor"]), "coins_factor never scales")
-	var royalty := Joker.by_id("royalty")
-	t.check(royalty != null and not royalty.can_upgrade(),
-		"coin-only card (royalty) is not upgradable — an upgrade that changes nothing is a scam")
-	# 全 roster:凡可升级的卡, 它的 do 里必须有一个会吃放大的通道(结构契约)
-	for e in DB.jokers():
-		var j := Joker.new(e)
-		if j.can_upgrade():
-			t.check(j.has_scalable_effect(), "%s: upgradable ⇒ has a scalable channel" % j.id)
