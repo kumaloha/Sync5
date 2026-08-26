@@ -2,53 +2,53 @@
  "_comment": "⚑ 仪器输出(tools/price.gd → tools/rankgen.py), 手改无效。每段由易到难;时间族与 raisedbar 是设计性覆盖(理由在本脚本头与 blinds.md 仪器盲区节)。core/db.gd::validate_ranking 守四段齐全 + id 都是活脸 + **池脸都在表里**(反向完备性, trilogy 事故后加)—— 脸池一变这里就红。",
  "0": [
   "facedown",
+  "raisedbar125",
   "lostpage",
   "smallstage",
   "onetake",
+  "norepeat75",
   "oneswap",
   "norepeat",
   "lastcall",
-  "lockup",
-  "norepeat75",
-  "raisedbar125"
+  "lockup"
  ],
  "1": [
   "blindspot",
   "dimstage",
   "highend",
+  "crescendo07",
   "wetink",
+  "wetink2",
   "lowend",
+  "throttle6",
   "request",
   "handseal",
   "roulette",
   "colorlight",
   "throttle",
   "setlist",
-  "crescendo07",
-  "lastcall4",
-  "throttle6",
-  "wetink2"
+  "lastcall4"
  ],
  "2": [
   "blackout",
   "crescendo",
   "trilogy",
+  "trilogy4",
+  "raisedbar175",
+  "raisedbar200",
+  "request80",
   "ration",
+  "ration8",
+  "onetake1",
+  "dimstage3",
   "doubleseal",
+  "colorlight25",
   "switchtrack",
   "callout",
-  "rerun",
-  "raisedbar",
-  "callout50",
-  "colorlight25",
-  "dimstage3",
-  "onetake1",
-  "raisedbar175",
-  "ration8",
-  "request80",
   "setlist25",
-  "trilogy4",
-  "raisedbar200"
+  "callout50",
+  "rerun",
+  "raisedbar"
  ],
  "3": [
   "countdown",
@@ -56,6 +56,5 @@
   "rush",
   "overtime",
   "teardown"
- ],
- "_comment_bootstrap_20260826b": "档位扩池批 16 档:先垫到各段末(按 tier),单脸/全量门定价后 rankgen 重刷正位。"
+ ]
 }

@@ -33,12 +33,13 @@
 | [**difficulty**](difficulty.md) | **难度与节奏**(2026-08-14)—— 三轴分清(局内段 / 跨局序列 / 解锁进度)· `death_spec` 形状 = 起承転結 · 脸的轮次集 `tiers` · Director · **新手引导**。⚠「不读 context」已被推翻, 见下行 |
 | [**context**](context.md) | **千人千面**(2026-08-19 设计稿)—— m 向量 · novelty/streak_shift · 「不被察觉」的工程判据 · 与生成线的分工 · **待拍岔路 6 条** |
 | [**visual**](visual.md) | **小丑牌 / 盲注的视觉系统**(2026-08-10 拍板)—— 唯一矢量指纹 · 边框色分工 · 四种状态语言。⚠ 2026-08-15 从根目录的 `DESIGN.md` 搬来:它是 design spec 却躺在根目录**无人引用** |
+| [**journey**](journey.md) | **玩家旅程审计**(2026-08-27)—— 按玩家动作顺序逐项问「满足好了没」;缺口工单归 TODO,修完就地改评分 |
 | [**versus**](versus.md) | **对抗设计总纲**(2026-08-25 与用户共建)—— 盲注=条件+惩罚 / 小丑=条件+激励的代数 · 惩罚三型 · 解法四种(错开/抵消/利用/调度)· 三档矩阵(被克/避开/顺应,推导不手维护)· 归属边界(什么住哪侧)· 两侧设计纪律。**②③ 两篇的接缝,加新脸新卡先过它** |
 | [**gates**](gates.md) | **那道门的规格** —— `gate.sh` 怎么造对照臂、覆盖自证契约、可加性检验 |
 | [**capability**](capability.md) | **模型能看见什么、打得多好** —— 七类规则分类 · 三层精度 · 三个缺口 |
 | [**numbers**](numbers.md) · [**probbook**](probbook.md) | **定价宪法**(三轴+六步 SOP)与概率账本(仪器读数,手改无效) |
 | [**jokers_atlas**](jokers_atlas.md) · [**archetypes**](archetypes.md) | **候选池**:小丑牌 60 张口径(卡片层)· 流派图谱(流派层,2026-08-12) |
-| `research_balatro_jokers` · `research_balatro_builds` · `research_balatro_bosses` · `research_pacing_retention` | **调研:原作是怎么做的**(卡普查 / 流派目录 / Boss / 节奏留存) |
+| `research_balatro_jokers` · `research_balatro_builds` · `research_balatro_bosses` · `research_pacing_retention` · `research_cycle` | **调研:外部事实**(卡普查 / 流派目录 / Boss / 节奏留存 / 跨局周期与操作收费经济 2026-08-26) |
 | [**jokers_history**](jokers_history.md) · [**blinds_history**](blinds_history.md) | **小丑牌 / 盲注的历次经过与当年实测**(2026-08-15 从 `jokers.md`(−456)与 `blinds.md`(−337)拆出)。⚠ **没删,只搬家** —— 它们含大量实测读数(z 值 / 触发率 / 真人反事实率 / 旧池价格),那些是**结果**。⚠⚠ `blinds` 那批**被删过一次**(2026-08-10 重写),后来发现证据丢了才恢复 —— **别再删第二次**。同 `solving_history` / `history_*` 的模式 |
 
 ⚠ 四篇 `research_*` **刻意保持独立** —— 它们是**外部事实**,不是我们的决定。

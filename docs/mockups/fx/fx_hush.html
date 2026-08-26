@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh">
+<meta charset="utf-8">
+<title>FX · 静场 Hush</title>
+<style>
+:root{--ac:#1effec;--glo:rgba(30,255,236,.28)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#07070f;min-height:100vh;display:flex;flex-direction:column;align-items:center;gap:10px;padding:26px;font-family:Rajdhani,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;color:#dfe6ff}
+h1{font-size:19px;font-weight:600;letter-spacing:.5px}
+h1 small{color:#8b93b8;font-weight:400;font-size:14px;margin-left:10px}
+.verb{font-size:13px;color:var(--ac)}
+.stage{position:relative;width:720px;height:360px;background:#000;border:1px solid #171733;border-radius:12px;overflow:hidden;flex:none}
+/* 暗场帷幕:全场压暗,只留卡的光 */
+.veil{position:absolute;inset:0;background:#000;opacity:0;z-index:2}
+.play .veil{animation:dim .6s ease-out forwards}
+@keyframes dim{0%{opacity:0}30%{opacity:.55}75%{opacity:.55}100%{opacity:0}}
+/* 波形:躁动 → 压平成一线 */
+svg{position:absolute;left:0;top:0;z-index:1}
+.wave{fill:none;stroke:var(--ac);stroke-width:2.5;filter:drop-shadow(0 0 6px var(--ac))}
+.live{opacity:.9}
+.flat{opacity:0}
+.play .live{animation:mute .3s ease-in forwards}
+@keyframes mute{0%{opacity:.9;transform:scaleY(1)}100%{opacity:0;transform:scaleY(.04)}}
+.play .flat{animation:still .6s ease-out .16s forwards}
+@keyframes still{0%{opacity:0}25%{opacity:1}80%{opacity:1}100%{opacity:.25}}
+.wgroup{transform-origin:50% 178px}
+.joker{position:absolute;left:312px;top:112px;width:96px;height:128px;border-radius:10px;border:2px solid var(--ac);background:linear-gradient(165deg,rgba(24,26,48,.92),rgba(7,7,15,.96));box-shadow:0 0 16px var(--glo);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;z-index:3}
+.joker b{font-size:30px;color:var(--ac);text-shadow:0 0 14px var(--ac)}
+.joker i{font-style:normal;font-size:13px;color:#aeb6d8;letter-spacing:3px}
+/* 卡缘屏息脉冲:全场只剩这一口气 */
+.play .joker{animation:breathe .6s ease-out .2s}
+@keyframes breathe{0%{box-shadow:0 0 16px var(--glo)}45%{box-shadow:0 0 34px var(--ac),0 0 60px var(--glo)}100%{box-shadow:0 0 16px var(--glo)}}
+/* 倍率盖章:大字砸下 */
+.pop{position:absolute;left:314px;top:64px;font-weight:700;font-size:28px;color:var(--ac);text-shadow:0 0 14px var(--ac);opacity:0;z-index:4}
+.play .pop{animation:stamp .5s cubic-bezier(.2,1.2,.3,1) .32s forwards}
+@keyframes stamp{0%{opacity:0;transform:scale(1.9)}40%{opacity:1;transform:scale(.96)}55%{transform:scale(1.04)}70%{transform:scale(1)}85%{opacity:1}100%{opacity:0;transform:translateY(-12px)}}
+</style>
+<body>
+<h1>静场 Hush<small>触发:本拍不弃不换 → 倍率 +0.4</small></h1>
+<div class="verb">视觉动词:声波压平 —— 波形归于一线,全场屏息,倍率盖章</div>
+<div class="stage" id="s">
+  <svg width="720" height="360" viewBox="0 0 720 360">
+    <g class="wgroup">
+      <polyline class="wave live" points="0,178 40,150 70,206 100,162 130,196 160,140 200,214 240,168 270,190 300,150 340,206 380,158 420,198 460,146 500,208 540,170 580,192 620,152 660,204 720,178"/>
+      <line class="wave flat" x1="0" y1="178" x2="720" y2="178"/>
+    </g>
+  </svg>
+  <div class="veil"></div>
+  <div class="joker"><b>&#8230;</b><i>静场</i></div>
+  <div class="pop">+0.4&times;</div>
+</div>
+<script>
+const st=document.getElementById('s');
+function go(){st.classList.remove('play');void st.offsetWidth;st.classList.add('play')}
+go();setInterval(go,2400);
+</script>
+</body>
+</html>

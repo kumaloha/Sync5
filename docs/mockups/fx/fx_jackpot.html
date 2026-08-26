@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="zh">
+<meta charset="utf-8">
+<title>FX · 彩头 Jackpot</title>
+<style>
+:root{--au:#ff9b2b}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#07070f;min-height:100vh;display:flex;flex-direction:column;align-items:center;gap:10px;padding:26px;font-family:Rajdhani,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;color:#dfe6ff}
+h1{font-size:19px;font-weight:600;letter-spacing:.5px}
+h1 small{color:#8b93b8;font-weight:400;font-size:14px;margin-left:10px}
+.verb{font-size:13px;color:var(--au)}
+.stage{position:relative;width:720px;height:360px;background:#000;border:1px solid #171733;border-radius:12px;overflow:hidden;flex:none}
+.floor{position:absolute;left:0;right:0;bottom:70px;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.1),transparent)}
+.joker{position:absolute;left:312px;top:150px;width:96px;height:128px;border-radius:10px;border:2px solid var(--au);background:linear-gradient(165deg,rgba(30,24,40,.92),rgba(10,7,12,.96));box-shadow:0 0 16px rgba(255,155,43,.3);display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:12px;z-index:2}
+.joker i{font-style:normal;font-size:13px;color:#aeb6d8;letter-spacing:3px}
+/* 三窗滚轴 */
+.reel{position:absolute;top:74px;width:52px;height:60px;border-radius:8px;border:1.5px solid var(--au);background:rgba(12,10,18,.92);box-shadow:0 0 12px rgba(255,155,43,.25),inset 0 6px 10px rgba(0,0,0,.7),inset 0 -6px 10px rgba(0,0,0,.7);overflow:hidden;z-index:3}
+.re1{left:294px}.re2{left:334px;top:70px}.re3{left:374px}
+.strip{display:flex;flex-direction:column;align-items:center;font-weight:700;font-size:26px;color:var(--au);text-shadow:0 0 10px var(--au)}
+.strip span{height:60px;display:flex;align-items:center}
+.play .re1 .strip{animation:roll1 .3s cubic-bezier(.2,.7,.3,1.15) forwards}
+.play .re2 .strip{animation:roll1 .42s cubic-bezier(.2,.7,.3,1.15) forwards}
+.play .re3 .strip{animation:roll1 .56s cubic-bezier(.2,.7,.3,1.18) forwards}
+@keyframes roll1{0%{transform:translateY(0);filter:blur(3px)}80%{filter:blur(2px)}100%{transform:translateY(-240px);filter:blur(0)}}
+/* 脱靶时第三窗停在 — */
+.miss .re3 .strip{animation-name:roll2}
+@keyframes roll2{0%{transform:translateY(0);filter:blur(3px)}80%{filter:blur(2px)}100%{transform:translateY(-300px);filter:blur(0)}}
+/* 中奖金屑爆 */
+.p{position:absolute;left:360px;top:104px;width:6px;height:6px;border-radius:50%;background:var(--au);box-shadow:0 0 8px var(--au);opacity:0;z-index:4}
+.play.hit .p{animation:boom .5s cubic-bezier(.15,.7,.4,1) .58s forwards}
+@keyframes boom{0%{opacity:1;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(.4)}}
+.p1{--dx:-70px;--dy:-46px}.p2{--dx:70px;--dy:-52px}.p3{--dx:-96px;--dy:8px}.p4{--dx:96px;--dy:4px}
+.p5{--dx:-44px;--dy:-78px}.p6{--dx:46px;--dy:-80px}.p7{--dx:-20px;--dy:-96px}.p8{--dx:22px;--dy:-92px}
+/* 结果弹出 */
+.pop{position:absolute;left:330px;top:26px;font-weight:700;font-size:30px;color:var(--au);text-shadow:0 0 14px var(--au);opacity:0;z-index:5}
+.play.hit .pop{animation:pop .55s cubic-bezier(.2,1.4,.4,1) .62s forwards}
+@keyframes pop{0%{opacity:0;transform:translateY(10px) scale(.5)}30%{opacity:1;transform:translateY(0) scale(1.2)}55%{transform:scale(1)}80%{opacity:1}100%{opacity:0;transform:translateY(-16px)}}
+.popm{position:absolute;left:322px;top:30px;font-weight:600;font-size:20px;color:#8b93b8;opacity:0;z-index:5}
+.play.miss .popm{animation:fade .5s ease-out .62s forwards}
+@keyframes fade{0%{opacity:0}30%{opacity:.9}100%{opacity:0;transform:translateY(8px)}}
+.tag{position:absolute;right:12px;top:10px;font-size:12px;color:#8b93b8;letter-spacing:1px}
+</style>
+<body>
+<h1>彩头 Jackpot<small>触发:每段最后一拍 → 一半概率 &times;3</small></h1>
+<div class="verb">视觉动词:滚轴定格 —— 三窗滚轴错拍刹停,停齐即中(demo 隔次演示脱靶)</div>
+<div class="stage" id="s">
+  <div class="floor"></div>
+  <div class="joker"><i>彩头</i></div>
+  <div class="reel re1"><div class="strip"><span>7</span><span>&#9670;</span><span>&#9733;</span><span>&times;2</span><span>&times;3</span><span>&mdash;</span></div></div>
+  <div class="reel re2"><div class="strip"><span>&#9670;</span><span>&times;2</span><span>7</span><span>&#9733;</span><span>&times;3</span><span>&mdash;</span></div></div>
+  <div class="reel re3"><div class="strip"><span>&#9733;</span><span>7</span><span>&times;2</span><span>&#9670;</span><span>&times;3</span><span>&mdash;</span></div></div>
+  <div class="p p1"></div><div class="p p2"></div><div class="p p3"></div><div class="p p4"></div>
+  <div class="p p5"></div><div class="p p6"></div><div class="p p7"></div><div class="p p8"></div>
+  <div class="pop">&times;3!</div>
+  <div class="popm">&hellip;</div>
+  <div class="tag" id="tag">HIT</div>
+</div>
+<script>
+const st=document.getElementById('s'),tag=document.getElementById('tag');let n=0;
+function go(){
+  st.classList.remove('play','hit','miss');void st.offsetWidth;
+  const h=n%2===0;st.classList.add('play',h?'hit':'miss');
+  tag.textContent=h?'HIT':'MISS';n++;
+}
+go();setInterval(go,2500);
+</script>
+</body>
+</html>

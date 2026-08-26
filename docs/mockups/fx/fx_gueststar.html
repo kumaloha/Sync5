@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="zh">
+<meta charset="utf-8">
+<title>FX · 客串 Guest Star</title>
+<style>
+:root{--ac:#ff328d;--glo:rgba(255,50,141,.3)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#07070f;min-height:100vh;display:flex;flex-direction:column;align-items:center;gap:10px;padding:26px;font-family:Rajdhani,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;color:#dfe6ff}
+h1{font-size:19px;font-weight:600;letter-spacing:.5px}
+h1 small{color:#8b93b8;font-weight:400;font-size:14px;margin-left:10px}
+.verb{font-size:13px;color:var(--ac)}
+.stage{position:relative;width:720px;height:360px;background:#000;border:1px solid #171733;border-radius:12px;overflow:hidden;flex:none}
+.floor{position:absolute;left:0;right:0;bottom:70px;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.12),transparent)}
+/* 追光:先照进,再随星移场 */
+.spot{position:absolute;left:250px;top:-16px;width:230px;height:320px;transform-origin:50% 0;opacity:0;z-index:1;
+background:linear-gradient(180deg,rgba(255,50,141,.3),rgba(255,50,141,.04) 80%,transparent);
+clip-path:polygon(44% 0,56% 0,100% 100%,0 100%)}
+.play .spot{animation:light 3s ease-in-out forwards}
+@keyframes light{0%{opacity:0;transform:rotate(-14deg)}10%{opacity:1;transform:rotate(0)}55%{opacity:1;transform:rotate(0)}75%{opacity:1;transform:rotate(16deg)}92%{opacity:0;transform:rotate(22deg)}100%{opacity:0}}
+/* 星:入场 → 鞠躬 → 谢幕退场 */
+.starw{position:absolute;left:330px;top:150px;z-index:3}
+.play .starw{animation:tour 3s ease-in-out forwards}
+@keyframes tour{0%{transform:translateX(-330px);opacity:0}12%{transform:translateX(0);opacity:1}60%{transform:translateX(0);opacity:1}88%{transform:translateX(300px);opacity:0}100%{opacity:0}}
+.star{width:64px;height:64px;background:var(--ac);clip-path:polygon(50% 0,63% 36%,100% 38%,70% 60%,81% 100%,50% 76%,19% 100%,30% 60%,0 38%,37% 36%);filter:drop-shadow(0 0 14px var(--ac));transform-origin:50% 80%}
+.play .star{animation:bow 3s ease-in-out forwards}
+@keyframes bow{0%,16%{transform:rotate(0)}24%{transform:rotate(24deg) translateY(6px)}32%{transform:rotate(24deg) translateY(6px)}42%{transform:rotate(0)}70%{transform:rotate(0)}80%{transform:rotate(-10deg)}100%{transform:rotate(-10deg)}}
+/* 退场拖尾闪点 */
+.tr{position:absolute;width:5px;height:5px;border-radius:50%;background:var(--ac);box-shadow:0 0 8px var(--ac);opacity:0;z-index:2}
+.t1{left:440px;top:176px}.t2{left:492px;top:190px}.t3{left:544px;top:170px}
+.play .tr{animation:tw .5s ease-out 2.3s forwards}
+.play .t2{animation-delay:2.42s}.play .t3{animation-delay:2.54s}
+@keyframes tw{0%{opacity:1;transform:scale(1.2)}100%{opacity:0;transform:scale(.4)}}
+/* 数值弹出(登台鞠躬时) */
+.pop{position:absolute;left:322px;top:92px;font-weight:700;font-size:26px;color:var(--ac);text-shadow:0 0 12px var(--ac);opacity:0;z-index:4}
+.play .pop{animation:pop .6s cubic-bezier(.2,1.4,.4,1) .8s forwards}
+@keyframes pop{0%{opacity:0;transform:translateY(10px) scale(.5)}30%{opacity:1;transform:translateY(0) scale(1.15)}55%{transform:scale(1)}80%{opacity:1}100%{opacity:0;transform:translateY(-16px)}}
+/* 谢幕字幕(decay 半拍) */
+.bye{position:absolute;left:470px;top:110px;font-size:14px;color:#8b93b8;letter-spacing:2px;opacity:0;z-index:4}
+.play .bye{animation:fade .8s ease-out 2.2s forwards}
+@keyframes fade{0%{opacity:0}30%{opacity:.9}100%{opacity:0;transform:translateX(20px)}}
+</style>
+<body>
+<h1>客串 Guest Star<small>触发:倍率 +0.5;下个段末谢幕离场</small></h1>
+<div class="verb">视觉动词:登台一鞠躬,谢幕一转身 —— 追光入场 +0.5&times;,段末拖着星屑退场</div>
+<div class="stage" id="s">
+  <div class="spot"></div>
+  <div class="floor"></div>
+  <div class="starw"><div class="star"></div></div>
+  <div class="tr t1"></div><div class="tr t2"></div><div class="tr t3"></div>
+  <div class="pop">+0.5&times;</div>
+  <div class="bye">谢幕&hellip;</div>
+</div>
+<script>
+const st=document.getElementById('s');
+function go(){st.classList.remove('play');void st.offsetWidth;st.classList.add('play')}
+go();setInterval(go,3400);
+</script>
+</body>
+</html>

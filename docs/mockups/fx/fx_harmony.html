@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="zh">
+<meta charset="utf-8">
+<title>FX · 和声 Harmony</title>
+<style>
+:root{--ac:#ff328d;--glo:rgba(255,50,141,.3)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#07070f;min-height:100vh;display:flex;flex-direction:column;align-items:center;gap:10px;padding:26px;font-family:Rajdhani,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;color:#dfe6ff}
+h1{font-size:19px;font-weight:600;letter-spacing:.5px}
+h1 small{color:#8b93b8;font-weight:400;font-size:14px;margin-left:10px}
+.verb{font-size:13px;color:var(--ac)}
+.stage{position:relative;width:720px;height:360px;background:#000;border:1px solid #171733;border-radius:12px;overflow:hidden;flex:none}
+.joker{position:absolute;left:312px;top:66px;width:96px;height:128px;border-radius:10px;border:2px solid var(--ac);background:linear-gradient(165deg,rgba(34,20,36,.92),rgba(10,6,12,.96));box-shadow:0 0 16px var(--glo);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;z-index:3}
+.joker b{font-size:30px;color:var(--ac);text-shadow:0 0 14px var(--ac)}
+.joker i{font-style:normal;font-size:13px;color:#aeb6d8;letter-spacing:3px}
+/* 缓存区三张同花色鬼影 */
+.cache{position:absolute;bottom:26px;width:56px;height:76px;border-radius:8px;border:1.5px solid #b26bff;background:linear-gradient(165deg,rgba(30,22,48,.9),rgba(9,7,16,.95));display:flex;align-items:center;justify-content:center;font-size:24px;color:#ff6aa9;z-index:2}
+.k1{left:236px}.k2{left:332px}.k3{left:428px}
+.play .cache{animation:hum .5s ease-out}
+@keyframes hum{0%{box-shadow:none}40%{box-shadow:0 0 18px rgba(255,106,169,.5)}100%{box-shadow:none}}
+/* 三条细波上行(描边生长) */
+svg{position:absolute;left:0;top:0;z-index:1}
+.thread{fill:none;stroke:#ff6aa9;stroke-width:2;filter:drop-shadow(0 0 5px #ff6aa9);stroke-dasharray:260;stroke-dashoffset:260;opacity:0}
+.play .thread{animation:draw .3s ease-in forwards}
+.play .p2{animation-delay:.05s}.play .p3{animation-delay:.1s}
+@keyframes draw{0%{stroke-dashoffset:260;opacity:1}90%{opacity:1}100%{stroke-dashoffset:0;opacity:0}}
+/* 合并闪 + 一条粗波贯穿卡面 */
+.burst{position:absolute;left:360px;top:150px;width:14px;height:14px;margin:-7px;border-radius:50%;background:#fff;box-shadow:0 0 24px var(--ac);opacity:0;z-index:4}
+.play .burst{animation:flash .18s ease-out .3s forwards}
+@keyframes flash{0%{opacity:0;transform:scale(.4)}40%{opacity:1;transform:scale(1.6)}100%{opacity:0;transform:scale(.8)}}
+.bigwave{position:absolute;left:160px;top:128px;width:400px;height:4px;border-radius:3px;background:linear-gradient(90deg,transparent,var(--ac) 30%,var(--ac) 70%,transparent);box-shadow:0 0 16px var(--ac);opacity:0;transform:scaleX(0);z-index:4}
+.play .bigwave{animation:sweep .34s cubic-bezier(.2,.8,.3,1) .36s forwards}
+@keyframes sweep{0%{opacity:0;transform:scaleX(0)}30%{opacity:1;transform:scaleX(1)}80%{opacity:1}100%{opacity:0;transform:scaleX(1.06)}}
+/* 数值弹出 */
+.pop{position:absolute;left:318px;top:22px;font-weight:700;font-size:26px;color:var(--ac);text-shadow:0 0 12px var(--ac);opacity:0;z-index:5}
+.play .pop{animation:pop .58s cubic-bezier(.2,1.4,.4,1) .42s forwards}
+@keyframes pop{0%{opacity:0;transform:translateY(10px) scale(.5)}30%{opacity:1;transform:translateY(0) scale(1.15)}55%{transform:scale(1)}80%{opacity:1}100%{opacity:0;transform:translateY(-16px) scale(.96)}}
+</style>
+<body>
+<h1>和声 Harmony<small>触发:缓存三张同花色 → 倍率 +0.3</small></h1>
+<div class="verb">视觉动词:三波合一 —— 三条声波相位对齐,并成一条粗波贯穿卡面</div>
+<div class="stage" id="s">
+  <svg width="720" height="360" viewBox="0 0 720 360">
+    <path class="thread p1" d="M264,258 C264,220 300,190 360,150"/>
+    <path class="thread p2" d="M360,258 C360,220 360,190 360,150"/>
+    <path class="thread p3" d="M456,258 C456,220 420,190 360,150"/>
+  </svg>
+  <div class="cache k1">&hearts;</div><div class="cache k2">&hearts;</div><div class="cache k3">&hearts;</div>
+  <div class="joker"><b>&#9835;</b><i>和声</i></div>
+  <div class="burst"></div>
+  <div class="bigwave"></div>
+  <div class="pop">+0.3&times;</div>
+</div>
+<script>
+const st=document.getElementById('s');
+function go(){st.classList.remove('play');void st.offsetWidth;st.classList.add('play')}
+go();setInterval(go,2400);
+</script>
+</body>
+</html>

@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="zh">
+<meta charset="utf-8">
+<title>FX · 盲奏 Blind Play</title>
+<style>
+:root{--ac:#7642ff;--glo:rgba(118,66,255,.32)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#07070f;min-height:100vh;display:flex;flex-direction:column;align-items:center;gap:10px;padding:26px;font-family:Rajdhani,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;color:#dfe6ff}
+h1{font-size:19px;font-weight:600;letter-spacing:.5px}
+h1 small{color:#8b93b8;font-weight:400;font-size:14px;margin-left:10px}
+.verb{font-size:13px;color:#a98aff}
+.stage{position:relative;width:720px;height:360px;background:#000;border:1px solid #171733;border-radius:12px;overflow:hidden;flex:none}
+.floor{position:absolute;left:0;right:0;bottom:66px;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.12),transparent)}
+.joker{position:absolute;left:70px;top:104px;width:96px;height:128px;border-radius:10px;border:2px solid var(--ac);background:linear-gradient(165deg,rgba(26,22,48,.92),rgba(8,7,16,.96));box-shadow:0 0 16px var(--glo);display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:12px;z-index:2}
+.joker i{font-style:normal;font-size:13px;color:#aeb6d8;letter-spacing:3px}
+/* 三张盖着的得分牌:斜纹卡背,永不翻面 */
+.back{position:absolute;top:120px;width:74px;height:100px;border-radius:9px;border:1.5px solid #3a2f6b;z-index:2;
+background:repeating-linear-gradient(135deg,#13102a 0 7px,#1b1638 7px 14px)}
+.b1{left:288px}.b2{left:394px}.b3{left:500px}
+/* 沿边跑光:stroke-dashoffset 从周长跑到 0,不翻面,描边替它发声 */
+.rim{position:absolute;top:120px;width:74px;height:100px;overflow:visible;z-index:3}
+.r1{left:288px}.r2{left:394px}.r3{left:500px}
+.rim rect{fill:none;stroke:var(--ac);stroke-width:2.5;rx:9;
+stroke-dasharray:340;stroke-dashoffset:340;opacity:0;filter:drop-shadow(0 0 7px var(--ac))}
+.play .r1 rect{animation:trace .32s cubic-bezier(.3,.4,.3,1) .02s forwards}
+.play .r2 rect{animation:trace .32s cubic-bezier(.3,.4,.3,1) .18s forwards}
+.play .r3 rect{animation:trace .32s cubic-bezier(.3,.4,.3,1) .34s forwards}
+@keyframes trace{0%{stroke-dashoffset:340;opacity:1}75%{opacity:1;stroke-dashoffset:0}100%{stroke-dashoffset:0;opacity:0}}
+/* 卡背随描边完成轻轻一亮 */
+.play .b1{animation:wake .3s ease-out .28s}
+.play .b2{animation:wake .3s ease-out .44s}
+.play .b3{animation:wake .3s ease-out .6s}
+@keyframes wake{0%{box-shadow:none}45%{box-shadow:0 0 20px var(--glo)}100%{box-shadow:none}}
+/* +8 逐个弹出 */
+.pop{position:absolute;top:84px;font-weight:700;font-size:23px;color:#c9b3ff;text-shadow:0 0 12px var(--ac);opacity:0;z-index:4}
+.o1{left:310px}.o2{left:416px}.o3{left:522px}
+.play .o1{animation:pop .5s cubic-bezier(.2,1.4,.4,1) .3s forwards}
+.play .o2{animation:pop .5s cubic-bezier(.2,1.4,.4,1) .46s forwards}
+.play .o3{animation:pop .5s cubic-bezier(.2,1.4,.4,1) .62s forwards}
+@keyframes pop{0%{opacity:0;transform:translateY(10px) scale(.5)}30%{opacity:1;transform:translateY(0) scale(1.15)}55%{transform:scale(1)}80%{opacity:1}100%{opacity:0;transform:translateY(-14px)}}
+</style>
+<body>
+<h1>盲奏 Blind Play<small>触发:每张盖着上台的得分牌 → 基础分 +8</small></h1>
+<div class="verb">视觉动词:卡背跑边 —— 不翻面,描边沿卡缘跑一圈,替盖牌发声</div>
+<div class="stage" id="s">
+  <div class="floor"></div>
+  <div class="joker"><i>盲奏</i></div>
+  <div class="back b1"></div><div class="back b2"></div><div class="back b3"></div>
+  <svg class="rim r1"><rect x="1" y="1" width="72" height="98" rx="9"/></svg>
+  <svg class="rim r2"><rect x="1" y="1" width="72" height="98" rx="9"/></svg>
+  <svg class="rim r3"><rect x="1" y="1" width="72" height="98" rx="9"/></svg>
+  <div class="pop o1">+8</div><div class="pop o2">+8</div><div class="pop o3">+8</div>
+</div>
+<script>
+const st=document.getElementById('s');
+function go(){st.classList.remove('play');void st.offsetWidth;st.classList.add('play')}
+go();setInterval(go,2500);
+</script>
+</body>
+</html>

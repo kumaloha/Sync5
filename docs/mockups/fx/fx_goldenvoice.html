@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh">
+<meta charset="utf-8">
+<title>FX · 金嗓 Golden Voice</title>
+<style>
+:root{--ac:#ff9b2b;--glo:rgba(255,155,43,.3)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#07070f;min-height:100vh;display:flex;flex-direction:column;align-items:center;gap:10px;padding:26px;font-family:Rajdhani,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;color:#dfe6ff}
+h1{font-size:19px;font-weight:600;letter-spacing:.5px}
+h1 small{color:#8b93b8;font-weight:400;font-size:14px;margin-left:10px}
+.verb{font-size:13px;color:var(--ac)}
+.stage{position:relative;width:720px;height:360px;background:#000;border:1px solid #171733;border-radius:12px;overflow:hidden;flex:none}
+.floor{position:absolute;left:0;right:0;bottom:70px;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.1),transparent)}
+.joker{position:absolute;left:312px;top:112px;width:96px;height:128px;border-radius:10px;border:2px solid var(--ac);background:linear-gradient(165deg,rgba(28,24,44,.92),rgba(9,7,14,.96));box-shadow:0 0 16px var(--glo);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;z-index:2}
+.joker b{font-size:30px;color:var(--ac);text-shadow:0 0 14px var(--ac)}
+.joker i{font-style:normal;font-size:13px;color:#aeb6d8;letter-spacing:3px}
+/* 金色声环:以卡为心荡开,每 6◆ 一环 */
+.ring{position:absolute;left:360px;top:176px;width:60px;height:60px;margin:-30px;border-radius:50%;border:2.5px solid var(--ac);opacity:0;box-shadow:0 0 16px var(--glo),inset 0 0 10px var(--glo)}
+.play .r1{animation:ring .6s cubic-bezier(.2,.7,.4,1) .02s forwards}
+.play .r2{animation:ring .6s cubic-bezier(.2,.7,.4,1) .16s forwards}
+@keyframes ring{0%{opacity:0;transform:scale(.4)}20%{opacity:.95}100%{opacity:0;transform:scale(4.6)}}
+/* ◆ 闪点:声环扫过处金币短暂点亮 */
+.g{position:absolute;font-size:18px;color:var(--ac);text-shadow:0 0 10px var(--ac);opacity:0}
+.g1{left:216px;top:150px}.g2{left:494px;top:130px}.g3{left:246px;top:250px}.g4{left:474px;top:236px}.g5{left:352px;top:52px}.g6{left:356px;top:296px}
+.play .g{animation:glint .34s ease-out forwards}
+.play .g1{animation-delay:.16s}.play .g2{animation-delay:.2s}.play .g3{animation-delay:.24s}
+.play .g4{animation-delay:.28s}.play .g5{animation-delay:.24s}.play .g6{animation-delay:.3s}
+@keyframes glint{0%{opacity:0;transform:scale(.5)}40%{opacity:1;transform:scale(1.25)}100%{opacity:0;transform:scale(.9)}}
+/* 数值弹出 */
+.pop{position:absolute;left:318px;top:70px;font-weight:700;font-size:26px;color:var(--ac);text-shadow:0 0 12px var(--ac);opacity:0;z-index:4}
+.pop small{font-size:14px;color:#ffd9a8;margin-left:6px}
+.play .pop{animation:pop .58s cubic-bezier(.2,1.4,.4,1) .26s forwards}
+@keyframes pop{0%{opacity:0;transform:translateY(10px) scale(.5)}30%{opacity:1;transform:translateY(0) scale(1.15)}55%{transform:scale(1)}80%{opacity:1}100%{opacity:0;transform:translateY(-16px) scale(.96)}}
+</style>
+<body>
+<h1>金嗓 Golden Voice<small>触发:每持有 6◆ → 倍率 +0.1</small></h1>
+<div class="verb">视觉动词:金色声环荡开 —— 每 6◆ 荡出一环,环过处金币被点亮</div>
+<div class="stage" id="s">
+  <div class="floor"></div>
+  <div class="ring r1"></div><div class="ring r2"></div>
+  <div class="joker"><b>&#9834;</b><i>金嗓</i></div>
+  <span class="g g1">&#9670;</span><span class="g g2">&#9670;</span><span class="g g3">&#9670;</span>
+  <span class="g g4">&#9670;</span><span class="g g5">&#9670;</span><span class="g g6">&#9670;</span>
+  <div class="pop">+0.1&times;<small>&times;2 环</small></div>
+</div>
+<script>
+const st=document.getElementById('s');
+function go(){st.classList.remove('play');void st.offsetWidth;st.classList.add('play')}
+go();setInterval(go,2400);
+</script>
+</body>
+</html>

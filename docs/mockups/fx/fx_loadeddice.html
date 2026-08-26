@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="zh">
+<meta charset="utf-8">
+<title>FX · 灌铅骰 Loaded Dice</title>
+<style>
+:root{--ac:#ff3632;--glo:rgba(255,54,50,.32)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#07070f;min-height:100vh;display:flex;flex-direction:column;align-items:center;gap:10px;padding:26px;font-family:Rajdhani,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;color:#dfe6ff}
+h1{font-size:19px;font-weight:600;letter-spacing:.5px}
+h1 small{color:#8b93b8;font-weight:400;font-size:14px;margin-left:10px}
+.verb{font-size:13px;color:var(--ac)}
+.stage{position:relative;width:720px;height:360px;background:#000;border:1px solid #171733;border-radius:12px;overflow:hidden;flex:none}
+.floor{position:absolute;left:0;right:0;bottom:96px;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.12),transparent)}
+.joker{position:absolute;left:96px;top:100px;width:96px;height:128px;border-radius:10px;border:2px solid var(--ac);background:linear-gradient(165deg,rgba(40,20,26,.92),rgba(12,6,8,.96));box-shadow:0 0 16px var(--glo);display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:12px;z-index:2}
+.joker i{font-style:normal;font-size:13px;color:#aeb6d8;letter-spacing:3px}
+/* 骰子:横滚入场 → 迟疑摇摆 → 铅心急停坐死 */
+.dicew{position:absolute;left:250px;top:196px;z-index:3}
+.play .dicew{animation:travel .62s cubic-bezier(.2,.5,.35,1) forwards}
+@keyframes travel{0%{transform:translate(0,-120px)}18%{transform:translate(52px,0)}30%{transform:translate(96px,-56px)}44%{transform:translate(150px,0)}100%{transform:translate(150px,0)}}
+.dice{width:64px;height:64px;border-radius:12px;border:2px solid var(--ac);background:linear-gradient(165deg,rgba(34,16,20,.95),rgba(10,5,7,.98));box-shadow:0 0 16px var(--glo),inset 0 0 10px rgba(255,54,50,.15);position:relative;transform-origin:50% 100%}
+.play .dice{animation:tumble .62s cubic-bezier(.2,.5,.35,1) forwards}
+@keyframes tumble{0%{transform:rotate(-260deg)}44%{transform:rotate(10deg)}54%{transform:rotate(-9deg)}62%{transform:rotate(6deg)}70%{transform:rotate(-3deg)}78%{transform:rotate(0) scaleY(.82) scaleX(1.12)}88%{transform:scaleY(1.04) scaleX(.98)}100%{transform:none}}
+/* 六点 */
+.pip{position:absolute;width:11px;height:11px;border-radius:50%;background:var(--ac);box-shadow:0 0 7px var(--ac)}
+.q1{left:10px;top:8px}.q2{left:10px;top:26px}.q3{left:10px;top:44px}
+.q4{right:10px;top:8px}.q5{right:10px;top:26px}.q6{right:10px;top:44px}
+/* 落定尘环 */
+.dust{position:absolute;left:432px;top:254px;width:70px;height:14px;margin-left:-35px;border-radius:50%;border:2px solid var(--ac);opacity:0;filter:blur(1px);z-index:2}
+.play .dust{animation:puff .3s ease-out .46s forwards}
+@keyframes puff{0%{opacity:0;transform:scale(.4)}30%{opacity:.8}100%{opacity:0;transform:scale(2)}}
+/* 结果弹出 */
+.pop{position:absolute;left:378px;top:120px;font-weight:700;font-size:26px;color:var(--ac);text-shadow:0 0 14px var(--ac);letter-spacing:2px;opacity:0;z-index:4}
+.play .pop{animation:pop .55s cubic-bezier(.2,1.4,.4,1) .52s forwards}
+@keyframes pop{0%{opacity:0;transform:translateY(10px) scale(.5)}30%{opacity:1;transform:translateY(0) scale(1.15)}55%{transform:scale(1)}80%{opacity:1}100%{opacity:0;transform:translateY(-16px)}}
+</style>
+<body>
+<h1>灌铅骰 Loaded Dice<small>触发:你所有的概率翻倍(常驻,购入/结算时提示)</small></h1>
+<div class="verb">视觉动词:灌铅定格 —— 翻滚、摇摆两下,铅心一口咬定六点,尘环坐实</div>
+<div class="stage" id="s">
+  <div class="floor"></div>
+  <div class="joker"><i>灌铅骰</i></div>
+  <div class="dicew"><div class="dice">
+    <span class="pip q1"></span><span class="pip q2"></span><span class="pip q3"></span>
+    <span class="pip q4"></span><span class="pip q5"></span><span class="pip q6"></span>
+  </div></div>
+  <div class="dust"></div>
+  <div class="pop">ODDS &times;2</div>
+</div>
+<script>
+const st=document.getElementById('s');
+function go(){st.classList.remove('play');void st.offsetWidth;st.classList.add('play')}
+go();setInterval(go,2500);
+</script>
+</body>
+</html>

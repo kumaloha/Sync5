@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="zh">
+<meta charset="utf-8">
+<title>FX · 超级百搭 Super Wildcard</title>
+<style>
+:root{--au:#ff9b2b;--glo:rgba(255,155,43,.32)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#07070f;min-height:100vh;display:flex;flex-direction:column;align-items:center;gap:10px;padding:26px;font-family:Rajdhani,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;color:#dfe6ff}
+h1{font-size:19px;font-weight:600;letter-spacing:.5px}
+h1 small{color:#8b93b8;font-weight:400;font-size:14px;margin-left:10px}
+.verb{font-size:13px;color:var(--au)}
+.stage{position:relative;width:720px;height:360px;background:#000;border:1px solid #171733;border-radius:12px;overflow:hidden;flex:none}
+/* 牌堆:旋涡的落点 */
+.deck{position:absolute;left:334px;top:150px;width:56px;height:76px;border-radius:8px;border:1.5px solid #3a2f6b;background:repeating-linear-gradient(135deg,#13102a 0 7px,#1b1638 7px 14px);z-index:2}
+.deck::before{content:"";position:absolute;left:-6px;top:5px;width:56px;height:76px;border-radius:8px;border:1.5px solid #2c2452;background:repeating-linear-gradient(135deg,#100d22 0 7px,#171230 7px 14px);z-index:-1}
+.play .deck{animation:gulp 1.5s ease-out forwards}
+@keyframes gulp{0%,68%{box-shadow:none;transform:none}76%{box-shadow:0 0 30px var(--au);transform:scale(1.08)}88%{transform:scale(.98)}100%{box-shadow:0 0 10px var(--glo);transform:scale(1)}}
+/* 旋涡流光:三条弧转起来 */
+.vortex{position:absolute;left:362px;top:188px;width:240px;height:240px;margin:-120px;z-index:1;opacity:0}
+.play .vortex{animation:vspin 1.4s cubic-bezier(.4,.1,.4,1) forwards}
+@keyframes vspin{0%{opacity:0;transform:rotate(0) scale(1.15)}12%{opacity:1}70%{opacity:1;transform:rotate(560deg) scale(.9)}100%{opacity:0;transform:rotate(700deg) scale(.7)}}
+.vortex svg{overflow:visible}
+.varc{fill:none;stroke:var(--au);stroke-width:3.5;stroke-linecap:round;filter:drop-shadow(0 0 8px var(--au));opacity:.85}
+/* 四张 JOKER:外层转角度,内层收半径 = 真螺旋 */
+.orb{position:absolute;left:362px;top:188px;width:0;height:0;z-index:3}
+.o0{transform:rotate(0)}.o1{transform:rotate(90deg)}.o2{transform:rotate(180deg)}.o3{transform:rotate(270deg)}
+.play .o0{animation:whirl 1.05s cubic-bezier(.5,.05,.6,1) .05s forwards}
+.play .o1{animation:whirl1 1.05s cubic-bezier(.5,.05,.6,1) .13s forwards}
+.play .o2{animation:whirl2 1.05s cubic-bezier(.5,.05,.6,1) .21s forwards}
+.play .o3{animation:whirl3 1.05s cubic-bezier(.5,.05,.6,1) .29s forwards}
+@keyframes whirl{100%{transform:rotate(340deg)}}
+@keyframes whirl1{100%{transform:rotate(430deg)}}
+@keyframes whirl2{100%{transform:rotate(520deg)}}
+@keyframes whirl3{100%{transform:rotate(610deg)}}
+.jc{position:absolute;left:170px;top:-26px;width:40px;height:54px;border-radius:6px;border:1.5px solid var(--au);background:linear-gradient(165deg,rgba(34,26,16,.95),rgba(12,8,4,.98));box-shadow:0 0 12px var(--glo);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;color:var(--au);text-shadow:0 0 8px var(--au)}
+.play .jc{animation:infall 1.05s cubic-bezier(.5,.05,.6,1) forwards}
+.play .o0 .jc{animation-delay:.05s}.play .o1 .jc{animation-delay:.13s}
+.play .o2 .jc{animation-delay:.21s}.play .o3 .jc{animation-delay:.29s}
+@keyframes infall{0%{left:170px;opacity:1;transform:scale(1) rotate(0)}80%{opacity:1}100%{left:-8px;opacity:0;transform:scale(.1) rotate(320deg)}}
+/* 汇心闪 */
+.flash{position:absolute;left:362px;top:188px;width:18px;height:18px;margin:-9px;border-radius:50%;background:#fff;box-shadow:0 0 30px var(--au),0 0 60px var(--glo);opacity:0;z-index:4}
+.play .flash{animation:core .34s ease-out 1.06s forwards}
+@keyframes core{0%{opacity:0;transform:scale(.3)}35%{opacity:1;transform:scale(2)}100%{opacity:0;transform:scale(1)}}
+/* 文字弹出 */
+.pop{position:absolute;left:302px;top:64px;font-weight:700;font-size:26px;color:var(--au);text-shadow:0 0 14px var(--au);letter-spacing:2px;opacity:0;z-index:5}
+.play .pop{animation:pop .6s cubic-bezier(.2,1.4,.4,1) 1.16s forwards}
+@keyframes pop{0%{opacity:0;transform:translateY(12px) scale(.5)}30%{opacity:1;transform:translateY(0) scale(1.18)}55%{transform:scale(1)}80%{opacity:1}100%{opacity:0;transform:translateY(-16px)}}
+</style>
+<body>
+<h1>超级百搭 Super Wildcard<small>触发:四张 JOKER 加入牌库;洗牌键付费重掷整手</small></h1>
+<div class="verb">视觉动词:金色洗牌旋涡 —— 四张 JOKER 从四角螺旋收束,汇心一闪没入牌堆</div>
+<div class="stage" id="s">
+  <div class="vortex">
+    <svg width="240" height="240" viewBox="0 0 240 240">
+      <path class="varc" d="M120,10 A110,110 0 0 1 226,90"/>
+      <path class="varc" d="M212,178 A110,110 0 0 1 92,227"/>
+      <path class="varc" d="M28,168 A110,110 0 0 1 22,76"/>
+    </svg>
+  </div>
+  <div class="deck"></div>
+  <div class="orb o0"><div class="jc">J</div></div>
+  <div class="orb o1"><div class="jc">J</div></div>
+  <div class="orb o2"><div class="jc">J</div></div>
+  <div class="orb o3"><div class="jc">J</div></div>
+  <div class="flash"></div>
+  <div class="pop">JOKER &times;4</div>
+</div>
+<script>
+const st=document.getElementById('s');
+function go(){st.classList.remove('play');void st.offsetWidth;st.classList.add('play')}
+go();setInterval(go,3000);
+</script>
+</body>
+</html>

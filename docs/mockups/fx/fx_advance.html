@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="zh">
+<meta charset="utf-8">
+<title>FX · 预支 Advance</title>
+<style>
+:root{--cy:#1effec;--au:#ff9b2b;--rd:#ff3632}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#07070f;min-height:100vh;display:flex;flex-direction:column;align-items:center;gap:10px;padding:26px;font-family:Rajdhani,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;color:#dfe6ff}
+h1{font-size:19px;font-weight:600;letter-spacing:.5px}
+h1 small{color:#8b93b8;font-weight:400;font-size:14px;margin-left:10px}
+.verb{font-size:13px;color:var(--cy)}
+.stage{position:relative;width:720px;height:360px;background:#000;border:1px solid #171733;border-radius:12px;overflow:hidden;flex:none}
+/* 卡:三拍生命 —— 借入青光 → 偿还红闪 → 违约消失 */
+.joker{position:absolute;left:312px;top:112px;width:96px;height:128px;border-radius:10px;border:2px solid var(--cy);background:linear-gradient(165deg,rgba(24,26,48,.92),rgba(7,7,15,.96));box-shadow:0 0 16px rgba(30,255,236,.28);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;z-index:2}
+.joker b{font-size:26px;color:var(--cy);text-shadow:0 0 12px var(--cy)}
+.joker i{font-style:normal;font-size:13px;color:#aeb6d8;letter-spacing:3px}
+.play .joker{animation:jlife 4.4s linear forwards}
+@keyframes jlife{
+ 0%{opacity:1;box-shadow:0 0 16px rgba(30,255,236,.28)}
+ 9%{box-shadow:0 0 34px var(--cy)}
+ 20%{box-shadow:0 0 16px rgba(30,255,236,.28)}
+ 38%{box-shadow:0 0 30px var(--rd);border-color:var(--rd)}
+ 46%{box-shadow:0 0 16px rgba(30,255,236,.28);border-color:var(--cy)}
+ 64%{opacity:1}
+ 67%{opacity:0}
+ 100%{opacity:0}}
+/* ① 借入:8 枚金币拖着青尾流入 */
+.cin{position:absolute;font-size:18px;color:var(--au);filter:drop-shadow(0 0 7px var(--cy));opacity:0;z-index:3}
+.play .cin{animation:inflow .5s cubic-bezier(.4,.1,.6,1) var(--d) forwards}
+@keyframes inflow{0%{opacity:0;transform:translate(0,0) scale(1)}18%{opacity:1}85%{opacity:1}100%{opacity:0;transform:translate(var(--tx),var(--ty)) scale(.45)}}
+/* ② 偿还:一枚金币被红色拽出 */
+.cout{position:absolute;left:352px;top:170px;font-size:18px;color:var(--au);filter:drop-shadow(0 0 8px var(--rd));opacity:0;z-index:3}
+.play .cout{animation:outflow .5s cubic-bezier(.5,0,.8,.6) 1.66s forwards}
+@keyframes outflow{0%{opacity:0;transform:translate(0,0)}15%{opacity:1}80%{opacity:1}100%{opacity:0;transform:translate(240px,150px) scale(.5)}}
+/* ③ 违约:玻璃碎片爆散 + 红闪 */
+.shard{position:absolute;opacity:0;z-index:3;background:linear-gradient(165deg,rgba(40,44,70,.95),rgba(12,13,24,.98));border:1px solid var(--rd);filter:drop-shadow(0 0 6px rgba(255,54,50,.5))}
+.play .shard{animation:fly .55s cubic-bezier(.2,.6,.5,1) 2.9s forwards}
+@keyframes fly{0%{opacity:1;transform:translate(0,0) rotate(0)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) rotate(var(--rr))}}
+.veil{position:absolute;inset:0;background:radial-gradient(circle at 360px 176px,rgba(255,54,50,.4),transparent 55%);opacity:0;z-index:1}
+.play .veil{animation:rflash .4s ease-out 2.88s forwards}
+@keyframes rflash{0%{opacity:0}30%{opacity:1}100%{opacity:0}}
+/* 数值弹出 */
+.pop{position:absolute;font-weight:700;font-size:26px;opacity:0;z-index:4}
+.p1{left:322px;top:70px;color:var(--cy);text-shadow:0 0 12px var(--cy)}
+.play .p1{animation:pop .55s cubic-bezier(.2,1.4,.4,1) .5s forwards}
+.p2{left:332px;top:70px;color:var(--rd);text-shadow:0 0 12px var(--rd)}
+.play .p2{animation:pop .55s cubic-bezier(.2,1.4,.4,1) 1.78s forwards}
+@keyframes pop{0%{opacity:0;transform:translateY(10px) scale(.5)}30%{opacity:1;transform:translateY(0) scale(1.15)}55%{transform:scale(1)}80%{opacity:1}100%{opacity:0;transform:translateY(-16px)}}
+.p3{left:314px;top:150px;color:var(--rd);text-shadow:0 0 16px var(--rd);font-size:32px;letter-spacing:4px}
+.play .p3{animation:stamp .7s cubic-bezier(.2,1.2,.3,1) 3.05s forwards}
+@keyframes stamp{0%{opacity:0;transform:scale(2.1) rotate(-6deg)}35%{opacity:1;transform:scale(.95) rotate(-6deg)}50%{transform:scale(1.05) rotate(-6deg)}90%{opacity:1}100%{opacity:0}}
+/* 三拍标签 */
+.ph{position:absolute;bottom:12px;font-size:13px;color:#5a6182;letter-spacing:1px;z-index:4}
+.f1{left:130px}.f2{left:300px}.f3{left:488px}
+.play .f1{animation:lit 1.1s ease-out forwards}
+.play .f2{animation:lit2 1.1s ease-out 1.6s forwards}
+.play .f3{animation:lit3 1.2s ease-out 2.85s forwards}
+@keyframes lit{15%,70%{color:var(--cy)}100%{color:#5a6182}}
+@keyframes lit2{15%,70%{color:var(--rd)}100%{color:#5a6182}}
+@keyframes lit3{15%,80%{color:var(--rd)}100%{color:#5a6182}}
+</style>
+<body>
+<h1>预支 Advance<small>触发:立得 8&#9670;;此后每拍偿还 1&#9670;,付不出即违约</small></h1>
+<div class="verb">视觉动词:借入流金 &middot; 逐拍抽走 &middot; 违约碎裂(三拍各为一次独立触发,demo 连播)</div>
+<div class="stage" id="s">
+  <div class="veil"></div>
+  <div class="joker" id="jk"><b>&#9670;</b><i>预支</i></div>
+  <span class="cin" style="left:56px;top:44px;--tx:298px;--ty:128px;--d:.02s">&#9670;</span>
+  <span class="cin" style="left:120px;top:26px;--tx:236px;--ty:148px;--d:.09s">&#9670;</span>
+  <span class="cin" style="left:38px;top:110px;--tx:318px;--ty:64px;--d:.16s">&#9670;</span>
+  <span class="cin" style="left:150px;top:80px;--tx:206px;--ty:94px;--d:.23s">&#9670;</span>
+  <span class="cin" style="left:80px;top:170px;--tx:276px;--ty:6px;--d:.3s">&#9670;</span>
+  <span class="cin" style="left:180px;top:140px;--tx:176px;--ty:36px;--d:.37s">&#9670;</span>
+  <span class="cin" style="left:110px;top:220px;--tx:246px;--ty:-42px;--d:.44s">&#9670;</span>
+  <span class="cin" style="left:210px;top:196px;--tx:146px;--ty:-20px;--d:.51s">&#9670;</span>
+  <span class="cout">&#9670;</span>
+  <div class="shard" style="left:314px;top:114px;width:34px;height:38px;clip-path:polygon(0 0,100% 12%,28% 100%);--dx:-64px;--dy:-52px;--rr:-70deg"></div>
+  <div class="shard" style="left:352px;top:112px;width:40px;height:30px;clip-path:polygon(0 20%,100% 0,60% 100%);--dx:26px;--dy:-70px;--rr:50deg"></div>
+  <div class="shard" style="left:384px;top:126px;width:26px;height:44px;clip-path:polygon(0 0,100% 30%,40% 100%);--dx:74px;--dy:-34px;--rr:80deg"></div>
+  <div class="shard" style="left:312px;top:156px;width:30px;height:40px;clip-path:polygon(100% 0,80% 100%,0 40%);--dx:-80px;--dy:10px;--rr:-50deg"></div>
+  <div class="shard" style="left:372px;top:160px;width:36px;height:36px;clip-path:polygon(0 10%,100% 0,50% 100%);--dx:82px;--dy:26px;--rr:60deg"></div>
+  <div class="shard" style="left:326px;top:196px;width:34px;height:38px;clip-path:polygon(0 0,100% 40%,20% 100%);--dx:-58px;--dy:66px;--rr:-80deg"></div>
+  <div class="shard" style="left:362px;top:200px;width:40px;height:34px;clip-path:polygon(20% 0,100% 20%,60% 100%)  ;--dx:44px;--dy:74px;--rr:45deg"></div>
+  <div class="shard" style="left:344px;top:140px;width:28px;height:32px;clip-path:polygon(0 30%,100% 0,70% 100%);--dx:6px;--dy:-88px;--rr:120deg"></div>
+  <div class="pop p1">+8&#9670;</div>
+  <div class="pop p2">&minus;1&#9670;</div>
+  <div class="pop p3">违约!</div>
+  <div class="ph f1">&#9312; 借入 +8&#9670;</div>
+  <div class="ph f2">&#9313; 每拍偿还 &minus;1&#9670;</div>
+  <div class="ph f3">&#9314; 付不出 = 违约</div>
+</div>
+<script>
+const st=document.getElementById('s');
+function go(){st.classList.remove('play');void st.offsetWidth;st.classList.add('play')}
+go();setInterval(go,4800);
+</script>
+</body>
+</html>
