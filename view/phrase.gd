@@ -198,7 +198,9 @@ func start_run() -> void:
 	# ⚑ **游戏是唯一传真实局数的地方**(探针一律走缺省 = 全解锁, 理由在 SectionMod.unlocked_at)。
 	# ⚠ `+1` 是因为掷脸发生在 `note_run_started()` **之前** —— 存档里的 `runs_total`
 	# 此刻还是「以前玩过几局」, 而这一局是第 `runs_total + 1` 局。
-	_begin_run()
+	if not _begin_run():
+		_deny_no_energy()   # 体力不足(2026-08-26 真闸门):不开局, 回首页 + 浮字
+		return
 	# 打点从这里开流 —— 四面墙定了, 这一局的初始条件已经完整
 	# ⚠⚠ 教学关**照样打点, 但必须打上标记**:它是一局假局(6 拍、目标分 0、不判生死),
 	# 混进 Tape 会污染 `tools/probbook.py` 的「合格真人局」分拣。
@@ -920,7 +922,11 @@ func _on_end_retry() -> void:
 	Tape.on("nav", {"to": "retry"})
 	run_end.close()
 	_reset_run(true)
-	_begin_run()          # 与开局同一份三步(评审 R2):Director/min_run/局数都要算上这一局
+	# 与开局同一份三步(评审 R2):Director/min_run/局数都要算上这一局。
+	# ⚑ 同一份三步 = 同一道体力闸:重开 = 新 run, 照扣;不足 = 不开局, 回首页浮字。
+	if not _begin_run():
+		_deny_no_energy()
+		return
 	# 重开 = 新的一局, 得开新流, 否则两局的事件会串在同一条时间轴上
 	Tape.begin({"sess": _sess, "tutorial": run.tutorial,
 		"faces": run.run_faces.duplicate(), "targets": GameConfig.SECTION_TARGETS,
@@ -960,12 +966,31 @@ func _reset_run(_keep: bool) -> void:
 ## 快照、runs_total/history 分叉 —— 四条全静默。「第二条入口漏掉主路径的步骤」是这个项目
 ## 最贵的形状之一, 所以收成一个函数, 别再让两条入口各写各的。
 ## ⚠ `_run_index` 的 `+1`:掷脸发生在 `note_run_started()` 之前, 存档里还是「以前玩过几局」。
-func _begin_run() -> void:
+## ⚑ 体力真闸门(2026-08-26 用户拍板「体力是开局扣一点」)装在**这一份**入口的第 0 步 ——
+## 开局与重开自然同闸(重开 = 新 run, 照扣);只挡首页按钮就是「第二条入口漏步骤」的老坑反着犯。
+## 教学关不扣、探针恒放行, 口径都收在 SaveState.spend_energy_for_run(一处)。
+## 返回 false = 体力不足**什么都没发生**(不扣/不掷/不记局), 调用方不开局(回首页浮字)。
+func _begin_run() -> bool:
+	if not SaveState.spend_energy_for_run(run.tutorial):
+		return false
 	_run_index = 1 if SaveState.is_probe() else SaveState.runs_total() + 1
 	_feed_director()
 	run.roll_faces(-1, _run_index)
 	SaveState.note_run_started()
 	music.new_run()   # 一局一首(2026-08-25 拍板):开局清曲, 第一拍重抽
+	return true
+
+
+## 体力不足挡开局:回首页 + 浮字(2026-08-26 真闸门)。事实记 Tape(打点只在编排器;
+## 局外事件与首页 nav 同款, 不落 run 文件 —— 那是 Tape.begin 的既有口径)。
+## 浮字挂编排器的 fx 层(z=60), 盖在重开的首页上方。
+## TODO(商业化批, SDK 选型归用户):「看广告领体力」真入口 —— 本批只留桩:
+## 下面第二行浮字提一句, 不做任何 SDK 调用、不加任何按钮。
+func _deny_no_energy() -> void:
+	Tape.on("deny", {"why": "energy"})
+	_open_home()
+	fx.float_text(Lingo.t("体力不足,明天回满"), Vector2(243.0, 986.0), Color("ff5f7e"), 90)
+	fx.float_text(Lingo.t("看广告补体力 · 敬请期待"), Vector2(228.0, 1026.0), StageTheme.GOLD, 90)
 
 
 ## 从快照恢复半局(2026-08-24)。恢复**不走开局三步** —— 掷脸/喂 Director/记局数
