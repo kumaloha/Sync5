@@ -257,20 +257,20 @@ func _draw() -> void:
 
 	_pick_overlay(w, h, s)
 
-	# 底部触发词:左竖条 + 紧凑单行(字区只留一行 —— 「字的区域太大」的正解),
+	# 底部触发词:紧凑单行(字区只留一行 —— 「字的区域太大」的正解),
 	# 长文案自适应缩字不破行。文案优先级:ui.json jokercard(游戏文案归游戏数据,
 	# 2026-08-11 用户「中文效果不好」后整批手写重译)→ manifest trigger_zh → 英文 fx。
 	var trig := String(DB.ui().get("jokercard", {}).get(String(joker.id), {})
 		.get("trigger", meta.get("trigger_zh", joker.fx_text)))
 	var tr := Rect2(pad, 145.0 * s, w - pad * 2.0, h - 151.0 * s)
-	draw_rect(Rect2(tr.position, Vector2(2.0 * s, tr.size.y)),
-		Color(acc.r, acc.g, acc.b, 0.85), true)
+	# ~~左竖条~~ 2026-08-27 用户拍板去掉:卡面已有边框与分隔线, 竖条是第三层框,
+	# 挤字宽还抢注意力。文字直接左对齐到 pad(下面的文字起点原本就绕开了它, 一并归位)。
 	var zf := StageTheme.zh()
 	var tfs := int(13.0 * s)
 	while tfs > int(9.0 * s) and zf.get_string_size(trig,
 			HORIZONTAL_ALIGNMENT_LEFT, -1, tfs).x > tr.size.x - 12.0 * s:
 		tfs -= 1
-	draw_string(zf, Vector2(tr.position.x + 8.0 * s,
+	draw_string(zf, Vector2(tr.position.x + 2.0 * s,
 		tr.position.y + tr.size.y * 0.5 + float(tfs) * 0.36),
 		trig, HORIZONTAL_ALIGNMENT_LEFT, tr.size.x - 10.0 * s, tfs, Color("f4fbff"))
 

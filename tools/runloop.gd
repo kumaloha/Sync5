@@ -146,6 +146,15 @@ static func play(o: Opts, bot: Bot) -> Dictionary:
 				o.on_beat.call(run, p, outcome,
 					{"flags": flags, "prev_kind": prev_kind_before})
 			Beat.phrase_end(run, p, flags)
+			# 达标即收工(2026-08-27 A 案, 两界镜像):bot 的判据 = 段分已达标 + 剩余拍的
+			# 落袋 ≥ 继续打的期望收入(牌型金币 ~2.1◆/拍 —— 用 cashout 单价直接比,
+			# 高于它就落袋)。⚠ 只在**拍边界**判, 与游戏侧同一时机。
+			if run.section_score >= Run.section_target_for(o.targets, section, mod) \
+					and pidx + 1 < GameConfig.PHRASES_PER_SECTION \
+					and GameConfig.CASHOUT_PER_PHRASE > 2:
+				var left: int = GameConfig.PHRASES_PER_SECTION - (pidx + 1)
+				coins = Economy.grant(coins, Economy.cashout(left), run.joker_slots)
+				break
 			# 段中商店:每 PHRASES_PER_SHOP 拍一次, **不结算不判生死**(docs/design/levels.md)
 			var done := pidx + 1
 			if o.shop and done % GameConfig.PHRASES_PER_SHOP == 0 \

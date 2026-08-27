@@ -11,6 +11,13 @@ static func discard_cost(count: int) -> int:
 	return count * GameConfig.DISCARD_COST
 
 
+## 达标即收工的落袋(2026-08-27 A 案):剩 n 拍换多少金币。
+## ⚠ 与「继续打」的期望收入(牌型金币 ~2.1◆/拍)对标 —— 低于它没人收工,
+## 等于它是无差别选择;略高才构成「落袋为安 vs 继续榨分」的真选择。
+static func cashout(phrases_left: int) -> int:
+	return maxi(0, phrases_left) * GameConfig.CASHOUT_PER_PHRASE
+
+
 ## 洗牌(2026-08-26, 超级百搭配套):整手回堆 + 弃牌堆洗回 + 重发。
 ## 金币的第三出口(买牌/升级之外);数字在 economy.json, 方向锚待 ⑥ 数值批。
 static func reshuffle_cost() -> int:
@@ -66,9 +73,14 @@ static func cap_held(coins: int, slots: Array) -> int:
 	return mini(coins, Joker.slots_coin_cap(slots))
 
 
-## Selling a support back (replace flow) refunds half its price, rounded down.
+## 卖回/替换时退一半, 向下取整。
+## ⚠⚠ **必须按「有 Target 时」的价目表算**(2026-08-27 换旗回收时查出的静默 0):
+## `joker_price(j)` 缺省 `has_target = false` ⇒ 对 **Target 恒返回 0**(首张免费那条规则),
+## 于是 `sell_value(target)` 永远是 0 —— **Target 一分钱退不出来**, 且不报错。
+## 「首张免费」是**获取时的引导优惠**, 不是「这张卡值 0 元」;卖的时候按稀有度计价。
+## (对 Support 该参数不生效, 传 true 无副作用。)
 static func sell_value(j: Joker) -> int:
-	return joker_price(j) / 2
+	return joker_price(j, true) / 2
 
 
 ## Cost of the n-th reroll of one draft board (n starts at 0).

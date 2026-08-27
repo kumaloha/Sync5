@@ -75,6 +75,17 @@ var banner: BlindBanner
 var tutor: Widgets.TutorHint      # 教学关的一行提示;正式局整块隐身
 var blind_card: Widgets.BlindCard
 var _bc_home := Vector2.ZERO
+## 达标即收工(2026-08-27 A 案):按下按钮 → 本拍照常打完 → _advance 时结段并落袋。
+## ⚠ 不做「立刻结段」:那会吞掉玩家本拍已经做的动作与这拍的分, 而按钮是在拍中按的。
+var _cash_out_pending := false
+var _cash_out_left := 0
+var _cash_out_gain := 0
+var cash_btn: Button = null
+## 暂停(2026-08-27 用户:「局内没有退出按钮……左上角应该有暂停, 二级菜单可以退出或者继续」)。
+## ⚠ 冻的是**钟**不是画面:_process 在暂停时不推 elapsed, 手牌照旧显示但不吃操作。
+var _paused := false
+var pause_btn: Button = null
+var pause_layer: Control = null
 var intro: BlindIntro
 var music: Music             # 每段一首的 8 秒循环(view/music.gd, 2026-08-18)
 var beacon: Beacon           # Tape 回传(view/beacon.gd, 1.1;配置关着时自睡)
@@ -98,11 +109,14 @@ func _ready() -> void:
 	_sess = SaveState.session_start()
 	run.reset()
 	_build_ui()
-	# ⚑ 断点续玩(2026-08-24):有半局快照就直接回到拍边界, 不过首页 ——
-	# 移动 Web 的刚需场景是「iOS 杀了标签页, 玩家点回来」, 他要的是牌桌不是菜单。
-	if not SaveState.is_probe() and _resume_run():
-		return
+	# ⚑ 断点续玩 v2(2026-08-27 用户拍板:「关掉游戏重新打开的时候应该在首页,
+	# 跳一个提示是要不要继续刚才的游戏, 可以选择继续或者放弃」)——
+	# 旧版是「有快照就直接回牌桌」, 那在「杀标签页」场景成立, 但在**主动退出后重开**
+	# 的场景是劫持:玩家想开新局, 却被扔回上一局的残局。改成**首页 + 询问**:
+	# 选择权归玩家, 两条路都明确(继续 = 回拍边界;放弃 = 清快照, 首页照常)。
 	_open_home()
+	if not SaveState.is_probe() and not SaveState.checkpoint().is_empty():
+		_ask_resume()
 
 
 ## 关窗/退出时把打点尾巴写下去。半途退出的 run 因此**有事件、没有 close**——
@@ -194,6 +208,8 @@ func start_run() -> void:
 	# `vinyl` 是 StageLayout 建的, 开局之后才拿到引用。
 	if not vinyl.tapped.is_connected(_on_vinyl_tapped):
 		vinyl.tapped.connect(_on_vinyl_tapped)
+	_ensure_cash_btn()
+	_ensure_pause_ui()
 	# ⚑ 教学关:**只在第一次启动时出现一次**(用户 2026-08-07 拍板「教学只要一次」)。
 	# 判据存在 `SaveState`(`user://`), 与将来的断点续玩共用同一个存档层。
 	# ⚠⚠ **必须在 roll_faces 之前设** —— 教学关不掷 Boss 脸(见 Run.roll_faces),
@@ -712,6 +728,8 @@ func _end_cutin() -> void:
 
 
 func _process(delta: float) -> void:
+	if _paused:
+		return          # 钟停在原地 —— 暂停不该偷走玩家的秒数
 	match state:
 		St.DECISION:
 			elapsed += delta
@@ -868,6 +886,138 @@ func _can_early_lock() -> bool:
 		and last_action_time >= 0.0
 
 
+## 收工键(2026-08-27 A 案):段分达标才现身, 写明能落袋多少 ——
+## 与唱片(单拍提前结算)**语义分开**:唱片结这一拍, 它结这一段。
+## 位置贴盲注卡下方(它讲「你在打什么」, 收工是对这一段的处置)。
+## 暂停键 + 二级菜单(继续 / 退出本局)。键叠在 HUD 左上角;菜单是全屏层。
+## 退出 = **放弃本局**:清快照、不记战绩(体力已在开局扣过, 成本已付), 回首页。
+func _ensure_pause_ui() -> void:
+	if pause_btn != null:
+		return
+	pause_btn = Button.new()
+	pause_btn.text = "❚❚"
+	pause_btn.add_theme_font_size_override("font_size", 15)
+	pause_btn.focus_mode = Control.FOCUS_NONE
+	var pb := StageTheme.box(Color(0.05, 0.06, 0.13, 0.88), StageTheme.rim(0.5), 1, 9)
+	for st in ["normal", "hover", "pressed"]:
+		pause_btn.add_theme_stylebox_override(st, pb)
+	pause_btn.add_theme_color_override("font_color", Color("aab6dd"))
+	pause_btn.position = Vector2(6, 6)
+	pause_btn.size = Vector2(34, 30)
+	pause_btn.z_index = 70
+	pause_btn.pressed.connect(_on_pause)
+	add_child(pause_btn)
+
+	pause_layer = Control.new()
+	# ⚠ 显式 720×1280, 不用 anchors preset:编排器根节点没有 size, FULL_RECT 撑不开
+	# (第一版就是这样 —— `visible=true` 但整层零尺寸, 截图里什么都没有)。
+	pause_layer.position = Vector2.ZERO
+	pause_layer.size = Vector2(720, 1280)
+	pause_layer.z_index = 120
+	pause_layer.visible = false
+	pause_layer.mouse_filter = Control.MOUSE_FILTER_STOP   # 吃掉底下的一切点击
+	var dim := ColorRect.new()
+	dim.color = Color(0, 0, 0.02, 0.72)
+	dim.size = Vector2(720, 1280)
+	pause_layer.add_child(dim)
+	var panel := Panel.new()
+	panel.add_theme_stylebox_override("panel",
+		StageTheme.box(Color(0.04, 0.05, 0.12, 0.96), StageTheme.CYAN, 1, 16))
+	panel.position = Vector2(170, 470)
+	panel.size = Vector2(380, 230)
+	pause_layer.add_child(panel)
+	var title := StageTheme.label(Lingo.t("暂停"), StageTheme.zh(), 26,
+		StageTheme.CYAN, HORIZONTAL_ALIGNMENT_CENTER)
+	title.position = Vector2(170, 492)
+	title.size = Vector2(380, 34)
+	pause_layer.add_child(title)
+	var resume := Button.new()
+	resume.text = Lingo.t("继续 ▸")
+	resume.add_theme_font_override("font", StageTheme.zh())
+	resume.add_theme_font_size_override("font_size", 19)
+	resume.focus_mode = Control.FOCUS_NONE
+	for st in ["normal", "hover", "pressed"]:
+		resume.add_theme_stylebox_override(st,
+			StageTheme.box(Color(0.06, 0.16, 0.20, 0.95), StageTheme.CYAN, 1, 12))
+	resume.add_theme_color_override("font_color", Color("cdf7f2"))
+	resume.position = Vector2(206, 552)
+	resume.size = Vector2(308, 46)
+	resume.pressed.connect(_on_resume)
+	pause_layer.add_child(resume)
+	var quit_b := Button.new()
+	quit_b.text = Lingo.t("退出本局(不计战绩)")
+	quit_b.add_theme_font_override("font", StageTheme.zh())
+	quit_b.add_theme_font_size_override("font_size", 17)
+	quit_b.focus_mode = Control.FOCUS_NONE
+	for st in ["normal", "hover", "pressed"]:
+		quit_b.add_theme_stylebox_override(st,
+			StageTheme.box(Color(0.20, 0.06, 0.10, 0.95), Color("ff5f7e"), 1, 12))
+	quit_b.add_theme_color_override("font_color", Color("ffc3cf"))
+	quit_b.position = Vector2(206, 612)
+	quit_b.size = Vector2(308, 44)
+	quit_b.pressed.connect(_on_quit_run)
+	pause_layer.add_child(quit_b)
+	add_child(pause_layer)
+
+
+func _on_pause() -> void:
+	# 只在真正「在打」的时候可暂停:商店/结算屏/首页自带停顿, 再叠一层只会打架。
+	if _paused or not [St.DECISION, St.RESOLVE, St.INTRO].has(state):
+		return
+	_paused = true
+	pause_layer.visible = true
+	Tape.on("pause", {"at": elapsed, "sec": run.section_idx})
+
+
+func _on_resume() -> void:
+	_paused = false
+	pause_layer.visible = false
+
+
+## 退出本局:清快照 + 不记战绩 + 回首页(体力已在开局扣过 —— 成本已付, 不二次惩罚)。
+func _on_quit_run() -> void:
+	_paused = false
+	pause_layer.visible = false
+	Tape.on("nav", {"to": "quit"})
+	Tape.close({"ok": false, "sec": run.section_idx, "score": run.section_score,
+		"target": run.target(), "beats": run.phrase_index, "why": "quit"})
+	Tape.flush()
+	SaveState.clear_checkpoint()
+	_reset_run(false)
+	_open_home()
+
+
+func _ensure_cash_btn() -> void:
+	if cash_btn != null:
+		return
+	cash_btn = Button.new()
+	cash_btn.add_theme_font_override("font", StageTheme.zh())
+	cash_btn.add_theme_font_size_override("font_size", 17)
+	cash_btn.focus_mode = Control.FOCUS_NONE
+	var box := StageTheme.box(Color(0.20, 0.15, 0.03, 0.92),
+		Color(StageTheme.GOLD.r, StageTheme.GOLD.g, StageTheme.GOLD.b, 0.75), 1, 12)
+	for st in ["normal", "hover", "pressed"]:
+		cash_btn.add_theme_stylebox_override(st, box)
+	cash_btn.add_theme_color_override("font_color", Color("ffe0a8"))
+	cash_btn.position = Vector2(26, 646)
+	cash_btn.size = Vector2(150, 38)
+	cash_btn.z_index = 40
+	cash_btn.visible = false
+	cash_btn.pressed.connect(_on_cash_out)
+	add_child(cash_btn)
+
+
+func _on_cash_out() -> void:
+	if state != St.DECISION or not run.can_cash_out() or _cash_out_pending:
+		return
+	_cash_out_left = run.phrases_left() - 1   # 本拍照常打完, 落袋的是它之后那几拍
+	_cash_out_gain = Economy.cashout(_cash_out_left)
+	_cash_out_pending = true
+	fx.pop(cash_btn)
+	_refresh()
+	_settle()   # 本拍立刻结算, 结完就结段(_advance 读 _cash_out_pending)
+
+
 func _on_vinyl_tapped() -> void:
 	if not _can_early_lock():
 		return
@@ -904,7 +1054,17 @@ func _advance() -> void:
 	# 因为 `tutorial_done()` 读的正是 try_advance 推出来的那个下标。
 	run.tutorial_note("play")
 	run.tutorial_try_advance()
-	var out := run.advance()
+	var out := run.advance(_cash_out_pending)
+	if _cash_out_pending:
+		# 达标即收工(2026-08-27 A 案):把剩余拍换成金币, 走 grant 收口(吃金币上限)。
+		# ⚠ 顺序:advance 之前先读 phrases_left(它把 phrase_in_section 推到边界了)。
+		phrase.coins = Economy.grant(phrase.coins, _cash_out_gain, run.joker_slots)
+		run.coins = phrase.coins
+		Tape.on("cash", {"left": _cash_out_left, "gain": _cash_out_gain,
+			"coins": phrase.coins, "sec": run.section_idx})
+		fx.float_text("+%d ◆" % _cash_out_gain,
+			hud.coin_anchor() + Vector2(20, 40), StageTheme.GOLD)
+		_cash_out_pending = false
 	# ⚑ 教学关的商店时刻只有一个(2026-08-24 用户:「一开始就是没有小丑牌, 直接跳出来
 	# 让玩家选小丑牌」;v6 = 分镜 D):推进到**最后一步**时弹真商店(首张 Target 免费
 	# 三选一, 与正式局同一个流程), D 的提示条锚在商店盲注板下、focus 指价签行;
@@ -1193,10 +1353,83 @@ func _deny_no_energy() -> void:
 ## 从快照恢复半局(2026-08-24)。恢复**不走开局三步** —— 掷脸/喂 Director/记局数
 ## 都已在原局发生, 产物在快照里(core/run.gd::restore 文件头有整段论证)。
 ## 返回 false = 没有快照或快照坏了, 调用方照常开首页。
+## 续玩询问卡(2026-08-27):首页之上的一层, 两个出口。
+## ⚠ 不自动恢复也不自动清 —— 玩家不选就什么都不发生(快照留着, 下次开还问)。
+func _ask_resume() -> void:
+	var layer := Control.new()
+	layer.position = Vector2.ZERO
+	layer.size = Vector2(720, 1280)
+	layer.z_index = 130
+	layer.mouse_filter = Control.MOUSE_FILTER_STOP
+	var dim := ColorRect.new()
+	dim.color = Color(0, 0, 0.02, 0.74)
+	dim.size = Vector2(720, 1280)
+	layer.add_child(dim)
+	var panel := Panel.new()
+	panel.add_theme_stylebox_override("panel",
+		StageTheme.box(Color(0.04, 0.05, 0.12, 0.96), StageTheme.CYAN, 1, 16))
+	panel.position = Vector2(150, 470)
+	panel.size = Vector2(420, 250)
+	layer.add_child(panel)
+	var snap := SaveState.checkpoint()
+	var sec := int(snap.get("section_idx", 0)) + 1
+	var title := StageTheme.label(Lingo.t("上次的演出还没结束"), StageTheme.zh(), 23,
+		StageTheme.CYAN, HORIZONTAL_ALIGNMENT_CENTER)
+	title.position = Vector2(150, 494)
+	title.size = Vector2(420, 32)
+	layer.add_child(title)
+	var sub := StageTheme.label(Lingo.t("进行到第 %d 场") % sec, StageTheme.zh(), 16,
+		StageTheme.rim(0.7), HORIZONTAL_ALIGNMENT_CENTER)
+	sub.position = Vector2(150, 528)
+	sub.size = Vector2(420, 24)
+	layer.add_child(sub)
+	var go := Button.new()
+	go.text = Lingo.t("继续演出 ▸")
+	go.add_theme_font_override("font", StageTheme.zh())
+	go.add_theme_font_size_override("font_size", 19)
+	go.focus_mode = Control.FOCUS_NONE
+	for st in ["normal", "hover", "pressed"]:
+		go.add_theme_stylebox_override(st,
+			StageTheme.box(Color(0.06, 0.16, 0.20, 0.95), StageTheme.CYAN, 1, 12))
+	go.add_theme_color_override("font_color", Color("cdf7f2"))
+	go.position = Vector2(186, 572)
+	go.size = Vector2(348, 46)
+	go.pressed.connect(func() -> void:
+		layer.queue_free()
+		if not _resume_run():
+			_open_home())
+	layer.add_child(go)
+	var drop := Button.new()
+	drop.text = Lingo.t("放弃, 开新的一局")
+	drop.add_theme_font_override("font", StageTheme.zh())
+	drop.add_theme_font_size_override("font_size", 17)
+	drop.focus_mode = Control.FOCUS_NONE
+	for st in ["normal", "hover", "pressed"]:
+		drop.add_theme_stylebox_override(st,
+			StageTheme.box(Color(0.16, 0.06, 0.09, 0.95), Color("ff5f7e"), 1, 12))
+	drop.add_theme_color_override("font_color", Color("ffc3cf"))
+	drop.position = Vector2(186, 630)
+	drop.size = Vector2(348, 44)
+	drop.pressed.connect(func() -> void:
+		SaveState.clear_checkpoint()
+		layer.queue_free())
+	layer.add_child(drop)
+	add_child(layer)
+
+
 func _resume_run() -> bool:
 	var snap := SaveState.checkpoint()
 	if snap.is_empty():
 		return false
+	# ⚠⚠ **先把首页收掉**(2026-08-27 真人报「点继续游戏其实没有继续」)——
+	# 旧流程是 `_ready` 里「有快照就直接恢复、从不开首页」, 所以没人管过关闭;
+	# 改成「首页 + 询问卡」之后, 恢复出来的牌桌**被首页层盖住**, 看着就像没反应。
+	# ⚑ 与 start_run 同一套收场动作(菜单 + 首页节点), 别只藏不释放。
+	_close_menu()
+	if _home != null and is_instance_valid(_home):
+		_home.queue_free()
+	_home = null
+	_front_latch = true
 	_reset_run(false)
 	if not run.restore(snap):
 		SaveState.clear_checkpoint()
@@ -1208,6 +1441,7 @@ func _resume_run() -> bool:
 		joker_views[i].set_joker(run.joker_slots[i])
 	if not vinyl.tapped.is_connected(_on_vinyl_tapped):
 		vinyl.tapped.connect(_on_vinyl_tapped)
+	_ensure_cash_btn()
 	# 恢复开新 Tape 流并打上 resume 标记 —— 原流没有 close(那本身就是「中断过」的信号),
 	# 分析侧按 resume + 同 install_id 把两截拼回一局。
 	Tape.begin({"sess": _sess, "tutorial": false, "resume": true,
@@ -1333,6 +1567,16 @@ func _on_shop_bought(j, price: int) -> void:
 		var swapping: bool = run.joker_slots[0] != null
 		if swapping:
 			Joker.notify_shop(run.joker_slots, "target_swap")   # 转型:换旗有代价(丢掉旧旗)
+			# ⚑ 旧旗折半回收(2026-08-27 真人报「target 无法替换老 target」时查出的
+			# **规则不一致**):CLAUDE.md 写的是「满槽 = 买新替旧, 旧卡折半回收」,
+			# 而换旗这条路上旧 Target **直接蒸发、一分不退** —— Support 替换有退,
+			# 换旗没有, 同一条规则两种待遇。补上, 并与 Support 用同一个口径与浮字。
+			var trefund := Economy.sell_value(run.joker_slots[0])
+			if trefund > 0:
+				phrase.coins = Economy.grant(phrase.coins, trefund, run.joker_slots)
+				run.coins = phrase.coins
+				fx.float_text("+%d ◆" % trefund,
+					joker_views[0].get_global_position() + Vector2(30, 40), StageTheme.GOLD)
 		run.joker_slots[0] = j
 		j.on_acquire(run.deck)          # 百搭 shuffles 大小王 in at this moment
 		joker_views[0].set_joker(j)
@@ -1850,6 +2094,13 @@ func _refresh() -> void:
 		"score": _shown_score, "target": target, "phrase_no": run.phrase_index,
 		# 教学关 target = 0 ⇒ 0/0 = NaN(GDScript 浮点除零不报错), 进度条会画成残条(评审)
 		"fraction": 0.0 if target <= 0 else float(run.section_score) / float(target)})
+	# 收工键:段分达标 + 还有剩余拍 + 决策态才亮(教学关不出 —— 它不判生死)
+	if cash_btn != null:
+		var can_cash: bool = decide and not run.tutorial and run.can_cash_out() \
+			and not _cash_out_pending
+		cash_btn.visible = can_cash
+		if can_cash:
+			cash_btn.text = Lingo.t("收工 · +%d ◆") % Economy.cashout(run.phrases_left() - 1)
 	# 洗牌键:牌堆里有万能才亮(装了百搭/超级百搭);付不起时压暗但不藏 —— 玩家要看得见价。
 	hand.reshuffle_key.visible = decide and not phrase.deck.wild_extra.is_empty()
 	hand.reshuffle_key.fee = Economy.reshuffle_cost()

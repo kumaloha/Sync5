@@ -12,7 +12,11 @@ LOG="${1:-${SYNC5_TEST_LOG:-/tmp/sync5_tests.log}}"
 # 2026-08-24 局外 build 删除带走 t_character/t_ticket/t_asset 三域 + 若干断言块,
 # 2479 → 2125,地板随之 2400 → 2100(全量实测 2125 之下留 25 的余量)。
 FLOOR="${SYNC5_PASS_FLOOR:-2100}"
-if command -v timeout >/dev/null 2>&1; then T="timeout 3600"; else T=""; fi
+# ⚠ 3600 → 7200(2026-08-27):全量单测实测已到 ~55 分钟(2664 条 + 求解器重活),
+# 距旧上限只剩 5 分钟余量 —— 多 agent 并发时**已经撞到过一次**, 那次的红是假红
+# (超时杀进程, 不是断言失败)。上限只是「挂起兜底」, 不是性能预算:
+# 真要压时间该分片跑, 别靠它当闹钟。
+if command -v timeout >/dev/null 2>&1; then T="timeout 7200"; else T=""; fi
 $T godot --headless --path . --script res://tests/runner.gd > "$LOG" 2>&1
 ec=$?
 grep -E '^=== RESULT' "$LOG" || { echo "   (no RESULT line — runner died or hung; tail:)"; tail -20 "$LOG"; exit 1; }

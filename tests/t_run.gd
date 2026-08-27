@@ -1,6 +1,7 @@
 extends RefCounted
 
 func run(t) -> void:
+	_t_cashout(t)
 	_test_run_structure(t)
 	_test_run_machine(t)
 	_t_fork_complete(t)
@@ -394,3 +395,31 @@ func _t_fork_complete(t) -> void:
 	# 坏快照:不认就拒, 不许半恢复
 	t.check(not Run.new().restore({}), "空快照被拒")
 	t.check(not Run.new().restore({"v": 99, "deck": {}, "faces": {}}), "未知版本被拒")
+
+## 达标即收工(2026-08-27 用户拍板 A 案):段分独立不变, 补 cash out 出口。
+func _t_cashout(t) -> void:
+	var r := Run.new()
+	r.reset(1)
+	r.section_idx = 0
+	r.phrase_in_section = 2
+	r.section_score = 0
+	t.check(not r.can_cash_out(), "没达标不能收工")
+	r.section_score = r.target()
+	t.check(r.can_cash_out(), "达标即可收工")
+	t.eq(r.phrases_left(), GameConfig.PHRASES_PER_SECTION - 2, "剩余拍数按已打拍算")
+	var out: Dictionary = r.advance(true)
+	t.check(bool(out["section_done"]), "收工 = 直接推到段边界")
+	t.check(bool(out["cleared"]), "收工时段分已达标 ⇒ 判过关")
+	t.eq(r.phrases_left(), 0, "收工后没有剩余拍")
+	# 打满的老路径逐位不变(收工是新增出口, 不许改既有行为)
+	var r2 := Run.new()
+	r2.reset(1)
+	r2.phrase_in_section = GameConfig.PHRASES_PER_SECTION - 1
+	r2.section_score = r2.target()
+	var out2: Dictionary = r2.advance()
+	t.check(bool(out2["section_done"]) and bool(out2["cleared"]), "打满达标照旧过关")
+	t.check(not r2.can_cash_out(), "最后一拍打完没有剩余拍, 收工键不该出现")
+	# 落袋算术:每剩一拍固定单价, 0 拍不给钱
+	t.eq(Economy.cashout(3), 3 * GameConfig.CASHOUT_PER_PHRASE, "落袋 = 剩余拍 × 单价")
+	t.eq(Economy.cashout(0), 0, "没剩拍不落袋")
+	t.check(GameConfig.CASHOUT_PER_PHRASE > 0, "单价必须为正 —— 否则收工是纯亏, 键等于骗人")

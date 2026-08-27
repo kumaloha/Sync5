@@ -184,11 +184,43 @@ func redeal(slots: Array, coins: int, section_idx: int) -> void:
 
 ## 联票的续买态:一张成交后**同一货架**继续卖(不重掷 —— 重掷就成了免费刷新)。
 ## 编排器扣完钱装完卡后调它:摘掉售出的那张, 按新的金币/槽位重算价签与可购性。
+## 成交:卖掉的位**补一张新的**(2026-08-27 用户:「4 张可以选 2,买完只剩 3 张还能选,
+## 其实应该变出一个新的来,否则就是 3 选 2」)—— 联票买的是**两次完整的选择**,
+## 不是「第二次将就剩下的」;买第一张反而缩窄第二次的池子是反直觉的惩罚。
+## ⚠ 补的牌从同一个候选池按同一套权重抽(不重复已在架/已持有),用**当前**槽位重算
+## —— 刚买的那张若改了货架规则(联票/赞助/点唱机), 补货立刻按新规则走。
 func sold(j, slots: Array, coins: int) -> void:
 	_slots = slots
 	_coins = coins
+	var at: int = _candidates.find(j)
 	_candidates.erase(j)
+	var refill = _draw_refill()
+	if refill != null:
+		if at >= 0 and at <= _candidates.size():
+			_candidates.insert(at, refill)      # 补在原位:视线不跳
+		else:
+			_candidates.append(refill)
 	_render(false)
+
+
+## 补货抽一张:排除已持有与在架的,按稀有度权重(与 _deal 同一口径)。
+## 池子抽空(极端:全持有)返回 null —— 那时货架就少一张, 与旧行为一致。
+func _draw_refill():
+	var taken := {}
+	for jj in _slots:
+		if jj != null:
+			taken[jj.id] = true
+	for c in _candidates:
+		if not (c is Dictionary):
+			taken[c.id] = true
+	var pool: Array = []
+	for cand in Joker.pool():
+		if not taken.has(cand.id):
+			pool.append(cand)
+	if pool.is_empty():
+		return null
+	var picked: Array = _weighted_pick(pool, 1)   # 与 _deal 同一口径(签名/注入全一致)
+	return picked[0] if not picked.is_empty() else null
 
 
 func close() -> void:

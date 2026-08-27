@@ -35,5 +35,7 @@
   "FOUR_KIND": 8,
   "STRAIGHT_FLUSH": 9,
   "ROYAL_FLUSH": 10
- }
+ },
+ "cashout_per_phrase": 3,
+ "_comment_cashout": "达标即收工(2026-08-27 A 案):段分够了提前结束, 每剩一拍换 N◆。方向值 3 —— 略高于继续打的期望牌型收入(~2.1◆/拍), 才有「落袋为安」的吸引力;数值批按真人手感校。"
 }

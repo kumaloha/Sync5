@@ -87,6 +87,7 @@ static func discard_batch(duration: float, section_idx: int) -> int:
 static var STARTING_COINS: int = int(_eco["starting_coins"])
 static var DISCARD_COST: int = int(_eco["discard_cost"])
 static var RESHUFFLE_COST: int = int(_eco.get("reshuffle_cost", 3))
+static var CASHOUT_PER_PHRASE: int = int(_eco.get("cashout_per_phrase", 3))
 static var SECTION_CLEAR_REWARD: int = int(_eco["section_clear_reward"])
 static var DRAFT_RARITY_WEIGHTS: Dictionary = _eco["draft_rarity_weights"]
 static var JOKER_PRICES: Dictionary = _eco["joker_prices"]

@@ -19,7 +19,7 @@ Lumines 的节奏推进 + Balatro 的构筑。一局 4 段 × 6 拍 × 8 秒 ≈
 
 | 项 | 状态 | 命令 |
 |---|---|---|
-| 单元测试 | **2304 passed / 0 failed**(2026-08-26 对抗批;四判据全满足) | `./tools/unittest.sh`(四判据唯一一份;裸跑 = `godot --headless --path . --script res://tests/runner.gd`) |
+| 单元测试 | **2664 passed / 0 failed**(2026-08-27 复合盲注批;四判据全满足) | `./tools/unittest.sh`(四判据唯一一份;裸跑 = `godot --headless --path . --script res://tests/runner.gd`) |
 | CI | `.github/workflows/tests.yml`(push/PR 跑 `--import` + `unittest.sh`;**尚未在 GitHub 上验证过一次**,首跑可能要调 Godot 下载链接) | 推送即触发 |
 | 小丑牌覆盖门 | 76 张;单卡 kit 直跑 ~10 秒(不含单测) | `SYNC5_KIT_ID=<id> godot --headless --path . --script res://tools/kit.gd` |
 | 内容门 | **08-26 全量门跑完**(4.9h,对抗批新基线):五红三过期全部尸检处置(声明/仪器层,内容零改;细账 CHANGELOG 08-26b),ranking 已由 rankgen 重刷 | `./tools/gate.sh`(增量 = `--changed`) |
@@ -132,7 +132,7 @@ tools/bot.gd                   玩家策略(完美玩家 / 规则 bot)
 
 | 步骤 | 实测 | 备注 |
 |---|---:|---|
-| 单元测试 | **744s** | S10 之前是 <300s |
+| 单元测试 | **~55 分钟**(2026-08-27 实测) | S10 前 <300s → 744s → 现 ~3300s。⚠⚠ **距 `unittest.sh` 的 `timeout 3600` 只剩 ~5 分钟余量** —— 多 agent 并发时已撞到天花板作废重跑过一次。下次扩测试要么提 timeout、要么分片 |
 | 覆盖自证 + 单调性 + 哨兵(`gate.gd` 全量) | **10503s ≈ 2h55m** | 贵在 solver 通路每张脸都跑完美玩家 |
 | 小丑牌覆盖自证(`kit.gd`,61 张) | **~1h15m** | 2026-08-13 记的是 611s @57 张 |
 | 流程 / 打点 / 重放 / 尺子 | ~10 分钟 | 这一段没怎么变 |
