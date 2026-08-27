@@ -1043,6 +1043,8 @@ class BlindCard:
 		if not ResourceLoader.exists(p):
 			# 档位扩池(2026-08-26, blinds.md §2.6):同机制不同数值 = 同图标 + 档记号,
 			# 缺图时回落 faces.json 的 `base` 指向的原脸图标(db 校验 base 必存在)。
+			# ⚑ 复合脸(2026-08-27, versus.md 复合语法)同走这条回落, 落在**第一成分** ——
+			# 图标说题干(甲脸的机制), 记号说「这不是本尊」。`base_of` 是两者唯一的口。
 			var bid := SectionMod.base_of(fid)
 			if bid != "":
 				return _fingerprint(bid)
@@ -1092,6 +1094,8 @@ class BlindCard:
 		# 档记号(2026-08-26 档位扩池, blinds.md §2.6「同机制同图标 + 档记号」):
 		# 带 `base` 的档位脸在脸名右上角上标一枚 ◈ —— 表意「同族档位」, 不区分松紧,
 		# 与 _fingerprint 的图标回落是同一条原则的两半(图标说机制, 记号说档位)。
+		# ⚑ 复合脸(2026-08-27)也戴这枚 ◈:它同样是「图标那张脸的变体」, 而**名字已经
+		# 把复合说清楚了**(双名连写 = 零学习成本), 记号不必再分一种形状。
 		if face != null and SectionMod.base_of(String(face.id)) != "":
 			var nw: float = minf(zh.get_string_size(head_name,
 				HORIZONTAL_ALIGNMENT_LEFT, -1, int(10.0 * s)).x, w - 14.0 * s)

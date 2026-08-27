@@ -397,11 +397,14 @@ static func validate_faces(d: Dictionary) -> String:
 			return "faces.json unknown top-level key '%s' — it is data-only now, design notes belong in docs/design/blinds.md" % k
 	if not d.has("faces"):
 		return "wants 'faces'"
+	var cerr := _validate_face_combos(d)
+	if cerr != "":
+		return cerr
 	var ids := {}
 	for e in d["faces"]:
 		for k in e:
 			if not ["id", "name", "cn", "fx", "params", "proof", "tape_required", "tier", "tiers",
-					"min_run", "base"].has(k):
+					"min_run", "base", "combo"].has(k):
 				return "face '%s' unknown key '%s' — faces.json is data-only now, design notes belong in docs/design/blinds.md §7" % [e.get("id", "?"), k]
 		if e.has("tape_required") and not e["tape_required"] is bool:
 			return "face '%s' tape_required wants bool" % e.get("id", "?")
@@ -416,7 +419,9 @@ static func validate_faces(d: Dictionary) -> String:
 			if not base_found:
 				return "face '%s' base '%s' 不存在" % [e["id"], e["base"]]
 		var params: Dictionary = e.get("params", {})
-		if params.is_empty():
+		# 复合脸(2026-08-27)自己不带 params, 它的参数由成分合出来 —— 空不等于「什么都不做」。
+		# 「恰两成分 / 异轴 / 成分先登过场 / 同键冲突」四条在 `_validate_face_combos` 里守。
+		if params.is_empty() and not e.has("combo"):
 			return "face '%s' has no params — it would do nothing" % e["id"]
 		for pk in params:
 			if not _FACE_PARAMS.has(String(pk)):
@@ -899,6 +904,69 @@ static func validate_boons(d: Dictionary) -> String:
 ## 门会当场红(实测 lastcall 就是这样死的)。时间窗类脸走 solver + weak_upper_bound
 ## (模型上界近零, 真人待定), 与铁律「测出近零不许改内容」同一条线。
 const FACE_PROOFS := ["score", "solver", "belief", "target"]
+
+
+## ⚑ **复合脸的语法门**(2026-08-27, docs/design/versus.md 复合语法节 + blinds.md §2.6)。
+##
+## 复合的语法是「**乙脸封掉甲脸的最优解**」, 不是随便两张叠加。语法本身守不住(那是设计
+## 判断), 但它的**四条形式前提**守得住, 而且每一条漏掉都是**静默错**:
+##   ① **恰两成分** —— 三张起就不是「一道题 + 一把锁」, 是围殴;玩家读不出题干。
+##   ② **成分存在** —— 拼错 = 那一半参数凭空消失, 脸变软, 不报错。
+##   ③ **成分先单独登过场**(自带 tier) —— 复合是「你见过的两件事咬在一起」, 零学习成本
+##      的前提是两件事都见过;没 tier 的成分等于在复合里首发一条没人见过的规则。
+##   ④ **异轴** —— 同轴叠加只是把同一个拨盘拧两下(= 刻度, 纪律 6 说那不算新内容),
+##      而且会让 `enforce_axis_budget` 的围殴计数把一张脸算成一份、实际压两份。
+## 外加两条「不许有隐性规则」:复合条目**自己不带 params**(否则合并顺序成了藏起来的规则),
+## 两成分**同键不许冲突**(冲突时无论取谁都是在悄悄改一张已上线脸的数值)。
+##
+## ⚠ 这里只许用 `SectionMod.axes_of_params()` 这个**纯函数**, 不许用 `attack_axes(id)` ——
+## 后者反过来读 `DB.faces()`, 而本函数跑在 faces.json 的**装载途中**, 会成环
+## (同 `validate_ranking` 那条「刻意不调 tiers_of_entry」)。
+static func _validate_face_combos(d: Dictionary) -> String:
+	var by_id := {}
+	for e in d["faces"]:
+		by_id[String(e["id"])] = e
+	for e in d["faces"]:
+		if not e.has("combo"):
+			continue
+		var fid := String(e["id"])
+		var own_params: Dictionary = e.get("params", {})
+		if not own_params.is_empty():
+			return "复合脸 '%s' 不许自带 params —— 参数只能来自两成分, 否则合并顺序成了隐性规则" % fid
+		if e.has("base"):
+			return "复合脸 '%s' 不许同时声明 base —— 档位与复合是两条扩池轴, 混用后图标回落说不清" % fid
+		if not (e["combo"] is Array):
+			return "复合脸 '%s' 的 combo 必须是成分 id 数组" % fid
+		var comps: Array = e["combo"]
+		if comps.size() != 2:
+			return "复合脸 '%s' 有 %d 个成分 —— 复合恰两成分(versus.md:三张起是围殴, 读不出题干)" % [fid, comps.size()]
+		if String(comps[0]) == String(comps[1]):
+			return "复合脸 '%s' 的两个成分是同一张 '%s'" % [fid, comps[0]]
+		var axes: Array = []          # 逐成分的轴集合
+		var seen_params := {}         # param key -> 先声明它的成分 id
+		for c in comps:
+			var cid := String(c)
+			if not by_id.has(cid):
+				return "复合脸 '%s' 的成分 '%s' 不存在" % [fid, cid]
+			var ce: Dictionary = by_id[cid]
+			if ce.has("combo"):
+				return "复合脸 '%s' 的成分 '%s' 自己也是复合 —— 复合不许套娃" % [fid, cid]
+			if not (ce.has("tier") or ce.has("tiers")):
+				return "复合脸 '%s' 的成分 '%s' 没有 tier —— 成分必须先单独登过场(versus.md 复合语法)" % [fid, cid]
+			var cp: Dictionary = ce.get("params", {})
+			for k in cp:
+				if seen_params.has(String(k)):
+					return "复合脸 '%s' 的两成分都写了 '%s'(%s 与 %s)—— 同键冲突, 取谁都是在悄悄改一张已上线脸的数值" \
+						% [fid, k, seen_params[String(k)], cid]
+				seen_params[String(k)] = cid
+			var ax: Array = SectionMod.axes_of_params(cp)
+			if ax.is_empty():
+				return "复合脸 '%s' 的成分 '%s' 不挂任何攻击轴 —— 连「异轴」都判不了(给它的 param 补一条轴)" % [fid, cid]
+			axes.append(ax)
+		for a in axes[0]:
+			if axes[1].has(a):
+				return "复合脸 '%s' 的两成分同轴 '%s' —— 同轴叠加只是把同一个拨盘拧两下(versus.md:异轴)" % [fid, a]
+	return ""
 
 
 static func _validate_face_proof(d: Dictionary, tier_of: Dictionary) -> String:

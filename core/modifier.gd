@@ -11,6 +11,9 @@ var id: String
 var name: String
 var cn_name: String
 var fx_text: String
+## 生效参数 —— **复合脸这里是两成分的并集**(2026-08-27, 见 `_merged_params`)。
+## 单机制脸就是它自己那张 params, 逐字节不变。
+var params: Dictionary
 
 
 func _init(e: Dictionary) -> void:
@@ -18,6 +21,7 @@ func _init(e: Dictionary) -> void:
 	name = String(e["name"])
 	cn_name = Lingo.pick(e)   # 名字带语言(1.1 英文化):en 挑现成的 name 字段
 	fx_text = String(e["fx"])
+	params = _merged_params(e)
 
 
 static func roster() -> Array:
@@ -80,11 +84,15 @@ static func tier_of(mod_id: String) -> int:
 
 ## 档位脸的原型 id(2026-08-26 档位扩池, blinds.md §2.6)。"" = 不是档位脸。
 ## 消费者:BlindCard 图标回落(同机制同图标 + 档记号)。db 校验 base 指向存在的脸。
+## ⚑ 复合脸(2026-08-27, versus.md 复合语法)没有 `base`, 这里取**第一成分**:
+## 图标说机制(第一成分的机制是题干)、◈ 记号说「这不是单机制本尊」—— 与档位脸
+## 共用同一套回落语义, BlindCard 零改动。
 static func base_of(mod_id: String) -> String:
-	for e in DB.faces().get("faces", []):
-		if String(e["id"]) == mod_id:
-			return String(e.get("base", ""))
-	return ""
+	var e := _raw_entry(mod_id)     # 元数据, 不需要展开复合的参数
+	if e.has("base"):
+		return String(e["base"])
+	var comps: Array = combo_of(mod_id)
+	return String(comps[0]) if not comps.is_empty() else ""
 
 
 ## 这张脸的全部合法轮次。空 = 没入池。
@@ -233,6 +241,10 @@ const _AXIS_PARAMS := {
 	"info": ["hide_faces", "hide_refill", "hide_random", "hide_suits", "hide_ranks"],
 	"tempo": ["repeat_factor", "lock_first", "required_kinds", "request_factor",
 		"callout_factor"],
+	# 牌质轴(2026-08-27 随复合脸补):低音/高音限的是**补进来的牌是什么**, 此前不挂任何轴
+	# —— 复合语法要求「异轴」可判, 而一张没有轴的脸连「异」都谈不上。只有补牌档位段
+	# (S2/S3)可能各出一张, 永远凑不满 3 张围殴 ⇒ 序列预算行为逐字节不变。
+	"quality": ["refill_rank_min", "refill_rank_max"],
 }
 
 
@@ -243,14 +255,17 @@ static func axis_ids() -> Array:
 
 
 static func attack_axes(mod_id: String) -> Array:
-	var out: Array = []
 	if mod_id == "":
-		return out
-	var params := {}
-	for e in DB.faces().get("faces", []):
-		if String(e["id"]) == mod_id:
-			params = e.get("params", {})
-			break
+		return []
+	return axes_of_params(_entry(mod_id).get("params", {}))
+
+
+## 参数表 → 攻击轴, **纯函数不读 DB**。单独成口是给 `DB.validate_faces` 用的:
+## 复合脸的「异轴」校验发生在 faces.json 装载**期间**, 那时走 `attack_axes(id)` 会
+## 重入 `DB.faces()` 死循环(validate_ranking 那条「不调 tiers_of_entry」同款坑)。
+## 轴的推导仍只有这一份 —— attack_axes 是它的查表壳。
+static func axes_of_params(params: Dictionary) -> Array:
+	var out: Array = []
 	# 动作合限(限流/岔轨)同时压弃、换两轴
 	if params.has("action_cards_max") or params.has("action_limit") \
 			or params.has("exclusive_action_tracks"):
@@ -277,7 +292,9 @@ static func enforce_axis_budget(out: Dictionary, rng: RandomNumberGenerator,
 	# 种子来自主流, 同一主流状态 ⇒ 同一串修复。
 	var fix_rng := RandomNumberGenerator.new()
 	fix_rng.seed = rng.randi()
-	for axis in ["discard", "swap", "cache", "time", "info", "tempo"]:
+	# ⚠ 轴名单只有一份(_AXIS_PARAMS)—— 2026-08-27 前这里抄了一份六轴字面量,
+	# 加 quality 轴时顺手收口。keys() 按插入序, 既有六轴的遍历顺序逐字节不变。
+	for axis in axis_ids():
 		# 循环收敛:四张同轴要修两张才降到 ≤2(只修一张是 2026-08-25 探针抓的洞)。
 		for _pass in range(GameConfig.WALL_SECTIONS.size()):
 			var hits: Array = []
@@ -317,27 +334,61 @@ static func enforce_axis_budget(out: Dictionary, rng: RandomNumberGenerator,
 static func affects_settle(mod_id: String) -> bool:
 	if mod_id == "":
 		return false
-	for e in DB.faces().get("faces", []):
-		if String(e["id"]) == mod_id:
-			for k in e.get("params", {}):
-				if DB._FACE_PARAMS_SETTLE.has(String(k)):
-					return true
-			return false
+	for k in _entry(mod_id).get("params", {}):
+		if DB._FACE_PARAMS_SETTLE.has(String(k)):
+			return true
 	return false
 
 
 static func _param(mod_id: String, key: String, dflt: float) -> float:
-	for e in DB.faces().get("faces", []):
-		if String(e["id"]) == mod_id:
-			return float(e.get("params", {}).get(key, dflt))
-	return dflt
+	return float(_entry(mod_id).get("params", {}).get(key, dflt))
 
 
+## ⚑ **复合脸的唯一合并点**(2026-08-27, versus.md 复合语法 / blinds.md §2.6)。
+##
+## 复合条目自己**不带 params**, 它的 params = 两成分 params 的并集。合并放在 `_entry()`
+## 这一处, 于是 `_param` / `_param_array` / `affects_settle` / `bonus_disabled` /
+## `attack_axes` 全部自动认识复合脸 —— **Beat / Phrase / Settle 一行不用改**
+## (它们只透过这些只读访问器看脸, 从来不自己遍历 faces)。
+## 「同键冲突」在 `DB.validate_faces` 里直接红:合并顺序不许成为一条藏起来的规则。
+## ⚠ 返回的是**副本**(duplicate 后换掉 params), DB 的原始数据不被污染 —— 缓存是全局
+## 单例, 就地改会让第二个读者看到第一个读者的合并结果。
 static func _entry(mod_id: String) -> Dictionary:
+	var e := _raw_entry(mod_id)
+	if not e.has("combo"):
+		return e
+	var merged := e.duplicate()
+	merged["params"] = _merged_params(e)
+	return merged
+
+
+## 一条 faces 条目的**生效参数**:单机制脸 = 它自己的 params;复合脸 = 两成分的并集
+## (条目自己不带 params —— 见 `DB.validate_faces` 里的复合校验)。合并只有这一份。
+static func _merged_params(e: Dictionary) -> Dictionary:
+	if not e.has("combo"):
+		return e.get("params", {})
+	var out := {}
+	for cid in e["combo"]:
+		var cp: Dictionary = _raw_entry(String(cid)).get("params", {})
+		for k in cp:
+			out[k] = cp[k]
+	return out
+
+
+## faces.json 里那一条**原样**的条目(复合脸不展开)。校验/元数据用它, 参数用 `_entry`。
+static func _raw_entry(mod_id: String) -> Dictionary:
 	for e in DB.faces().get("faces", []):
 		if String(e["id"]) == mod_id:
 			return e
 	return {}
+
+
+## 这张脸的成分 id(复合脸 = 2 个, 其余 = 空)。db 校验恰两成分、异轴、成分先登过场。
+static func combo_of(mod_id: String) -> Array:
+	var out: Array = []
+	for cid in _raw_entry(mod_id).get("combo", []):
+		out.append(String(cid))
+	return out
 
 
 ## Extra seconds shaved off the phrase clock by this modifier.
@@ -356,14 +407,11 @@ static func time_penalty_at(mod_id: String, phrase_idx: int) -> float:
 	return time_penalty(mod_id)
 
 
-## 数组型参数(曲线类)的读口 —— 与 _param 同一条遍历, by_id 返回的是 SectionMod
+## 数组型参数(曲线类)的读口 —— 与 _param 同一个 `_entry`, by_id 返回的是 SectionMod
 ## 对象不是字典, 曲线不走它。
 static func _param_array(mod_id: String, key: String) -> Array:
-	for e in DB.faces().get("faces", []):
-		if String(e["id"]) == mod_id:
-			var v = e.get("params", {}).get(key, null)
-			return v if v is Array else []
-	return []
+	var v = _entry(mod_id).get("params", {}).get(key, null)
+	return v if v is Array else []
 
 
 ## Coins charged at each phrase start under this modifier.
@@ -595,13 +643,16 @@ static func joker_power(mod_id: String) -> float:
 	return _param(mod_id, "joker_power", 1.0)
 
 
+## ⚑ 复合脸(2026-08-27)**继承成分的真人证据线**:任一成分要 Tape, 复合就要 ——
+## 复合封的正是那个成分的最优解, 真人侧的疑问只会更大。写成推导而不是让作者在复合条目
+## 里再抄一份 bool:抄的那份会漂, 而漂了不报错(gate 只看 proof, 看不见这个标志)。
 static func tape_required(mod_id: String) -> bool:
-	return bool(_entry(mod_id).get("tape_required", false))
+	for cid in combo_of(mod_id):
+		if bool(_raw_entry(cid).get("tape_required", false)):
+			return true
+	return bool(_raw_entry(mod_id).get("tape_required", false))
 
 
 ## Whether the flat-bonus channel is zeroed (static).
 static func bonus_disabled(mod_id: String) -> bool:
-	for e in DB.faces().get("faces", []):
-		if String(e["id"]) == mod_id:
-			return bool(e.get("params", {}).get("bonus_disabled", false))
-	return false
+	return bool(_entry(mod_id).get("params", {}).get("bonus_disabled", false))

@@ -210,6 +210,35 @@
 门(增量,内容改不升全量)→ rankgen 入 ranking → Director 序列预算自动接手
 (同族档共享 attack_axes,「同轴不连发」天然避免松紧同段连击)。
 
+### 2.7 复合脸(扩池第三轴,2026-08-27 引擎落地 · 试点一条)
+
+语法与设计纪律在 [`versus.md`](versus.md) 复合语法节,**这里只记数据形状与引擎边界**。
+
+**数据形状** = faces.json 里一条**自己不带 params** 的条目:
+
+```json
+{ "id": "lowend_throttle", "combo": ["lowend", "throttle"],
+  "cn": "低音限流", "name": "Low End Throttle",
+  "fx": "Low refills, four moves each phrase", "proof": "solver", "tier": 3 }
+```
+
+**试点选谁不是随手挑的**:低音的最优解**就是**狂弃刷小牌,限流(弃+换合计 4 张)
+把那条路封死 —— 正是「乙脸封掉甲脸的最优解」。异轴也成立:低音 = 牌质轴、
+限流 = 动作(弃/换)两轴,合起来三轴不重叠。
+
+**引擎边界(为什么改动这么小)**:合并只发生在 `SectionMod._entry` **一处** ——
+参数并集出来之后,`_param` / `attack_axes` / `affects_settle` 全是它的查表壳,
+于是 **Beat / Phrase / Settle 一行没改**(它们只透过只读访问器看脸)。
+UI 同理:复合没有 `base`,`base_of()` 退回**第一成分**,BlindCard 的图标回落与
+◈ 记号两条既有通路直接接住,零改动。
+
+**校验(`DB._validate_face_combos`,每条都是静默错的形状)**:成分存在 · 恰两成分 ·
+成分自带 tier(先单独登过场)· 异轴 · 两成分同键冲突 · 复合不许自带 params / 不许同时带 `base`。
+
+⚠ **ranking 里是 bootstrap 位**(段 2 尾部,`data/ranking.json` 注释里记着)——
+单脸门只回答「模型看不看得见它」,**不回答「它在本段排第几」**;位置等 price 仪器统跑。
+⚠ **复合的排布(Director 怎么在一段里挂两张脸)是下一批**,本批只落数据与引擎。
+
 ### 2.5 对抗批新脸(2026-08-25 实装;**08-26 七张已入池**,蒙色/蒙点仍暂存)
 
 设计出处 = 对话定稿的「盲注终表 v2」;原则见 [`versus.md`](versus.md)。
