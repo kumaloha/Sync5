@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh"><head><meta charset="utf-8"><title>教学演出样式 · Sync5</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--cyan:#1effec;--pink:#ff328d;--gold:#ff9b2b;--ink:#dfe6ff;--bg:#000;
+--glass:rgba(10,14,34,.78);--dim:rgba(0,0,6,.62);}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#05060d;color:var(--ink);font-family:Rajdhani,"PingFang SC",sans-serif;padding:28px}
+h1{font-size:22px;color:var(--cyan);letter-spacing:.2em;margin-bottom:6px}
+h2{font-size:15px;color:#8fa0d0;font-weight:500;margin-bottom:22px}
+.row{display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start}
+.stage{width:360px;height:640px;background:#000;border:1px solid #1b2350;border-radius:14px;
+position:relative;overflow:hidden;flex:none}
+.stage .label{position:absolute;top:8px;left:12px;font-size:11px;letter-spacing:.25em;color:#5a6796;z-index:9}
+.hint{position:absolute;left:18px;right:18px;background:var(--glass);
+border:1px solid rgba(30,255,236,.55);border-radius:10px;padding:9px 13px 7px;
+box-shadow:0 0 14px rgba(30,255,236,.22),inset 0 0 22px rgba(30,255,236,.05);z-index:8}
+.hint .zh{font-size:14.5px;font-weight:600;line-height:1.35}
+.hint .sig{font-size:9.5px;letter-spacing:.3em;color:#59d9cf;margin-top:3px;font-weight:600}
+.hint .tip{position:absolute;width:10px;height:10px;background:var(--glass);
+border-right:1px solid rgba(30,255,236,.55);border-bottom:1px solid rgba(30,255,236,.55)}
+.hint .tip.down{bottom:-6px;left:46px;transform:rotate(45deg)}
+.hint .tip.up{top:-6px;left:46px;transform:rotate(225deg)}
+.hl-g{color:var(--gold);text-shadow:0 0 8px rgba(255,155,43,.55);font-weight:700;
+border-bottom:1px dashed rgba(255,155,43,.6);padding:0 1px}
+.hl-c{color:var(--cyan);text-shadow:0 0 8px rgba(30,255,236,.5);font-weight:700;
+border-bottom:1px dashed rgba(30,255,236,.6);padding:0 1px}
+.dim{position:absolute;inset:0;background:var(--dim);z-index:5}
+.hole{position:absolute;border-radius:10px;box-shadow:0 0 0 2000px var(--dim);
+border:1.5px solid rgba(30,255,236,.85);z-index:6;animation:breath 2.2s ease-in-out infinite}
+@keyframes breath{50%{box-shadow:0 0 0 2000px var(--dim),0 0 18px rgba(30,255,236,.5)}}
+.cards{position:absolute;display:flex;gap:6px}
+.card{width:56px;height:84px;background:#0a0d1f;border:1.5px solid #2a3a7a;border-radius:7px;
+color:#9fe9ff;font-size:15px;font-weight:700;padding:4px 5px;box-shadow:0 0 9px rgba(30,120,255,.18)}
+.card.red{color:#ff6aa9}
+.key{position:absolute;width:52px;height:52px;border-radius:50%;border:2px solid var(--pink);
+box-shadow:0 0 12px rgba(255,50,141,.4);display:flex;align-items:center;justify-content:center;
+color:var(--pink);font-size:19px}
+.spot{position:absolute;width:96px;height:96px;border-radius:50%;z-index:7;pointer-events:none;
+background:radial-gradient(circle,rgba(255,155,43,.34),transparent 68%);animation:spot 1.6s ease-in-out infinite}
+@keyframes spot{50%{transform:scale(1.14);opacity:.75}}
+.cutin{position:absolute;left:30px;right:30px;top:200px;background:rgba(8,10,26,.94);
+border:1px solid rgba(30,255,236,.7);border-radius:14px;padding:20px 18px 14px;z-index:8;
+box-shadow:0 0 30px rgba(30,255,236,.25)}
+.cutin .tag{font-size:9px;letter-spacing:.4em;color:#59d9cf;margin-bottom:9px}
+.cutin .zh{font-size:16.5px;font-weight:600;line-height:1.5}
+.cutin .go{margin-top:14px;display:flex;align-items:center;gap:8px;font-size:10.5px;color:#7486b8;letter-spacing:.2em}
+.cutin .bar{flex:1;height:2px;background:#1b2350;border-radius:2px;overflow:hidden}
+.cutin .bar i{display:block;height:100%;width:58%;background:var(--cyan);box-shadow:0 0 6px var(--cyan)}
+.hud{position:absolute;top:26px;left:12px;right:12px;height:44px;background:rgba(8,10,22,.8);
+border:1px solid #1b2350;border-radius:9px;display:flex;align-items:center;padding:0 12px;gap:10px}
+.hud .score{font-size:21px;font-weight:700;color:#fff}
+.hud .tgt{font-size:12px;color:#7486b8}
+.hud .coin{margin-left:auto;color:var(--gold);font-weight:700;font-size:15px}
+.hud .prog{position:absolute;bottom:5px;left:12px;right:12px;height:3px;background:#131a3d;border-radius:2px}
+.hud .prog i{display:block;height:100%;width:34%;background:var(--cyan);border-radius:2px;box-shadow:0 0 5px var(--cyan)}
+.spec{max-width:390px;font-size:13px;line-height:1.75;color:#aab6dd}
+.spec h3{color:var(--cyan);font-size:14px;letter-spacing:.12em;margin:16px 0 5px}
+.spec b{color:#fff}.spec .g{color:var(--gold)}.spec .c{color:var(--cyan)}
+.freeze{position:absolute;top:74px;left:12px;right:12px;height:4px;background:#131a3d;border-radius:2px;overflow:hidden}
+.freeze i{display:block;height:100%;width:41%;background:var(--pink);box-shadow:0 0 6px var(--pink)}
+.freeze::after{content:"◼ 冻结";position:absolute;right:2px;top:6px;font-size:9px;letter-spacing:.2em;color:var(--pink)}
+</style></head><body>
+<h1>教学演出样式 · TUTORIAL DIRECTION</h1>
+<h2>分镜制教学的三块样式:文字条 TutorHint · 分镜高光 · 特写插播卡 —— 定稿后按此实装</h2>
+<div class="row">
+
+<div class="stage"><span class="label">SHOT A · 手牌与结算</span>
+  <div class="hud"><span class="score">0</span><span class="tgt">/ 420</span><span class="coin">◆10</span><div class="prog"><i></i></div></div>
+  <div class="hole" style="left:14px;right:14px;top:430px;height:110px"></div>
+  <div class="cards" style="left:22px;top:444px"><div class="card">8♠</div><div class="card red">3♥</div><div class="card">10♠</div><div class="card">9♣</div><div class="card">5♣</div></div>
+  <div class="hint" style="top:352px"><div class="zh">这 5 张按<span class="hl-c">德州牌型</span>每 8 秒自动结算——不动它也会算</div>
+  <div class="sig">AUTO SETTLE · TEXAS HANDS</div><div class="tip down"></div></div>
+</div>
+
+<div class="stage"><span class="label">SHOT B · 操作区(拍2 弃牌)</span>
+  <div class="hud"><span class="score">126</span><span class="tgt">/ 420</span><span class="coin">◆10</span><div class="prog"><i></i></div></div>
+  <div class="hole" style="left:10px;right:10px;top:406px;height:210px"></div>
+  <div class="cards" style="left:22px;top:420px"><div class="card">8♠</div><div class="card red">3♥</div><div class="card">10♠</div><div class="card">9♣</div><div class="card">5♣</div></div>
+  <div class="cards" style="left:78px;top:524px"><div class="card">J♣</div><div class="card red">6♥</div><div class="card">2♣</div></div>
+  <div class="key" style="right:20px;top:530px">⤨</div>
+  <div class="spot" style="right:0px;top:508px"></div>
+  <div class="hint" style="top:330px"><div class="zh">选中不要的牌弃掉,<span class="hl-g">每张 1◆</span>,原位立刻补新</div>
+  <div class="sig">DISCARD ◆1 EACH · REFILL IN PLACE</div><div class="tip down"></div></div>
+</div>
+
+<div class="stage"><span class="label">CUT-IN α · 分数特写(冻钟 2.5s)</span>
+  <div class="dim"></div>
+  <div class="hud" style="z-index:7;border-color:rgba(30,255,236,.8);box-shadow:0 0 16px rgba(30,255,236,.3)">
+    <span class="score">126</span><span class="tgt">/ 420</span><span class="coin">◆10</span><div class="prog"><i></i></div></div>
+  <div class="freeze"><i></i></div>
+  <div class="cutin"><div class="tag">TUTORIAL · SCORE</div>
+    <div class="zh">牌型变成<span class="hl-c">分数</span>——堆到 <span class="hl-c">420</span> 就过关</div>
+    <div class="go"><span>点按继续 ▸</span><div class="bar"><i></i></div><span>2.5s</span></div></div>
+</div>
+
+<div class="spec">
+  <h3>① 文字条 TutorHint</h3>
+  暗玻璃底(rgba 10,14,34,.78)+ 1px 青描边 + 外发光;<b>双行</b>:中文 14.5px SemiBold + 英文 signal 9.5px 大字距;<b>指向三角</b>朝 focus 区(条属于分镜,两拍不动);高亮词 <span class="g">金 = 钱(◆/免费)</span> · <span class="c">青 = 分</span>,虚线下缘 + 微辉光,每句至多一个。
+  <h3>② 分镜高光(挖洞)</h3>
+  全屏压暗 62%,挖洞区 1.5px 青描边、10px 圆角、<b>2.2s 呼吸辉光</b>;次级强调 = 金色径向光斑(96px,1.6s 脉动),分镜内随步移动、镜头不切。
+  <h3>③ 特写插播卡 cut-in</h3>
+  压暗全屏 + 中央讲解卡(青描边 14px 圆角);顶部 TUTORIAL 小标;<b>冻结条</b>(粉色,顶部)明示时间已停;底部「点按继续 ▸ + 2.5s 进度」;被讲解的对象(HUD/金币 chip)抬到压暗层上并加亮描边——<b>特写 = 它在台上,其余熄灯</b>。
+  <h3>④ 色与字</h3>
+  全部取自现行色板(青 #1effec · 金 #ff9b2b · 粉 #ff328d);Rajdhani + 系统中文;正式局零样式变化,以上仅教学关。
+</div>
+</div></body></html>

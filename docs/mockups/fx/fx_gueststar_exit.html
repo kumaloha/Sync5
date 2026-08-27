@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="zh">
+<meta charset="utf-8">
+<title>FX · 客串到寿离场</title>
+<style>
+:root{--ac:#ff328d;--glo:rgba(255,50,141,.3)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#07070f;min-height:100vh;display:flex;flex-direction:column;align-items:center;gap:10px;padding:26px;font-family:Rajdhani,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;color:#dfe6ff}
+h1{font-size:19px;font-weight:600;letter-spacing:.5px}
+h1 small{color:#8b93b8;font-weight:400;font-size:14px;margin-left:10px}
+.verb{font-size:13px;color:var(--ac)}
+.stage{position:relative;width:720px;height:360px;background:#000;border:1px solid #171733;border-radius:12px;overflow:hidden;flex:none}
+/* 小丑槽位排(示意 4 槽,客串在 3 号) */
+.slot{position:absolute;top:120px;width:92px;height:124px;border-radius:10px;border:1.5px dashed #2a2a48;z-index:1}
+.s1{left:96px}.s2{left:222px}.s3{left:348px}.s4{left:474px}
+/* 段末压暗 + 追光收窄到客串槽 */
+.veil{position:absolute;inset:0;background:#000;opacity:0;z-index:2}
+.play .veil{animation:dim 3.4s ease-out forwards}
+@keyframes dim{0%{opacity:0}10%{opacity:.62}78%{opacity:.62}100%{opacity:0}}
+.spot{position:absolute;left:394px;top:-16px;width:420px;height:340px;margin-left:-210px;transform-origin:50% 0;opacity:0;z-index:3;
+background:linear-gradient(180deg,rgba(255,50,141,.3),rgba(255,50,141,.04) 80%,transparent);
+clip-path:polygon(46% 0,54% 0,100% 100%,0 100%)}
+.play .spot{animation:narrow 3.4s ease-in-out forwards}
+@keyframes narrow{0%{opacity:0;transform:scaleX(1.4)}12%{opacity:1;transform:scaleX(1)}30%{transform:scaleX(.5)}72%{opacity:1;transform:scaleX(.5)}88%{opacity:0}100%{opacity:0}}
+/* 客串卡:深鞠一躬 → 上升淡出(有仪式,不许蒸发) */
+.gcard{position:absolute;left:346px;top:118px;width:96px;height:128px;border-radius:10px;border:2px solid var(--ac);background:linear-gradient(165deg,rgba(34,20,36,.94),rgba(10,6,12,.97));box-shadow:0 0 16px var(--glo);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;z-index:4;transform-origin:50% 92%}
+.gcard i{font-style:normal;font-size:13px;color:#aeb6d8;letter-spacing:3px}
+.star{width:44px;height:44px;background:var(--ac);clip-path:polygon(50% 0,63% 36%,100% 38%,70% 60%,81% 100%,50% 76%,19% 100%,30% 60%,0 38%,37% 36%);filter:drop-shadow(0 0 12px var(--ac))}
+.play .gcard{animation:farewell 3.4s ease-in-out forwards}
+@keyframes farewell{
+ 0%,14%{transform:none;opacity:1}
+ 24%{transform:rotate(16deg) translateY(5px)}
+ 40%{transform:rotate(16deg) translateY(5px)}
+ 52%{transform:rotate(0)}
+ 62%{transform:translateY(-8px);opacity:1}
+ 84%{transform:translateY(-130px) scale(.8);opacity:0}
+ 100%{transform:translateY(-130px) scale(.8);opacity:0}}
+/* 观众闪光灯:白/粉小闪点 */
+.fl{position:absolute;width:7px;height:7px;border-radius:50%;background:#fff;box-shadow:0 0 12px var(--ac);opacity:0;z-index:3}
+.f1{left:250px;top:110px}.f2{left:530px;top:92px}.f3{left:206px;top:210px}
+.f4{left:560px;top:196px}.f5{left:300px;top:60px}.f6{left:480px;top:250px}
+.play .fl{animation:flash .3s ease-out forwards}
+.play .f1{animation-delay:.9s}.play .f2{animation-delay:1.06s}.play .f3{animation-delay:1.2s}
+.play .f4{animation-delay:1.34s}.play .f5{animation-delay:1.5s}.play .f6{animation-delay:1.62s}
+@keyframes flash{0%{opacity:0;transform:scale(.3)}30%{opacity:1;transform:scale(1.6)}100%{opacity:0;transform:scale(.6)}}
+/* 上升拖尾星屑 */
+.tr{position:absolute;width:5px;height:5px;border-radius:50%;background:var(--ac);box-shadow:0 0 8px var(--ac);opacity:0;z-index:3}
+.t1{left:376px;top:150px}.t2{left:404px;top:126px}.t3{left:390px;top:96px}
+.play .tr{animation:rise .6s ease-out forwards}
+.play .t1{animation-delay:2.2s}.play .t2{animation-delay:2.36s}.play .t3{animation-delay:2.5s}
+@keyframes rise{0%{opacity:1;transform:translateY(12px)}100%{opacity:0;transform:translateY(-30px)}}
+/* 空槽余晖:粉描边亮一下,缓缓退回虚线灰 */
+.after{position:absolute;left:348px;top:120px;width:92px;height:124px;border-radius:10px;border:1.5px dashed var(--ac);opacity:0;z-index:2;box-shadow:0 0 14px var(--glo)}
+.play .after{animation:linger 1.2s ease-out 2.5s forwards}
+@keyframes linger{0%{opacity:0}25%{opacity:1}100%{opacity:0}}
+/* 告别字幕 */
+.bye{position:absolute;left:322px;top:70px;font-size:16px;color:var(--ac);text-shadow:0 0 10px var(--ac);letter-spacing:4px;opacity:0;z-index:5;white-space:nowrap}
+.play .bye{animation:cap 1.3s ease-out 2.3s forwards}
+@keyframes cap{0%{opacity:0;transform:translateY(8px)}25%{opacity:1;transform:none}80%{opacity:1}100%{opacity:0;transform:translateY(-8px)}}
+</style>
+<body>
+<h1>客串 Guest Star · 到寿离场<small>段末寿命耗尽,卡从槽位消失(fx_gueststar.html 是触发时刻;这页是告别演出)</small></h1>
+<div class="verb">视觉动词:谢幕退场 —— 追光收窄,深鞠一躬,闪光灯此起彼伏,升起淡出;空槽留一圈粉色余晖,不许凭空蒸发</div>
+<div class="stage" id="s">
+  <div class="slot s1"></div><div class="slot s2"></div><div class="slot s3"></div><div class="slot s4"></div>
+  <div class="veil"></div>
+  <div class="spot"></div>
+  <div class="after"></div>
+  <div class="gcard"><div class="star"></div><i>客串</i></div>
+  <div class="fl f1"></div><div class="fl f2"></div><div class="fl f3"></div>
+  <div class="fl f4"></div><div class="fl f5"></div><div class="fl f6"></div>
+  <div class="tr t1"></div><div class="tr t2"></div><div class="tr t3"></div>
+  <div class="bye">谢幕 · 后会有期</div>
+</div>
+<script>
+const st=document.getElementById('s');
+function go(){st.classList.remove('play');void st.offsetWidth;st.classList.add('play')}
+go();setInterval(go,4200);
+</script>
+</body>
+</html>

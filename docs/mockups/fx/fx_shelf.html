@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="zh">
+<meta charset="utf-8">
+<title>FX · 货架持续标记合集</title>
+<style>
+:root{--cy:#1effec;--au:#ff9b2b;--vi:#7642ff;--pk:#ff328d}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#07070f;min-height:100vh;display:flex;flex-direction:column;align-items:center;gap:10px;padding:26px;font-family:Rajdhani,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;color:#dfe6ff}
+h1{font-size:19px;font-weight:600;letter-spacing:.5px}
+h1 small{color:#8b93b8;font-weight:400;font-size:14px;margin-left:10px}
+.verb{font-size:13px;color:#8b93b8}
+.stage{position:relative;width:720px;height:360px;background:#000;border:1px solid #171733;border-radius:12px;overflow:hidden;flex:none}
+/* 商店顶条(暗玻璃) */
+.bar{position:absolute;left:0;right:0;top:0;height:44px;background:rgba(10,11,20,.85);display:flex;align-items:center;padding:0 18px;gap:14px;border-bottom:1px solid #222240}
+.bar b{font-size:16px;letter-spacing:4px;color:#dfe6ff}
+/* 联票票根:双购标记(常驻) */
+.tickets{margin-left:auto;position:relative;width:64px;height:26px}
+.tk{position:absolute;width:44px;height:24px;border-radius:4px;border:1.5px solid var(--au);background:rgba(30,24,10,.9);color:var(--au);font-size:11px;display:flex;align-items:center;justify-content:center;letter-spacing:1px}
+.tk1{left:0;top:0;transform:rotate(-6deg)}
+.tk2{left:18px;top:2px;transform:rotate(5deg);box-shadow:0 0 8px rgba(255,155,43,.3)}
+.tklabel{margin-left:6px;font-size:12px;color:var(--au);letter-spacing:1px}
+/* 货架:联票 → 4 个槽位(第 4 格是扩出来的) */
+.slot{position:absolute;top:84px;width:118px;height:158px;border-radius:12px;border:1.5px solid #2c2c50;background:linear-gradient(165deg,rgba(18,20,38,.92),rgba(8,9,18,.96))}
+.s1{left:44px}.s2{left:212px}.s3{left:380px}
+.s4{left:548px;border-style:dashed;border-color:var(--au)}
+.s4 .ext{position:absolute;left:8px;top:8px;font-size:11px;color:var(--au);letter-spacing:1px}
+.face{position:absolute;left:50%;top:46px;transform:translateX(-50%);font-size:34px}
+.s1 .face{color:var(--cy);text-shadow:0 0 12px var(--cy)}
+.s2 .face{color:var(--pk);text-shadow:0 0 12px var(--pk)}
+.s3 .face{color:#9fe9ff;text-shadow:0 0 10px #9fe9ff}
+.s4 .face{color:var(--au);text-shadow:0 0 12px var(--au)}
+.cname{position:absolute;left:0;right:0;top:96px;text-align:center;font-size:13px;color:#aeb6d8;letter-spacing:2px}
+/* 赞助:价签折扣划线(常驻) */
+.price{position:absolute;left:50%;bottom:-16px;transform:translateX(-50%);display:flex;gap:8px;align-items:baseline;background:rgba(10,11,20,.95);border:1.5px solid #2c2c50;border-radius:8px;padding:3px 10px;white-space:nowrap}
+.was{font-size:13px;color:#5a6182;text-decoration:line-through;text-decoration-color:#ff3632;text-decoration-thickness:2px}
+.now{font-size:16px;font-weight:700;color:var(--au);text-shadow:0 0 8px rgba(255,155,43,.5)}
+.ribbon{position:absolute;left:-10px;top:-12px;padding:1px 7px;border-radius:6px;background:var(--au);color:#3a2103;font-size:11px;font-weight:700;letter-spacing:1px;transform:rotate(-8deg)}
+/* 点唱机:规则牌保底槽标记(常驻,唱片徽记) */
+.juke{position:absolute;left:10px;top:10px;display:flex;align-items:center;gap:6px;padding:3px 9px 3px 4px;border-radius:14px;border:1.5px solid var(--vi);background:rgba(14,10,26,.92);color:#c9b3ff;font-size:11px;letter-spacing:1px}
+.vinyl{width:18px;height:18px;border-radius:50%;background:repeating-radial-gradient(circle,#0b0b16 0 2px,#1d1836 2px 4px);border:1.5px solid var(--vi);position:relative}
+.vinyl::after{content:"";position:absolute;left:50%;top:50%;width:5px;height:5px;margin:-2.5px;border-radius:50%;background:var(--vi)}
+.rback{position:absolute;left:50%;top:36px;transform:translateX(-50%);width:64px;height:88px;border-radius:8px;border:1.5px solid var(--vi);background:repeating-linear-gradient(135deg,#13102a 0 7px,#1b1638 7px 14px);box-shadow:0 0 10px rgba(118,66,255,.25)}
+.rtag{position:absolute;left:0;right:0;top:132px;text-align:center;font-size:12px;color:#c9b3ff;letter-spacing:1px}
+/* 图例 */
+.legend{position:absolute;left:44px;right:24px;bottom:14px;display:flex;gap:26px;font-size:12.5px;color:#5a6182;line-height:1.6}
+.legend b{font-weight:600}
+.l1 b{color:var(--au)}.l2 b{color:var(--au)}.l3 b{color:#c9b3ff}
+</style>
+<body>
+<h1>货架三件 · 持续标记合集<small>联票 doublebill / 赞助 sponsor / 点唱机 jukebox —— 都是商店内常驻标记,不是动画</small></h1>
+<div class="verb">原则:持续状态用标记不用动画 —— 整页零动效、零 JS,所有信息静止可读;标记随卡在手常驻于商店</div>
+<div class="stage">
+  <div class="bar">
+    <b>商 店</b>
+    <div class="tickets"><div class="tk tk1">票</div><div class="tk tk2">票</div></div>
+    <div class="tklabel">联票:出 4 &middot; 买 2</div>
+  </div>
+  <div class="slot s1">
+    <div class="face">&#9834;</div><div class="cname">回响</div>
+    <div class="price"><span class="ribbon">赞助 &minus;1&#9670;</span><span class="was">4&#9670;</span><span class="now">3&#9670;</span></div>
+  </div>
+  <div class="slot s2">
+    <div class="face">&#9733;</div><div class="cname">客串</div>
+    <div class="price"><span class="was">6&#9670;</span><span class="now">5&#9670;</span></div>
+  </div>
+  <div class="slot s3">
+    <div class="juke"><span class="vinyl"></span>必出规则牌</div>
+    <div class="rback"></div><div class="rtag">规则牌保底槽</div>
+    <div class="price"><span class="was">9&#9670;</span><span class="now">8&#9670;</span></div>
+  </div>
+  <div class="slot s4">
+    <div class="ext">联票 +1 格</div>
+    <div class="face">&#9670;</div><div class="cname">第 4 张</div>
+    <div class="price"><span class="was">4&#9670;</span><span class="now">3&#9670;</span></div>
+  </div>
+  <div class="legend">
+    <div class="l1"><b>联票</b>:顶栏双票根 + 第 4 格金色虚线扩位;买第 2 张时票根消一张</div>
+    <div class="l2"><b>赞助</b>:每个价签原价划红线 + 折后价金字,折扣在价签上自解释</div>
+    <div class="l3"><b>点唱机</b>:保底槽挂唱片徽记,槽里永远躺一张规则牌卡背</div>
+  </div>
+</div>
+</body>
+</html>

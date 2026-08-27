@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="zh">
+<meta charset="utf-8">
+<title>FX · 规则牌买入宣告合集</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#07070f;min-height:100vh;display:flex;flex-direction:column;align-items:center;gap:10px;padding:26px;font-family:Rajdhani,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;color:#dfe6ff}
+h1{font-size:19px;font-weight:600;letter-spacing:.5px}
+h1 small{color:#8b93b8;font-weight:400;font-size:14px;margin-left:10px}
+.verb{font-size:13px;color:#8b93b8}
+.tabs{display:flex;gap:8px}
+.tabs button{background:rgba(20,22,40,.8);border:1px solid #2a2a4a;color:#aeb6d8;border-radius:8px;padding:4px 12px;font-size:13px;font-family:inherit;cursor:pointer}
+.tabs button.on{border-color:var(--tac,#1effec);color:var(--tac,#1effec);box-shadow:0 0 8px rgba(255,255,255,.08)}
+.stage{position:relative;width:720px;height:360px;background:#000;border:1px solid #171733;border-radius:12px;overflow:hidden;flex:none}
+/* 变体主色 */
+.v-shortcut{--ac:#1effec;--glo:rgba(30,255,236,.3)}
+.v-fourfingers{--ac:#7642ff;--glo:rgba(118,66,255,.34)}
+.v-redtone{--ac:#ff328d;--glo:rgba(255,50,141,.32)}
+.v-blacktone{--ac:#9fe9ff;--glo:rgba(159,233,255,.3)}
+.v-trim{--ac:#ff9b2b;--glo:rgba(255,155,43,.32)}
+/* 买入瞬间:全屏压暗一次 */
+.veil{position:absolute;inset:0;background:#000;opacity:0;z-index:1}
+.play .veil{animation:dim 1.9s ease-out forwards}
+@keyframes dim{0%{opacity:0}12%{opacity:.6}72%{opacity:.6}100%{opacity:0}}
+/* 宣告横幅:玻璃条横贯,一次性 */
+.banner{position:absolute;left:0;right:0;top:112px;height:136px;z-index:3;opacity:0;transform:scaleX(.2);
+background:linear-gradient(180deg,rgba(18,20,38,.94),rgba(8,9,18,.96));
+border-top:2px solid var(--ac);border-bottom:2px solid var(--ac);
+box-shadow:0 0 26px var(--glo),inset 0 0 30px rgba(0,0,0,.6);
+display:flex;align-items:center;justify-content:space-between;padding:0 46px}
+.play .banner{animation:decree 1.9s cubic-bezier(.25,.9,.3,1) forwards}
+@keyframes decree{0%{opacity:0;transform:scaleX(.2)}10%{opacity:1;transform:scaleX(1.015)}14%{transform:scaleX(1)}74%{opacity:1;transform:scaleX(1)}88%{opacity:0;transform:scaleX(1) translateY(-10px)}100%{opacity:0}}
+.tt{display:flex;flex-direction:column;gap:6px}
+.tt b{font-size:30px;color:var(--ac);text-shadow:0 0 14px var(--ac);letter-spacing:3px}
+.tt span{font-size:14px;color:#aeb6d8}
+.tt em{font-style:normal;font-size:12px;color:#6b7195;letter-spacing:2px}
+/* 宣告后凝成常驻角标(标记,不再演) */
+.chip{position:absolute;right:14px;top:12px;padding:4px 10px;border-radius:8px;border:1.5px solid var(--ac);background:rgba(10,11,20,.9);color:var(--ac);font-size:13px;letter-spacing:1px;opacity:0;z-index:4;box-shadow:0 0 10px var(--glo)}
+.play .chip{animation:settle .4s ease-out 1.72s forwards}
+@keyframes settle{0%{opacity:0;transform:translate(-40px,26px) scale(1.5)}100%{opacity:1;transform:none}}
+/* ---- 变体图形区(横幅右半) ---- */
+.gfx{display:none;position:relative;width:330px;height:100px}
+.v-shortcut .g-shortcut,.v-fourfingers .g-fourfingers,.v-redtone .g-redtone,.v-blacktone .g-blacktone,.v-trim .g-trim{display:block}
+/* 近道:5-6-□-8-9,火花跃过缺口 */
+.rk{position:absolute;top:44px;width:40px;height:44px;border-radius:7px;border:1.5px solid var(--ac);display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:700;color:var(--ac);background:rgba(10,12,24,.9)}
+.k0{left:20px}.k1{left:82px}.k2{left:144px;border-style:dashed;opacity:.35;color:#5a6182}.k3{left:206px}.k4{left:268px}
+.g-shortcut svg{position:absolute;left:96px;top:2px;overflow:visible}
+.hoparc{fill:none;stroke:var(--ac);stroke-width:2.5;stroke-dasharray:150;stroke-dashoffset:150;filter:drop-shadow(0 0 6px var(--ac))}
+.play .hoparc{animation:hop .5s ease-out .5s forwards}
+@keyframes hop{100%{stroke-dashoffset:0}}
+/* 四指:第五张熄灭划叉,四张点亮 */
+.f5{position:absolute;top:26px;width:44px;height:60px;border-radius:7px;border:1.5px solid var(--ac);background:rgba(12,10,24,.9)}
+.f5:nth-child(1){left:24px}.f5:nth-child(2){left:84px}.f5:nth-child(3){left:144px}.f5:nth-child(4){left:204px}
+.f5.off{left:264px;border-color:#3a3a58}
+.play .g-fourfingers .f5:not(.off){animation:lite .5s ease-out .5s forwards}
+@keyframes lite{40%{box-shadow:0 0 16px var(--glo)}100%{box-shadow:0 0 8px var(--glo)}}
+.cross{position:absolute;left:270px;top:34px;font-size:34px;color:#ff3632;opacity:0;text-shadow:0 0 10px #ff3632}
+.play .cross{animation:xin .4s cubic-bezier(.2,1.4,.4,1) .62s forwards}
+@keyframes xin{0%{opacity:0;transform:scale(2)}100%{opacity:1;transform:scale(1)}}
+/* 红调/黑调:两花色相拥合一 */
+.suit{position:absolute;top:16px;font-size:56px;opacity:.95}
+.g-redtone .suit{color:#ff6aa9;text-shadow:0 0 16px rgba(255,106,169,.6)}
+.g-blacktone .suit{color:#9fe9ff;text-shadow:0 0 16px rgba(159,233,255,.5)}
+.sL{left:64px}.sR{left:200px}
+.play .sL{animation:mergL .6s cubic-bezier(.3,.8,.3,1) .5s forwards}
+.play .sR{animation:mergR .6s cubic-bezier(.3,.8,.3,1) .5s forwards}
+@keyframes mergL{100%{transform:translateX(52px)}}
+@keyframes mergR{100%{transform:translateX(-52px)}}
+.uniflash{position:absolute;left:158px;top:44px;width:16px;height:16px;border-radius:50%;background:#fff;opacity:0;box-shadow:0 0 26px var(--ac)}
+.play .g-redtone .uniflash,.play .g-blacktone .uniflash{animation:uni .3s ease-out 1.02s forwards}
+@keyframes uni{0%{opacity:0;transform:scale(.3)}40%{opacity:1;transform:scale(1.8)}100%{opacity:0;transform:scale(1)}}
+/* 修剪:2/3 被剪落 */
+.tcard{position:absolute;top:20px;width:44px;height:60px;border-radius:7px;border:1.5px solid #9fe9ff;background:rgba(12,10,24,.9);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:#9fe9ff}
+.tc2{left:80px}.tc3{left:190px}
+.play .tcard{animation:cut .55s cubic-bezier(.5,0,.8,.5) .62s forwards}
+.play .tc3{animation-delay:.72s}
+@keyframes cut{0%{transform:none;opacity:1}20%{transform:rotate(-4deg)}100%{transform:translateY(90px) rotate(-18deg);opacity:0}}
+.snip{position:absolute;left:60px;top:14px;width:210px;height:2px;background:repeating-linear-gradient(90deg,var(--ac) 0 8px,transparent 8px 15px);opacity:0;filter:drop-shadow(0 0 6px var(--ac))}
+.play .snip{animation:snipf .3s ease-out .5s forwards}
+@keyframes snipf{0%{opacity:0;transform:scaleX(0)}60%{opacity:1;transform:scaleX(1)}100%{opacity:0}}
+</style>
+<body>
+<h1>规则牌 · 买入宣告合集<small>近道 / 四指 / 红调 / 黑调 / 修剪 —— 共用一个「规则生效宣告」骨架</small></h1>
+<div class="verb">原则:规则永续生效,只在买入瞬间宣告一次(全屏横幅 ~1.9s),随后凝成右上角常驻角标,不逐拍演。</div>
+<div class="tabs" id="tabs"></div>
+<div class="stage" id="s">
+  <div class="veil"></div>
+  <div class="banner">
+    <div class="tt"><b id="bt"></b><span id="bs"></span><em>RULE · 永续生效</em></div>
+    <div class="gfx g-shortcut">
+      <div class="rk k0">5</div><div class="rk k1">6</div><div class="rk k2">7</div><div class="rk k3">8</div><div class="rk k4">9</div>
+      <svg width="140" height="46" viewBox="0 0 140 46"><path class="hoparc" d="M8,42 Q70,-14 132,42"/></svg>
+    </div>
+    <div class="gfx g-fourfingers">
+      <div class="f5"></div><div class="f5"></div><div class="f5"></div><div class="f5"></div><div class="f5 off"></div>
+      <div class="cross">&times;</div>
+    </div>
+    <div class="gfx g-redtone"><span class="suit sL">&hearts;</span><span class="suit sR">&diams;</span><div class="uniflash"></div></div>
+    <div class="gfx g-blacktone"><span class="suit sL">&spades;</span><span class="suit sR">&clubs;</span><div class="uniflash"></div></div>
+    <div class="gfx g-trim"><div class="snip"></div><div class="tcard tc2">2</div><div class="tcard tc3">3</div></div>
+  </div>
+  <div class="chip" id="chip"></div>
+</div>
+<script>
+const V=[
+ {id:'shortcut',  name:'近道',   sub:'顺子可以跳过一个点数',        chip:'近道 · 生效中'},
+ {id:'fourfingers',name:'四指',  sub:'顺子和同花,四张就够',         chip:'四指 · 生效中'},
+ {id:'redtone',   name:'红调',   sub:'♥♦ 算同一花色(红同花)', chip:'红调 · 生效中'},
+ {id:'blacktone', name:'黑调',   sub:'♠♣ 算同一花色(黑同花)', chip:'黑调 · 生效中'},
+ {id:'trim',      name:'修剪',   sub:'牌库移除全部 2 和 3',          chip:'修剪 · 已修剪'}
+];
+const s=document.getElementById('s'),bt=document.getElementById('bt'),bs=document.getElementById('bs'),
+chip=document.getElementById('chip'),tabs=document.getElementById('tabs');
+let cur=0,timer=null;
+V.forEach((v,i)=>{const b=document.createElement('button');b.textContent=v.name;
+b.onclick=()=>{cur=i;show();clearInterval(timer);timer=setInterval(next,3200)};tabs.appendChild(b)});
+function show(){
+ const v=V[cur];
+ s.className='stage v-'+v.id;
+ tabs.querySelectorAll('button').forEach((b,i)=>{b.classList.toggle('on',i===cur);
+  b.style.setProperty('--tac',getComputedStyle(s).getPropertyValue('--ac'))});
+ bt.textContent=v.name;bs.textContent=v.sub;chip.textContent=v.chip;
+ void s.offsetWidth;s.classList.add('play');
+}
+function next(){cur=(cur+1)%V.length;show()}
+show();timer=setInterval(next,3200);
+</script>
+</body>
+</html>
