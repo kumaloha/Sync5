@@ -74,6 +74,7 @@ var run_end: RunEndScreen
 var banner: BlindBanner
 var tutor: Widgets.TutorHint      # 教学关的一行提示;正式局整块隐身
 var blind_card: Widgets.BlindCard
+var _bc_home := Vector2.ZERO
 var intro: BlindIntro
 var music: Music             # 每段一首的 8 秒循环(view/music.gd, 2026-08-18)
 var beacon: Beacon           # Tape 回传(view/beacon.gd, 1.1;配置关着时自睡)
@@ -238,6 +239,7 @@ func _build_ui() -> void:
 	wave = n["wave"]
 	eq = n["eq"]
 	blind_card = n["blind_card"]
+	_bc_home = blind_card.position   # 商店停靠(见 _open_draft)与还原共用的初始位
 	vinyl = n["vinyl"]
 	orbit = n["orbit"]
 	hand = n["hand"]
@@ -433,6 +435,8 @@ func _on_intro_done() -> void:
 
 
 func _start_phrase() -> void:
+	blind_card.position = _bc_home   # 商店停靠位还原(_open_draft 挪的)
+	blind_card.z_index = 0
 	# 拍与拍之间的钱记在 run 上, 一拍之内归 Phrase 管(弃牌与入场费都在那里扣)。
 	# ⚠ 这一行不能省:商店是在**两拍之间**动钱的, 不同步回去 Beat 就会拿旧余额发牌。
 	# ⚠ phrase == null 时**不动 run.coins**(2026-08-24 断点续玩):开局的起始金币由
@@ -1189,6 +1193,12 @@ func _open_draft() -> void:
 	# 于是上一拍那句话就压在货架上。
 	# ⚑ 不用记状态再恢复:下一拍 `_start_phrase()` 照常重设, 那里本来就是唯一的入口。
 	tutor.set_hint("", "")
+	# 盲注卡挪到商店下部(2026-08-27 用户:「展示盲注没错, 但压住小丑牌很奇怪, 放下面」)——
+	# 它 z 本就悬在商店层上(这是「选牌时看得到盲注」的实现), 只挪位不动 z;
+	# 还原走下一拍 _start_phrase(与教学提示条同款:不记状态, 唯一入口重设)。
+	var bcp: Array = DB.ui()["shop"].get("blindcard_pos", [28, 940])
+	blind_card.position = Vector2(float(bcp[0]), float(bcp[1]))
+	blind_card.z_index = 61   # 抬过商店内容层(shop 内浮字 60)—— 停靠是为了「看得见」
 	_shop_buys = 0        # 联票的续买配额按「一次进店」计
 	# a mid-section shop opens with the blind's counter part-way through; a
 	# section-end one opens at phrase 0 of the blind being entered
@@ -1362,7 +1372,9 @@ func _on_shop_reroll(cost: int) -> void:
 ## 放弃替换 —— 显式按钮与「点 Target 槽」两条路走同一个函数(判定一份真相)。
 ## ⚠ 未付款:成交那一刻才扣钱, 放弃无需退款, 新卡留在货架上可反悔再拿。
 func _on_replace_canceled() -> void:
-	if state != St.DRAFT or replace.pick == null:
+	# ⚠ 只查 pick 不查 state(2026-08-27 真人报「不想替任何牌但界面不能操作」):
+	# 取消是无副作用的逃生口, 状态再歪也必须能退 —— 困在替换态是最贵的卡死形状。
+	if replace.pick == null:
 		return
 	Tape.on("repl_off", {"id": String(replace.pick.id), "coins": phrase.coins})
 	replace.exit()

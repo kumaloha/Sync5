@@ -253,7 +253,7 @@
    "trigger": "6 秒前收工且成牌:×4 倍率"
   },
   "wrecker": {
-   "trigger": "本拍弃满 6 张且成牌:×3.5 倍率"
+   "trigger": "一批弃满 4 张:本拍成牌 ×2"
   },
   "fastforward": {
    "trigger": "每次提前收工:倍率永久 +0.1"
@@ -424,7 +424,7 @@
    "trigger": "每弃 1 张人头牌:奖励分+目标分的7%"
   },
   "royalty": {
-   "trigger": "牌型自带的金币翻倍"
+   "trigger": "牌型自带的金币翻倍(基准:对子 2◆ · 顺子 4◆ · 同花 5◆)"
   },
   "digger": {
    "trigger": "每刷新一次商店:基础分+12,永久"
@@ -569,7 +569,12 @@
   "replace_prompt_w": 410,
   "_comment_route": "巡演路线行(journey #4):商店盲注板脚注的整局四脸缩略。板内基线 y 与字号;画法在 Widgets.BlindBoard, 数据由编排器注入(phrase.gd::_shop_route)。⚠ 行要留在玻璃白线(板底内缩 14)之内 —— 商店板因此加高 276→296(intro 的板没有这一行, 尺寸没动)。",
   "route_y": 272,
-  "route_fs": 14
+  "route_fs": 14,
+  "blindcard_pos": [
+   28,
+   940
+  ],
+  "_comment_blindcard_pos": "商店期间局内盲注卡的停靠位(2026-08-27 用户:「选牌时展示盲注没错, 但压住小丑牌很奇怪, 可以放下面」)——开店挪到货架/按钮之下, 关店(下一拍 _start_phrase)还原 layout 初始位。"
  },
  "hand": {
   "deny": {

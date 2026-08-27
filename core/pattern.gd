@@ -114,17 +114,26 @@ const BASE_CHIPS := {
 ## ⚠ **Target 层从此按各族的组合命中率区分**(阶梯 ×11 / 单色 ×12,
 ## 见 docs/design/jokers.md「第三次重锚」)—— 旧注释那句「Target 层不再区分顺子/同花(都 ×7)」
 ## 早在 2026-08-12 就被实装推翻了, **却在这里躺了两天没人发现**。
+## ⚑⚑ 倍率 v3(2026-08-27 两轮定稿):公式 = 2×(P_pair/P_k)^0.85 × (1+0.5·(1−P_k)),
+## P_k = **带弃牌预算 b=2 的追型达成率**(tools/vol.gd, n=8k, b=0 列与组合口径逐项吻合
+## = 采样器自检过;经济 v2 弃牌 1◆/张后 b≈2 是钱包口径)。压缩幂 0.75→0.85 = 用户
+## 「曲线可以更陡」;λ=0.5 = 波动溢价(CLAUDE.md Target ④「不奖励波动性谁不玩好凑的」),
+## 主载体 = 失败率(实测 CV 窄带 0.62-0.71, 追型失败常捞回别的型, (1−P) 才是离散来源)。
+## 数据快照(P_b2):Pair .977 · Two .799 · Three .338 · Str .335(⚑ 带重抽后与三条同难,
+## +1 保扑克序)· Flush .254 · Full .176 · Four .010 · SF .002 · Royal .0004。
+## 顶端三档超出压缩公式(1/p 会炸), 手压 15/18/18(出现 <1%, 近失爽点方向)。
+## ⚠ 整表上浮且目标分未随动 —— 松紧是另一根旋钮;λ 与幂由用户试玩报「高/低」单旋钮重算。
 const BASE_MULT := {
 	Kind.HIGH_CARD: 1,
 	Kind.PAIR: 2,
 	Kind.TWO_PAIR: 3,
-	Kind.THREE_KIND: 3,
-	Kind.STRAIGHT: 4,
-	Kind.FLUSH: 5,
-	Kind.FULL_HOUSE: 6,
-	Kind.FOUR_KIND: 7,
-	Kind.STRAIGHT_FLUSH: 8,
-	Kind.ROYAL_FLUSH: 8,
+	Kind.THREE_KIND: 7,
+	Kind.STRAIGHT: 8,
+	Kind.FLUSH: 9,
+	Kind.FULL_HOUSE: 12,
+	Kind.FOUR_KIND: 15,
+	Kind.STRAIGHT_FLUSH: 18,
+	Kind.ROYAL_FLUSH: 18,
 }
 
 ## ⚑ 经济 v2(2026-08-26 用户拍板 A 案):牌型金币表搬进 data/economy.json `kind_coins`

@@ -80,6 +80,7 @@ func play_jingle(win: bool) -> void:
 	if not ResourceLoader.exists(path):
 		return
 	stop()
+	_phase_loop = false   # jingle 不是 8s 循环, 别被相位回绕截断
 	var st = load(path)
 	if st is AudioStreamMP3:
 		st.loop = false
@@ -99,11 +100,30 @@ func _play_loop(track: String) -> void:
 	if st == null:
 		return
 	if st is AudioStreamOggVorbis:
+		# ⚠⚠ 不用流自带 loop(2026-08-27 真人报「尾巴到开头没咬住」):vorbis 编码
+		# 结构性垫料(实测 afinfo:352800 有效 + 128 priming + 416 尾垫 = 353344 帧)
+		# 让自然循环周期变 8.0123s, 每圈漂 12ms。改由 _process 按**相位**精确回绕
+		# (素材尾→头是连续设计, 8.000s 整点 seek 无爆音);loop 仍开着当兜底
+		# (万一某帧没赶上, 宁可 12ms 缝也不要静音)。
 		st.loop = true
 		st.loop_offset = 0.0
+		_phase_loop = true
 	elif st is AudioStreamWAV:
 		st.loop_mode = AudioStreamWAV.LOOP_FORWARD
 		st.loop_begin = 0
 		st.loop_end = int(st.mix_rate * 8.0)
-	stream = st
+		stream = st
 	play()
+
+
+## ogg 相位回绕(见上):每帧盯播放头, 过 8.000s 就精确扣回一个周期。
+## WAV 路径不需要(loop_end 是样本级精确的), _phase_loop 只在 ogg 路径置位。
+const LOOP_LEN := 8.0
+var _phase_loop := false
+
+func _process(_delta: float) -> void:
+	if not _phase_loop or not playing:
+		return
+	var pos := get_playback_position()
+	if pos >= LOOP_LEN:
+		seek(pos - LOOP_LEN)

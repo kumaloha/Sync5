@@ -304,6 +304,8 @@
   "预支": "Advance",
   "预支违约：还不上 %d◆": "Advance defaulted: can't repay %d◆",
   "体力不足,明天回满": "Out of energy — refills tomorrow",
-  "看广告补体力 · 敬请期待": "Watch an ad to refuel — coming soon"
+  "看广告补体力 · 敬请期待": "Watch an ad to refuel — coming soon",
+  "一批弃满 4 张:本拍成牌 ×2": "Discard four in one batch: made hands x2",
+  "牌型自带的金币翻倍(基准:对子 2◆ · 顺子 4◆ · 同花 5◆)": "Doubles hand-type coins (base: pair 2, straight 4, flush 5)"
  }
 }

@@ -1346,11 +1346,11 @@
    "kind": "target",
    "rarity": "rare",
    "proof": "score",
-   "fx": "Discard six: made hands x3.5",
+   "fx": "Discard four: made hands x2",
    "effects": [
     {
      "when": {
-      "discards_gte": 6,
+      "discards_gte": 4,
       "kind_in": [
        "PAIR",
        "TWO_PAIR",
@@ -1364,10 +1364,11 @@
       ]
      },
      "do": {
-      "mult": 3.5
+      "mult": 2.0
      }
     }
-   ]
+   ],
+   "_comment": "2026-08-27 用户拍板:弃6×3.5 → 弃4×2 —— 经济 v2(弃牌1◆/张)下弃6=6◆≈三拍收入,条件成本剧变(cards.md 倍率 v3 连带)。discard_bias 同步 4(手抄教训)。"
   },
   {
    "id": "fastforward",
