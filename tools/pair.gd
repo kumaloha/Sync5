@@ -62,7 +62,10 @@ func _initialize() -> void:
 	# 我把 `beat_budget.discards` 按真人实测从 2 校准到 3 之后, 数学侧仍只弃 2 张,
 	# 于是配对差一夜之间变成 **−16 (z=−8)**, 看起来像「求解器和游戏代码分叉了」。
 	# 真相是**这个探针自己把配置抄成了字面量** —— 「乘除只写一处」的又一例。
-	var dmax := GameConfig.BEAT_DISCARDS
+	# ⚑ 2026-08-27 动作粒度:真打侧(bot._play_perfect)的单批上限换成了
+	# BEAT_DISCARD_BATCH(全拍长下 discard_batch(8s)==BEAT_DISCARD_BATCH), 镜像跟着换 ——
+	# 读错旋钮会复刻上面那次「探针自己分叉」的形状。
+	var dmax := GameConfig.BEAT_DISCARD_BATCH
 	_stage("第二关:开弃牌, 不前瞻", dmax, 0.0, rng, slots, extra)
 	_stage("第三关:弃牌 + 前瞻(实战配置)", dmax, float(DB.sim()["solver"]["lam"]), rng, slots, extra)
 	if diff0 > 0 or not _diverged.is_empty():
@@ -84,7 +87,7 @@ func _trace(rng: RandomNumberGenerator, slots: Array, extra: Dictionary) -> void
 			vis.append(d1.draw())
 		var b0 = Solver.best_split(vis, slots, extra)
 		var drop := Solver.best_discard(vis, slots, extra, d1, rng, 999,
-			GameConfig.BEAT_DISCARDS, 0.0, samples, 0.0, {}, b0)
+			GameConfig.BEAT_DISCARD_BATCH, 0.0, samples, 0.0, {}, b0)
 		# ⚠ 2026-08-14:drop 是 **vis 下标**(枚举已扩到全 8 张), 不是 b0.keep 下标。
 		var ks := {}
 		for di in drop:
