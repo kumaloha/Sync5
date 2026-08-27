@@ -325,8 +325,12 @@ func phrase_duration() -> float:
 ## 现在步骤只在**这一步要求的动作被做出来**之后才推进(外部调研的第 ② 条共识)。
 var tutorial_step := 0
 
-## 这一拍已经做出来的动作(`Tutorial.ACTIONS` 的子集), 每拍开头清空。
-## ⚠ 它是**这一拍**的账, 不是整关的 —— 「上一拍弃过牌」不该替这一拍的门买单。
+## 已经做出来的动作(`Tutorial.ACTIONS` 的子集)。
+## ⚑ **学分制(v6, 2026-08-27)**:**跨拍累计, 不再每拍清空** —— 玩家在 A 拍就
+## 弃过牌, 到弃牌门那一步门即开;推进时只**消费本步的门**, 别步的学分保留。
+## (旧口径「上一拍的动作不替这一拍买单」随 v6 作废:v5 起拍末本就一律放行,
+## 门的作用只剩回执与打点, 学分制让「提前会了」的玩家不再被同一句话按住重讲。)
+## 每步仍展示满 1 拍(门开 = 拍末必过, 不跳课)—— 展示由编排器负责, 与账无关。
 var _tutorial_acted: Dictionary = {}
 
 ## 当前这一步已经打了几拍。⚠⚠ **软门必须有兜底, 否则做不出那个动作就永远卡在同一句上。**
@@ -348,21 +352,32 @@ func tutorial_note(action: String) -> void:
 		_tutorial_acted[action] = true
 
 
-## 这一拍结束时调。要求满足就推进一步并返回 `true`;没满足就**留在原地**返回 `false`。
-## 无论推没推进, 这一拍的动作账都清空。
+## 这一拍结束时调。要求满足就推进一步并返回 `true`;没满足就靠 STEP_MAX_BEATS 兜底。
+## ⚑ 学分制:动作账**跨拍累计**, 推进时只消费(erase)本步的门, 别步动作保留 ——
+## 提前做过的动作到那步门即开(v6)。
 func tutorial_try_advance() -> bool:
 	if not tutorial:
 		return false
 	var need := Tutorial.require(tutorial_step)
 	var ok: bool = need == "" or bool(_tutorial_acted.get(need, false))
-	_tutorial_acted.clear()
 	_tutorial_step_beats += 1
 	# ⚠ 兜底:同一步打满 STEP_MAX_BEATS 拍就放行, 哪怕动作没做出来。
 	# 返回值仍是**真实的**「做到没有」—— 调用方要区分「学会了」和「超时放行」时看它。
 	if ok or _tutorial_step_beats >= STEP_MAX_BEATS:
+		if need != "":
+			_tutorial_acted.erase(need)   # 消费这一步的门;别步的学分不动
 		tutorial_step += 1
 		_tutorial_step_beats = 0
 	return ok
+
+
+## 商店分镜(最后一步, shot D)的消费口 —— 它的展示面是**商店层**, 关店即算上完:
+## 不消费的话下一拍还挂着一条锚在商店里的提示条。买 Target / 「继续 ▸」两条出口
+## 都由编排器调这里(判定一份真相:步进只属于 run)。
+func tutorial_shop_seen() -> void:
+	if tutorial and tutorial_step == Tutorial.shop_step():
+		tutorial_step += 1
+		_tutorial_step_beats = 0
 
 
 ## (拍中推进 tutorial_advance_if_done 已删 2026-08-24 —— 用户:「换一下之后立刻就跳到

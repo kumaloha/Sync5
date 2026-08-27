@@ -81,6 +81,61 @@ func run(t) -> void:
 		"command": "中", "signal": "one two three four five six seven eight"}]}
 	t.check(DB.validate_tutorial(wordy) != "", "英文短标超过 7 词被拒")
 
+	# ---- v6 schema 门禁:分镜/价签/高亮段/特写 ----
+	# ⚑ 同 shot 必同 focus(分镜 = 构图共享, 岔开 = 镜头会跳)—— 校验锁。
+	var shotmix := {"components": ["hand"], "steps": [
+		{"seconds": 8.0, "shot": "B", "unlock": ["hand"], "focus": ["hand"],
+			"command": "中", "signal": "EN"},
+		{"seconds": 8.0, "shot": "B", "focus": ["discard"], "command": "中", "signal": "EN"}]}
+	t.check(DB.validate_tutorial(shotmix) != "", "同分镜不同 focus 被拒(shot 一致性锁)")
+	var shotgap := {"components": ["hand"], "steps": [
+		{"seconds": 8.0, "shot": "A", "unlock": ["hand"], "command": "中", "signal": "EN"},
+		{"seconds": 8.0, "shot": "B", "command": "中", "signal": "EN"},
+		{"seconds": 8.0, "shot": "A", "command": "中", "signal": "EN"}]}
+	t.check(DB.validate_tutorial(shotgap) != "", "分镜被打断再出现被拒(A B A 是脚本写错)")
+	var badargs := {"components": ["hand"], "steps": [{"seconds": 8.0, "unlock": ["hand"],
+		"command": "每张 %d◆", "args": ["nope"], "signal": "EN"}]}
+	t.check(DB.validate_tutorial(badargs) != "", "args 白名单外的键被拒")
+	var argmiss := {"components": ["hand"], "steps": [{"seconds": 8.0, "unlock": ["hand"],
+		"command": "每张 %d◆", "signal": "EN"}]}
+	t.check(DB.validate_tutorial(argmiss) != "", "%d 价签没配 args 被拒(运行时会格式化炸)")
+	var braces2 := {"components": ["hand"], "steps": [{"seconds": 8.0, "unlock": ["hand"],
+		"command": "{一}和{二}", "signal": "EN"}]}
+	t.check(DB.validate_tutorial(braces2) != "", "两个 {} 高亮段被拒(每句一个重点)")
+	var braceodd := {"components": ["hand"], "steps": [{"seconds": 8.0, "unlock": ["hand"],
+		"command": "半个{高亮", "signal": "EN"}]}
+	t.check(DB.validate_tutorial(braceodd) != "", "不配对的 { 被拒")
+	var badspot := {"components": ["hand"], "steps": [{"seconds": 8.0, "unlock": ["hand"],
+		"command": "中", "signal": "EN", "spot": "nowhere"}]}
+	t.check(DB.validate_tutorial(badspot) != "", "spot 指向未知区域被拒")
+	var badcut := {"components": ["hand"],
+		"steps": [{"seconds": 8.0, "unlock": ["hand"], "command": "中", "signal": "EN"}],
+		"cutins": {"delta": {"after_step": 0, "seconds": 2.5, "command": "中"}}}
+	t.check(DB.validate_tutorial(badcut) != "", "白名单外的特写名被拒(消费面按名字分流)")
+	var cutoob := {"components": ["hand"],
+		"steps": [{"seconds": 8.0, "unlock": ["hand"], "command": "中", "signal": "EN"}],
+		"cutins": {"alpha": {"after_step": 9, "seconds": 2.5, "command": "中"}}}
+	t.check(DB.validate_tutorial(cutoob) != "", "特写 after_step 越界被拒")
+
+	# ---- v6 现行脚本的分镜契约(锁结构不锁内容) ----
+	var shot_focus := {}
+	for i2 in range(steps.size()):
+		var sh2 := Tutorial.shot(i2)
+		if sh2 != "":
+			if shot_focus.has(sh2):
+				t.eq(Tutorial.focus(i2), shot_focus[sh2],
+					"第 %d 步与同分镜 '%s' 的 focus 一致(构图共享)" % [i2 + 1, sh2])
+			shot_focus[sh2] = Tutorial.focus(i2)
+	for key in ["alpha", "beta", "gamma"]:
+		var cu := Tutorial.cutin(String(key))
+		t.check(not cu.is_empty(), "特写 '%s' 在脚本里(v6 的三场插播)" % key)
+		if not cu.is_empty():
+			t.check(String(cu["command"]) != "", "特写 '%s' 有文案" % key)
+			t.check(float(cu["seconds"]) > 0.0, "特写 '%s' 有时长" % key)
+	t.eq(Tutorial.cutin("nope"), {}, "未知特写名返回空字典(调用方跳过, 不炸)")
+	t.eq(Tutorial.shot(steps.size()), "", "越界的 shot 是空串")
+	t.eq(Tutorial.spot(-1), "", "越界的 spot 是空串")
+
 	# --- 分区指向(2026-08-15 用户:「教学关……在于**页面不同区域干嘛**」)---
 	# ⚑ 第一版只改了文案, 结果第 6 步写着「顶栏是分数和拍数」而提示条在屏幕中间 —— **光说不指**。
 	var regions: Array = Tutorial.regions()
@@ -163,9 +218,9 @@ func run(t) -> void:
 	g.tutorial = true
 	g.reset(1)
 	var need := Tutorial.require(0)
-	# 2026-08-19 用户拍板:「教学第一段, 不点弃牌不结束」是 bug ——
-	# **只要结算一次, 第一段就算过**。弃牌在第 1 轮只作讲解, 门槛回到 play。
-	t.eq(need, "play", "第 1 步的门 = 结算一次就过(弃牌只讲不考)")
+	# v6(2026-08-27 分镜化):分镜 A 的第 1 拍**无动作门** —— 它教的是「不动它也会算」,
+	# 设门与文案自相矛盾(2026-08-19「结算一次就过」的 play 门随 v6 收成空门)。
+	t.eq(need, "", "第 1 步无动作门(A 拍教的就是不动也会结算)")
 	# 找一个真的设了非 play 门的步骤, 用它验「不做就不推进」
 	var gated := -1
 	for s in range(Tutorial.steps()):
@@ -193,6 +248,47 @@ func run(t) -> void:
 	t.eq(g.tutorial_step, gated, "……但步子不动 —— 下一步的内容等结算(2026-08-24)")
 	t.check(g.tutorial_try_advance(), "拍末才推进")
 	t.eq(g.tutorial_step, gated + 1, "推进正好一步")
+	# ---- 学分制(v6, 2026-08-27):动作账跨拍累计 ----
+	# ⚑ 提前做过的动作到那步门即开;推进只消费本步的门, 别步学分保留。
+	var cr := Run.new()
+	cr.tutorial = true
+	cr.reset(1)
+	cr.tutorial_note(want)               # 第 0 步(别的步)就把 gated 步的动作做了
+	t.check(cr.tutorial_try_advance(), "拍 1 收尾(无门步照常推进)")
+	cr.tutorial_step = gated
+	t.eq(cr.tutorial_pending(), "", "学分制:提前做过的动作, 到那步门即开(pending 不亮)")
+	t.check(cr.tutorial_try_advance(), "……门开 = 拍末如实返回 true(不再被每拍清账吃掉)")
+	# 推进消费本步的门:再回到同一步, 学分已被用掉
+	cr.tutorial_step = gated
+	t.eq(cr.tutorial_pending(), want, "推进消费了这一步的学分(同一份动作不许买单两次)")
+	# ……但不清别步的动作:攒两个动作, 消费其一, 另一个还在
+	var cr2 := Run.new()
+	cr2.tutorial = true
+	cr2.reset(1)
+	var other := ""
+	for a in Tutorial.ACTIONS:
+		if String(a) != want:
+			other = String(a)
+			break
+	cr2.tutorial_note(want)
+	cr2.tutorial_note(other)
+	cr2.tutorial_step = gated
+	t.check(cr2.tutorial_try_advance(), "消费 gated 步的门")
+	t.check(bool(cr2._tutorial_acted.get(other, false)), "别步的学分不被推进清掉(只消费本步)")
+	# ---- 商店分镜(v6):最后一步的展示面是商店层, 关店即消费 ----
+	t.eq(Tutorial.shop_step(), Tutorial.steps() - 1, "商店分镜恒为最后一步(结构约定)")
+	var sh := Run.new()
+	sh.tutorial = true
+	sh.reset(1)
+	sh.tutorial_step = Tutorial.shop_step()
+	sh.tutorial_shop_seen()
+	t.eq(sh.tutorial_step, Tutorial.shop_step() + 1, "关店消费商店分镜(下一拍不再挂商店里的条)")
+	sh.tutorial_shop_seen()
+	t.eq(sh.tutorial_step, Tutorial.shop_step() + 1, "重复关店不再推(幂等)")
+	var shq := Run.new()
+	shq.reset(1)
+	shq.tutorial_shop_seen()
+	t.eq(shq.tutorial_step, 0, "正式局 tutorial_shop_seen 是无操作")
 	# require 全部在白名单里, 否则那一步**永远推进不了且不报错**(玩家卡死在教学关)
 	for s2 in range(Tutorial.steps()):
 		var rq := Tutorial.require(s2)

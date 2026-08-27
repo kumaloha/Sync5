@@ -44,6 +44,32 @@ static func require(step: int) -> String:
 const ACTIONS := ["play", "discard", "swap", "multiselect", "buy"]
 
 
+## 价签活取键的白名单(v6, 经济 v2)。`command` 里的 %d 由这里的现值填 ——
+## **数字不再抄进文案**:经济一调价, 教学价签自动跟, t_tutorial 的同步锁
+## 从「抄对了没」升级成「根本不抄」。`core/db.gd` 校验 args ⊆ 这张表且
+## 个数与 %d 一致(不一致 = 运行时格式化炸, 必须测试期就红)。
+const ARG_KEYS := ["discard_cost", "joker_price"]
+
+
+static func _arg_value(name: String) -> int:
+	match name:
+		"discard_cost":
+			return GameConfig.DISCARD_COST
+		"joker_price":
+			return int(GameConfig.JOKER_PRICES.get("common", 0))
+	return 0
+
+
+## %d 价签代入。args 空 = 原样返回(绝大多数句子没有价签)。
+static func _fmt(text: String, args: Array) -> String:
+	if args.is_empty():
+		return text
+	var vals: Array = []
+	for a in args:
+		vals.append(_arg_value(String(a)))
+	return text % vals
+
+
 ## 一共几拍。
 static func steps() -> int:
 	return _steps().size()
@@ -86,8 +112,47 @@ static func hint(step: int) -> Dictionary:
 	var s := _steps()
 	if step < 0 or step >= s.size():
 		return {"command": "", "signal": ""}
-	return {"command": String(s[step].get("command", "")),
+	return {"command": _fmt(String(s[step].get("command", "")), s[step].get("args", [])),
 		"signal": String(s[step].get("signal", ""))}
+
+
+## 这一步属于哪个分镜(v6)。分镜 = 高光构图 + 文字条锚位:同 shot 的步共用 focus
+## (db 校验锁), 条锚由**编排器**按 shot 翻译成 y —— core 不认识像素(坐标归 view)。
+static func shot(step: int) -> String:
+	var s := _steps()
+	if step < 0 or step >= s.size():
+		return ""
+	return String(s[step].get("shot", ""))
+
+
+## 这一步的次级强调(光斑)指向的区域名, "" = 无。位置随步切换, 不动条与 focus。
+static func spot(step: int) -> String:
+	var s := _steps()
+	if step < 0 or step >= s.size():
+		return ""
+	return String(s[step].get("spot", ""))
+
+
+## 商店分镜(shot D)= **最后一步**:它的展示面是商店层, 编排器推进到这一步时
+## 弹真商店、关店即消费(`Run.tutorial_shop_seen`)。「最后一步 = 商店」是 v6 的
+## 结构约定 —— 商店是教学主线的收尾, 后面只剩无提示自由拍。
+static func shop_step() -> int:
+	return _steps().size() - 1
+
+
+## 特写(插播)脚本, key ∈ alpha/beta/gamma。α/β = RESOLVE 滚分后的冻钟插播,
+## γ = 转正式局的开局公示卡(消费面不同, 由编排器分流)。缺失返回 {}(调用方跳过)。
+static func cutin(key: String) -> Dictionary:
+	var c = DB.tutorial().get("cutins", {}).get(key, {})
+	if not (c is Dictionary) or c.is_empty():
+		return {}
+	var focus: Array = []
+	for r in c.get("focus", []):
+		focus.append(String(r))
+	return {"after_step": int(c.get("after_step", -1)),
+		"seconds": float(c.get("seconds", 2.5)),
+		"focus": focus,
+		"command": _fmt(String(c.get("command", "")), c.get("args", []))}
 
 
 ## 这一步指向哪几块区域 —— 名字取自 `data/ui.json` 的 `tutor_focus`。

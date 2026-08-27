@@ -617,7 +617,9 @@
   "cache": "缓存行 3 格",
   "discard": "弃牌键",
   "jokers": "小丑牌四槽(矩形由编排器从 joker_views 活算)",
-  "blind": "盲注卡(矩形由编排器从 blind_card 活算)"
+  "blind": "盲注卡(矩形由编排器从 blind_card 活算;γ 特写用它指公示卡的盲注板)",
+  "coins": "金币 chip(β 特写;矩形由编排器从 hud.coin_label 活算)",
+  "shelf": "商店货架价签行(D 分镜;矩形由编排器从 shop.price_row_rect 活算)"
  },
  "patterns": {
   "_comment": "牌型中文名, 按 Pattern.Kind 下标。结算分解框(settle_fx)与其他要念牌型名的地方共用这一份。",

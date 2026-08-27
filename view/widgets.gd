@@ -20,6 +20,60 @@ static func focus_radius(q: Rect2) -> float:
 	return 18.0
 
 
+## ---- 教学文案的 {} 双色拼段(v6)----
+## `{...}` = 这一句的高亮段(db 校验:至多一个)。返回 [{"t": 文本, "hi": bool}]。
+static func hint_parts(s: String) -> Array:
+	var out: Array = []
+	var rest := s
+	while true:
+		var a := rest.find("{")
+		if a < 0:
+			break
+		var b := rest.find("}", a + 1)
+		if b < 0:
+			break
+		if a > 0:
+			out.append({"t": rest.substr(0, a), "hi": false})
+		out.append({"t": rest.substr(a + 1, b - a - 1), "hi": true})
+		rest = rest.substr(b + 1)
+	if rest != "":
+		out.append({"t": rest, "hi": false})
+	return out
+
+
+## 高亮段的颜色:钱的话题(◆ / 免费 / free, en 表值走后者)→ 金, 其余概念 → 青。
+static func hint_hue(seg: String) -> Color:
+	if seg.find("◆") != -1 or seg.find("免费") != -1 or seg.to_lower().find("free") != -1:
+		return StageTheme.GOLD
+	return StageTheme.CYAN
+
+
+## 提示条的公共画法 —— TutorHint 与 γ 公示卡(view/intro.gd)共用这一份:
+## 暗玻璃底 + 青描边 + {} 双色拼段;`en` 空串就不画右侧短标。
+## ⚠ 中文走 StageTheme.zh()(系统中文), 拉丁走 Rajdhani —— 混用会让中文掉进
+## fallback 字形(「数字对了形态错了」的典型形状)。
+static func draw_hint_bar(ci: CanvasItem, r: Rect2, cn: String, en: String) -> void:
+	ci.draw_style_box(StageTheme.box(Color(0.02, 0.03, 0.08, 0.88),
+		Color(StageTheme.CYAN.r, StageTheme.CYAN.g, StageTheme.CYAN.b, 0.55), 1, 8), r)
+	var fs := 20
+	var x := r.position.x + 14.0
+	var base_y := r.get_center().y + fs * 0.36
+	# ⚠ 正文是**白墨**不是青 —— 高亮段(青/金)要跳出来, 底色必须让位;
+	# 旧版整句青, {} 双色里的青段会隐形(截图对账抓到的)。
+	for seg in hint_parts(cn):
+		var txt := String(seg["t"])
+		if txt == "":
+			continue
+		var col: Color = hint_hue(txt) if bool(seg["hi"]) else Color(0.87, 0.91, 1.0, 0.92)
+		ci.draw_string(StageTheme.zh(), Vector2(x, base_y), txt,
+			HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col)
+		x += StageTheme.zh().get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+	if en != "":
+		# ⚠ 右对齐时 position 是**盒子左边**、width 定盒宽 —— 传 0 宽度会退成左对齐。
+		ci.draw_string(StageTheme.num("Medium"), Vector2(r.position.x, r.get_center().y + 5), en,
+			HORIZONTAL_ALIGNMENT_RIGHT, r.size.x - 12, 13, Color(1, 1, 1, 0.42))
+
+
 ## 教学关的一行提示(docs/design/difficulty.md §4.4)。
 ##
 ## ⚑ 契约是**不打断**:不暂停、不弹窗、不需要点确认 —— 因为「8 秒是唯一闸门」,
@@ -46,17 +100,25 @@ class TutorHint:
 	## 「展示小丑牌的时候下方整个版面是黑的」):这些矩形只是**不压暗**, 不吃提亮、
 	## 不吃光圈、不参与提示条定位 —— 它们不是「这一步指向哪」, 是「永远不许黑」。
 	var _holes: Array = []
+	## 分镜的条锚位(v6):>= 0 就把条钉在这个 y 上, 跳过「贴高亮区 + 躲避」的自动逻辑 ——
+	## 分镜 = 高光构图 + **文字条锚位**, 同 shot 两拍条不动(镜头不跳)。-1 = 走自动。
+	var _anchor_y := -1.0
+	## 次级强调(光斑)的目标矩形(v6):转发给提亮层画小半径柔光圈, 不动条与 focus。
+	var _spot := Rect2()
 
 	## ⚠ 本部件铺满全屏, 所以**必须** MOUSE_FILTER_IGNORE, 否则整屏点不动。
 	func set_hint(cn: String, en: String, focus: Array = [], avoid: Array = [],
-			holes: Array = []) -> void:
+			holes: Array = [], anchor_y: float = -1.0, spot: Rect2 = Rect2()) -> void:
 		_avoid = avoid
-		if cn == _cn and en == _en and focus == _focus and holes == _holes:
+		if cn == _cn and en == _en and focus == _focus and holes == _holes \
+				and anchor_y == _anchor_y and spot == _spot:
 			return                      # 每拍都会被调, 不变就别重画
 		_cn = cn
 		_en = en
 		_focus = focus
 		_holes = holes
+		_anchor_y = anchor_y
+		_spot = spot
 		visible = cn != ""
 		if glow != null:
 			glow.set_focus(focus if cn != "" else [])
@@ -64,6 +126,7 @@ class TutorHint:
 			dim.set_focus((focus + holes) if cn != "" else [])
 		if light != null:
 			light.set_focus(focus if cn != "" else [])
+			light.set_spot(spot if cn != "" else Rect2())
 		queue_redraw()
 
 	## 提示条**跟着高亮区走**(2026-08-16 用户:「教学描述放在高亮区附近」)——
@@ -77,7 +140,11 @@ class TutorHint:
 
 	## 条贴在高亮区的**上方**;顶上放不下就翻到**下方**。
 	## ⚠ 多块高亮区时取**并集**(第 6 步同时指手牌 + 缓存)—— 贴着其中一块会把另一块甩下。
+	## ⚑ v6:分镜给了显式锚位(_anchor_y ≥ 0)就直接钉死 —— 同 shot 两拍条不动。
 	func _bar_rect() -> Rect2:
+		if _anchor_y >= 0.0:
+			return Rect2(BAR.position.x,
+				clampf(_anchor_y, 60.0, 1280.0 - BAR.size.y - 16.0), BAR.size.x, BAR.size.y)
 		if _focus.is_empty():
 			return BAR
 		var top := INF
@@ -115,17 +182,8 @@ class TutorHint:
 			return
 		# ⚑ 「指」已经不在这一层了 —— 高亮走 `TutorGlow`, 它画在**手牌/缓存的下面**。
 		# 理由见 TutorGlow 的文件头:在最上层加光必然盖住卡面、把花色染掉。
-		var r := _bar_rect()
-		draw_style_box(StageTheme.box(Color(0.02, 0.03, 0.08, 0.88),
-			Color(StageTheme.CYAN.r, StageTheme.CYAN.g, StageTheme.CYAN.b, 0.55), 1, 8), r)
-		# ⚠ 中文走 StageTheme.zh()(系统中文), 拉丁走 Rajdhani —— 混用会让中文掉进
-		# fallback 字形, 那正是这条美术线上「数字对了形态错了」的典型形状。
-		var fs := 20
-		draw_string(StageTheme.zh(), Vector2(r.position.x + 14, r.get_center().y + fs * 0.36), _cn,
-			HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 130, fs, StageTheme.CYAN)
-		# ⚠ 右对齐时 position 是**盒子左边**、width 定盒宽 —— 传 0 宽度不会右对齐(会退成左对齐)。
-		draw_string(StageTheme.num("Medium"), Vector2(r.position.x, r.get_center().y + 5), _en,
-			HORIZONTAL_ALIGNMENT_RIGHT, r.size.x - 12, 13, Color(1, 1, 1, 0.42))
+		# 画法(玻璃条 + {} 双色拼段)与 γ 公示卡共用 `Widgets.draw_hint_bar` 这一份。
+		Widgets.draw_hint_bar(self, _bar_rect(), _cn, _en)
 
 
 ## 教学关的**区域高亮** —— 打光, 不画框(2026-08-16 用户拍板:「需要操作的和需要注意的,
@@ -290,6 +348,10 @@ class TutorDim:
 class TutorLight:
 	extends Control
 	var _focus: Array = []
+	## 次级强调(v6 分镜化, 用户拍板):**小半径柔光圈**, 位置随步切换, 不动条与 focus。
+	## ⚠ 这是对「教学高亮层不许画任何非黑色」判据的**一次有意豁免**(v6 规格明写「光斑」):
+	## 豁免只给这一个小圆 —— 加法混合 + 小半径 + 低值, 不是当年糊掉全屏的那种柔光洗。
+	var _spot := Rect2()
 
 	func _init() -> void:
 		var m := CanvasItemMaterial.new()
@@ -300,12 +362,27 @@ class TutorLight:
 		if focus == _focus:
 			return
 		_focus = focus
-		visible = not focus.is_empty()
+		visible = (not _focus.is_empty()) or _spot.size.x > 0.0
+		queue_redraw()
+
+	func set_spot(q: Rect2) -> void:
+		if q == _spot:
+			return
+		_spot = q
+		visible = (not _focus.is_empty()) or _spot.size.x > 0.0
 		queue_redraw()
 
 	func _draw() -> void:
-		pass    # 第五版:零白色(判据在 TutorDim:教学高亮层不许画任何非黑色)。
-		        # 类与接线保留, 未来要单独照亮某步先过那条判据再议。
+		# focus 本身仍零白色(判据在 TutorDim:对比就是打光);只画 spot 的光斑。
+		if _spot.size.x <= 0.0:
+			return
+		# 同心圆角盒叠加(加法混合):内里累计到 ~0.18 白, 向外逐层软掉 ——
+		# 形状走共用的 `Widgets.focus_radius`(键 = 圆, 行 = 圆角长条), 光贴合看到的形状。
+		const LAYERS := 10
+		for i in range(LAYERS):
+			var q := _spot.grow(float(LAYERS - 1 - i) * 3.0)
+			draw_style_box(StageTheme.box(Color(1, 1, 1, 0.016), Color(0, 0, 0, 0), 0,
+				int(Widgets.focus_radius(q))), q)
 
 
 class GradBar:
