@@ -1009,15 +1009,16 @@
    "rarity": "rare",
    "curve": "floating",
    "proof": "score",
-   "fx": "Each face in cache: ×1.2",
+   "fx": "Each face in cache: x1.35",
    "effects": [
     {
      "do": {
-      "mult_add": 0.2,
+      "mult_add": 0.35,
       "per": "cache_face"
      }
     }
-   ]
+   ],
+   "_comment": "2026-08-27 用户:「×1.2/张太低, 都是很难的条件」(占格机会成本大)—— 0.2→0.35/张(满 3 张 ×2.05);五因子口径, 全池重标时再校。"
   },
   {
    "id": "trim",
