@@ -226,26 +226,16 @@ func _draw_filter() -> void:
 		Color(ACC.r, ACC.g, ACC.b, 0.35), 1.0)
 
 
-## 卡画用 source/ 原画(1024²,无文字)而不是 previews/ ——
-## previews 是 GPT 烘焙的迷你卡面,**数额烘死在像素里**,平衡一调就变陈数
-## (2026-08-12 Target 重锚当场撞上:格角新章 ×10、图里旧章 ×7 并排打架)。
-## 原画 + 运行时排字才是单源;alpha bbox 裁掉大边距(同 joker_slot 的做法)。
+## 卡画走 `JokerSlotView.load_art`(**唯一加载路径**:art512 → source → 条图,
+## 含 alpha bbox 裁边)—— 装备槽 / 商店货架 / 图鉴同一条路,别抄第二份。
+## 不用 previews/ 的理由不变:previews 是 GPT 烘焙的迷你卡面,**数额烘死在像素里**,
+## 平衡一调就变陈数(2026-08-12 Target 重锚当场撞上:格角新章 ×10、图里旧章 ×7 并排打架)。
 func _tex(id: String) -> Array:      # [Texture2D, Rect2 bbox] 或空数组
 	if _art.has(id):
 		return _art[id] if _art[id] is Array else []
-	var p := "res://assets/jokers/art512/joker_%s.png" % id
-	if not ResourceLoader.exists(p):
-		p = "res://assets/jokers/source/joker_%s.png" % id
-	if not ResourceLoader.exists(p):
-		_art[id] = false
-		return []
-	var t: Texture2D = load(p)
-	var img := t.get_image()
-	var bb := img.get_used_rect()
-	bb = bb.grow(int(maxf(float(bb.size.x), float(bb.size.y)) * 0.04))
-	bb = bb.intersection(Rect2i(0, 0, img.get_width(), img.get_height()))
-	_art[id] = [t, Rect2(bb)]
-	return _art[id]
+	var a := JokerSlotView.load_art(id)
+	_art[id] = a if not a.is_empty() else false
+	return a
 
 
 ## 网格层的内容(局部坐标,clip_contents 裁掉视口外)。

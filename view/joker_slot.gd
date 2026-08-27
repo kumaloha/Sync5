@@ -75,25 +75,73 @@ func set_joker(j) -> void:
 	_art = null
 	_art_src = Rect2()
 	if j != null:
-		# 优先 512² 瘦图(webslim 产物 —— iOS 浏览器内存红线杀的止血,槽位显示
-		# ≤200px 足够);缺了退 1024² source 原画,再退 1024×400 条图。
-		var path := "res://assets/jokers/art512/joker_%s.png" % j.id
-		if not ResourceLoader.exists(path):
-			path = "res://assets/jokers/source/joker_%s.png" % j.id
-		if not ResourceLoader.exists(path):
-			path = "res://assets/jokers/joker_%s.png" % j.id
-		if ResourceLoader.exists(path):
-			_art = load(path)
-			# 2026-08-11:1024×400 条图里竖长主体两侧是大片透明空气, 按纵横比 cover
-			# 裁不掉 —— 加载时算一次 alpha 内容包围盒, 绘制按它 contain, 主体才占满箱。
-			var img := (_art as Texture2D).get_image()
-			if img != null:
-				var used := img.get_used_rect()
-				if used.size.x > 0:
-					used = used.grow(int(maxf(4.0, float(used.size.x) * 0.05)))
-					_art_src = Rect2(used).intersection(
-						Rect2(0, 0, img.get_width(), img.get_height()))
+		var art := load_art(String(j.id))
+		if not art.is_empty():
+			_art = art[0]
+			_art_src = art[1]
 	queue_redraw()
+
+
+## ⚑ 小丑牌卡面素材的**唯一加载路径**(装备槽 / 商店货架 / 图鉴共用, 别抄第二份):
+## 优先 512² 瘦图(webslim 产物 —— iOS 浏览器内存红线杀的止血,卡面显示 ≤200px 足够);
+## 缺了退 1024² source 原画,再退 1024×400 条图。全部键控透明(黑=透明),
+## 光效直接悬在各自的暗玻璃底上。返回 [Texture2D, Rect2 内容包围盒] 或 [](无素材)。
+## 2026-08-11:1024×400 条图里竖长主体两侧是大片透明空气, 按纵横比 cover 裁不掉 ——
+## 加载时算一次 alpha 内容包围盒, 绘制按它 contain, 主体才占满箱。
+static func load_art(id: String) -> Array:
+	for path in ["res://assets/jokers/art512/joker_%s.png" % id,
+			"res://assets/jokers/source/joker_%s.png" % id,
+			"res://assets/jokers/joker_%s.png" % id]:
+		if not ResourceLoader.exists(path):
+			continue
+		var tex: Texture2D = load(path)
+		var src := Rect2(0, 0, tex.get_width(), tex.get_height())
+		var img := tex.get_image()
+		if img != null:
+			var used := _content_bbox(img)
+			if used.size.x > 0:
+				used = used.grow(maxf(4.0, used.size.x * 0.05))
+				src = used.intersection(
+					Rect2(0, 0, img.get_width(), img.get_height()))
+		return [tex, src]
+	return []
+
+
+## 带阈值的内容包围盒。`get_used_rect()` 数的是 a>0,而扩展包母版(#030308 底)
+## 键控后背景残留 a≈0.031 —— 压缩噪点刚好越过键控的 0.03 地板,包围盒被噪声
+## 撑满全幅,contain 之下主体缩成角落小标(2026-08-27 真人试玩:灌铅骰「小灰标
+## 看不懂」正是这个形状)。在 128 宽的缩样上按 a≥0.06 扫(缩放走 C++,GDScript
+## 只扫 ≤1.6 万像素),映射回原尺寸时向外取整一档,主体才真正占满艺术箱。
+static func _content_bbox(img: Image) -> Rect2:
+	var w := img.get_width()
+	var h := img.get_height()
+	if w < 1 or h < 1:
+		return Rect2()
+	var probe: Image = img.duplicate()
+	if probe.is_compressed():
+		probe.decompress()
+	probe.convert(Image.FORMAT_RGBA8)
+	var sw := mini(w, 128)
+	var sh := maxi(1, int(round(float(h) * float(sw) / float(w))))
+	probe.resize(sw, sh, Image.INTERPOLATE_BILINEAR)
+	var x0 := sw
+	var y0 := sh
+	var x1 := -1
+	var y1 := -1
+	for y in range(sh):
+		for x in range(sw):
+			if probe.get_pixel(x, y).a >= 0.06:
+				x0 = mini(x0, x)
+				y0 = mini(y0, y)
+				x1 = maxi(x1, x)
+				y1 = maxi(y1, y)
+	if x1 < x0:
+		return Rect2()
+	var sx := float(w) / float(sw)
+	var sy := float(h) / float(sh)
+	var rx := floorf(float(x0) * sx)
+	var ry := floorf(float(y0) * sy)
+	return Rect2(rx, ry, ceilf(float(x1 + 1) * sx) - rx, ceilf(float(y1 + 1) * sy) - ry)
 
 
 func _gui_input(event: InputEvent) -> void:
