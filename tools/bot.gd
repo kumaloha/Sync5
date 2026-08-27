@@ -453,6 +453,7 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 		if String(slots[0].id) == "lonewolf" and next_face in ["norepeat", "rotation"]:
 			hyst = 0.6
 		if gain * horizon > lam * float(tprice) * hyst:
+			var coins_before_pivot := coins
 			coins -= tprice
 			# 与游戏侧同序:先发事件(收藏家/转型), 再装卡 —— 新旗不给自己记一次。
 			Joker.notify_shop(slots, "buy")
@@ -461,6 +462,8 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 			slots[0] = tj
 			tj.on_acquire(deck)
 			coins = Economy.cap_held(coins, slots)     # 装卡后修剪(同编排器)
+			# 经济账本:买卡净支出 = 成交前后余额差(含上限修剪;旁路, 不动决策)。
+			_rep.eco_add("spend_buy", coins_before_pivot - coins)
 			_rep.pivots_n += 1
 			_rep.buys_total += 1
 			_rep.discount_coins += maxi(0, Economy.joker_price(tj, true) - tprice)
@@ -535,6 +538,7 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 					best_cost = price - refund
 			pass
 		if best != null:
+			var coins_before_buy := coins
 			if empty_slot >= 0:
 				coins -= best_cost
 				Joker.notify_shop(slots, "buy")            # 收藏家(装卡前, 同编排器)
@@ -557,6 +561,8 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 				best.on_acquire(deck)
 				coins = Economy.cap_held(coins, slots)     # 装卡后修剪(同编排器)
 				_rep.support_drafted[best.id] = int(_rep.support_drafted.get(best.id, 0)) + 1
+			# 经济账本:买卡净支出 = 成交前后余额差(替换含回收抵扣与上限修剪)。
+			_rep.eco_add("spend_buy", coins_before_buy - coins)
 			buys += 1
 			_rep.buys_total += 1
 			if buys >= 2:
@@ -573,6 +579,7 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 		# (2026-08-06: leaving the shop pays nothing — the skip reward is gone)
 		if attempt == 0 and buys == 0 and coins >= Economy.reroll_cost(0) + 6:
 			coins -= Economy.reroll_cost(0)
+			_rep.eco_add("spend_reroll", Economy.reroll_cost(0))   # 经济账本:付费刷新
 			Joker.notify_shop(slots, "reroll")             # 淘碟(同编排器)
 			# ⚠ 刷新后的货架沿用既有行为:只重掷、不重放两个「必定出」补丁 ——
 			# 游戏侧 redeal 会重放, 这是 bot 的既有保真缺口, 记档不扩大(证物只数首发)。
@@ -780,6 +787,9 @@ func _play_random(p: Phrase, slots: Array) -> void:
 	for i in range(_rng.randi_range(0, 2)):
 		p.swap_with_cache(_rng.randi_range(0, 4), _rng.randi_range(0, GameConfig.CACHE_CAP - 1))
 	var k := _rng.randi_range(0, 2)
+	# 经济账本:随机 bot 想弃 k 张但金币不足(掷点在前, 记账不消耗 RNG)。
+	if _rep != null and k > 0 and p.coins < Economy.discard_cost(k):
+		_rep.eco_add("deny_money", 1)
 	if k > 0 and p.can_discard(k):
 		var idx: Array = []
 		while idx.size() < k:
@@ -818,6 +828,8 @@ func _play_adaptive(p: Phrase, slots: Array, target_id: String, section: int, mo
 			var rs_plan: Dictionary = _best_plan(p.hand, target_id, 3, p.deck.rules)
 			if not bool(rs_plan.get("keep_all", false)):
 				p.reshuffle()
+				if _rep != null:   # 经济账本:洗牌支出(外层已验过 can_reshuffle)
+					_rep.eco_add("spend_reshuffle", Economy.reshuffle_cost())
 	# free swaps: any trial swap that raises the best plan's EV sticks
 	var rules: Dictionary = p.deck.rules
 	for ci in range(p.cache.size()):
@@ -858,8 +870,13 @@ func _play_adaptive(p: Phrase, slots: Array, target_id: String, section: int, mo
 	var kappa: float = float(EV.get("discard_kappa", 0.0)) * float(GameConfig.DISCARD_COST)
 	if kappa > 0.0:
 		var plan_gain: float = float(plan.get("ev", 0.0)) - float(plan.get("ev0", 0.0))
+		var idx_before_kappa := idx.size()
 		while idx.size() > 0 and plan_gain < kappa * float(idx.size()):
 			idx.pop_back()
+		# 经济账本(旁路, 只记事实):κ 自我约束砍掉的张数 —— 「想弃但金币不足」的
+		# 拒绝口径测不到它(bot 决策前就收手了), 所以单独记一列(report.gd eco 注释)。
+		if _rep != null and idx.size() < idx_before_kappa:
+			_rep.eco_add("kappa_cut", idx_before_kappa - idx.size())
 	# ⚑ **玩家为自己的卡调整弃牌张数**(2026-08-13 还的仪器债;同 `_timing_flags` 的思路)。
 	# 拆迁(弃满 3 张 → 成牌 ×3.5)与断舍离(一次弃 4 张 → +50%)的收益都远大于
 	# 「多弃一张让手牌变差」的损失, 所以装了它们的玩家会**凑够张数**。
@@ -888,6 +905,9 @@ func _play_adaptive(p: Phrase, slots: Array, target_id: String, section: int, mo
 				break
 			if not idx.has(i):
 				idx.append(i)
+	# 经济账本:想弃但金币不足(张数已定, coins < 张数×单价 —— can_discard 会因此拒绝)。
+	if _rep != null and not idx.is_empty() and p.coins < Economy.discard_cost(idx.size()):
+		_rep.eco_add("deny_money", 1)
 	if not idx.is_empty() and p.can_discard(idx.size()) and p.discard_selected(idx, []):
 		_notify_discard(slots, idx.size())
 	# 回收の经营(2026-08-25 打法先验):持有回收 = 每拍把缓存最小的一张直弃换奖励分
@@ -902,11 +922,16 @@ func _play_adaptive(p: Phrase, slots: Array, target_id: String, section: int, mo
 				if cc != null and cc.rank < low_rank and not blocked.has(cc):
 					low_rank = cc.rank
 					low_ci = cj
+			if _rep != null and low_ci >= 0 and p.coins < Economy.discard_cost(1):
+				_rep.eco_add("deny_money", 1)   # 经济账本:回收想献祭但付不起
 			if low_ci >= 0 and p.can_discard(1) and p.discard_selected([], [low_ci]):
 				_notify_discard(slots, 1)
 			break
 	# Forced Rotation: any non-vow build tosses its worst card rather than
 	# eat the ×0.5 (Lone Wolf keeps the vow — ×4 halved still beats ×1)
+	if _rep != null and mod == "rotation" and p.discards_used == 0 \
+			and target_id != "lonewolf" and p.coins < Economy.discard_cost(1):
+		_rep.eco_add("deny_money", 1)   # 经济账本:轮换想弃一张避 ×0.5 但付不起
 	if mod == "rotation" and p.discards_used == 0 and target_id != "lonewolf" and p.can_discard(1):
 		# toss the worst card OUTSIDE the scoring five — round 17's version
 		# tossed the lowest rank and kept breaking its own pairs

@@ -22,6 +22,8 @@ const DOMAINS := [
 	"t_tutorial", "t_director", "t_lingo", "t_uplink",
 	# t_save:体力真闸门(2026-08-26)。纯函数层, 不碰共享状态, 追加安全。
 	"t_save",
+	# t_eco:sim 经济收支账本(tools/report.gd, 2026-08-27)。纯算术, 不碰共享状态。
+	"t_eco",
 ]
 
 var _pass := 0

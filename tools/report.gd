@@ -38,6 +38,69 @@ var buys_total := 0
 var multi_shops_n := 0
 var discount_coins := 0
 
+# ── 经济 v2 收支账本(2026-08-27;对照 docs/design/levels.md 经济 v2「怎么调」四条健康带)──
+# **旁路记账, 只记事实**:钱真的动了 / 拒绝真的发生了。不消耗 RNG、不碰任何决策。
+# `eco` = 当前一局的累加器(sim.gd 每局 `eco_begin_run()`, 记账口用 `eco_add()`),
+# `eco_runs` = 每局一条的定案(`eco_commit_run()`)。⚠ 其他探针的 Bot 也会往 `eco` 里
+# 写(买卡/拒弃的记账口在 bot.gd)—— 没人 begin/commit 就只是攒在一个没人读的
+# 字典里, 零副作用。键与口径:
+#   spend_discard  弃牌总支出◆(= 弃牌张数 × DISCARD_COST, 在结算回调按 p.discards_used 记)
+#   disc_cards     弃牌总张数(含缓存直弃/回收献祭/轮换强弃 —— 与 discards_used 同口径)
+#   spend_buy      买卡净支出◆(= 每次成交前后余额差:含换旗/替换的回收抵扣与上限修剪)
+#   spend_reroll   付费刷新支出◆
+#   income_kind    牌型金币总收入◆(**只看牌型** = res.coins, 不含小丑加成/系数 —— 健康带口径)
+#   deny_money     「想弃但金币不足」次数(bot 已定下要弃的张数, coins < 张数×单价;
+#                  ⚠ bot 的 κ 自我约束在这之前发生, 所以拒绝很少 ≠ 钱不紧, 要连 κ 一起读)
+#   kappa_cut      κ 门槛砍掉的弃牌张数(plan 增益 < κ×张数, 决策前的自我约束 —— 上一条的另一半)
+#   broke_beats    软破产拍数(**决策时** 0◆:发牌后动手前 coins==0, 一张都弃不起)
+#   beats / zerod_beats  总拍数 / 零弃牌拍数(弃牌分布「塌零」判据的分母与分子)
+var eco: Dictionary = {}
+var eco_runs: Array = []
+## print_report 算完的经济摘要挂在这, 给 sim.gd 的跨队列健康带对照用(同 last_clear)。
+var last_eco: Dictionary = {}
+
+
+func eco_begin_run() -> void:
+	eco = {}
+
+
+func eco_add(key: String, v: int) -> void:
+	eco[key] = int(eco.get(key, 0)) + v
+
+
+func eco_commit_run(end_coins: int, cleared: bool) -> void:
+	eco["end"] = end_coins
+	eco["cleared"] = 1 if cleared else 0
+	eco_runs.append(eco)
+	eco = {}
+
+
+static func eco_mean_se(vals: Array) -> Array:
+	var n := vals.size()
+	if n == 0:
+		return [0.0, 0.0]
+	var s := 0.0
+	for v in vals:
+		s += float(v)
+	var m := s / float(n)
+	if n < 2:
+		return [m, 0.0]
+	var q := 0.0
+	for v in vals:
+		q += (float(v) - m) * (float(v) - m)
+	return [m, sqrt(q / float(n - 1)) / sqrt(float(n))]
+
+
+static func eco_median(vals: Array) -> float:
+	if vals.is_empty():
+		return 0.0
+	var s := vals.duplicate()
+	s.sort()
+	var n := s.size()
+	if n % 2 == 1:
+		return float(s[n / 2])
+	return (float(s[n / 2 - 1]) + float(s[n / 2])) * 0.5
+
 
 func reset() -> void:
 	died_at = []
@@ -64,6 +127,9 @@ func reset() -> void:
 	buys_total = 0
 	multi_shops_n = 0
 	discount_coins = 0
+	eco = {}
+	eco_runs = []
+	last_eco = {}
 
 
 func record_run(slots: Array, died: int) -> void:
@@ -175,6 +241,68 @@ func print_report(cfg: Dictionary) -> void:
 		if int(k) >= 0:
 			kind_line += "%s:%d%% " % [Pattern.NAMES[int(k)].split(" ")[0], int(round(100.0 * float(kind_count[k]) / float(total_k)))]
 	print(kind_line)
+	_print_economy()
+
+
+## 经济节:每队列的收支读数(键的口径见上面 eco 的声明注释)。
+## ⚠ 健康带按**真人口径**标(levels.md:bot 世界恒比真人松, bot 弃 0.6 vs 真人 1.5-3),
+## 这里是 bot 尺 —— 只看方向与相对变化, 不许拿这里的数字直接去调 economy.json。
+func _print_economy() -> void:
+	last_eco = {}
+	if eco_runs.is_empty():
+		return
+	var n := eco_runs.size()
+	var end_vals: Array = []
+	var clear_end: Array = []
+	var beats := 0.0
+	var zerod := 0.0
+	var broke := 0.0
+	var deny := 0.0
+	var cards := 0.0
+	var inc := 0.0
+	for r in eco_runs:
+		end_vals.append(float(r.get("end", 0)))
+		if int(r.get("cleared", 0)) == 1:
+			clear_end.append(float(r.get("end", 0)))
+		beats += float(r.get("beats", 0))
+		zerod += float(r.get("zerod_beats", 0))
+		broke += float(r.get("broke_beats", 0))
+		deny += float(r.get("deny_money", 0))
+		cards += float(r.get("disc_cards", 0))
+		inc += float(r.get("income_kind", 0))
+	var bdiv := maxf(1.0, beats)
+	var end_ms := eco_mean_se(end_vals)
+	var disc_ms := eco_mean_se(_eco_vals("spend_discard"))
+	var buy_ms := eco_mean_se(_eco_vals("spend_buy"))
+	var rr_ms := eco_mean_se(_eco_vals("spend_reroll"))
+	var inc_ms := eco_mean_se(_eco_vals("income_kind"))
+	var deny_ms := eco_mean_se(_eco_vals("deny_money"))
+	var kap_ms := eco_mean_se(_eco_vals("kappa_cut"))
+	print("  经济(◆/局, mean±SE, n=%d):" % n)
+	print("    局末余额 %.1f±%.1f · 中位数 %.1f(通关局中位数 %.1f, n=%d)"
+		% [end_ms[0], end_ms[1], eco_median(end_vals), eco_median(clear_end), clear_end.size()])
+	print("    弃牌支出 %.1f±%.1f(%.2f 张/拍)· 零弃牌拍 %.1f%%"
+		% [disc_ms[0], disc_ms[1], cards / bdiv, 100.0 * zerod / bdiv])
+	var rsh_ms := eco_mean_se(_eco_vals("spend_reshuffle"))
+	print("    买卡净支出 %.1f±%.1f · 付费刷新 %.2f±%.2f · 洗牌 %.2f±%.2f"
+		% [buy_ms[0], buy_ms[1], rr_ms[0], rr_ms[1], rsh_ms[0], rsh_ms[1]])
+	print("    牌型金币收入 %.1f±%.1f(%.2f◆/拍, 只看牌型不含小丑加成)"
+		% [inc_ms[0], inc_ms[1], inc / bdiv])
+	print("    金币不足拒弃 %.2f±%.2f 次/局(%.2f%% 拍)· κ 门槛砍弃 %.2f±%.2f 张/局"
+		% [deny_ms[0], deny_ms[1], 100.0 * deny / bdiv, kap_ms[0], kap_ms[1]])
+	print("    软破产拍(决策时 0◆)%.2f%%" % [100.0 * broke / bdiv])
+	last_eco = {"n": n, "end_mean": end_ms[0], "end_med": eco_median(end_vals),
+		"end_med_clear": eco_median(clear_end), "clears": clear_end.size(),
+		"disc_per_beat": cards / bdiv, "zerod_pct": 100.0 * zerod / bdiv,
+		"broke_pct": 100.0 * broke / bdiv, "deny_pct": 100.0 * deny / bdiv,
+		"income_run": inc_ms[0], "income_beat": inc / bdiv, "buy_run": buy_ms[0]}
+
+
+func _eco_vals(key: String) -> Array:
+	var out: Array = []
+	for r in eco_runs:
+		out.append(float(r.get(key, 0)))
+	return out
 ## The routine harvester: what kits actually win, and what each support is
 ## worth. This list is the requirements doc for the S5/S8/S10 boss modifiers.
 func print_playbooks() -> void:
