@@ -37,6 +37,13 @@ func set_explore_used(used: Dictionary) -> void:
 	_explore_used = used
 
 
+## 巡演路线行(journey #4)—— 编排器在 open 前注入([{name, state}], 见
+## phrase.gd::_shop_route)。空数组 = 不画(教学关);画法在 Widgets.BlindBoard。
+func set_route(r: Array) -> void:
+	_blind_board.route = r
+	_blind_board.queue_redraw()
+
+
 func set_shelf_rarity_mult(m: Dictionary) -> void:
 	_rarity_mult = m
 

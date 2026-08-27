@@ -48,6 +48,18 @@ func run(t) -> void:
 			"第 %d 拍的英文短标 ≤7 词(与卡面同一条 1.5 秒规矩)" % (i + 1))
 	t.eq(String(Tutorial.hint(steps.size())["command"]), "", "越界的提示是空串, 不是 null")
 
+	# --- 经济 v2 进教学(journey #2, 2026-08-27):价签写进文案, 数字跟 economy.json 走 ---
+	# ⚠ 断言从 GameConfig 推导(本文件铁律:不抄死数字)—— 经济一调价,
+	# 教学文案不跟着改就红:静默过期的价签比没有价签更糟(教的是错的钱)。
+	# 探针恒 cn, 中文价签形如「1◆」「3◆」(en 表值另有 ◆1 形, 由 t_lingo 守翻译存在性)。
+	var all_cmd := ""
+	for i in range(steps.size()):
+		all_cmd += String(Tutorial.hint(i)["command"]) + "\n"
+	t.check(all_cmd.find("%d◆" % GameConfig.DISCARD_COST) != -1,
+		"弃牌价写在教学文案里(经济 v2:弃牌不再免费, 第一次扣款不许是暗扣)")
+	t.check(all_cmd.find("%d◆" % int(GameConfig.JOKER_PRICES.get("common", 0))) != -1,
+		"卡价写在教学文案里(商店步带价)")
+
 	# --- schema 门禁(结构错的脚本必须红) ---
 	var ok := {"components": ["hand"],
 		"steps": [{"seconds": 9.0, "unlock": ["hand"], "command": "中", "signal": "EN"}]}
