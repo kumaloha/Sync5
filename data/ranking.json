@@ -1,5 +1,5 @@
 {
- "_comment": "⚑ 仪器输出(tools/price.gd → tools/rankgen.py), 手改无效。每段由易到难;时间族与 raisedbar 是设计性覆盖(理由在本脚本头与 blinds.md 仪器盲区节)。core/db.gd::validate_ranking 守四段齐全 + id 都是活脸 + **池脸都在表里**(反向完备性, trilogy 事故后加)—— 脸池一变这里就红。⚑ 2026-08-27 bootstrap:suitveil(段2)/rankfog(段3)随属性级信念入池, 先按段尾 append(未过 price 仪器, 位置只是占位)—— 下一次 tools/price.gd → tools/rankgen.py 统跑时会自动正位, 在那之前 Director 只是把它们当本段最难。",
+ "_comment": "⚑ 仪器输出(tools/price.gd → tools/rankgen.py), 手改无效。每段由易到难;时间族与 raisedbar 是设计性覆盖(理由在本脚本头与 blinds.md 仪器盲区节)。core/db.gd::validate_ranking 守四段齐全 + id 都是活脸 + **池脸都在表里**(反向完备性, trilogy 事故后加)—— 脸池一变这里就红。⚑ 2026-08-27 bootstrap:suitveil(段2)/rankfog(段3)随属性级信念入池, 先按段尾 append(未过 price 仪器, 位置只是占位)—— 下一次 tools/price.gd → tools/rankgen.py 统跑时会自动正位, 在那之前 Director 只是把它们当本段最难。⚑ 2026-08-27 bootstrap 二:lowend_throttle(段2, 复合脸试点)同样按段尾 append —— **等门定价**(单脸门 SYNC5_GATE_FACE 的读数只回答「模型看不看得见它」, 不回答「它在本段排第几」;位置要等 price 仪器统跑)。",
  "0": [
   "facedown",
   "raisedbar125",
@@ -50,7 +50,8 @@
   "callout50",
   "rerun",
   "raisedbar",
-  "rankfog"
+  "rankfog",
+  "lowend_throttle"
  ],
  "3": [
   "countdown",

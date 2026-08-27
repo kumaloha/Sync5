@@ -698,6 +698,18 @@
    "proof": "score",
    "tier": 2,
    "base": "crescendo"
+  },
+  {
+   "id": "lowend_throttle",
+   "name": "Low End Throttle",
+   "cn": "低音限流",
+   "fx": "Low refills, four moves each phrase",
+   "combo": [
+    "lowend",
+    "throttle"
+   ],
+   "proof": "solver",
+   "tier": 3
   }
  ],
  "families": {

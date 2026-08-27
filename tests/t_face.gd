@@ -30,10 +30,13 @@ func run(t) -> void:
 		["setlist", "blindspot", "throttle", "request", "lowend", "highend", "roulette",
 			"colorlight", "suitveil", "dimstage", "wetink", "handseal",
 			"throttle6", "wetink2", "lastcall4", "crescendo07"],
+		# ⚑ 2026-08-27 复合脸试点 lowend_throttle(低音限流, versus.md 复合语法):
+		#   低音的最优解是狂弃刷小牌, 限流把那条路封死 —— 乙封甲的最优解, 异轴(牌质 × 动作)。
 		["rankfog", "callout", "crescendo", "rerun", "raisedbar", "trilogy", "blackout",
 			"doubleseal", "ration", "switchtrack",
 			"raisedbar175", "raisedbar200", "ration8", "onetake1", "setlist25",
-			"request80", "colorlight25", "callout50", "dimstage3", "trilogy4"],
+			"request80", "colorlight25", "callout50", "dimstage3", "trilogy4",
+			"lowend_throttle"],
 		# ⚑ 2026-08-14 用户:「tier4 可以补脸, 只不过都是时间相关的就行」——
 		# 末轮从「固定一张」变成「时间族四张」。六秒仍然始终成立:**每张都自带 time_penalty**,
 		# 所以 docs/design/blinds.md §6 删掉延音的那条理由(把六秒还回去 = 破坏第四轮主机制)不被违反。
@@ -177,6 +180,75 @@ func run(t) -> void:
 	t.check(DB.validate_faces(_ff) != "", "同一张脸兼任软硬两档被拒")
 	_ff["families"] = {"lock_first": {"soft": "soft", "hard": "hard"}}
 	t.check(DB.validate_faces(_ff) != "", "两张脸不带这个 param 就不是同一族")
+
+	# --- 复合脸 (2026-08-27, docs/design/versus.md 复合语法 + blinds.md §2.6) ---
+	# 语法 = **乙脸封掉甲脸的最优解**;形式前提四条 + 两条「不许有隐性规则」在
+	# `DB._validate_face_combos`。这里两段:① 试点脸的行为真的是两成分的并集;
+	# ② 每条守卫**真的会喊**(A/B —— 守一个不会喊的守卫比不守更糟)。
+	#
+	# ⚑ 合并只在 `SectionMod._entry` 一处发生, 所以 Beat/Phrase/Settle **一行没改** ——
+	# 它们只透过这些只读访问器看脸。下面直接对着访问器验, 而不是去读 JSON:
+	# 「参数合上了」和「游戏读得到」是两件事, 只有前者的测试挡不住后者的静默失效。
+	var _cid := "lowend_throttle"
+	t.check(SectionMod.by_id(_cid) != null, "复合脸试点 %s 在花名册里" % _cid)
+	t.eq(SectionMod.combo_of(_cid), ["lowend", "throttle"], "%s 的两成分" % _cid)
+	# 参数并集:两成分各自的数值原样落到复合上(不许有第三个数)。
+	t.eq(SectionMod.refill_rank_max(_cid), int(_face_param("lowend", "refill_rank_max")),
+		"复合继承低音的补牌上限")
+	t.eq(SectionMod.refill_rank_min(_cid), int(_face_param("lowend", "refill_rank_min")),
+		"复合继承低音的补牌下限")
+	t.eq(SectionMod.action_cards_max(_cid), int(_face_param("throttle", "action_cards_max")),
+		"复合继承限流的动作上限")
+	# 攻击轴 = 并集, 且**恰好是两成分之和**(多一条 = 合并把不该带的参数也搬过来了)。
+	var _ax: Array = SectionMod.attack_axes(_cid)
+	var _ax_a: Array = SectionMod.attack_axes("lowend")
+	var _ax_b: Array = SectionMod.attack_axes("throttle")
+	t.eq(_ax.size(), _ax_a.size() + _ax_b.size(), "复合的轴数 = 两成分轴数之和(异轴 ⇒ 不重叠)")
+	for a in _ax_a + _ax_b:
+		t.check(_ax.has(a), "复合的攻击轴含 '%s'" % a)
+	# 真人证据线随成分走 = **OR**。两个前提一起断言, 否则 true==true 是巧合还是继承分不清。
+	t.check(SectionMod.tape_required("throttle"), "(前提)限流自己带 tape_required")
+	t.check(not SectionMod.tape_required("lowend"), "(前提)低音自己不带 —— 所以下一条测的是 OR")
+	t.check(SectionMod.tape_required(_cid),
+		"复合继承成分的 tape_required —— 让作者在复合条目里抄第二份, 那份会漂且不报错")
+	# 图标回落 = 第一成分(复合没有 base;BlindCard 因此零改动)。
+	t.eq(SectionMod.base_of(_cid), "lowend", "复合的图标回落到第一成分")
+
+	# A/B:六条守卫逐条验它会喊。基座 = 两张异轴的合法成分 + 一条合法复合。
+	var _cb: Dictionary = {"faces": [
+			{"id": "q", "name": "Q", "cn": "q", "fx": "x",
+				"params": {"refill_rank_max": 9}, "proof": "solver", "tier": 1},
+			{"id": "d", "name": "D", "cn": "d", "fx": "x",
+				"params": {"action_cards_max": 4}, "proof": "solver", "tier": 1},
+			{"id": "qd", "name": "QD", "cn": "qd", "fx": "x",
+				"combo": ["q", "d"], "proof": "solver", "tier": 1}],
+		"fixed_tiers": []}
+	t.eq(DB.validate_faces(_cb), "", "异轴 · 恰两成分 · 成分都有 tier ⇒ 合法复合")
+	_cb["faces"][2]["combo"] = ["q", "nope"]
+	t.check(DB.validate_faces(_cb) != "", "成分不存在被拒(拼错 = 那一半参数凭空消失)")
+	_cb["faces"][2]["combo"] = ["q"]
+	t.check(DB.validate_faces(_cb) != "", "只有一个成分被拒(复合恰两成分)")
+	_cb["faces"][2]["combo"] = ["q", "d", "q"]
+	t.check(DB.validate_faces(_cb) != "", "三个成分被拒(三张起是围殴, 读不出题干)")
+	_cb["faces"][2]["combo"] = ["q", "d"]
+	_cb["faces"][1].erase("tier")
+	t.check(DB.validate_faces(_cb) != "", "成分没有 tier 被拒(成分必须先单独登过场)")
+	_cb["faces"][1]["tier"] = 1
+	# 异轴:把成分 d 换成同轴(牌质)—— 必须红。
+	_cb["faces"][1]["params"] = {"refill_rank_min": 2}
+	t.check(DB.validate_faces(_cb) != "", "两成分同轴被拒(同轴叠加只是把同一个拨盘拧两下)")
+	# 同键冲突:异轴恢复, 但两成分都写同一个 param —— 也必须红。
+	# ⚠ 这一条与上一条**必须分开验**:同键往往顺带同轴, 一起测就分不清是哪条守卫喊的。
+	_cb["faces"][1]["params"] = {"action_cards_max": 4, "refill_rank_max": 5}
+	t.check(DB.validate_faces(_cb) != "", "两成分同键冲突被拒(取谁都是在悄悄改一张已上线脸)")
+	_cb["faces"][1]["params"] = {"action_cards_max": 4}
+	_cb["faces"][2]["params"] = {"time_penalty": 1.0}
+	t.check(DB.validate_faces(_cb) != "", "复合自带 params 被拒(合并顺序不许成为隐性规则)")
+	_cb["faces"][2].erase("params")
+	_cb["faces"][2]["base"] = "q"
+	t.check(DB.validate_faces(_cb) != "", "复合同时声明 base 被拒(档位与复合是两条轴)")
+	_cb["faces"][2].erase("base")
+	t.eq(DB.validate_faces(_cb), "", "逐条复原之后又是合法的复合(A/B 的另一半)")
 
 	# --- 设计死亡谱已配置化 (2026-08-07 用户拍板, 从 tools/curve.gd 挪进 data/) ---
 	# ⚠ **故意不断言单调递增**:目标函数换成留存之后,「一关比一关难」从原则降级成

@@ -228,6 +228,10 @@
   "crescendo07": {
    "command": "前三拍得分 ×0.7,后三拍 ×1.3",
    "signal": "PHASE 0.7"
+  },
+  "lowend_throttle": {
+   "command": "弃牌只补 2 至 9,合计最多动 4 张",
+   "signal": "RANK 2—9 · CARDS 4"
   }
  },
  "jokercard": {

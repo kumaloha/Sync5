@@ -234,6 +234,7 @@
   "%d 乐句 · %.0f 秒/句 · 弃牌免费": "%d phrases · %.0fs each · free discards",
   "每拍最多弃 2 张": "Discard at most 2 cards per beat",
   "弃牌与交换合计最多动 4 张": "Discards + swaps: 4 cards total",
+  "弃牌只补 2 至 9,合计最多动 4 张": "Refills 2-9; 4 cards moved total",
   "开拍随机一张手牌贴封条,不能弃": "A random starting card is sealed",
   "手牌与缓存各随机封一张,动不了": "Random hand & cache cards sealed",
   "每拍 6 秒,最多弃 2 张": "6s beats; 2 discards max",
