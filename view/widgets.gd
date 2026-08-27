@@ -1101,6 +1101,10 @@ class BlindBoard:
 	# 而是「这一场还差多少」—— 玩家已经打了半个盲注, 买牌是解题不是下注。
 	var score := -1
 	var phrases_left := -1
+	# 巡演路线行(journey #4, 2026-08-27):整局四场的脸缩略, [{name, state}] ——
+	# state 0 已打过(✓+压暗)/ 1 当前段(档位色)/ 2 未来(常规)。
+	# 只有商店注入它(Shop.set_route);空数组 = 不画, intro/教学不受影响。
+	var route: Array = []
 	var _t := 0.0
 	var _eq: Control = null        # 均衡器层 —— 板上唯一在动的东西, 只有它每帧重画
 	var _eq_rect := Rect2()        # 静态层排版时记下, 均衡器层照着画
@@ -1251,6 +1255,45 @@ class BlindBoard:
 			lfs -= 1
 		draw_string(zh, Vector2(pad, 232), limits,
 			HORIZONTAL_ALIGNMENT_LEFT, limits_w, lfs, limits_color)
+
+		# 巡演路线行(journey #4):商店 = 构筑决策点, versus 的调度解法要求在这里
+		# 看得到整局四张脸(开局特写的路线行看完就没了)。已打过 = ✓+压暗 ·
+		# 当前 = 档位色(叠一层低 alpha 当辉光)· 未来 = 常规。空数组 = 不画。
+		# 坐标/字号在 data/ui.json 的 shop.route_y / route_fs(坐标归 ui.json 铁律)。
+		if not route.is_empty():
+			var rcfg: Dictionary = DB.ui().get("shop", {})
+			var ry := float(rcfg.get("route_y", 264.0))
+			var rfs := int(rcfg.get("route_fs", 14))
+			var sep := " → "
+			var texts: Array = []
+			for e in route:
+				texts.append(("✓" + String(e["name"])) if int(e["state"]) == 0
+					else String(e["name"]))
+			# 一行放不下就收字号(中文名短, 英文名长 —— 与 limits 行同一条收法)
+			while rfs > 9:
+				var wsum := zh.get_string_size(sep,
+					HORIZONTAL_ALIGNMENT_LEFT, -1, rfs).x * float(texts.size() - 1)
+				for s in texts:
+					wsum += zh.get_string_size(String(s),
+						HORIZONTAL_ALIGNMENT_LEFT, -1, rfs).x
+				if wsum <= cw:
+					break
+				rfs -= 1
+			var rx := pad
+			for i in range(texts.size()):
+				var seg := String(texts[i])
+				var st := int(route[i]["state"])
+				var col: Color = StageTheme.rim(0.34) if st == 0 \
+					else (Color(acc.r, acc.g, acc.b, 1.0) if st == 1 else StageTheme.rim(0.60))
+				if st == 1:
+					draw_string(zh, Vector2(rx, ry), seg,
+						HORIZONTAL_ALIGNMENT_LEFT, -1, rfs, Color(acc.r, acc.g, acc.b, 0.40))
+				draw_string(zh, Vector2(rx, ry), seg, HORIZONTAL_ALIGNMENT_LEFT, -1, rfs, col)
+				rx += zh.get_string_size(seg, HORIZONTAL_ALIGNMENT_LEFT, -1, rfs).x
+				if i < texts.size() - 1:
+					draw_string(zh, Vector2(rx, ry), sep,
+						HORIZONTAL_ALIGNMENT_LEFT, -1, rfs, StageTheme.rim(0.25))
+					rx += zh.get_string_size(sep, HORIZONTAL_ALIGNMENT_LEFT, -1, rfs).x
 
 
 class DJKey:

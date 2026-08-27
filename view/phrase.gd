@@ -666,7 +666,15 @@ func _settle() -> void:
 	merge_tw.tween_interval(0.45)
 	merge_tw.tween_callback(func() -> void:
 		fx.shake(9.0)
-		wave.on_score(float(gained_score) / 80.0))
+		wave.on_score(float(gained_score) / 80.0)
+		# 牌型金币入账反馈(journey #3, 经济 v2 主收入):+N◆ 跟合拍一起落地,
+		# 而不是结算瞬间 —— 同帧出手会被 base×mult 的大动画淹掉, 审计里那句
+		# 「金币悄悄进 HUD 数字」正是这个形状。金币 chip 同拍脉冲一次,
+		# 数字跳动与飘字互相佐证「大牌 = 多钱」。打点不加:入账已是事实记录。
+		if gained_coins > 0:
+			fx.float_text("+%d ◆" % gained_coins,
+				hud.coin_anchor() + Vector2(20, 40), StageTheme.GOLD)
+			fx.pop(hud.coin_label))
 	# joker triggers pop over their slots, staggered
 	var popups: Array = outcome["popups"]
 	for k in range(popups.size()):
@@ -676,8 +684,6 @@ func _settle() -> void:
 		var tw := create_tween()
 		tw.tween_interval(0.30 + 0.22 * float(k))
 		tw.tween_callback(fx.float_text.bind(String(p["text"]), at, StageTheme.GOLD))
-	if gained_coins > 0:
-		fx.float_text("+%d ◆" % gained_coins, hud.coin_anchor() + Vector2(20, 40), StageTheme.GOLD)
 
 
 ## Shards have launched — start rolling the score up to meet them.
@@ -1061,6 +1067,9 @@ func _open_draft() -> void:
 	# 点名的解除奖励:本次开店 +1 货架位, 消费即清源(三条开店入口都走本函数, 单一咬合点)。
 	shop.shelf_bonus = run.shelf_bonus
 	run.shelf_bonus = 0
+	# 巡演路线(journey #4):开局特写亮过整局四脸, 但**做构筑决策的时刻在商店**,
+	# versus 的「调度/排期」解法要求在这里也看得到全局 —— 盲注板脚注亮四场缩略。
+	shop.set_route(_shop_route())
 	shop.open(run.joker_slots, phrase.coins, run.section_idx,
 		SectionMod.by_id(String(run.run_faces.get(run.section_idx, ""))),
 		run.section_score if mid else -1,
@@ -1073,6 +1082,22 @@ func _open_draft() -> void:
 		"offer": shop.offers(), "slots": Tape.slots(run.joker_slots),
 		"left": run.phrases_left() if mid else -1,
 		"need": run.deficit() if mid else -1})
+
+
+## 商店盲注板的巡演路线行(journey #4)—— 与开局特写的 `_route_text()` 同一份事实
+## (`run.run_faces`), 换成按段拆开的结构, 板子才能给「已打过/当前/未来」上不同的色。
+## state: 0 已打过(勾+压暗)/ 1 当前段(档位色)/ 2 未来(常规)。
+## 教学关返回空数组 = 不画(教学没有脸, 四个「纯分数」只是噪声)。
+func _shop_route() -> Array:
+	if run.tutorial:
+		return []
+	var out: Array = []
+	for i in range(GameConfig.SECTIONS_PER_RUN):
+		var m := SectionMod.by_id(String(run.run_faces.get(i, "")))
+		out.append({
+			"name": m.cn_name if m != null else Lingo.t("纯分数"),
+			"state": 0 if i < run.section_idx else (1 if i == run.section_idx else 2)})
+	return out
 
 
 ## 一次进店已成交几张(联票 buy_limit 的计数;每次 _open_draft 归零)。

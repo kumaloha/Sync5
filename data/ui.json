@@ -533,11 +533,11 @@
   ],
   "blind_pos": [
    80,
-   92
+   80
   ],
   "blind_size": [
    560,
-   276
+   296
   ],
   "target_line": "TARGET · 定义什么是好答案 · 免费",
   "support_line": "SUPPORT · 定义怎么到达答案 · ◆ %d",
@@ -566,7 +566,10 @@
    156,
    132
   ],
-  "replace_prompt_w": 410
+  "replace_prompt_w": 410,
+  "_comment_route": "巡演路线行(journey #4):商店盲注板脚注的整局四脸缩略。板内基线 y 与字号;画法在 Widgets.BlindBoard, 数据由编排器注入(phrase.gd::_shop_route)。⚠ 行要留在玻璃白线(板底内缩 14)之内 —— 商店板因此加高 276→296(intro 的板没有这一行, 尺寸没动)。",
+  "route_y": 272,
+  "route_fs": 14
  },
  "hand": {
   "deny": {
