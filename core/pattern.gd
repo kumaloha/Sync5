@@ -205,17 +205,27 @@ static func best_score_of(cards: Array, rules: Dictionary = {}) -> int:
 
 ## Score exactly five cards, resolving any wilds to their best substitution.
 static func _score_five(five: Array, rules: Dictionary = {}) -> Dictionary:
+	var has_wild := false
+	for c in five:
+		if c.is_wild():
+			has_wild = true
+	if not has_wild:
+		return _pack(five, five, rules)
+	return _score_many_wilds(five, rules)
+
+
+## ⚠ **仅测试参照, 生产路径不再用**(2026-08-27 全域候选构造替代)。
+## 旧的 k≤2 暴力:每张万能试 52 张实牌(允许与实牌重复 —— 万能可以「变成你已有的那张」,
+## 这是万能语义的权威口径, 候选构造必须与它逐分相等, tests/t_pattern.gd 对拍锁着)。
+## 超级百搭上市后它曾是热路径主开销(bot 大盘装卡局单局 0.6s→~3.6s, 52² 在 best_score_of 内层)。
+static func _score_five_brute(five: Array, rules: Dictionary = {}) -> Dictionary:
 	var wild_idx: Array = []
 	for i in range(five.size()):
 		if five[i].is_wild():
 			wild_idx.append(i)
 	if wild_idx.is_empty():
 		return _pack(five, five, rules)
-	if wild_idx.size() >= 3:
-		return _score_many_wilds(five, rules)
-
-	# brute force: every wild tries all 52 real cards, keep the best result.
-	# The hand is five cards and at most two wilds exist, so this stays small.
+	assert(wild_idx.size() <= 2, "brute 参照只支持 k<=2(k>=3 用缩减域对拍)")
 	var best := {}
 	var best_score := -1
 	var subs: Array = []
@@ -242,115 +252,80 @@ static func _score_five(five: Array, rules: Dictionary = {}) -> Dictionary:
 	return best
 
 
-## ≥3 张万能的解析捷径(2026-08-26 超级百搭的引擎前提)。
-## 52^k 暴力在 k≥3 爆炸;更糟的是旧的 2-wild 分支对 k≥3 会**漏替换**,
-## rank 15 直达 _classify_fast 的计数数组越界 —— 所以这不是优化, 是正确性。
-## 做法 = **候选构造**:实牌 ≤2 张时最优解只落在少数形态里
-## (同花顺窗[含皇家/轮子]/四条/满堂/同花), 把每个形态的 resolved 直接造出来,
-## 打分仍走 _pack → _classify(rules) —— 近道/四指/红调/黑调**自动生效**,
-## 规则不开第二份(「规则只准有一份」)。完备性由 tests 的缩减域对拍守着。
+## 万能牌解析 = **全域候选构造**(2026-08-27 推广到 k=1..5;此前 k≤2 走 52^k 暴力、
+## k≥3 走候选构造两条路)。推广的动因是性能:超级百搭上市后 bot 大盘装卡局
+## 单局 0.6s→~3.6s —— 52² 暴力在 best_score_of 的热路径里(08-27 全量门因此每门慢一倍)。
+## 实测(1000 次 8 选 5 含 2 万能, 同机同批, 2026-08-27):候选构造 vs 旧暴力 = **91×**
+## (3.29s vs 299.7s, tools/_benchwild.gd 临时基准, 跑完即删;1000 手逐手分数全等)。
+##
+## 做法 = 把最优解可能落的形态**直接造出来**, 打分仍走 _pack → _classify(rules)
+## —— 近道/四指/红调/黑调**自动生效**, 规则不开第二份(「规则只准有一份」)。
+## 三个候选族(无规则时总数 O(30) 内;完备性由 tests/t_pattern.gd 的
+## k=1/2 全域 52^k 对拍 + k=3 缩减域对拍锁着):
+##   ① **顺子/同花顺窗**:5 连窗 + 轮子;近道加「6 宽窗去一内点」、四指加 4 连窗
+##      (窗表按规则组合静态缓存)。实牌若有重复 rank, 多出的那张当免费旁观位
+##      (只有四指的 4 连窗有旁观位, 5 连窗自然滤掉 —— 账恒等:旁观数 = 5 − 窗长)。
+##      wild 补窗内缺口, 花色对 suits_pool 各出一版;多余 wild 变同花色 A(最高 kicker)。
+##   ② **点数族**(对/两对/三条/满堂/四条全形态):wild 逐张从 {实牌各 rank, A, K}
+##      取值的多重组合。K 是唯一需要的额外 kicker(4 张 A 时第五张不能再 A ——
+##      5 张同 rank 会被判成高牌);任何点数形态都是其中一个组合。
+##   ③ **同花兜底**:wild 全变 A(同花色)。⚠ 不许「避开实牌 rank 往下取」——
+##      A♠A♠ 这种**与实牌同 rank 的重复牌是合法且更优的**(暴力语义允许,
+##      k=2 时四条常配不齐, 带对的同花就是最优解, 对拍抓过这个形态)。
+##      实牌混花时它退化成普通高牌候选 = 全场保底(任何输入 ≥1 候选)。
 static func _score_many_wilds(five: Array, rules: Dictionary) -> Dictionary:
 	var reals: Array = []
 	for c in five:
 		if not c.is_wild():
 			reals.append(c)
+	var k: int = five.size() - reals.size()
 	var suits_pool: Array = []
+	var real_ranks: Array = []
 	for c in reals:
 		if not suits_pool.has(c.suit):
 			suits_pool.append(c.suit)
+		if not real_ranks.has(c.rank):
+			real_ranks.append(c.rank)
 	if suits_pool.is_empty():
 		suits_pool = [0]
 	var cands: Array = []
-	# ① 同花顺窗(顶窗朝下枚举 + 轮子):实牌 rank 必须互异且全在窗内;
-	#    wild 补齐缺口, 花色对 suits_pool 各出一版(混花实牌时 _classify 自会判成纯顺)。
-	var distinct: bool = reals.size() < 2 or reals[0].rank != reals[1].rank
-	if distinct:
-		var windows: Array = []
-		for t in range(14, 5, -1):
-			windows.append([t - 4, t - 3, t - 2, t - 1, t])
-		windows.append([14, 5, 4, 3, 2])   # 轮子 A2345
-		for w in windows:
-			var in_win := true
-			for c in reals:
-				if not w.has(c.rank):
-					in_win = false
-			if not in_win:
-				continue
-			var gaps: Array = []
-			for r in w:
-				var taken := false
-				for c in reals:
-					if c.rank == r:
-						taken = true
-				if not taken:
-					gaps.append(r)
-			for s in suits_pool:
-				var cand: Array = reals.duplicate()
-				for r in gaps:
-					cand.append(Card.new(r, s))
-				cands.append(cand)
-	# ② 四条:目标 R 取实牌各 rank 与 A;剩余 wild 做最高 kicker(A, 与 R 撞则 K)。
-	var targets: Array = [14]
-	for c in reals:
-		if not targets.has(c.rank):
-			targets.append(c.rank)
-	for tr in targets:
-		var have := 0
-		for c in reals:
-			if c.rank == tr:
-				have += 1
-		var need: int = 4 - have
-		var spare: int = (5 - reals.size()) - need
-		if need < 0 or spare < 0:
+	# ① 顺子/同花顺窗
+	for w in _run_sets(rules):
+		var gaps: Array = []
+		for r in w:
+			if not real_ranks.has(r):
+				gaps.append(r)
+		if gaps.size() > k:
 			continue
-		var cand: Array = reals.duplicate()
-		for i in range(need):
-			cand.append(Card.new(tr, i % 4))
-		var kick: int = 14 if tr != 14 else 13
-		for i in range(spare):
-			# 只有当 kicker 不会把四条顶成"5 张同 rank"时才用 A;实牌占位已排除。
-			cand.append(Card.new(kick, (i + 2) % 4))
-		if cand.size() == 5:
-			cands.append(cand)
-	# ③ 满堂:三条×两对的组合, 从 {实牌 ranks, A} 里配 (R3, R2)。
-	for r3 in targets:
-		for r2 in targets:
-			if r2 == r3:
-				continue
-			var h3 := 0
-			var h2 := 0
-			for c in reals:
-				if c.rank == r3:
-					h3 += 1
-				elif c.rank == r2:
-					h2 += 1
-			# 实牌必须全被用上(五张里没有第三种 rank 的位置)。
-			if h3 + h2 != reals.size():
-				continue
-			var need3: int = 3 - h3
-			var need2: int = 2 - h2
-			if need3 < 0 or need2 < 0 or need3 + need2 != 5 - reals.size():
-				continue
+		# gaps ≤ k 即充要:5 连窗时它自动排掉「实牌重 rank / 实牌在窗外」
+		# (那会让 gaps 变大;账恒等:旁观位 = 5 − 窗长, 5 连窗旁观位为零)。
+		var spare: int = k - gaps.size()
+		for s in suits_pool:
 			var cand: Array = reals.duplicate()
-			for i in range(need3):
-				cand.append(Card.new(r3, i % 4))
-			for i in range(need2):
-				cand.append(Card.new(r2, (i + 1) % 4))
+			for r in gaps:
+				cand.append(Card.new(r, s))
+			for i in range(spare):
+				cand.append(Card.new(14, s))
 			cands.append(cand)
-	# ④ 同花(非顺, 兜底给规则牌角落):wild 变同花高牌, 从 A 往下避开实牌 rank。
+	# ② 点数族
+	var targets: Array = real_ranks.duplicate()
+	if not targets.has(14):
+		targets.append(14)
+	if not targets.has(13):
+		targets.append(13)
+	var assigns: Array = []
+	_rank_multisets(targets, k, 0, [], assigns)
+	for asg in assigns:
+		var cand: Array = reals.duplicate()
+		for i in range(asg.size()):
+			cand.append(Card.new(asg[i], i % 4))
+		cands.append(cand)
+	# ③ 同花兜底
 	for s in suits_pool:
 		var cand: Array = reals.duplicate()
-		var r := 14
-		while cand.size() < 5 and r >= 2:
-			var clash := false
-			for c in cand:
-				if c.rank == r:
-					clash = true
-			if not clash:
-				cand.append(Card.new(r, s))
-			r -= 1
-		if cand.size() == 5:
-			cands.append(cand)
+		for i in range(k):
+			cand.append(Card.new(14, s))
+		cands.append(cand)
 	# 全部候选交给 _pack, 判型与算分照旧 —— 这里只负责"猜得全", 不负责"判得对"。
 	var best := {}
 	var best_score := -1
@@ -360,6 +335,61 @@ static func _score_many_wilds(five: Array, rules: Dictionary) -> Dictionary:
 			best_score = int(res["score"])
 			best = res
 	return best
+
+
+## 顺子候选的 rank 集合表, 按 (近道, 四指) 规则组合缓存(内容只依赖规则, 不依赖手牌)。
+## A 恒以 14 表示(轮子/低 A 窗构造时先按 1 排再换回)。
+static var _runsets_cache := {}
+
+static func _run_sets(rules: Dictionary) -> Array:
+	var shortcut: bool = rules.get("shortcut", false)
+	var four: bool = rules.get("fourfingers", false)
+	var key: int = (1 if shortcut else 0) | (2 if four else 0)
+	if _runsets_cache.has(key):
+		return _runsets_cache[key]
+	var sets: Array = []
+	# 基础:5 连窗(顶 6..14)+ 轮子 A2345。
+	for t in range(6, 15):
+		sets.append([t - 4, t - 3, t - 2, t - 1, t])
+	sets.append([14, 2, 3, 4, 5])
+	# 近道:5 个互异 rank 落在 6 宽窗内(= 去掉一个内点;去端点退化为基础窗)。
+	# lo=1 是低 A 窗(A,2..6 去一内点)。
+	if shortcut:
+		for lo in range(1, 10):
+			for drop in range(lo + 1, lo + 5):
+				var s5: Array = []
+				for r in range(lo, lo + 6):
+					if r != drop:
+						s5.append(14 if r == 1 else r)
+				sets.append(s5)
+	# 四指:4 连窗(lo=1 是 A234);叠近道 = 4 个互异 rank 落在 5 宽窗内。
+	if four:
+		for lo in range(1, 12):
+			var s4: Array = []
+			for r in range(lo, lo + 4):
+				s4.append(14 if r == 1 else r)
+			sets.append(s4)
+		if shortcut:
+			for lo in range(1, 11):
+				for drop in range(lo + 1, lo + 4):
+					var s4: Array = []
+					for r in range(lo, lo + 5):
+						if r != drop:
+							s4.append(14 if r == 1 else r)
+					sets.append(s4)
+	_runsets_cache[key] = sets
+	return sets
+
+
+## targets 的 k 元多重组合(不计顺序), 递归填 out。k≤5、targets≤7 → 最多几十个。
+static func _rank_multisets(targets: Array, k: int, start: int, cur: Array, out: Array) -> void:
+	if cur.size() == k:
+		out.append(cur.duplicate())
+		return
+	for i in range(start, targets.size()):
+		cur.append(targets[i])
+		_rank_multisets(targets, k, i, cur, out)
+		cur.pop_back()
 
 
 static func _pack(original: Array, resolved: Array, rules: Dictionary = {}) -> Dictionary:
