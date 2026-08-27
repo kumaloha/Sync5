@@ -79,6 +79,7 @@ var intro: BlindIntro
 var music: Music             # 每段一首的 8 秒循环(view/music.gd, 2026-08-18)
 var beacon: Beacon           # Tape 回传(view/beacon.gd, 1.1;配置关着时自睡)
 var fx: StageFeedback        # 屏震/弹跳/飘字 —— 纯表现, view/feedback.gd
+var burst: FxBurst           # A 级触发特效(预支/百搭/谢幕/规则宣告), view/fxburst.gd
 var _shown_score := 0        # what the HUD prints; counts up to run.section_score
 ## 分数滚动还没演完(2026-08-21 评审:`resolve_hold 1.0s` < 碎片 1.5s ⇒ `_refresh` 一离开 RESOLVE 就把
 ## `_shown_score` 拍成终值, 滚动 tween 到点时 from == to 直接 return —— 设计稿 t=2120ms 的
@@ -295,6 +296,11 @@ func _build_ui() -> void:
 		if e is InputEventMouseButton and e.pressed:
 			_end_cutin())
 	add_child(_cutin_catch)
+	# A 级触发特效层(2026-08-27, 设计稿 docs/mockups/fx/)。**最后 add_child + z 100** ——
+	# 规则宣告与超级百搭的仪式发生在**商店开着**的时候, 不盖在货架上面就等于没演。
+	# 它不吃点击(IGNORE), 仪式不许抢走玩家那一拍。
+	burst = FxBurst.new()
+	add_child(burst)
 
 
 # ============================== FLOW ==============================
@@ -971,6 +977,10 @@ func _advance() -> void:
 				SaveState.settle_run_meta(false, run.section_idx, _faces_encountered(),
 					String(run.boon()), _final_target_id())
 				music.play_jingle(false)
+				# 违约碎裂(fx_advance ③):红闪 + 卡面碎成玻璃片。**在 show_fail 之前发** ——
+				# 特效层 z=100 盖在 fail 屏之上, 碎片正好落在「你死了」那一屏上。
+				if not run.tutorial:
+					burst.loan_default(_loan_anchor(), int(loan_out.repay))
 				# 死因行:分数达标却因预支违约死掉, 只念分数会让玩家困惑(文案在
 				# ui.json 的 banner 节, DB.ui() 已过语言层, %d = 还不上的还款额)
 				run_end.show_fail(run.section_score, run.target(),
@@ -979,6 +989,9 @@ func _advance() -> void:
 			phrase.coins -= int(loan_out.repay)
 			run.coins = phrase.coins
 			Tape.on("loan", {"pay": int(loan_out.repay), "coins": phrase.coins})
+			# 逐段抽走(fx_advance ②):一枚金币被红色拽出钱包
+			if not run.tutorial:
+				burst.loan_repay(_purse_anchor(), int(loan_out.repay))
 		if bool(out["finale"]):
 			Tape.close({"ok": true, "sec": run.section_idx,
 				"score": run.section_score, "target": run.target(),
@@ -1029,10 +1042,43 @@ func _faces_encountered() -> Array:
 ## advance to the next blind and open the shop — every section boundary is a
 ## shop visit; with full slots it becomes the buy-new-replace-old flow
 func _next_section() -> void:
+	# 客串到寿的清槽发生在 `run.next_section()` 里(core 侧, 单一咬合)。
+	# ⚠⚠ **视图此前没有跟着摘** —— 卡在数据里已经没了, 槽位上还挂着它的卡面
+	# (2026-08-27 做谢幕特效时发现的真 bug)。先记摘前的持仓, 摘完比对空出来的槽:
+	# 一是演谢幕, 二是把卡面清掉。两件事同一个来源, 不会再分叉。
+	var before: Array = run.joker_slots.duplicate()
 	run.next_section()
+	_bow_out(before)
 	_loan_borrow()
 	_tape_section()
 	_open_draft()
+
+
+## 到寿离场(fx_gueststar_exit):追光收窄 + 深鞠一躬 + 空槽粉色余晖。
+## 「不许凭空蒸发」是这一页设计稿的原话 —— 清卡面与演谢幕是同一次比对的两个动作。
+func _bow_out(before: Array) -> void:
+	for i in range(run.joker_slots.size()):
+		if i >= before.size() or before[i] == null or run.joker_slots[i] != null:
+			continue
+		var jv: Control = joker_views[i]
+		if not run.tutorial:
+			burst.guest_exit(Rect2(jv.get_global_position(), jv.size),
+				String(before[i].cn_name))
+		jv.set_joker(null)
+
+
+## HUD 金币位(全局)—— 预支三拍的钱包锚点。coin_label 右对齐, 宽 160。
+func _purse_anchor() -> Vector2:
+	return hud.coin_anchor() + Vector2(150, 15)
+
+
+## 持有预支卡的那个槽位中心(全局);找不到就退回钱包 —— 碎的必须是**那张卡**。
+func _loan_anchor() -> Vector2:
+	for i in range(run.joker_slots.size()):
+		var j = run.joker_slots[i]
+		if j != null and int(Joker.slots_loan([j]).repay) > 0:
+			return joker_views[i].get_global_position() + joker_views[i].size * 0.5
+	return _purse_anchor()
 
 
 ## 预支借款(2026-08-26 金融组):段初自动 +borrow, 走 grant 收口(吃穷开心 cap)。
@@ -1047,6 +1093,9 @@ func _loan_borrow() -> void:
 		phrase.coins = Economy.grant(phrase.coins, int(loan.borrow), run.joker_slots)
 		run.coins = phrase.coins
 	Tape.on("loan", {"get": int(loan.borrow), "coins": run.coins})
+	# 借入流金(fx_advance ①):金币拖着青尾流进钱包。教学关不演(它没有预支卡, 这行是纪律)。
+	if not run.tutorial:
+		burst.loan_borrow(_purse_anchor(), int(loan.borrow))
 
 
 ## success screen: 下一场演出 (or 谢幕 on the finale)
@@ -1099,6 +1148,8 @@ func _on_end_home() -> void:
 func _reset_run(_keep: bool) -> void:
 	phrase = null
 	run.reset()
+	if burst != null:
+		burst.clear()      # 换局 = 上一局没演完的仪式作废(同 SettleFx.dismiss 的口径)
 	for i in range(joker_views.size()):
 		joker_views[i].set_joker(null)
 	_shown_score = 0
@@ -1286,6 +1337,7 @@ func _on_shop_bought(j, price: int) -> void:
 		j.on_acquire(run.deck)          # 百搭 shuffles 大小王 in at this moment
 		joker_views[0].set_joker(j)
 		fx.pop(joker_views[0])
+		_fx_acquired(j, 0)
 	else:
 		# pay and install into the first empty support slot
 		# ⚠⚠ **找不到空位必须响** —— 2026-08-16 真人试玩踩到:`view/shop.gd` 当时用
@@ -1300,6 +1352,7 @@ func _on_shop_bought(j, price: int) -> void:
 				j.on_acquire(run.deck)
 				joker_views[k].set_joker(j)
 				fx.pop(joker_views[k])
+				_fx_acquired(j, k)
 				placed = true
 				break
 		if not placed:
@@ -1329,6 +1382,30 @@ func _on_shop_bought(j, price: int) -> void:
 # (升级函数 2026-08-26 随升级系统删除;它的注释头和尾行 `_start_phrase()` 曾被落下 ——
 # GDScript 把注释当空白, 那行孤儿代码**接进了上一个函数**, 买满限额关店时会把
 # `_start_phrase()` 跑两遍:重复发牌、重收入场费, 而且不报错。2026-08-27 清掉。)
+
+
+## 买入仪式(2026-08-27 A 级特效批)—— 买入 / 满槽替换**两条安装路径共用这一份**,
+## 挂在三个 `on_acquire()` 调用点上。「第二条入口漏掉主路径的步骤」是这个项目最贵的
+## 形状之一, 所以不许各写各的。
+##
+## ⚠⚠ **超级百搭也是规则牌**(它带 `acquire.wilds`, `is_rule_card()` 对它为真)——
+## 必须**先判它再判规则牌**, 否则同一次买入会同时演旋涡和宣告横幅。
+func _fx_acquired(j, slot: int) -> void:
+	if j == null or run.tutorial:
+		return
+	if String(j.id) == "superwild":
+		# 入库仪式画在**音浪轴**(720/2, 534)上:牌堆在游戏里没有实体, 而四张 JOKER
+		# 进的是牌堆不是槽位, 挂在槽位上会说错话。
+		# ⚠ 螺旋起手半径 182, 短暂压到手牌区上沿(672)—— 这一条**不违反「不挡牌面」**:
+		# 它只在商店成交那一刻放, 那时货架本来就盖着牌桌(设计稿也把它单列为
+		# 「商店购入时的一次性入库仪式」, 不在结算链内)。
+		burst.superwild(Vector2(360, 534))
+		return
+	if j.is_rule_card():
+		# 文案全部来自 data/jokers.json(cn_name / fx_text)—— view 里不写卡面字。
+		# 收尾缩向刚装上的那个槽位:那张卡就是这条规则的常驻标记。
+		burst.rule_decree(String(j.cn_name), String(j.fx_text), String(j.id),
+			joker_views[slot].get_global_position() + joker_views[slot].size * 0.5)
 
 
 ## full slots: pick which support to swap out (old sells for half)
@@ -1411,6 +1488,7 @@ func _on_slot_tapped(k: int) -> void:
 	phrase.coins = Economy.cap_held(phrase.coins, run.joker_slots)
 	joker_views[k].set_joker(new_j)
 	fx.pop(joker_views[k])
+	_fx_acquired(new_j, k)
 	replace.exit()
 	_start_phrase()
 
