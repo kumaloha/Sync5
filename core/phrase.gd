@@ -493,9 +493,10 @@ func has_initial_cache_in_hand() -> bool:
 ## state; the solver only consumes it.
 func hidden_indices(visible: Array) -> Array:
 	var out: Array = []
-	# 蒙点/蒙色(2026-08-25):属性遮蔽在 bot 侧按「整张全盲」**保守近似** ——
-	# 现有盲牌采样只有整张一种粒度。方向安全:bot 只会更弱, 脸只会被标得更狠
-	# (与「目标读数偏严」同一安全方向);属性级信念是这两张脸补 tier 入池前的必修课。
+	# 蒙点/蒙色(2026-08-25):属性遮蔽下每张牌都是「半张未知」, 所以全部下标都算 hidden
+	# —— 但**已知的那一半不丢**(2026-08-27 属性级信念):求解器经 `visible_rank_of` /
+	# `visible_suit_of` 拿到真值那半张, 替身采样只猜未知的那半(Solver.make_subs 的
+	# `known` 参数)。08-25 的「整张全盲」保守近似到此退役 —— 那是这两张脸入池前的必修课。
 	if SectionMod.hide_ranks(mod) or SectionMod.hide_suits(mod):
 		for i in range(visible.size()):
 			out.append(i)
@@ -506,6 +507,22 @@ func hidden_indices(visible: Array) -> Array:
 		if hidden.has(visible[i]):
 			out.append(i)
 	return out
+
+
+## 属性级读口(2026-08-27, 蒙色/蒙点的信念地基):这张牌**当前看得见**的那一半。
+## 蒙点(hide_ranks)下点数 -1、花色真值;蒙色(hide_suits)反之;
+## 整张盖住(`hidden` 集合:盖牌族/暗场)两者都 -1。放在这里而不是求解器 ——
+## 「玩家看得见什么」是游戏状态, 求解器只消费(与 hidden_indices 同一条归属线)。
+func visible_rank_of(card: Card) -> int:
+	if card == null or SectionMod.hide_ranks(mod) or hidden.has(card):
+		return -1
+	return card.rank
+
+
+func visible_suit_of(card: Card) -> int:
+	if card == null or SectionMod.hide_suits(mod) or hidden.has(card):
+		return -1
+	return card.suit
 
 
 ## Lock input and evaluate the hand.

@@ -53,7 +53,11 @@ static var CACHE_MAX: int = CACHE_CAP
 # 它的用途是让**求解器与模拟器共用同一个上限** —— 数学 D 在预算内求最优、
 # sim 的完美玩家队列同预算, 三方对齐才谈得上「一致」。这条同时决定数学算不算得动:
 # 预算无界 → 决策树无界 → 只能退回蒙特卡洛 = 又变成「用模拟冒充数学」。
+# ⚑ 动作粒度(2026-08-27, 新基线):BEAT_DISCARDS = 每拍弃牌**动作次数**预算 ——
+# 一次跨区多选批量弃 = 1 个动作(真人手势如此;旧口径把张数当动作数, 弃 6 结构性不可达)。
+# 单批能圈几张走 BEAT_DISCARD_BATCH(8 = 全部可见牌)。
 static var BEAT_DISCARDS: int = int(_run["beat_budget"]["discards"])
+static var BEAT_DISCARD_BATCH: int = int(_run["beat_budget"]["discard_batch"])
 static var BEAT_SWAPS: int = int(_run["beat_budget"]["swaps"])
 
 ## 盖牌脸下, 求解器给每张看不见的牌抽几组替身来估信念分。
@@ -66,9 +70,18 @@ static var BLIND_SAMPLES: int = int(DB.sim()["solver"]["blind_samples"])
 ## ⚠ 这是赶场在模型里**唯一的着力点**:v1 求解器不弃牌时它是空气 ——
 ## S4 的池子是 [拔电, 赶场], 其中一张没效果, 那一半的局 S4 实际没有 Boss 规则、
 ## 难度被系统性低估。交换预算走不通(最多只要 cache_cap=3 次, 给了 5 次, 永远不binding)。
+## ⚑ 2026-08-27 起返回的是**动作次数**(见 BEAT_DISCARDS 头注), 不再是张数。
 static func beat_discards(duration: float, section_idx: int) -> int:
 	var full := phrase_duration(section_idx)
 	return maxi(0, int(floor(float(BEAT_DISCARDS) * duration / maxf(0.1, full))))
+
+
+## 单批弃牌张数上限, 同样随实际拍长缩放(时间少 ⇒ 圈牌的手也慢)——
+## 赶场的时间压力因此在**两层**都咬得住:动作更少、单批也更小。
+## 与 beat_discards 同一条缩放公式, 「乘除只写一处」在 GameConfig 这层成立。
+static func discard_batch(duration: float, section_idx: int) -> int:
+	var full := phrase_duration(section_idx)
+	return maxi(0, int(floor(float(BEAT_DISCARD_BATCH) * duration / maxf(0.1, full))))
 
 # --- Economy ---
 static var STARTING_COINS: int = int(_eco["starting_coins"])

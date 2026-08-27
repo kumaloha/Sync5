@@ -199,15 +199,29 @@ static func best_blind_score(visible: Array, slots: Array, extra: Dictionary,
 ## 盖着的那几张自己 —— 它们物理上在手里, 所以不在 peek 的池子里。后果是求解器
 ## **永远猜不中真值**, 它对自己的估计因此偏保守。|hidden| ≤ 5 而池子 ≈44,
 ## 偏差在个位数百分比, 但它是**单向**的, 记在这里别忘了。
+## `known`(可选)= 属性级信念(2026-08-27, 蒙色/蒙点入池的必修):属性遮蔽下牌不是
+## 全未知 —— 蒙点(hide_ranks)时花色看得见, 蒙色(hide_suits)时点数看得见。
+## known[j] = {"rank": r, "suit": s} 与 `hidden[j]` 对位, -1 = 那一半未知;
+## 替身按「**已知属性固定为真值、未知属性从采样牌取**」构造。空表 = 整张全盲, 老路径
+## 逐位不变 —— RNG 消耗个数不因 known 而变(peek 的张数相同), 只有替身内容变。
+## ⚠ 边际分布是显式近似:未知半张取自「全部看不见的牌」的边际, 没有按已知半张条件化
+## (比如蒙点下 ♥ 的替身点数没有排除已亮出的 ♥)—— 池子 ≈44 张, 偏差个位数百分比。
 static func make_subs(deck: Deck, rng: RandomNumberGenerator, n_hidden: int,
-		count: int) -> Array:
+		count: int, known: Array = []) -> Array:
 	var out: Array = []
 	if n_hidden <= 0 or count <= 0:
 		return out
 	for _s in range(count):
 		var pick: Array = deck.peek_many(rng, n_hidden)
-		if pick.size() == n_hidden:
-			out.append(pick)
+		if pick.size() != n_hidden:
+			continue
+		for j in range(mini(known.size(), n_hidden)):
+			var kr := int((known[j] as Dictionary).get("rank", -1))
+			var ks := int((known[j] as Dictionary).get("suit", -1))
+			if kr >= 0 or ks >= 0:
+				var pc: Card = pick[j]
+				pick[j] = Card.new(kr if kr >= 0 else pc.rank, ks if ks >= 0 else pc.suit)
+		out.append(pick)
 	return out
 
 
@@ -539,6 +553,11 @@ static var NARROW_DISCARD := OS.get_environment("SYNC5_NARROW_DISCARD") == "1"
 ## 恰恰就是那个。不改的话求解器会系统性**高估弃牌的价值**, 于是狂弃牌 ——
 ## 而这张脸整个的意义就在弃牌决策上, 建模错了等于把脸测成了另一张脸。
 ## 正确口径:**新牌按信念挑切法, 按真值记分**(和 splits 的 belief/score 分工一致)。
+##
+## ⚑ 2026-08-27 动作粒度:`max_cards` = **单批张数上限**(调用方传
+## `GameConfig.discard_batch(dur, section)`;动作次数预算在调用方把关, 这里的一次
+## 枚举结果就是一批 = 一个动作)。旧口径传的是「每拍弃几张」(4), 弃 5-8 张的子集
+## 从未进过枚举 —— 与 bot 的动作粒度是同一笔债, 同日一起还。
 static func best_discard(visible: Array, slots: Array, extra: Dictionary,
 		deck: Deck, rng: RandomNumberGenerator, coins: int, max_cards: int,
 		coin_value: float, samples: int, lam: float, rules: Dictionary = {},
@@ -687,10 +706,12 @@ static func best_beat(visible: Array, slots: Array, extra: Dictionary,
 
 ## 手速预算换算成"本拍最多弃几张"。
 ## 预算是 `BEAT_DISCARDS` **次**动作, 而一次动作可以跨手牌+缓存多选 ——
-## 所以能弃几张的上界是可见牌数, 次数限制真正约束的是**自适应轮数**
-## (弃完看到补牌再决定要不要再弃), 那一层留给 DP。这里取保守上界。
+## 次数限制真正约束的是**自适应轮数**(弃完看到补牌再决定要不要再弃), 那一层留给 DP。
+## ⚑ 2026-08-27 单批张数上限进了配置(`beat_budget.discard_batch`), 这里直接读它
+## (现值 = 可见牌数 8, 行为不变);调用方(bot/pair)在有拍长上下文时走
+## `GameConfig.discard_batch(dur, section)` 的缩放版, 这里是无上下文的保守上界。
 static func _max_discard_cards() -> int:
-	return GameConfig.HAND_SIZE + GameConfig.CACHE_CAP
+	return GameConfig.BEAT_DISCARD_BATCH
 
 
 static var _combo_cache: Dictionary = {}

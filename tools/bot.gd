@@ -690,14 +690,19 @@ func _play_perfect(p: Phrase, slots: Array, mod: String = "",
 	# 完全信息时两者都是空/0, 老路径逐位不变(tests/runner.gd 锁着)。
 	var bs: int = GameConfig.BLIND_SAMPLES
 	var dur := Run.phrase_duration_for(section, mod, p.phrase_idx)
-	var d_max: int = GameConfig.beat_discards(dur, section)
-	if d_max > 0:
+	# ⚑ 动作粒度(2026-08-27, 新基线):beat_discards 现在是**动作次数**预算 ——
+	# 求解器一拍只弃一批, 消耗 1 个动作;单批张数上限走 discard_batch(随拍长缩放,
+	# 赶场在两层都咬得住)。旧口径把张数当动作数, 弃 6 结构性不可达(拆迁的 UNREACHABLE)。
+	var d_act: int = GameConfig.beat_discards(dur, section)
+	var d_cards: int = GameConfig.discard_batch(dur, section)
+	if d_act > 0 and d_cards > 0:
 		var vis0: Array = []
 		vis0.append_array(p.hand)
 		vis0.append_array(p.cache)
 		if vis0.size() >= GameConfig.HAND_SIZE:
 			var hid0 := p.hidden_indices(vis0)
-			var subs0 := Solver.make_subs(p.deck, _rng, hid0.size(), bs) if not hid0.is_empty() else []
+			var subs0 := Solver.make_subs(p.deck, _rng, hid0.size(), bs,
+				_known_attrs(p, vis0, hid0)) if not hid0.is_empty() else []
 			# ⚠⚠ **基线必须无噪声** —— `best_discard` 的收益是
 			#     `gain = mean(弃牌后, 零噪声 best_score) − base.score`。
 			# 若 base 带噪声, 噪声选中次优切法时 base.score 被压低, gain 就被
@@ -712,7 +717,7 @@ func _play_perfect(p: Phrase, slots: Array, mod: String = "",
 				# 会系统性高估弃牌, 而这张脸整个就是关于弃牌决策的。
 				var blind_refill: int = bs if SectionMod.hide_refill(mod) else 0
 				var drop := Solver.best_discard(vis0, slots, extra, p.deck, _rng,
-					999, d_max, 0.0, lam_samples, 0.0, p.deck.rules, b0, blind_refill)
+					999, d_cards, 0.0, lam_samples, 0.0, p.deck.rules, b0, blind_refill)
 				if not drop.is_empty():
 					# ⚠ 2026-08-14:`best_discard` 返回的是 **visible 下标**(枚举已扩到全 8 张),
 					# 不再是 `b0.keep` 的下标 —— 传错数组会静默弃错牌。
@@ -725,7 +730,8 @@ func _play_perfect(p: Phrase, slots: Array, mod: String = "",
 	if visible.size() < GameConfig.HAND_SIZE:
 		return
 	var hid := p.hidden_indices(visible)
-	var subs := Solver.make_subs(p.deck, _rng, hid.size(), bs) if not hid.is_empty() else []
+	var subs := Solver.make_subs(p.deck, _rng, hid.size(), bs,
+		_known_attrs(p, visible, hid)) if not hid.is_empty() else []
 	var best = Solver.best_split_lookahead(visible, slots, extra, p.deck,
 		_rng, lam, lam_samples, p.deck.rules, hid, subs, eps)
 	if best == null:
@@ -751,6 +757,23 @@ func _play_perfect(p: Phrase, slots: Array, mod: String = "",
 		if ci < 0:
 			break
 		p.swap_with_cache(hi, ci)
+
+
+## 属性级信念的「已知半张」表(2026-08-27, 蒙色/蒙点入池的必修)。
+## hid 里每个下标当前看得见哪一半:蒙点(hide_ranks)花色是真值、点数 -1;蒙色反之;
+## 整张盖住(盖牌族)两者都 -1。全 -1 时返回**空表** —— `make_subs` 走老路径,
+## 全盲族的读数逐位不变(RNG 消耗个数两条路径本来就相同)。
+func _known_attrs(p: Phrase, visible: Array, hid: Array) -> Array:
+	var out: Array = []
+	var any := false
+	for i in hid:
+		var c: Card = visible[int(i)]
+		var kr := p.visible_rank_of(c)
+		var ks := p.visible_suit_of(c)
+		if kr >= 0 or ks >= 0:
+			any = true
+		out.append({"rank": kr, "suit": ks})
+	return out if any else []
 
 
 ## 把「要弃 keep 里的第几张」翻译成 Phrase 认的 (手牌下标, 缓存下标) 两组。
@@ -835,13 +858,13 @@ func _play_adaptive(p: Phrase, slots: Array, target_id: String, section: int, mo
 				p.commit_probe_swap()             # 留下了 = 玩家真的动了手
 	if target_id == "lonewolf":
 		return                              # the vow: zero discards
-	# 弃牌免费(2026-08-06 用户拍板)后, **金币不再是闸门, 时间才是**。
-	# 旧代码是手写的 `cap = 3 if dur>=12 else 2` 再和金币取小 —— 两条都作废:
-	# 前者是该退役的手写判断, 后者的约束已经不存在。改走数据里的手速预算,
-	# 它按实际拍长缩放, 所以「赶场」-2s 第一次真正咬合(8s→2 张, 6s→1 张)。
+	# ⚑ 动作粒度(2026-08-27, 新基线):beat_discards 现在是**动作次数**预算 ——
+	# 规则 bot 的 plan 弃牌一批算 1 个动作(真人一次跨区多选就是一个手势),
+	# 单批张数上限走 discard_batch(随拍长缩放, 赶场在两层都咬得住)。
+	# 旧口径把张数当动作数, 弃 6 结构性不可达 —— 拆迁(wrecker)在 kit 挂 UNREACHABLE 正是这个。
 	var dur := Run.phrase_duration_for(section, mod, p.phrase_idx)
-	var d_max: int = GameConfig.beat_discards(dur, section)
-	if d_max <= 0:
+	var d_max: int = mini(GameConfig.discard_batch(dur, section), p.hand.size())
+	if GameConfig.beat_discards(dur, section) <= 0 or d_max <= 0:
 		return
 	var plan: Dictionary = _best_plan(p.hand, target_id, d_max, rules)
 	if bool(plan.get("keep_all", false)):
@@ -861,7 +884,7 @@ func _play_adaptive(p: Phrase, slots: Array, target_id: String, section: int, mo
 		while idx.size() > 0 and plan_gain < kappa * float(idx.size()):
 			idx.pop_back()
 	# ⚑ **玩家为自己的卡调整弃牌张数**(2026-08-13 还的仪器债;同 `_timing_flags` 的思路)。
-	# 拆迁(弃满 3 张 → 成牌 ×3.5)与断舍离(一次弃 4 张 → +50%)的收益都远大于
+	# 拆迁(单拍弃满 6 张 → 成牌 ×3.5)这类卡的收益远大于
 	# 「多弃一张让手牌变差」的损失, 所以装了它们的玩家会**凑够张数**。
 	# ⚠ 这是「能力 ≠ 动机」那条判据的落地:把 `beat_budget` 从 2 校准到 3 只是让
 	# 弃 3 张**可达**, bot 照旧只弃 plan 说该弃的 —— 不给动机, 那两张卡永远量不到。
@@ -874,22 +897,39 @@ func _play_adaptive(p: Phrase, slots: Array, target_id: String, section: int, mo
 	# ⚠⚠ **凑不到就别凑**(2026-08-13 实测踩到):`beat_budget` 是 3 时给断舍离
 	# (要 4 张)凑牌 —— 弃到上限 3 张、条件仍不满足, 于是**白弃一张手牌**:
 	# kit 实测 **−961 分 / 触发 0%**。而门差点放行它(z 和量级都过, 只有符号是负的)。
-	# 判据:**目标张数超出本拍预算时, 这个偏置整个不生效** —— 打不成的牌不值得为它赔手牌。
-	# ⚠ **最多只多弃一张**(2026-08-13 实测校正)。第一版是「装了就凑」——
-	# 断舍离触发率确实从 0% 拉到 86%, 但分差 **−330**:每拍强弃到 4 张,
-	# +50% 抵不上手牌被拆的损失。那不是卡的问题, 是**我的 bot 太笨** ——
-	# 真人装了这卡, 只在手牌本来就烂(已经要弃 3 张)时才顺手凑第 4 张,
-	# 手上有现成牌型时不会为了 +50% 去拆它。
-	# 判据对两张卡一视同仁:多弃**一张**的代价小, 多弃三张是在赌。
-	if want_cards > idx.size() and want_cards <= d_max and idx.size() >= want_cards - 1:
-		var target_n: int = mini(want_cards, p.hand.size())
-		for i in range(p.hand.size()):
-			if idx.size() >= target_n:
-				break
-			if not idx.has(i):
-				idx.append(i)
-	if not idx.is_empty() and p.can_discard(idx.size()) and p.discard_selected(idx, []):
-		_notify_discard(slots, idx.size())
+	# 判据:**目标张数够不到时, 这个偏置整个不生效** —— 打不成的牌不值得为它赔手牌。
+	# 钱不够弃 want 张(经济 v2 弃牌 1◆/张)同样算够不到 —— 半批弃出去条件照样不满足。
+	# ⚑ 动作粒度(2026-08-27)后凑张数**跨区、缓存先行**:一次多选 = 一个动作,
+	# 直弃缓存牌不拆手牌(原位随机补, 代价只是缓存质量), 是真人凑「弃 6」时先圈的那几张;
+	# 手牌**仍然最多只多弃一张**(2026-08-13 实测校正不变:断舍离第一版「装了就凑」
+	# 触发率 0%→86% 但分差 −330 —— 真人只在手牌本来就烂时才顺手凑, 不会为触发拆现成牌型。
+	# 多弃一张手牌的代价小, 多弃三张是在赌;缓存牌不在此列, 它们本来就不在成牌里)。
+	var batch_cap: int = GameConfig.discard_batch(dur, section)
+	var cache_idx: Array = []
+	if want_cards > idx.size() and not idx.is_empty() and want_cards <= batch_cap \
+			and p.can_discard(want_cards):
+		var free_cache: Array = []
+		var blocked: Dictionary = p.discard_blocked_cache()
+		for cj in range(p.cache.size()):
+			var cc = p.cache[cj]
+			if cc != null and not blocked.has(cc):
+				free_cache.append(cj)
+		# 可及性判断在动手之前:缓存全下 + 手牌至多再一张仍够不到 want ⇒ 整个不凑
+		# (否则先弃掉的缓存牌就是白赔的 —— 与「白弃一张手牌」同一形状)。
+		if idx.size() + free_cache.size() + 1 >= want_cards:
+			for cj in free_cache:
+				if idx.size() + cache_idx.size() >= want_cards:
+					break
+				cache_idx.append(cj)
+			if want_cards > idx.size() + cache_idx.size():
+				for i in range(p.hand.size()):
+					if idx.size() + cache_idx.size() >= want_cards:
+						break
+					if not idx.has(i):
+						idx.append(i)
+	var n_batch: int = idx.size() + cache_idx.size()
+	if n_batch > 0 and p.can_discard(n_batch) and p.discard_selected(idx, cache_idx):
+		_notify_discard(slots, n_batch)
 	# 回收の经营(2026-08-25 打法先验):持有回收 = 每拍把缓存最小的一张直弃换奖励分
 	# (它的设计就是献祭;原位补进来的新牌随后一起进切法)。封/锁的缓存牌不碰。
 	for rj in slots:

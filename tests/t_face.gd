@@ -26,10 +26,11 @@ func run(t) -> void:
 		#   T2 +高音/轮盘/变色灯/暗场 · T3 +点名/渐强 · T4 +倒计时(时间族)。
 		# ⚑ 2026-08-26b 档位扩池 16 档(blinds.md §2.6, 用户:「盲注包里能改数字的都多列几个」):
 		#   同机制同图标 + 档记号(faces.json `base` 键), 数字是方向锚, 门定价后 rankgen 正位。
+		# ⚑ 2026-08-27 属性级信念落地, 蒙色(T2)/蒙点(T3)清暂存入池 —— 蒙点伤面更宽排后一轮。
 		["setlist", "blindspot", "throttle", "request", "lowend", "highend", "roulette",
-			"colorlight", "dimstage", "wetink", "handseal",
+			"colorlight", "suitveil", "dimstage", "wetink", "handseal",
 			"throttle6", "wetink2", "lastcall4", "crescendo07"],
-		["callout", "crescendo", "rerun", "raisedbar", "trilogy", "blackout",
+		["rankfog", "callout", "crescendo", "rerun", "raisedbar", "trilogy", "blackout",
 			"doubleseal", "ration", "switchtrack",
 			"raisedbar175", "raisedbar200", "ration8", "onetake1", "setlist25",
 			"request80", "colorlight25", "callout50", "dimstage3", "trilogy4"],
@@ -213,8 +214,10 @@ func run(t) -> void:
 	#   (蒙色/蒙点还欠属性级信念)。入池时从 STAGED 划去 + faces.json 加 tier, 缺一头都红。
 	const RETIRED := ["unplugged", "static", "rotation", "cover", "freshsheet",
 		"redlight", "patchin"]
-	# 2026-08-26 七脸入池后只剩两张:蒙色/蒙点等属性级信念(入池前必修)。
-	const STAGED := ["suitveil", "rankfog"]
+	# 2026-08-26 七脸入池后剩蒙色/蒙点两张;2026-08-27 属性级信念落地
+	# (Phrase.visible_rank_of/visible_suit_of + Solver.make_subs 的 known 参数),
+	# 必修课清账, 两张补 tier 入池 —— 暂存清空。结构留着给下一批新脸用。
+	const STAGED := []
 	for m in SectionMod.roster():
 		if RETIRED.has(m.id):
 			t.check(not placed.has(m.id), "%s 保持退役(见 docs/design/blinds.md §5)" % m.id)

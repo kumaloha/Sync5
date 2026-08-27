@@ -251,7 +251,8 @@
    "params": {
     "hide_suits": 1
    },
-   "proof": "belief"
+   "proof": "belief",
+   "tier": 2
   },
   {
    "id": "rankfog",
@@ -261,7 +262,8 @@
    "params": {
     "hide_ranks": 1
    },
-   "proof": "belief"
+   "proof": "belief",
+   "tier": 3
   },
   {
    "id": "callout",

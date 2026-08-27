@@ -261,10 +261,16 @@ static func validate_run(d: Dictionary) -> String:
 	# swaps 至少要够把任意「8 选 5」搬进手牌 —— 那需要 cache_cap 次交换,
 	# 少于它, 求解器就够不到部分持法, 上界会被工具而不是被游戏限制。
 	var bb = d["beat_budget"]
-	if typeof(bb) != TYPE_DICTIONARY or not bb.has("discards") or not bb.has("swaps"):
-		return "beat_budget wants {discards, swaps}"
+	if typeof(bb) != TYPE_DICTIONARY or not bb.has("discards") or not bb.has("swaps") \
+			or not bb.has("discard_batch"):
+		return "beat_budget wants {discards, swaps, discard_batch}"
 	if int(bb["discards"]) < 0 or int(bb["swaps"]) < 0:
 		return "beat_budget must be non-negative"
+	# 动作粒度(2026-08-27):discards = 动作次数, discard_batch = 单批张数上限。
+	# 批上限 < 手牌数会让「整手换血」这个真人做得到的手势在模型里做不到 —— 静默削 bot。
+	if int(bb["discard_batch"]) < int(d["hand_size"]):
+		return "beat_budget.discard_batch (%d) < hand_size (%d): 单批连整手都圈不满" \
+			% [int(bb["discard_batch"]), int(d["hand_size"])]
 	if int(bb["swaps"]) < int(d["cache_cap"]):
 		return "beat_budget.swaps (%d) < cache_cap (%d): solver could not reach every 5-of-8 hold" \
 			% [int(bb["swaps"]), int(d["cache_cap"])]
