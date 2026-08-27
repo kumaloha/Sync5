@@ -10,7 +10,10 @@ extends Control
 ## run _next_section() again and walk the section counter forward behind the
 ## front screen — the run then started on the wrong blind and a wall's
 ## 演出成功 surfaced "mid-run" (真人试玩 2026-08-05).
-enum St { FRONT, INTRO, DECISION, RESOLVE, DRAFT, END }
+## CUTIN = 教学特写(v6 分镜化):RESOLVE 滚分演完后的冻钟插播(α/β)——
+## elapsed 不走、时间条/音浪同停, 2.5s 自动恢复、点按跳过;只在教学关出现,
+## 正式局永远进不了这个状态(触发条件带 run.tutorial)。
+enum St { FRONT, INTRO, DECISION, RESOLVE, DRAFT, END, CUTIN }
 
 # 舞台几何整块搬去了 view/layout.gd(它是装配的事);编排只读这一个 —— 结算
 # 屏停留多久, 因为 _process 拿它判什么时候进下一拍。data/ui.json 仍是权威。
@@ -279,6 +282,17 @@ func _build_ui() -> void:
 	# ⚠ 必须连在构造**之后** —— 第一版插进了 _build_ui 的信号块(那时 replace 还是 null),
 	# 整个 _ready 当场断掉, headless 套件测不到 view, 是截图探针抓到的。
 	replace.canceled.connect(_on_replace_canceled)
+	# 教学特写的手势面(v6):插播期铺满全屏吃点击 = 「点按跳过」(intro 同手势)。
+	# 平时隐身不吃事件;β 的 +N◆ 定格标签也挂在它上面(要盖住压暗层, 所以在最上)。
+	_cutin_catch = Control.new()
+	_cutin_catch.position = Vector2.ZERO
+	_cutin_catch.size = Vector2(720, 1280)
+	_cutin_catch.visible = false
+	_cutin_catch.z_index = 60
+	_cutin_catch.gui_input.connect(func(e: InputEvent) -> void:
+		if e is InputEventMouseButton and e.pressed:
+			_end_cutin())
+	add_child(_cutin_catch)
 
 
 # ============================== FLOW ==============================
@@ -391,12 +405,31 @@ func _closeup_fly(t: float, a_pos: Vector2, b_pos: Vector2, flip: bool) -> void:
 	blind_card.scale = Vector2(s * (absf(cos(PI * t)) if flip else 1.0), s)
 
 
+## γ 特写(v6, 一次性):教学毕转正式局的第一次段首, 开局公示卡多带一行盲注课 ——
+## 「每场演出有一张盲注」+ 高光盲注板(view/intro.gd::set_tutor)。在 _start_phrase
+## **末尾**触发(牌已发好), 期间 state=INTRO 钟不走;收卡 = _on_intro_done 恢复本拍,
+## **不再重进 _start_phrase**(那会二次发牌)。放完即销存档旗, 从此回到盲注特写。
+func _play_gamma_intro() -> void:
+	state = St.INTRO
+	_refresh()   # hand 的 decide 是快照:进 INTRO 要刷一次(特写卡死 bug 的同款教训)
+	var c := Tutorial.cutin("gamma")
+	intro.open(run.section_idx, run.target(),
+		SectionMod.by_id(cur_modifier), BlindBoon.by_id(run.boon()))
+	intro.set_tutor(String(c.get("command", "")), float(c.get("seconds", 4.0)))
+	SaveState.mark_tutor_gamma_done()
+	Tape.on("intro", {"gamma": true})
+
+
 func _on_intro_done() -> void:
 	if state == St.INTRO:
-		# 主动点掉 vs 等它自己走完 —— 「急着打」和「在读盲注规则」是两回事,
-		# 也是教学空间那个待验问题(S1 就是墙、开局就带 Boss 规则)的观测点
+		# 主动点掉 vs 等它自己走完 —— 「急着打」和「在读盲注规则」是两回事。
 		Tape.on("intro", {"skip": intro != null and intro.skipped})
-		_start_phrase()
+		# ⚑ 公示卡现在开在 _start_phrase **之后**(γ 路径, 牌已在桌上), 所以这里只
+		# **恢复本拍**:钟起步 + 快照刷回可操作 + 下拍归零(_closeup_done 同一套收尾)。
+		# 旧写法 `_start_phrase()` 是公示卡还开在拍前的年代留下的 —— 现在会二次发牌。
+		state = St.DECISION
+		_refresh()
+		music.sync_beat()
 
 
 func _start_phrase() -> void:
@@ -459,42 +492,38 @@ func _start_phrase() -> void:
 	if run.phrase_in_section == 0:
 		music.play_section(run.section_idx)   # 每关一首(探针在 Music 里自静音)
 	if run.phrase_in_section == 0 and not run.tutorial and not SaveState.is_probe():
-		_play_blind_closeup()
+		# γ 特写(v6, 一次性):教学刚完成后的第一次正式段首, 开局公示卡替代盲注特写 ——
+		# 卡上多一行「每场演出有一张盲注」+ 高光盲注板;存档旗保证只此一次, 之后回特写。
+		if SaveState.tutor_gamma_due():
+			_play_gamma_intro()
+		else:
+			_play_blind_closeup()
 	# 拍首下拍:钟起步的那一刻 kick 归零(Music.sync_beat 文件内有整套推导)。
 	# 特写路径除外 —— 那 2 秒 state=INTRO 钟不走, kick 由 _closeup_done 落。
 	if state == St.DECISION:
 		music.sync_beat()
 
 
-## 教学关的一行提示 + 分区指向 + 多选解锁。抽成函数是为了**拍中推进后立刻重放**
+## 教学关的一行提示 + 分镜构图(v6)。抽成函数是为了**拍中推进后立刻重放**
 ## (2026-08-18 用户:「应该消失, 进入下一个提示」)。正式局 hint 空串 ⇒ 整块隐身。
+## ⚑ 分镜(shot)= 高光构图(focus)+ 文字条锚位(_tutor_anchor)—— 同 shot 的步
+## 镜头与条都不动, 只换词;`spot` 是随步走的次级强调(光斑)。
 func _apply_tutor_hint() -> void:
-	# 教学关的一行提示 + 分区指向 —— 正式局 hint 是空串, TutorHint 整块隐身。
 	# ⚠ 区域名 → 矩形的翻译在**编排器**这一侧:`core/` 不认识像素(坐标归 ui.json)。
 	var h := run.tutorial_hint()
 	var rects: Array = []
+	var spot := Rect2()
+	var anchor := -1.0
 	if run.tutorial:
-		# ⚑ 矩形从**活部件**取, 不再读 `ui.json` 的手抄坐标(见 `Hand.focus_rect` 的文件头:
-		# 那三个数是目测的, 而真值是运行时按 stage 常量算的 ⇒ 位置对不上是必然的)。
-		# `ui.json` 的 `tutor_focus` 现在只剩「合法区域名」这一个职责。
 		for name in Tutorial.focus(run.tutorial_step):
-			var q := Rect2()
-			if name == "hud":
-				var hp: Array = DB.ui()["hud"]["pos"]
-				var hs: Array = DB.ui()["hud"]["size"]
-				q = Rect2(float(hp[0]), float(hp[1]), float(hs[0]), float(hs[1]))
-			elif name == "blind":
-				q = Rect2(blind_card.position, blind_card.size)
-			elif name == "jokers":
-				# 小丑牌四槽的并集 —— 从活部件取(与 hand.focus_rect 同一条纪律)
-				q = Rect2(joker_views[0].position, joker_views[0].size)
-				for jv in joker_views:
-					q = q.merge(Rect2(jv.position, jv.size))
-			else:
-				q = hand.focus_rect(name)
+			var q := _tutor_rect(String(name))
 			if q.size.x > 0.0:
 				rects.append(q)
-	# ⚑ 把**全部**可高亮区域喂给提示条, 让它自己躲开 —— 而不是我在这里算坐标。
+		var sp := Tutorial.spot(run.tutorial_step)
+		if sp != "":
+			spot = _tutor_rect(sp)
+		anchor = _tutor_anchor(Tutorial.shot(run.tutorial_step))
+	# ⚑ 把**全部**可高亮区域喂给提示条, 让它自己躲开(分镜给了锚位时锚位优先)。
 	# 屏幕下半部三块区域占满, 硬贴高亮区必然压住别的字(第一版就是这么糊的)。
 	var avoid: Array = []
 	if run.tutorial:
@@ -502,37 +531,71 @@ func _apply_tutor_hint() -> void:
 			var aq := hand.focus_rect(rn)
 			if aq.size.x > 0.0:
 				# ⚠ 往上放宽 44px —— 「手 牌 区」「缓 存 区」那两个标签画在**容器矩形之外**
-				# (上方 ~35px), 只躲容器会让条正好压住标签。第一版就是这么漏的:
-				# 卡片不压了, 标签仍然被盖。**可高亮区 ≠ 它的视觉范围**, 差的正是这一条
+				# (上方 ~35px), 只躲容器会让条正好压住标签。**可高亮区 ≠ 它的视觉范围**
 				# —— 同 docs/design/ui_meta.md 那句「对齐类反馈要查视觉顶端而不是几何顶端」。
 				avoid.append(Rect2(aq.position - Vector2(0, 44), aq.size + Vector2(0, 44)))
 		# 手牌框(走圈轨道)整块入避让表(2026-08-24 用户:「教学文字高度不对, 会挡住
-		# 读秒的进度条光圈」):进度轨贴着框边发光, 条坐在框顶就把光圈盖了。
-		# 往上放宽 20px —— 轨道辉光超出几何边(还是那句「视觉顶端 ≠ 几何顶端」)。
+		# 读秒的进度条光圈」);往上放宽 20px —— 轨道辉光超出几何边。
 		avoid.append(Rect2(orbit.position - Vector2(0.0, 20.0),
 			orbit.size + Vector2(0.0, 20.0)))
-	if run.tutorial:
-		_stage_tutor_props()
 	# ⚑ 压暗层的常亮洞(2026-08-24 用户两条:「倒计时边框也应该在教学的时候被看到」·
 	# 「展示小丑牌的时候, 下方整个版面是黑的」):**手牌框顶起往下的整个操作面**
-	# (倒计时边框/节拍菱形/读秒/手牌/缓存/理牌弃牌键)教学期间永远不压暗 ——
-	# 时钟是 8 秒规则的脸面, 下半屏是玩家的手, 两样都不许黑。提亮与光圈仍只跟焦点走。
+	# (倒计时边框/节拍菱形/读秒/手牌/缓存/理牌弃牌键)+ 顶栏, 教学期间永远不压暗。
+	# ⚑ v6:focus 为空 = **全景分镜(C 拍)** —— 高光全撤, 压暗层整层隐身, 洞也不用给。
 	var holes: Array = []
-	if run.tutorial:
+	if run.tutorial and not rects.is_empty():
 		holes.append(Rect2(0.0, orbit.position.y, 720.0, 1280.0 - orbit.position.y))
-		# 顶栏(分数/目标/金币/拍数)也常亮(2026-08-24 用户:「盲注教学前一轮,
-		# 当时积分的数字被挡住了」)—— 教学教的就是拿分, 分数滚动不许发生在暗区里。
 		var hp: Array = DB.ui()["hud"]["pos"]
 		var hs: Array = DB.ui()["hud"]["size"]
 		holes.append(Rect2(float(hp[0]), float(hp[1]), float(hs[0]), float(hs[1])))
-	tutor.set_hint(String(h["command"]), String(h["signal"]), rects, avoid, holes)
-	# 能力全程全开(用户拍板「取消全部能力压制」;5 步版 unlock 第一步即全解锁)。
+	tutor.set_hint(String(h["command"]), String(h["signal"]), rects, avoid, holes,
+		anchor, spot)
+	# 能力全程全开(用户拍板「取消全部能力压制」;unlock 第一步即全解锁)。
 	# ⚠ 组件不认识教学关(铁律:组件只发意图, 状态由编排器给), 所以这里翻译成
 	# 它听得懂的话:`multi_select`。正式局恒 true, 教学关第一步起也恒 true。
 	hand.multi_select = run.tutorial_unlocked("multiselect")
 
 
-var _tutor_blind_shown := false
+## 区域名 → 全屏矩形(教学 focus/spot/特写共用这一份翻译)。
+## ⚑ 矩形从**活部件**取, 不读 ui.json 的手抄坐标(`Hand.focus_rect` 文件头:手抄的
+## 第二份必然漂)。`ui.json` 的 `tutor_focus` 只剩「合法区域名白名单」一个职责。
+func _tutor_rect(name: String) -> Rect2:
+	match name:
+		"hud":
+			var hp: Array = DB.ui()["hud"]["pos"]
+			var hs: Array = DB.ui()["hud"]["size"]
+			return Rect2(float(hp[0]), float(hp[1]), float(hs[0]), float(hs[1]))
+		"coins":
+			# 金币 chip(β 特写):从活 Label 取, 放宽一圈让光圈不贴字
+			return Rect2(hud.coin_anchor(), hud.coin_label.size).grow(10.0)
+		"blind":
+			return Rect2(blind_card.position, blind_card.size)
+		"jokers":
+			var q := Rect2(joker_views[0].position, joker_views[0].size)
+			for jv in joker_views:
+				q = q.merge(Rect2(jv.position, jv.size))
+			return q
+		"shelf":
+			# 商店货架价签行(D 分镜)—— shop 铺满全屏, 局部坐标即全屏坐标
+			return shop.price_row_rect().grow(6.0)
+	return hand.focus_rect(name)
+
+
+## 分镜的条锚位(v6:「分镜 = 高光构图 + 文字条锚位」)。返回 -1 = 走自动逻辑。
+## A = 手牌区上方(手牌框辉光之上);B = 手牌与缓存行间(两拍不动);
+## C/其他 = 自动(C 无高亮, 条落回默认空带);D 的锚在商店里, 由 _open_draft 算。
+func _tutor_anchor(shot: String) -> float:
+	var bh: float = Widgets.TutorHint.BAR.size.y
+	match shot:
+		"A":
+			return orbit.position.y - 20.0 - 12.0 - bh
+		"B":
+			var top: float = orbit.position.y + orbit.size.y
+			var bot: float = hand.focus_rect("cache").position.y
+			return top + maxf(0.0, (bot - top - bh) * 0.5)
+	return -1.0
+
+
 ## 本局是第几局(1 起)。探针恒 1 且喂空排序 —— 探针世界的掷法逐字节不变。
 var _run_index := 1
 
@@ -549,18 +612,9 @@ func _feed_director() -> void:
 			"boons_seen": SaveState.boons_seen(),
 			"returning": SaveState.returning_run()}
 
-## 教学的示范道具。⚑ **借展样品已删**(2026-08-24 用户:「第三段不应该直接给满小丑牌,
-## 应该跟正常玩普通的一关一样 —— 一开始没有小丑牌, 直接跳出来让玩家选」):
-## 第 3 步改为在步首弹**真商店**(首张 Target 免费三选一, `_advance` 里接线),
-## 选了什么带什么进正式局, 不再有「转正收回道具」这回事。
-## 第 4 轮保留:盲注卡亮样例脸(禁回)+ 放一次特写 —— 盲注的登场时刻本身就是教学。
-func _stage_tutor_props() -> void:
-	if run.tutorial_step >= 3 and not _tutor_blind_shown:
-		_tutor_blind_shown = true
-		blind_card.setup(0, SectionMod.by_id("norepeat"), null)
-		blind_card.visible = true
-		if not SaveState.is_probe():
-			_play_blind_closeup()
+## (教学盲注样例 `_stage_tutor_props` 已删 2026-08-27, v6 分镜化:盲注这一课整个
+## 搬去了 γ 特写 —— 教学毕转正式局的**第一次开局公示卡**上讲「每场演出有一张盲注」,
+## 高光的就是真的盲注板, 登场时刻自带上下文;教学关内盲注卡保持隐藏, 不再摆样例脸。)
 
 
 ## 编排器报教学动作 + **拍中回执**:做完动作提示当场收掉(08-18「应该消失」拍板),
@@ -572,6 +626,79 @@ func _note_tutorial(action: String) -> void:
 	if run.tutorial and Tutorial.require(run.tutorial_step) != "" \
 			and run.tutorial_pending() == "":
 		tutor.set_hint("", "")
+
+
+## ---- 教学特写 α/β(v6 分镜化):RESOLVE 滚分后的冻钟插播 ----
+## 冻钟只在教学关:state=CUTIN 时 _process 不累加 elapsed(时间条静止), 音浪/均衡器
+## set_process(false) 同停;seconds 秒自动恢复, 期间点按跳过(_cutin_catch, intro 同手势)。
+## 动作拍(2/3/4)不插播 —— after_step 只挂在 0(A 拍末)与 1(B 首拍末)。
+var _cutins_played: Dictionary = {}
+var _cutin_key := ""
+var _cutin_auto: Tween = null
+var _cutin_catch: Control = null
+var _cutin_tag: Label = null      # β 的 +N◆ 定格
+var _last_gain_coins := 0
+
+
+## 这一拍末欠哪场插播("" = 没有)。γ 不在这里 —— 它长在转正式的公示卡上, 按名字分流。
+## ⚠ 探针不插播(盲注特写同一条:帧预算不为纯表现买单);截图探针直接调 _begin_cutin。
+func _cutin_due_key() -> String:
+	if not run.tutorial or SaveState.is_probe():
+		return ""
+	for key in ["alpha", "beta"]:
+		if _cutins_played.has(key):
+			continue
+		var c := Tutorial.cutin(String(key))
+		if not c.is_empty() and int(c["after_step"]) == run.tutorial_step:
+			return String(key)
+	return ""
+
+
+func _begin_cutin(key: String) -> void:
+	_cutins_played[key] = true
+	_cutin_key = key
+	state = St.CUTIN
+	var c := Tutorial.cutin(key)
+	var rects: Array = []
+	for name in c.get("focus", []):
+		var q := _tutor_rect(String(name))
+		if q.size.x > 0.0:
+			rects.append(q)
+	# 高光切到特写的 focus:不给常亮洞 —— 冻结期玩家动不了手, 全场只留这一块亮,
+	# 这就是「切镜头」。条位走自动逻辑(贴着高亮区, 顶上放不下翻到下方)。
+	tutor.set_hint(String(c.get("command", "")), "", rects, [], [])
+	wave.set_process(false)
+	eq.set_process(false)
+	if key == "beta":
+		# +N◆ 飘字定格:结算时的入账反馈是 0.8s 的飘字, 特写要把它按在原地讲一句 ——
+		# 挂在手势面上(盖住压暗层), 结束一起收。
+		_cutin_tag = StageTheme.label("+%d ◆" % _last_gain_coins,
+			StageTheme.num("Bold"), 30, StageTheme.GOLD)
+		# 挂在金币 chip 正下方、PHRASE 行之下(+42 会压到 PHRASE 字样, 截图对账抓的)
+		_cutin_tag.position = hud.coin_anchor() + Vector2(16.0, 64.0)
+		_cutin_catch.add_child(_cutin_tag)
+	_cutin_catch.visible = true
+	_cutin_auto = create_tween()
+	_cutin_auto.tween_interval(maxf(0.5, float(c.get("seconds", 2.5))))
+	_cutin_auto.tween_callback(_end_cutin)
+
+
+func _end_cutin() -> void:
+	if state != St.CUTIN:
+		return
+	if _cutin_auto != null and _cutin_auto.is_valid():
+		_cutin_auto.kill()
+	_cutin_auto = null
+	_cutin_catch.visible = false
+	if _cutin_tag != null and is_instance_valid(_cutin_tag):
+		_cutin_tag.queue_free()
+	_cutin_tag = null
+	wave.set_process(true)
+	eq.set_process(true)
+	Tape.on("cutin", {"k": _cutin_key})
+	_cutin_key = ""
+	state = St.RESOLVE
+	_advance()
 
 
 func _process(delta: float) -> void:
@@ -604,7 +731,13 @@ func _process(delta: float) -> void:
 			orbit.set_progress(1.0, false)
 			eq.urgency = 0.0
 			if elapsed >= RESOLVE_HOLD:
-				_advance()
+				# 教学特写(v6):挂在**滚分演完之后** —— α/β 讲的正是刚滚完的那个数字,
+				# 滚动没完就再等一帧(教学关的 RESOLVE 因此可以比 1s 长, 正式局零改)。
+				var ck := _cutin_due_key()
+				if ck == "":
+					_advance()
+				elif not _rolling():
+					_begin_cutin(ck)
 
 
 func _settle() -> void:
@@ -632,6 +765,7 @@ func _settle() -> void:
 	var res: Dictionary = outcome["res"]
 	var gained_score := int(outcome["score"])
 	var gained_coins := int(outcome["coins"])
+	_last_gain_coins = gained_coins   # β 特写的 +N◆ 定格读它(只在教学关消费)
 	# 全场最重的一条:G/D 对账、牌型频率、经济产出全靠它。
 	# fired 记 joker id 而不是 popup 文案 —— 只有 id 能和 report.gd 的
 	# trigger_n 直接对齐, 文案改一个字就对不上了。
@@ -755,18 +889,19 @@ func _stop_roll() -> void:
 func _advance() -> void:
 	Beat.phrase_end(run, phrase, {"early": _acted_early()})
 	# ⚑ 教学关的步进在这里, 而且**只在这里** —— 一拍收尾时结算「这一步的动作做到没有」。
-	# 每一拍都必然出一手牌(哪怕是高牌), 所以 `play` 恒真:第 1 步的门 = 「把一拍打完」。
+	# `play` 仍然照记(每拍必然结算一手), v6 里没有步再拿它当门, 记着只是账目完整。
 	# ⚠ 顺序:先记 play → 再 try_advance → 再 `run.advance()` → 最后才轮到 `tutorial_done()`,
 	# 因为 `tutorial_done()` 读的正是 try_advance 推出来的那个下标。
 	run.tutorial_note("play")
 	run.tutorial_try_advance()
 	var out := run.advance()
-	# ⚑ 教学关的商店时刻只有一个(2026-08-24 用户:「第三段…一开始就是没有小丑牌,
-	# 直接跳出来让玩家选小丑牌」):第 3 步开头弹真商店(首张 Target 免费三选一,
-	# 与正式局同一个流程), 选完/继续 ▸ 都回拍;每 3 拍的正式节奏在教学段不再开第二次店 ——
-	# 一关只教一次「买」, 商店的完整节奏留给正式局自己展示。
+	# ⚑ 教学关的商店时刻只有一个(2026-08-24 用户:「一开始就是没有小丑牌, 直接跳出来
+	# 让玩家选小丑牌」;v6 = 分镜 D):推进到**最后一步**时弹真商店(首张 Target 免费
+	# 三选一, 与正式局同一个流程), D 的提示条锚在商店盲注板下、focus 指价签行;
+	# 选完/继续 ▸ 都消费这一课(`tutorial_shop_seen`)回拍 —— 每 3 拍的正式节奏在
+	# 教学段不再开第二次店, 商店的完整节奏留给正式局自己展示。
 	if run.tutorial and not bool(out["section_done"]):
-		if run.tutorial_step == 2 and run.joker_slots[0] == null:
+		if run.tutorial_step == Tutorial.shop_step() and run.joker_slots[0] == null:
 			_open_draft()
 			return
 		if bool(out["shop_break"]):
@@ -798,7 +933,7 @@ func _advance() -> void:
 		run.roll_faces(-1, SaveState.runs_total())
 		tutor.set_hint("", "")
 		# (借展样品已删 2026-08-24 —— 教学商店里选/买的卡本来就该带进正式局, 无可收回)
-		_tutor_blind_shown = false
+		# γ 特写的存档旗在 mark_tutorial_seen 里一起立 —— 下一个正式段首的公示卡带课。
 		Tape.on("tutorial_done", {"beat": run.phrase_index})
 	if bool(out["section_done"]):
 		state = St.END
@@ -963,6 +1098,7 @@ func _reset_run(_keep: bool) -> void:
 	for i in range(joker_views.size()):
 		joker_views[i].set_joker(null)
 	_shown_score = 0
+	_cutins_played.clear()   # 教学特写按局记(--fresh 重进教学关要能再放一遍)
 
 
 ## 开局三步(2026-08-21 评审 R2 收口):定局数 → 喂 Director(排序表 + 玩家状态 m)→
@@ -1076,6 +1212,16 @@ func _open_draft() -> void:
 		run.phrases_left() if mid else -1,
 		run.target(),      # ⚠ 加码脸乘过的那个目标, 不是原始表(2026-08-09)
 		BlindBoon.by_id(run.boon()))
+	# 分镜 D(v6):教学商店自己带条 —— 锚在商店盲注板下, focus 指货架价签行,
+	# 货架操作面(卡/价签/按钮)进常亮洞(玩家要挑的卡不许黑)。必须在 shop.open
+	# **之后**:价签行的矩形是 _layout 按当拍货架数摆出来的, 开店前是空的。
+	# 教学层画在商店之上(layout 的层序), 压暗构图对商店同样成立。
+	if run.tutorial and run.tutorial_step == Tutorial.shop_step():
+		var h := run.tutorial_hint()
+		var pr := shop.price_row_rect().grow(6.0)
+		tutor.set_hint(String(h["command"]), String(h["signal"]),
+			[] if pr.size.x <= 0.0 else [pr], [], [shop.shelf_zone_rect()],
+			shop.board_rect().end.y + 12.0)
 	# 段中/段末两态要分开统计:段中是「已知缺口下的解题」, 段末是「对下一场下注」,
 	# 购买行为本来就不该混在一起看(docs/design/levels.md 的核心论证)
 	Tape.on("shop", {"mid": mid, "sec": run.section_idx, "coins": phrase.coins,
@@ -1152,9 +1298,10 @@ func _on_shop_bought(j, price: int) -> void:
 	# 刚装的卡若自带金币上限(穷开心), 存量当场修剪 —— 卡面「上限 5」对已经很富的
 	# 玩家也必须为真(D2:卡面不许说谎), 而修剪只许发生在编排器手里。
 	phrase.coins = Economy.cap_held(phrase.coins, run.joker_slots)
-	# 教学关:挑完那张免费 Target 立刻开拍(2026-08-24 用户流程:「选了之后告诉玩家
-	# 最多是 4 个格子」—— 那句话在下一拍的提示条上, 店里不多留)。
+	# 教学关:挑完那张免费 Target 立刻开拍(2026-08-24 用户流程「选了就开拍」)。
+	# v6:关店 = 消费分镜 D(这一课的展示面就是商店层), 后面是无提示自由拍。
 	if run.tutorial and j.kind == "target":
+		run.tutorial_shop_seen()
 		shop.close()
 		_start_phrase()
 		return
@@ -1169,14 +1316,12 @@ func _on_shop_bought(j, price: int) -> void:
 	_start_phrase()
 
 
+# (升级函数 2026-08-26 随升级系统删除;它的注释头和尾行 `_start_phrase()` 曾被落下 ——
+# GDScript 把注释当空白, 那行孤儿代码**接进了上一个函数**, 买满限额关店时会把
+# `_start_phrase()` 跑两遍:重复发牌、重收入场费, 而且不报错。2026-08-27 清掉。)
+
+
 ## full slots: pick which support to swap out (old sells for half)
-## 升级一张已装备的小丑牌 —— **金币的主出口**(2026-08-16)。
-##
-## ⚠ **钱和等级只在这里动**(CLAUDE.md:金币/装槽等经济动作只发生在编排器)。
-## 组件只发意图, 所以 `shop.gd` 里那个按钮不碰 `_coins` 也不碰 `level`。
-	_start_phrase()
-
-
 func _on_shop_replace(j) -> void:
 	if state != St.DRAFT:
 		return
@@ -1196,6 +1341,7 @@ func _on_shop_skipped() -> void:
 	if state != St.DRAFT or replace.pick != null:
 		return
 	Tape.on("leave", {"coins": phrase.coins})
+	run.tutorial_shop_seen()   # v6:分镜 D 的另一个出口(不买也算上完这一课), 正式局无操作
 	shop.close()
 	_start_phrase()
 

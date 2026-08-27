@@ -305,6 +305,32 @@ func reroll_count() -> int:
 	return _reroll_count
 
 
+## ---- 教学分镜 D 的几何读口(v6)。活取, 不抄坐标 —— `Hand.focus_rect` 同一条纪律:
+## 价签行的位置是 `_layout()` 按当拍货架数算的, 抄进 ui.json 就是会漂的第二份。
+## shop 铺满全屏且在 (0,0), 局部坐标 = 全屏坐标, 编排器直接用。
+
+## 货架价签行(可见价签的并集)—— D 分镜的 focus。
+func price_row_rect() -> Rect2:
+	var out := Rect2()
+	for pl in _price_labels:
+		if pl.visible:
+			var q := Rect2(pl.position, pl.size)
+			out = q if out.size.x == 0.0 else out.merge(q)
+	return out
+
+
+## 商店顶部的盲注板 —— D 分镜的条锚在它下面。
+func board_rect() -> Rect2:
+	return Rect2(_blind_board.position, _blind_board.size)
+
+
+## 货架操作面(卡 + 价签 + 两个按钮)—— 教学压暗层的常亮洞:玩家要挑的卡不许黑。
+func shelf_zone_rect() -> Rect2:
+	var top: float = float(_cfg["cards_y"]) - 16.0
+	var bot: float = float(_cfg["btn_y"]) + 58.0 + 16.0
+	return Rect2(0.0, top, 720.0, bot - top)
+
+
 func _price(j) -> int:
 	# 赞助的 −1◆ 在这里生效(Economy.shelf_price 收口, 地板 1◆);
 	# 展示价与成交价共用这一个函数, 不许分家。

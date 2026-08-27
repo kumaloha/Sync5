@@ -64,11 +64,31 @@ static func seen_tutorial() -> bool:
 
 
 ## 记下「教学关已看过」并落盘。⚠ 幂等 —— 重复调用不会写第二遍。
+## ⚑ 顺手立 γ 旗(v6 分镜化):教学刚完成 ⇒ 下一次正式段首的公示卡欠一张 γ 特写
+## (「每场演出有一张盲注」那句)。两件事同一时刻发生, 所以同一个写入点。
 static func mark_tutorial_seen() -> void:
 	if _is_probe() or seen_tutorial():
 		return
 	_data()["seen_tutorial"] = true
+	_data()["tutor_gamma"] = true
 	_flush()
+
+
+## γ 特写(教学毕转正式局的第一次开局公示卡, view/intro.gd)还欠着没放。
+## 存档旗而不是内存旗:玩家在教学毕的商店里被杀进程, 回来恢复也照样欠着。探针恒 false。
+static func tutor_gamma_due() -> bool:
+	if _is_probe():
+		return false
+	return bool(_data().get("tutor_gamma", false))
+
+
+## γ 放完 = 销旗(一次性)。
+static func mark_tutor_gamma_done() -> void:
+	if _is_probe():
+		return
+	if _data().has("tutor_gamma"):
+		_data().erase("tutor_gamma")
+		_flush()
 
 
 ## 「重看教学」—— 清掉标记, 下一局就会再进一次教学关。

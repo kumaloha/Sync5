@@ -509,7 +509,7 @@ static func validate_tutorial(d: Dictionary) -> String:
 	for k in d:
 		if String(k).begins_with("_"):
 			continue
-		if not ["components", "steps"].has(k):
+		if not ["components", "steps", "cutins"].has(k):
 			return "tutorial.json unknown top-level key '%s'" % k
 	if not d.has("components") or not (d["components"] is Array) or d["components"].is_empty():
 		return "tutorial.json wants a non-empty 'components' whitelist"
@@ -518,14 +518,25 @@ static func validate_tutorial(d: Dictionary) -> String:
 	var known: Array = []
 	for c in d["components"]:
 		known.append(String(c))
+	# 区域白名单来自 `ui.json` 的 `tutor_focus`(坐标归 ui.json 那条铁律)。
+	# ⚠ 这里嵌套调 `ui()` 是安全的:`_load` 有缓存, 且 ui 的校验不反过来读 tutorial(无环)。
+	var known_regions: Array = []
+	for rk in ui().get("tutor_focus", {}):
+		if not String(rk).begins_with("_"):
+			known_regions.append(String(rk))
 	# 亮过的部件 —— 同一个部件解锁两次是脚本写错了(第二次是死行, 而且读起来像它会再亮一遍)。
 	var seen: Array = []
+	# 分镜(v6):同 shot 的步必须 focus 相同(构图共享是分镜的定义, 岔开 = 镜头会跳),
+	# 且必须连续(A B A 那样被打断的分镜是脚本写错了)。
+	var shot_focus := {}
+	var last_shot := ""
 	for i in range(d["steps"].size()):
 		var st = d["steps"][i]
 		if not (st is Dictionary):
 			return "tutorial step %d wants an object" % i
 		for k in st:
-			if not ["seconds", "unlock", "require", "command", "signal", "focus"].has(String(k)):
+			if not ["seconds", "unlock", "require", "command", "signal", "focus",
+					"shot", "spot", "args"].has(String(k)):
 				return "tutorial step %d unknown key '%s'" % [i, k]
 		# ⚠⚠ **写错一个动作名, 那一步永远推进不了, 而且不报错** —— 玩家会**卡死在教学关里**,
 		# 而这是个只有真人玩才发现得了的死法(探针不走 view, 不产生这些动作)。
@@ -535,16 +546,26 @@ static func validate_tutorial(d: Dictionary) -> String:
 			return "tutorial step %d require 未知动作 '%s'(白名单: %s)" \
 				% [i, req, ", ".join(Tutorial.ACTIONS)]
 		# 指向一块不存在的区域 = **画不出来而且不报错**, 正是这个项目最贵的那类静默失败。
-		# ⚠ 白名单来自 `ui.json` 的 `tutor_focus`(坐标归 ui.json 那条铁律)。
-		# ⚠ 这里嵌套调 `ui()` 是安全的:`_load` 有缓存, 且 ui 的校验不反过来读 tutorial(无环)。
-		var known_regions: Array = []
-		for rk in ui().get("tutor_focus", {}):
-			if not String(rk).begins_with("_"):
-				known_regions.append(String(rk))
 		for r in st.get("focus", []):
 			if not known_regions.has(String(r)):
 				return "tutorial step %d focus 指向未知区域 '%s'(白名单在 data/ui.json 的 tutor_focus: %s)" \
 					% [i, r, ", ".join(known_regions)]
+		var sh := String(st.get("shot", ""))
+		if sh != "":
+			if shot_focus.has(sh):
+				if last_shot != sh:
+					return "tutorial step %d 的分镜 '%s' 不连续 —— 同一分镜的步必须挨着" % [i, sh]
+				if shot_focus[sh] != st.get("focus", []):
+					return "tutorial step %d 与同分镜 '%s' 的 focus 不一致 —— 分镜 = 构图共享, 同 shot 必同 focus" % [i, sh]
+			shot_focus[sh] = st.get("focus", [])
+		last_shot = sh
+		var sp := String(st.get("spot", ""))
+		if sp != "" and not known_regions.has(sp):
+			return "tutorial step %d spot 指向未知区域 '%s'" % [i, sp]
+		var terr := _tutorial_text_error(String(st.get("command", "")),
+			st.get("args", []), "tutorial step %d" % i)
+		if terr != "":
+			return terr
 		if float(st.get("seconds", 0.0)) <= 0.0:
 			return "tutorial step %d wants seconds > 0" % i
 		for c in st.get("unlock", []):
@@ -565,6 +586,57 @@ static func validate_tutorial(d: Dictionary) -> String:
 	for id in known:
 		if not seen.has(id):
 			return "component '%s' 从来没被任何一步解锁 —— 教学关走完它仍是灰的" % id
+	# ---- 特写(v6 cutins):α/β = RESOLVE 冻钟插播, γ = 转正式的公示卡 ----
+	# 名字是白名单:消费面按名字分流(编排器只认这三个), 写错名字 = 永不播且不报错。
+	if d.has("cutins"):
+		if not (d["cutins"] is Dictionary):
+			return "tutorial.json cutins wants an object"
+		for ck in d["cutins"]:
+			var cname := String(ck)
+			if cname.begins_with("_"):
+				continue
+			if not ["alpha", "beta", "gamma"].has(cname):
+				return "cutins 未知特写 '%s'(白名单: alpha, beta, gamma —— 消费面按名字分流)" % cname
+			var cu = d["cutins"][ck]
+			if not (cu is Dictionary):
+				return "cutin '%s' wants an object" % cname
+			for k2 in cu:
+				if not ["after_step", "seconds", "focus", "command", "args"].has(String(k2)):
+					return "cutin '%s' unknown key '%s'" % [cname, k2]
+			var af := int(cu.get("after_step", -1))
+			if af < 0 or af > d["steps"].size():
+				return "cutin '%s' after_step %d 越界(0..%d)" % [cname, af, d["steps"].size()]
+			if float(cu.get("seconds", 0.0)) <= 0.0:
+				return "cutin '%s' wants seconds > 0" % cname
+			for r2 in cu.get("focus", []):
+				if not known_regions.has(String(r2)):
+					return "cutin '%s' focus 指向未知区域 '%s'" % [cname, r2]
+			if String(cu.get("command", "")) == "":
+				return "cutin '%s' wants a command" % cname
+			var cerr := _tutorial_text_error(String(cu.get("command", "")),
+				cu.get("args", []), "cutin '%s'" % cname)
+			if cerr != "":
+				return cerr
+	return ""
+
+
+## v6 文案的两条硬校验(steps 与 cutins 共用):
+## ① %d 价签个数 = args 个数、键在 `Tutorial.ARG_KEYS` —— 不一致 = 运行时格式化直接炸;
+## ② {} 高亮段配对且**至多一个**(设计规格;TutorHint 按它画双色, 画不出来不报错)。
+static func _tutorial_text_error(cmd: String, args, where: String) -> String:
+	if not (args is Array):
+		return "%s args wants an array" % where
+	for a in args:
+		if not Tutorial.ARG_KEYS.has(String(a)):
+			return "%s args 未知键 '%s'(白名单: %s)" % [where, a, ", ".join(Tutorial.ARG_KEYS)]
+	if cmd.count("%d") != args.size():
+		return "%s 的 %%d 价签有 %d 个而 args 给了 %d 个 —— 个数必须一致" \
+			% [where, cmd.count("%d"), args.size()]
+	var open_n := cmd.count("{")
+	if open_n != cmd.count("}") or open_n > 1:
+		return "%s 的 {} 高亮段必须配对且至多一个(每句一个重点)" % where
+	if open_n == 1 and cmd.find("{") > cmd.find("}"):
+		return "%s 的 {} 顺序反了" % where
 	return ""
 
 
