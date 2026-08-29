@@ -14,8 +14,15 @@ import json, re, sys, pathlib
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 def measured():
+    """⚠ evbook.md 是 `cf.gd` 的**生成产物**, 可能不存在(新克隆 / 没跑过 cf)。
+    缺文件不算错 —— 返回空表, 让调用方按「还没量过」处理, 而不是让门在
+    一个不相干的地方炸(2026-08-30 code review:此前直接 FileNotFoundError,
+    而这个脚本**已经进了 gate.sh**)。"""
+    book = ROOT / "docs/design/evbook.md"
+    if not book.exists():
+        return None
     ev = {}
-    for line in (ROOT / "docs/design/evbook.md").read_text(encoding="utf-8").splitlines():
+    for line in book.read_text(encoding="utf-8").splitlines():
         m = re.match(r"^\| *(\w+) *\|[^|]*\| *(\w+) *\| *([\d.-]+) *\|[^|]*\| *\*\*([\d.-]+)\*\*", line)
         if m and float(m.group(4)) > 0:
             ev[m.group(1)] = round(float(m.group(4)), 1)
@@ -24,6 +31,10 @@ def measured():
 
 def main():
     want = measured()
+    if want is None:
+        print("⚠ docs/design/evbook.md 不存在(cf.gd 的产物)—— 跳过同步检查。"
+              "要生成:godot --headless --path . --script res://tools/cf.gd")
+        return 0
     p = ROOT / "data/sim.json"
     d = json.loads(p.read_text(encoding="utf-8"))
     have = d["ev"].get("measured", {})

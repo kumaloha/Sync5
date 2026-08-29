@@ -1092,7 +1092,7 @@ const _CONSUMABLE_WHEN := ["phrase", "shop", "any"]
 ## ⚑ 消耗牌的立即动作 —— **加新键时三处齐落**:这里 · `view/phrase.gd::_apply_shop_action`
 ## · `tools/bot.gd::_apply_bot_action`。`tools/parity.py` 会机械核对后两处。
 const _CONSUMABLE_ACTIONS := ["wilds", "trim_low", "deck_rule", "shelf_slots",
-	"buy_limit", "price_delta", "rule_guaranteed", "free_reroll", "min_rank",
+	"buy_limit", "price_delta", "rule_guaranteed", "free_reroll", "min_rarity",
 	"copy_one_destroy_rest"]
 ## 当拍加成的通道 —— 与 `core/settle.gd` 里 phrase_boosts 那段消费的键一一对应。
 const _CONSUMABLE_BOOSTS := ["bonus_pct", "mult", "bonus", "bonus_target_pct",
@@ -1291,7 +1291,13 @@ static func validate_ui(d: Dictionary) -> String:
 	# 反向不许有孤儿 —— 与 jokercard 同一条纪律(退役卡的条目曾一直躺在表里)。
 	var ccard: Dictionary = d.get("consumablecard", {})
 	var cids := {}
-	for ce in _load("consumables", func(_x): return "").get("consumables", []):
+	# ⚠⚠ **不走 `_load`** —— 传一个「永远返回空」的假校验器会把 consumables.json
+	# **未经校验地缓存下来**(`_load` 缓存后不再重验), 之后所有 `DB.consumables()`
+	# 都跳过校验, 今天加的三层键白名单**全部失效**。⇒ 直接读文件, 只做交叉引用。
+	var cfile := FileAccess.open("res://data/consumables.json", FileAccess.READ)
+	var cparsed = JSON.parse_string(cfile.get_as_text()) if cfile != null else null
+	var clist: Array = cparsed.get("consumables", []) if cparsed is Dictionary else []
+	for ce in clist:
 		cids[String(ce["id"])] = true
 		if not ccard.has(String(ce["id"])):
 			return "ui.consumablecard 缺消耗牌 '%s' 的 trigger(卡面会退回英文 fx)" % ce["id"]

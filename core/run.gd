@@ -201,6 +201,9 @@ func snapshot(run_index: int) -> Dictionary:
 	for j in joker_slots:
 		slots_out.append(null if j == null \
 			else {"id": j.id, "st": j.state.duplicate(true)})
+	var consumables_out: Array = []
+	for c in consumables:
+		consumables_out.append(null if c == null else String(c.id))
 	var ages_out := {}
 	var ages: Dictionary = cache_meta.get("ages", {})
 	for i in range(cache.size()):
@@ -225,6 +228,10 @@ func snapshot(run_index: int) -> Dictionary:
 		"kinds": kinds_out, "cache": Deck.cards_out(cache),
 		"cache_ages": ages_out, "cache_next": int(cache_meta.get("next", 0)),
 		"slots": slots_out, "deck": deck.snapshot(),
+		# ⚑ 消耗品栏(2026-08-30 code review 补):首版**漏了** —— 玩家买了两张牌、
+		# 暂停退出、续玩时它们凭空消失, 钱还白花了。⚠ `phrase_boosts` **不存**:
+		# 它是拍内的, 跨存档丢失反而是对的(那一拍本来就没结算完)。
+		"consumables": consumables_out,
 	}
 
 
@@ -255,6 +262,18 @@ func restore(d: Dictionary) -> bool:
 		j.state = e.get("st", {}).duplicate(true)
 		# ⚠ 不调 on_acquire:它改牌堆(百搭洗入大小王等), 而牌堆快照里已经是改完的样子
 		joker_slots[i] = j
+	# 消耗品栏 —— 与 slots 同款处理:认不出的 id 就空着(比开不了机好)。
+	consumables = [null, null]
+	var cons_in: Array = d.get("consumables", [])
+	for i in range(mini(cons_in.size(), consumables.size())):
+		var cid = cons_in[i]
+		if cid == null:
+			continue
+		for e in DB.consumables():
+			if String(e["id"]) == String(cid):
+				consumables[i] = Consumable.new(e)
+				break
+	phrase_boosts.clear()          # 拍内状态不跨存档
 	run_faces = {}
 	for k in d.get("faces", {}):
 		run_faces[int(k)] = String(d["faces"][k])

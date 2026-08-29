@@ -91,6 +91,14 @@ static func settle(run: Run, p: Phrase, flags: Dictionary = {}) -> Dictionary:
 		if lj != null:
 			for _k in range(lj.chance_rolls_needed()):
 				luck_rolls.append(float(run.deck.pick_index(10000)) / 10000.0)
+	# ⚑ 本拍烧掉的消耗牌里的概率类(彩头)也要预掷(2026-08-30 code review 补)。
+	# ⚠⚠ 漏了会有两种错, 都不报错:**装了赌卡时彩头偷走小丑牌的随机数**
+	# (`pop_front` 改的是共享数组, 后面的判定整体错位, 在 sim 里只表现为噪声);
+	# **没装赌卡时数组为空 ⇒ 彩头永远不触发**。
+	# 「预掷数 = 持仓里掷点谓词的总数」这条原则本来就在, 只是消耗牌不在「持仓」里。
+	for cb in run.phrase_boosts:
+		if cb.has("chance"):
+			luck_rolls.append(float(run.deck.pick_index(10000)) / 10000.0)
 	var callout_unsolved := false
 	if run.mod_roll.has("kind") and SectionMod.callout_factor(run.face()) < 1.0:
 		if bool(run.mod_roll.get("solved", false)):

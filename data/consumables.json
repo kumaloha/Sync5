@@ -110,7 +110,7 @@
    "name": "Anvil",
    "price": 4,
    "when": "shop",
-   "fx": "Copy one joker, destroy the rest",
+   "fx": "Copy one support, destroy others",
    "action": {
     "copy_one_destroy_rest": true
    }
@@ -132,9 +132,9 @@
    "name": "High Roller",
    "price": 3,
    "when": "shop",
-   "fx": "Next shelf: eights or better",
+   "fx": "Next shelf: no common cards",
    "action": {
-    "min_rank": 8
+    "min_rarity": "uncommon"
    }
   }
  ],

@@ -8,14 +8,14 @@ func run(t) -> void:
 	p.start()
 	t.eq(p.hand.size(), 5, "phrase deals 5 cards")
 	t.eq(cache.size(), GameConfig.CACHE_CAP, "cache is dealt FULL at start")
-	t.eq(p.coins, 10, "starts with 10 coins(经济 v2)")
+	t.eq(p.coins, 8, "starts with 8 coins(2026-08-30 收入重构:用户「钱宽松的本质是现在获取太容易」——判据换成「一局能买几张卡」(原作 2~3 张, 我们改前 25 张))")
 
 	# discard 2 from hand: pay 2, refill in place immediately
 	var kept0: Card = p.hand[0]
 	var old1: Card = p.hand[1]
 	var old3: Card = p.hand[3]
 	t.check(p.discard_selected([1, 3]), "discard two hand cards")
-	t.eq(p.coins, 10 - GameConfig.DISCARD_COST * 2, "discarding charges 1◆/张(经济 v2 推翻弃牌免费)")
+	t.eq(p.coins, 8 - GameConfig.DISCARD_COST * 2, "discarding charges 1◆/张(经济 v2 推翻弃牌免费)")
 	t.eq(p.hand.size(), 5, "hand refilled to exactly 5")
 	t.check(p.hand[0] == kept0, "untouched card stays in place")
 	t.check(p.hand[1] != old1 and p.hand[3] != old3, "discarded slots hold new cards")

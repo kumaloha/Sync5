@@ -1067,8 +1067,8 @@ func _apply_shop_action(id: String, act: Dictionary) -> void:
 		shop.grant_rule_guaranteed()
 	if act.has("free_reroll"):               # 加急:免费刷新
 		shop.grant_free_reroll(int(act["free_reroll"]))
-	if act.has("min_rank"):                  # 挑高:下次货架必出 8 以上
-		shop.grant_min_rank(int(act["min_rank"]))
+	if act.has("min_rarity"):                  # 挑高:下次货架没有普通卡
+		shop.grant_min_rarity(String(act["min_rarity"]))
 	if act.has("copy_one_destroy_rest"):     # 砧座:复制一张小丑牌, 摧毁其余
 		_anvil()
 	if act.has("wilds"):
@@ -1081,22 +1081,36 @@ func _apply_shop_action(id: String, act: Dictionary) -> void:
 ## ⚠ 只有**装着 ≥2 张**才有意义 —— 1 张时「复制一张、毁掉其余」= 什么都没发生,
 ## 那种情况应当在按下之前就挡住(armed 判定), 而不是静默吃掉一张消耗牌。
 func _anvil() -> void:
+	# ⚠ **只在 support 里掷**(2026-08-30 code review):留下 Target 时复制无处可放
+	# (它只在 0 号槽生效)⇒ 砧座会变成「摧毁其余、什么也不给」, 而那是**随机发生**的 ——
+	# 玩家点下去才知道亏不亏。⇒ 语义改成确定的:**留一张 support 并复制它**。
 	var owned: Array = []
-	for i in range(run.joker_slots.size()):
+	for i in range(1, run.joker_slots.size()):
 		if run.joker_slots[i] != null:
 			owned.append(i)
 	if owned.size() < 2:
 		return
-	var keep: int = owned[randi() % owned.size()]
+	# ⚠ 走 `run.deck.pick_index` 而不是全局 `randi()` —— 探针要可复现
+	# (与 beat.gd 的 luck_rolls 同一条随机源纪律)。
+	var keep: int = owned[run.deck.pick_index(owned.size())]
 	var kept = run.joker_slots[keep]
 	for i in range(run.joker_slots.size()):
 		if i != keep:
 			run.joker_slots[i] = null
-	# 复制到第一个空的 support 槽(Target 槽只放 Target —— 与拖拽规则同一条线)
-	for i in range(1, run.joker_slots.size()):
-		if run.joker_slots[i] == null and kept.kind == "support":
-			run.joker_slots[i] = Joker.by_id(kept.id)
-			break
+	# ⚑ 复制品**继承成长状态**(2026-08-30 code review 补):`Joker.by_id` 拿的是
+	# 干净的新卡, 留下转型(已累积 +120%)或收藏家(已记 5 次买卡)时,
+	# 复制品的计数器是 **0** —— 玩家会觉得「复制了个空壳」。
+	# ⚠ 留下的是 **Target** 时也要复制:首版判 `kind == "support"` 才复制,
+	# 于是留下 Target 时**砧座等于「摧毁其余、什么也不给」**, 纯亏。
+	# ⇒ Target 复制到 support 槽没有意义(它只在 0 号槽生效), 改为**留在原位不动**,
+	#   并把「至少两张」的门槛提到调用前(见 `_consumable_effective`)。
+	if kept.kind == "support":
+		for i in range(1, run.joker_slots.size()):
+			if run.joker_slots[i] == null:
+				var dup = Joker.by_id(kept.id)
+				dup.state = kept.state.duplicate(true)
+				run.joker_slots[i] = dup
+				break
 	for i in range(joker_views.size()):
 		joker_views[i].set_joker(run.joker_slots[i])
 	Tape.on("anvil", {"kept": String(kept.id)})
@@ -1115,7 +1129,8 @@ func _roll_consumable():
 			pool.append(e)
 	if pool.is_empty():
 		return null
-	return Consumable.new(pool[randi() % pool.size()])
+	# ⚠ 同一条随机源纪律:走 `run.deck.pick_index`, 探针才复现得出同一张货架。
+	return Consumable.new(pool[run.deck.pick_index(pool.size())])
 
 
 ## 帕奇欧:离店时复制一张消耗牌。**三个 close 点都要走** —— 「第二条入口漏掉
@@ -1125,6 +1140,9 @@ func _perkeo_on_exit() -> void:
 	if not Joker.slots_copy_consumable(run.joker_slots):
 		return
 	if not run.consumable_room():
+		# ⚠ 栏位满 = 这次不复制。**留痕** —— 否则玩家看到的是「装了帕奇欧却从没生效」,
+		# 而真相是「每次离店时你的两格都是满的」(2026-08-30 code review)。
+		Tape.on("perkeo", {"id": "", "skipped": "full"})
 		return
 	var src: Array = []
 	for c in run.consumables:
@@ -1132,7 +1150,8 @@ func _perkeo_on_exit() -> void:
 			src.append(c)
 	if src.is_empty():
 		return
-	var pick = src[randi() % src.size()]
+	# ⚠ `run.deck.pick_index` 而不是全局 `randi()` —— 探针可复现(同 beat.gd 的纪律)。
+	var pick = src[run.deck.pick_index(src.size())]
 	for e in DB.consumables():
 		if String(e["id"]) == pick.id:
 			run.take_consumable(Consumable.new(e))
@@ -1148,9 +1167,11 @@ func _perkeo_on_exit() -> void:
 ## ⚠ 判据来自今天反复出现的形状:**不报错的失败最贵**。
 func _consumable_effective(c) -> bool:
 	if c.action.has("copy_one_destroy_rest"):
+		# ⚠ 只数 **support**(槽 1..3)—— 砧座在 support 里掷、复制到 support 槽,
+		# Target 不参与(它只在 0 号槽生效, 复制无处可放)。
 		var n := 0
-		for j in run.joker_slots:
-			if j != null:
+		for i in range(1, run.joker_slots.size()):
+			if run.joker_slots[i] != null:
 				n += 1
 		return n >= 2
 	return true
@@ -1166,7 +1187,7 @@ func _refresh_shop_consumables() -> void:
 func _on_consumable_used(idx: int) -> void:
 	var used := run.use_consumable(idx, "phrase")
 	if used.is_empty():
-		cslots[idx].shake() if cslots[idx].has_method("shake") else null
+		cslots[idx].shake()
 		return
 	# 立即动作(牌堆类):与 Joker.on_acquire 同一批键, 交给 Deck 执行。
 	var act: Dictionary = used.get("action", {})
@@ -1806,7 +1827,9 @@ func _on_shop_bought(j, price: int) -> void:
 	# 拿着「每次换旗 +40%」的人换得更少, 因果就在这一行。
 	if not (j.kind == "target" and _swapped_target):
 		_shop_buys += 1
-	var buy_limit := Joker.slots_buy_limit(run.joker_slots)
+	# ⚑ 联票(消耗牌)的本店限额叠在小丑牌的之上(2026-08-30 code review 补:
+	# `_grant_buy_limit` 此前**只被写入和清零, 从没被读过** —— 那张卡在游戏里是空白的)。
+	var buy_limit := maxi(Joker.slots_buy_limit(run.joker_slots), shop.granted_buy_limit())
 	if _shop_buys < buy_limit:
 		# 剩余配额由**这里**算并传下去 —— 视图不自己数(经济动作只发生在编排器),
 		# 它只拿这个数去写副标题的「还能再选 N 张」。

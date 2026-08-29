@@ -650,13 +650,13 @@
    "trigger": "下次货架必出规则牌"
   },
   "anvil": {
-   "trigger": "复制一张小丑牌,毁其余"
+   "trigger": "复制一张 SUPPORT,毁其余"
   },
   "encorecall": {
    "trigger": "免费刷新一次"
   },
   "highroller": {
-   "trigger": "下次货架:8 以上"
+   "trigger": "下次货架:没有普通卡"
   }
  }
 }

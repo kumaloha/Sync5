@@ -122,6 +122,9 @@ func _card_ev(id: String, st: Dictionary, slots: Array, phrases_left: int) -> fl
 
 ## 实测地板的折扣 —— 不给满值:evbook 是**事后**均值(含玩家已经把构筑配好的局面),
 ## 而买入决策发生在**事前**。0.5 是保守起步, 归数值批标定。
+## ⚑ 量纲已核(2026-08-30 code review):`ev.measured` 与 `_card_ev` 都是**分/拍**,
+## `horizon` 在调用点外乘(`ev * horizon - lam * price`)。公式里那些 `* future`
+## 是成长牌**自身的累积特性**(每拍涨一点), 不是量纲转换 —— 两者可以直接 maxf。
 const MEASURED_W := 0.5
 
 
@@ -468,6 +471,23 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 			if not rp2.is_empty() and not offer.is_empty():
 				offer[0] = rp2[_rng.randi_range(0, rp2.size() - 1)]
 		_g_rule = false          # 「下次货架」类:消费即清
+	# 挑高(消耗牌):下次货架没有普通卡 —— 与游戏侧 `_grant_min_rarity` 同义。
+	# ⚠ 2026-08-30 补:改名 min_rank→min_rarity 时只改了赋值端, 消费端漏了 ⇒
+	# 这个变量「写了但没人读」, 被「只写不读」扫描当场抓到。
+	if _g_min_rarity != "":
+		var rich: Array = []
+		for j in offer:
+			if j.rarity != "common":
+				rich.append(j)
+		if rich.size() < offer.size():
+			for j in candidates:
+				if rich.size() >= offer.size():
+					break
+				if j.rarity != "common" and not rich.has(j):
+					rich.append(j)
+			if rich.size() == offer.size():
+				offer = rich
+		_g_min_rarity = ""
 	# 商店行为臂的证物记账(kit `shop` 通路):每店一记, 首发货架含规则牌就记一次。
 	_rep.shops_n += 1
 	for j in offer:
@@ -704,7 +724,7 @@ var _g_buy_limit := 0
 var _g_price := 0
 var _g_rule := false
 var _g_free_reroll := 0
-var _g_min_rank := 0
+var _g_min_rarity := ""
 
 
 func _consumables_in_shop(run, coins: int, slots: Array) -> int:
@@ -736,7 +756,7 @@ func _consumables_in_shop(run, coins: int, slots: Array) -> int:
 			if c != null:
 				src.append(c)
 		if not src.is_empty():
-			var pk = src[_rng.randi_range(0, src.size() - 1)]
+			var pk = src[_rng.randi_range(0, src.size() - 1)]   # bot 侧用自己的 rng(探针复现)
 			for e in DB.consumables():
 				if String(e["id"]) == pk.id:
 					run.take_consumable(Consumable.new(e))
@@ -802,15 +822,16 @@ func _apply_bot_action(run, slots: Array, used: Dictionary) -> void:
 		_g_rule = true
 	if act.has("free_reroll"):
 		_g_free_reroll += int(act["free_reroll"])
-	if act.has("min_rank"):
-		_g_min_rank = maxi(_g_min_rank, int(act["min_rank"]))
+	if act.has("min_rarity"):
+		_g_min_rarity = String(act["min_rarity"])
 	if act.has("wilds"):
 		run.deck.add_wilds(String(used["id"]), int(act["wilds"]))
 	if act.has("trim_low"):
 		run.deck.trim_low_ranks()
 	if act.has("copy_one_destroy_rest"):
+		# 与游戏侧同:只在 support(槽 1..3)里掷 —— 留 Target 时复制无处可放。
 		var owned: Array = []
-		for i in range(slots.size()):
+		for i in range(1, slots.size()):
 			if slots[i] != null:
 				owned.append(i)
 		if owned.size() >= 2:

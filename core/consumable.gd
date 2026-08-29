@@ -34,8 +34,12 @@ func _init(e: Dictionary) -> void:
 	fx_text = String(e.get("fx", ""))
 	price = int(e.get("price", 3))
 	when = String(e.get("when", "any"))
-	action = e.get("action", {})
-	boost = e.get("boost", {})
+	# ⚠ **必须 duplicate** —— `e` 来自 `DB.consumables()` 的缓存, 直接引用等于
+	# 所有实例共享同一个字典:任何一处改了实例的 action/boost, **会污染全局数据表**,
+	# 而且是静默的(下一局、下一张同名卡都跟着变)。
+	# ⚑ 与 `Joker` 对 `state` 的处理同一条线(那边也是 `duplicate(true)`)。
+	action = (e.get("action", {}) as Dictionary).duplicate(true)
+	boost = (e.get("boost", {}) as Dictionary).duplicate(true)
 
 
 ## 这张牌**现在**能不能点。`ctx` = "phrase" | "shop"。

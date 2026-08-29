@@ -332,16 +332,16 @@
   "赞助": "Sponsor",
   "下次货架必出规则牌": "Next shelf holds a rule card",
   "点唱机": "Jukebox",
-  "复制一张小丑牌,毁其余": "Copy one joker, destroy the rest",
   "砧座": "Anvil",
   "免费刷新一次": "One free reroll",
   "加急": "Encore Call",
-  "下次货架:8 以上": "Next shelf: eights or better",
   "挑高": "High Roller",
   "本拍:+目标分 25%": "This phrase: +25% of target",
   "金币每 8 枚:结算 +1◆": "+1 coin per 8 held",
   "牌型金币 ×1.5": "Hand coin rewards x1.5",
   "整拍零弃牌:+1◆": "Zero discards this phrase: +1 coin",
-  "零弃牌:+2◆;商店必出 Target": "No discards: +2 coins; Targets always"
+  "零弃牌:+2◆;商店必出 Target": "No discards: +2 coins; Targets always",
+  "下次货架:没有普通卡": "Next shelf: no common cards",
+  "复制一张 SUPPORT,毁其余": "Copy one support, destroy others"
  }
 }

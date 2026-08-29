@@ -41,9 +41,21 @@ case "${1:-}" in
 --unlock) rm -f "$LOCK"; echo "已解锁"; exit 0 ;;
 esac
 
-[[ -f $LOCK ]] && { echo "✗ 已有探针在跑(tools/run.sh --status 看详情)"; exit 1; }
+# ⚠ 陈旧锁的识别(2026-08-30 code review):只有正常路径清锁, **被 Ctrl+C 或
+# 崩溃打断就残留** —— 我今天为此手动 `--unlock` 过好几次。
+# ⇒ 锁里记 PID, 进程已经不在就自动清掉(而不是拒绝下一次运行)。
+if [[ -f $LOCK ]]; then
+	OLDPID=$(sed -n 's/^pid: //p' "$LOCK" 2>/dev/null)
+	if [[ -n "$OLDPID" ]] && kill -0 "$OLDPID" 2>/dev/null; then
+		echo "✗ 已有探针在跑(tools/run.sh --status 看详情)"; exit 1
+	fi
+	echo "⚠ 清掉陈旧的锁(上一次运行被打断, pid ${OLDPID:-?} 已不在)"
+	rm -f "$LOCK"
+fi
+# ⚠ trap:被打断也要清锁, 否则下一次运行会被自己挡住。
+trap 'rm -f "$LOCK"' EXIT INT TERM
 FP0=$(fingerprint)
-{ echo "cmd: $*"; echo "起: $(date '+%F %T')"; echo "fp: $FP0"; } > "$LOCK"
+{ echo "cmd: $*"; echo "起: $(date '+%F %T')"; echo "pid: $$"; echo "fp: $FP0"; } > "$LOCK"
 
 case "${1:-}" in
 # ⚑ `selftest` 保留 —— **新立一把尺之后要构造一次它应该报警的情形**。

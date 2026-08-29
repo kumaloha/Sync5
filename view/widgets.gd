@@ -1401,18 +1401,38 @@ class ConsumableSlot:
 	var armed := true        # 当前语境能不能点(phrase/shop 时机门)
 	const VIS := 60.0        # 视觉边长;热区 = size(88), 差额是留给手指的
 	func _init() -> void:
+		set_process(false)
 		flat = true
 		focus_mode = Control.FOCUS_NONE
 		for st in ["normal", "hover", "pressed", "disabled", "focus"]:
 			add_theme_stylebox_override(st, StyleBoxEmpty.new())
 		pressed.connect(func() -> void:
 			if filled and armed:
-				used.emit(idx))
+				used.emit(idx)
+			else:
+				shake())   # ⚠ 点不动也要有反馈 —— 被拒绝的点击不许无声(DJKey 同款)
+	var _shake_t := 0.0
+	## 与 `DJKey.shake` 同一条纪律:按不动时抖一下, 否则玩家不知道是「没反应」
+	## 还是「点歪了」。⚠ 2026-08-30 code review 抓到:`phrase.gd` 与 `shop.gd`
+	## 早就写了 `x.shake() if x.has_method("shake") else null`, 而这个类**根本没有
+	## shake 方法** ⇒ 那两行是**永远不执行的死代码**, 而点击静默无反馈。
+	func shake() -> void:
+		_shake_t = 0.35
+		set_process(true)
+		queue_redraw()
+
+	func _process(delta: float) -> void:
+		_shake_t = maxf(0.0, _shake_t - delta)
+		if _shake_t <= 0.0:
+			set_process(false)
+		queue_redraw()
 	## ⚠ 画法跟全屏统一:**暗玻璃底 + 主色描边 + 外发光**(CLAUDE.md 美术方向)。
 	## 第一版画的是硬边方框, 渲染出来跟周围的圆角发光件格格不入 —— 「改了视觉
 	## 就渲染出来自己看」这条纪律当场兑现。
 	func _draw() -> void:
 		var c := Vector2(size.x, size.y) * 0.5
+		if _shake_t > 0.0:
+			c.x += sin(_shake_t * 60.0) * _shake_t * 12.0
 		var r := Rect2(c - Vector2(VIS, VIS) * 0.5, Vector2(VIS, VIS))
 		var rad := 10.0
 		if not filled:

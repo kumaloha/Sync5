@@ -5,12 +5,10 @@ extends RefCounted
 ## death/score/coin accumulators, joker presence/trigger counts, the
 ## playbook harvester. Pure bookkeeping — no RNG, no decisions.
 
-var _runs: int
 var _sections: int
 
 
 func _init(runs: int, sections: int) -> void:
-	_runs = runs
 	_sections = sections
 
 

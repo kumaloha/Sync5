@@ -90,6 +90,7 @@ static func run(result: Dictionary, slots: Array, extra: Dictionary) -> Dictiona
 	# 选前者的理由:玩家是「看到这手牌、判断这拍能打大」才烧的牌
 	# (实时可点的设计意图), 它该吃到这一拍的全部倍率, 否则烧牌的时机判断就不值钱了。
 	for b in extra.get("phrase_boosts", []):
+		var continue_next := false
 		# ⚠ 概率类加成(彩头「半概率 ×3」)走**与小丑牌同一条随机源** `luck_rolls`,
 		# 灌铅骰的 `odds_mult` 因此对它一样生效 —— 不许各摇各的。
 		# ⚑ 2026-08-30 补:`chance` 键此前**从没被读过**, 彩头实际是 100% 触发的 ×3,
@@ -105,18 +106,19 @@ static func run(result: Dictionary, slots: Array, extra: Dictionary) -> Dictiona
 				var rv: float = float(rolls.pop_front())
 				fires = rv < minf(1.0, float(b["chance"])
 					* float(ctx.get("odds_mult", 1.0)))
+		# ⚠ `b = {}` 会改循环变量, 语义危险(GDScript 里字典是引用) —— 用显式分支。
 		if not fires:
-			b = {}                            # 没中:整张牌的加成都不生效
-		if b.has("bonus_pct"):
+			continue_next = true
+		if not continue_next and b.has("bonus_pct"):
 			ctx.bonus_pct = float(ctx.bonus_pct) + float(b["bonus_pct"])
-		if b.has("mult"):
+		if not continue_next and b.has("mult"):
 			ctx.mult = float(ctx.mult) * float(b["mult"])
-		if b.has("bonus"):
+		if not continue_next and b.has("bonus"):
 			ctx.bonus = int(ctx.bonus) + int(b["bonus"])
-		if b.has("bonus_target_pct"):
+		if not continue_next and b.has("bonus_target_pct"):
 			ctx.bonus = int(ctx.bonus) + int(round(float(b["bonus_target_pct"])
 				* float(extra.get("section_target", 0))))
-		if b.has("additive"):
+		if not continue_next and b.has("additive"):
 			ctx.additive = int(ctx.additive) + int(b["additive"])
 	var pre_joker_mult: float = ctx.mult
 	var pre_joker_additive: int = int(ctx.additive)

@@ -73,13 +73,23 @@ static func build(host: Control) -> Dictionary:
 	# ⚠ **必须排在 orbit 之后** —— 轨道虽然是 IGNORE(不吃点击), 但绘制上后加的在上层;
 	#   排在它前面会被轨道的底纹盖住(2026-08-17 那次「手牌点不动」就是层序问题的近亲)。
 	# ⚠ 右端而不是左端:左端是节拍菱形走圈的起点。
-	var cslot_y: float = hand_top + (738.0 - hand_top - 88.0) * 0.5 - 14.0
+	# ⚠ **全部从 `data/ui.json` 推导, 不写魔法数字**(2026-08-30 code review:
+	# 首版硬编码了 738 与 696 ⇒ 改 JSON 的布局时格子不会跟着走, 违反
+	# 「改布局改文案 = 改 JSON」这条铁律)。
+	# 竖向:格子中心对齐「轨道顶到手牌卡顶」这条带;横向:右缘与手牌行右缘齐。
+	var cs_side := 88.0
+	var band_top: float = hand_top
+	var band_bot: float = float(ui["hand_card_y"])
+	var cslot_y: float = band_top + (band_bot - band_top - cs_side) * 0.5
+	var hand_right: float = float(ui["margin"]) + 5.0 * float(ui["card_w"]) \
+		+ 4.0 * float(ui["gap"])
 	out["cslots"] = []
 	for i in range(2):
 		var cs := Widgets.ConsumableSlot.new()
 		cs.idx = i
-		cs.size = Vector2(88, 88)
-		cs.position = Vector2(696.0 - 88.0 * float(2 - i) - 6.0 * float(1 - i), cslot_y)
+		cs.size = Vector2(cs_side, cs_side)
+		cs.position = Vector2(hand_right - cs_side * float(2 - i) - 6.0 * float(1 - i),
+			cslot_y)
 		host.add_child(cs)
 		out["cslots"].append(cs)
 	out["shop"] = Shop.new()

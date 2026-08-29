@@ -15,7 +15,7 @@ func run(t) -> void:
 	# would land on the section end
 	t.check(DB.validate_run({"phrases_per_section": 6, "phrases_per_shop": 4}) != "",
 		"non-divisible shop beat rejected")
-	t.eq(int(DB.economy()["starting_coins"]), 10, "economy.json starting coins(经济 v2)")
+	t.eq(int(DB.economy()["starting_coins"]), 8, "economy.json starting coins(2026-08-30 收入重构:用户「钱宽松的本质是现在获取太容易」——判据换成「一局能买几张卡」(原作 2~3 张, 我们改前 25 张))")
 	# validation catches planted bad files
 	t.check(DB.validate_run({"phrases_per_section": 5}) != "", "missing run key detected")
 	t.check(DB.validate_economy({"starting_coins": 6, "typo_key": 1}) != "", "unknown economy key detected")

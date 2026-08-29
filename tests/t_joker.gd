@@ -102,10 +102,14 @@ func run(t) -> void:
 		base + t._bonus("finale"), "finale bonus on a late action")
 	t.eq(Settle.run(flush_res, [null, Joker.by_id("turnover"), null, null], {"discards": 3})["score"],
 		base + t._bonus_n("turnover", 3), "turnover bonus per discard")
+	# ⚠ **从数据推导, 不抄常量**(2026-08-30 收入重构把同花的牌型金币从 5 改到 3,
+	# 这两条当场红 —— 而它们要守的契约是「零弃牌才给」, 与那个数字无关)。
+	var fc: int = int(flush_res["coins"])
+	var tip: int = int(t._do_amount("tipjar", "coins"))
 	t.eq(Settle.run(flush_res, [null, Joker.by_id("tipjar"), null, null], {"discards": 0})["coins"],
-		5 + 2, "tipjar +2 coins on zero discards(经济 v2:FLUSH 基础 5)")
+		fc + tip, "tipjar 零弃牌才给(数额从 jokers.json 推导)")
 	t.eq(Settle.run(flush_res, [null, Joker.by_id("tipjar"), null, null], {"discards": 1})["coins"],
-		5, "tipjar silent after a discard(经济 v2)")
+		fc, "tipjar silent after a discard")
 
 	# chord: cache all one suit (wilds match anything)
 	var same_suit := [t._c(3, 1), t._c(9, 1), t._c(12, 1)]
@@ -201,8 +205,10 @@ func run(t) -> void:
 		int(pair_res["score"]), "mirror silent when the target missed")
 
 	# interest: cap at +5
+	# 上限从卡数据取 —— 2026-08-30 收入重构把 cap 从 5 改到 3。
+	var icap: int = int(t._do_amount("interest", "cap"))
 	t.eq(Settle.run(flush_res, [null, Joker.by_id("interest"), null, null], {"coins": 40})["coins"],
-		5 + 5, "interest caps at +5(经济 v2:FLUSH 基础 5)")
+		int(flush_res["coins"]) + icap, "interest 封顶(上限从 jokers.json 推导)")
 
 	# ---- 2026-08-12 流派批(docs/design/archetypes.md §3):族内件 + 缓存件 + 经济件 ----
 	# 族内件 contains 语义 = kind_in(顺/同花五张点数互异, 天然不含对):
@@ -275,12 +281,14 @@ func run(t) -> void:
 		"freeze lasts exactly one phrase (pulse, not permanent)")
 	# 分成:牌型自带金币翻倍, **不乘**其他卡给的 coins_bonus(小费罐同装时验证)
 	var pat_coins: int = int(flush_res["coins"])
+	# 倍数从卡数据取 —— 2026-08-30 把 ×2 改成 ×1.5(收入重构)。
+	var rf: float = float(t._do_amount("royalty", "coins_factor"))
 	t.eq(Settle.run(flush_res, [null, Joker.by_id("royalty"), null, null], {})["coins"],
-		pat_coins * 2, "royalties double the hand's own coin reward")
+		int(round(pat_coins * rf)), "分成放大牌型自带的金币(倍数从 jokers.json 推导;实现用 round)")
 	t.eq(Settle.run(flush_res, [null, Joker.by_id("royalty"), Joker.by_id("tipjar"), null],
 		{"discards": 0})["coins"],
-		pat_coins * 2 + int(t._do_amount("tipjar", "coins")),
-		"royalties do not double another card's coin bonus")
+		int(round(pat_coins * rf)) + int(t._do_amount("tipjar", "coins")),
+		"分成**不放大**别的卡给的 coins_bonus")
 	# 打包:段分已达目标两倍才给(悲观口径 —— 本拍自己的分还没落地)
 	t.eq(Settle.run(flush_res, [null, Joker.by_id("doggybag"), null, null],
 		{"section_score": 2000, "section_target": 1000})["coins"],

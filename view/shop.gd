@@ -65,9 +65,8 @@ var _grant_buy_limit := 0       # 联票:本店可成交张数
 var _grant_price := 0           # 赞助:本店全场价格增量(负数 = 便宜)
 var _grant_rule := false        # 点唱机:下次货架必出规则牌
 var _grant_free_reroll := 0     # 加急:免费刷新次数
-var _grant_min_rank := 0        # 挑高:下次货架的最低点数门槛
+var _grant_min_rarity := ""       # 挑高:下次货架的最低稀有度("" = 无授予)
 var _coins := 0
-var _section := 0
 
 
 func _ready() -> void:
@@ -213,11 +212,16 @@ func grant_free_reroll(n: int) -> void:
 	_draw_refill()
 
 
-func grant_min_rank(r: int) -> void:
-	_grant_min_rank = r
+func grant_min_rarity(r: String) -> void:
+	_grant_min_rarity = r
 
 
 ## 本店还剩几次免费刷新(编排器算刷新价时读)。
+## 联票授予的本店成交上限(0 = 无授予)。编排器读它, 与小丑牌的 buy_limit 取大。
+func granted_buy_limit() -> int:
+	return _grant_buy_limit
+
+
 func free_rerolls_left() -> int:
 	return _grant_free_reroll
 
@@ -234,7 +238,7 @@ func _on_cshelf_pressed() -> void:
 		return
 	if _coins < _coffer.price:
 		denied.emit("consumable")
-		_cshelf.shake() if _cshelf.has_method("shake") else null
+		_cshelf.shake()
 		return
 	consumable_bought.emit(_coffer, _coffer.price)
 
@@ -302,7 +306,6 @@ func open(slots: Array, coins: int, section_idx: int, mod = null,
 func redeal(slots: Array, coins: int, section_idx: int) -> void:
 	_slots = slots
 	_coins = coins
-	_section = section_idx
 	_deal()
 
 
@@ -422,9 +425,26 @@ func _deal() -> void:
 				if not rp.is_empty() and not _candidates.is_empty():
 					_candidates[0] = rp[randi_range(0, rp.size() - 1)]
 	# (升级上架段 2026-08-26 随升级系统整体删除 —— 路线 ③。)
+	# ⚑ 挑高(消耗牌):下次货架只留「高价值」的卡 —— 2026-08-30 code review 补,
+	# `_grant_min_rarity` 此前**只被写入和清零, 从没被读过**。
+	# ⚠ 「必出 8 以上」在货架上**没有对应物**(货架摆的是小丑牌不是扑克牌),
+	# 所以语义改成「没有普通卡」, 卡面同步改 —— **卡面必须说实话**。
+	if _grant_min_rarity != "":
+		var rich: Array = []
+		for j in _candidates:
+			if j.rarity != "common":
+				rich.append(j)
+		if rich.size() < _candidates.size():
+			for j in candidates:
+				if rich.size() >= _candidates.size():
+					break
+				if j.rarity != "common" and not rich.has(j):
+					rich.append(j)
+			if rich.size() == _candidates.size():
+				_candidates = rich
 	# ⚑ 消耗牌的「下次货架」类授予在这里**消费并清零** —— 一次性。
 	_grant_rule = false
-	_grant_min_rank = 0
+	_grant_min_rarity = ""
 	_render(true)
 
 
@@ -596,6 +616,12 @@ func _has_slot_for(j) -> bool:
 
 func _on_reroll() -> void:
 	if not _layer.visible:
+		return
+	# ⚑ 加急(消耗牌)的免费刷新在这里兑现(2026-08-30 code review 补:
+	# `consume_free_reroll()` 此前**没有任何调用者** —— 那张卡在游戏里是空白的)。
+	if consume_free_reroll():
+		_reroll_count += 1
+		reroll_paid.emit(0)
 		return
 	var cost := Economy.reroll_cost(_reroll_count)
 	if _coins < cost:

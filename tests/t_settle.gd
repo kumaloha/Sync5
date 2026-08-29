@@ -8,7 +8,7 @@ func run(t) -> void:
 	# no jokers: passthrough
 	var plain := Settle.run(flush_res, [null, null, null, null], {})
 	t.eq(plain["score"], base, "no jokers -> base score")
-	t.eq(plain["coins"], 5, "no jokers -> pattern coins(经济 v2:FLUSH 5)")
+	t.eq(plain["coins"], 3, "no jokers -> pattern coins(FLUSH 3;2026-08-30 收入重构:用户「钱宽松的本质是现在获取太容易」——判据换成「一局能买几张卡」(原作 2~3 张, 我们改前 25 张))")
 
 	# mono target: flush x4
 	var mono := Joker.by_id("mono")

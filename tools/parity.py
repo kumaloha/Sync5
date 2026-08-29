@@ -63,6 +63,28 @@ def action_keys():
     return sorted(acts), bad
 
 
+def write_only():
+    """第三层:**写了但没人读**的成员变量。
+
+    ⚑ 2026-08-30 code review 抓到三张消耗牌在游戏里是**空白卡** ——
+    `_grant_buy_limit` / `_grant_min_rarity` / `consume_free_reroll()`
+    全都只被写入和清零, **从没被读过**。⚠ 上面两层查不出这个:
+    它们查「两侧都有没有实现」, 而这三个**两侧都写了变量**, 只是没人消费。
+    """
+    import re
+    bad = []
+    for sub in ("view", "core"):
+        for f in sorted((ROOT / sub).glob("*.gd")):
+            txt = f.read_text(encoding="utf-8", errors="ignore")
+            for m in re.finditer(r"^var (_g?rant?_\w+|_g_\w+)\s*(?::=|:|=)", txt, re.M):
+                n = m.group(1)
+                uses = len(re.findall(r"\b" + re.escape(n) + r"\b", txt))
+                writes = len(re.findall(re.escape(n) + r"\s*(?:=|\+=|-=|\*=)", txt))
+                if uses - writes - 1 <= 0:
+                    bad.append("%s:%s" % (f.relative_to(ROOT), n))
+    return bad
+
+
 def main():
     quiet = "--check" in sys.argv
     bad = []
@@ -79,13 +101,16 @@ def main():
             flag = "✗ 只在 bot 侧 —— 模型里有游戏里没有"; bad.append(e)
         if not quiet:
             print("%-26s %6d %6d %6d  %s" % (e, v, t, c, flag))
+    wbad = write_only()
+    if wbad:
+        print("✗ %d 个授予变量**写了但没人读**(那张卡在游戏里是空白的):%s" % (len(wbad), " ".join(wbad)))
     acts, abad = action_keys()
     if not quiet:
         print("\n消耗牌 action 键:%d 个, 两侧齐 %d 个" % (len(acts), len(acts) - len(abad)))
     if abad:
         print("✗ %d 个 action 键两侧不齐:%s" % (len(abad), " ".join(abad)))
         print("  ⚠ 后果不止低估 —— 用这种读数定的价**无效**(见 LESSONS 同名条)")
-    if bad or abad:
+    if bad or abad or wbad:
         if bad:
             print("✗ %d 个入口两侧不对齐:%s" % (len(bad), " ".join(bad)))
         return 1

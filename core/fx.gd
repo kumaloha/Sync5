@@ -255,7 +255,9 @@ static func _do(d: Dictionary, state: Dictionary, ctx: Dictionary) -> String:
 	# coins_bonus —— 结算式:coins = round(牌型金币 × factor) + Σcoins_bonus(Settle 收口)。
 	if d.has("coins_factor"):
 		ctx.coins_factor = float(ctx.get("coins_factor", 1.0)) * float(d["coins_factor"])
-		return "◆×%d" % int(d["coins_factor"])
+		# ⚠ **不能用 %d** —— `int(1.5)` = 1, 分成从 ×2 改成 ×1.5 后浮标会显示
+		# 「◆×1」, 卡在屏幕上说自己什么也没做(2026-08-30 code review)。
+		return "◆×%s" % _fmt_factor(float(d["coins_factor"]))
 	# 缓存区点数最高的一张按点数计 chips(替补 Bench,Splash 的缓存直译)。
 	# 走 additive 通道吃全部倍率;值是倍数(1 = 原点数),留给调价用。
 	if d.has("additive_cache_top"):
@@ -411,3 +413,8 @@ static func on_phrase_end(counters: Dictionary, state: Dictionary, x: Dictionary
 		if spec.has("decay_per_phrase"):
 			state[cname] = maxf(float(spec.get("floor", 0.0)),
 				float(state.get(cname, 0.0)) - float(spec["decay_per_phrase"]))
+
+
+## 倍数的显示:整数不带小数点(×2), 非整数保留一位(×1.5)。
+static func _fmt_factor(v: float) -> String:
+	return "%d" % int(v) if absf(v - roundf(v)) < 0.01 else "%.1f" % v

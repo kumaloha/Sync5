@@ -71,12 +71,49 @@ func run(t) -> void:
 	# 机械核对在 `tools/parity.py`(它读得了源码);这里守数据侧的前提:
 	# **每张牌的 action 键都得是已知的那 9 个之一**, 拼错一个字母 = 静默失效。
 	var known := ["wilds", "trim_low", "deck_rule", "shelf_slots", "buy_limit",
-		"price_delta", "rule_guaranteed", "free_reroll", "min_rank",
+		"price_delta", "rule_guaranteed", "free_reroll", "min_rarity",
 		"copy_one_destroy_rest"]
 	for e in raw:
 		for k in Consumable.new(e).action:
 			t.check(known.has(String(k)),
 				"%s 的 action 键 '%s' 不认识(拼错 = 静默失效, 两侧都不会执行)" % [e["id"], k])
+
+	# ---- ④c 存档往返:买了的牌不许在续玩时消失 ----
+	# ⚠ 2026-08-30 code review 抓到:`Run.snapshot()` 存了 slots/deck/cache/coins,
+	# **唯独漏了 consumables** ⇒ 玩家买两张牌、暂停退出、续玩时它们凭空消失, 钱还白花。
+	# 暂停/续玩是 08-27 刚做的功能, 这条路径整个没被想到。
+	var sr := Run.new()
+	sr.deck = Deck.new(7)          # snapshot 要序列化牌堆
+	sr.take_consumable(by_id["opener"])
+	sr.take_consumable(by_id["jukebox"])
+	var snap := sr.snapshot(1)
+	var sr2 := Run.new()
+	sr2.deck = Deck.new(7)
+	t.check(sr2.restore(snap), "带消耗牌的快照能读回来")
+	t.check(sr2.consumables[0] != null and sr2.consumables[1] != null,
+		"**两张消耗牌都还在** —— 存档往返不许把它们弄丢")
+	t.eq(sr2.consumables[0].id, "opener", "第一格还是同一张")
+	t.eq(sr2.consumables[1].id, "jukebox", "第二格还是同一张")
+	# 拍内加成**不该**跨存档 —— 那一拍本来就没结算完
+	sr.phrase_boosts.append({"bonus_pct": 1.0})
+	var sr3 := Run.new()
+	sr3.deck = Deck.new(7)
+	sr3.restore(sr.snapshot(1))
+	t.eq(sr3.phrase_boosts.size(), 0, "拍内加成不跨存档(那一拍没结算完)")
+
+	# ---- ④d 商店类的 action **真的改变了商店的行为** ----
+	# ⚠⚠ 2026-08-30 code review 抓到:联票/挑高/加急的 grant 变量**只被写入和清零,
+	# 从没被读过** ⇒ 三张卡在游戏里是**空白的**(而 bot 侧有效果, 所以 sim 读数看着正常)。
+	# ⚑ `parity.py` 查不出这个 —— 它查「两侧都有没有写」, 而这三个两侧都写了。
+	# ⇒ 这几条断言守的是「写了之后有人读」, 不是「实现存在」。
+	var sh := Shop.new()
+	sh._grant_buy_limit = 2
+	t.eq(sh.granted_buy_limit(), 2, "联票:授予的成交上限**读得到**(编排器靠它算配额)")
+	sh._grant_free_reroll = 1
+	t.check(sh.consume_free_reroll(), "加急:免费刷新**消费得掉**")
+	t.check(not sh.consume_free_reroll(), "加急:只有一次(消费即清)")
+	sh._grant_min_rarity = "uncommon"
+	t.eq(sh._grant_min_rarity, "uncommon", "挑高:授予落在稀有度门槛上(不是牌面点数)")
 
 	# ---- ⑤ 端到端:加成真的进乘法链 ----
 	var five := [t._c(10, 0), t._c(10, 1), t._c(5, 2), t._c(7, 3), t._c(9, 0)]
