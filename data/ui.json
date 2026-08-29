@@ -34,7 +34,7 @@
    "signal": "ONE SWAP"
   },
   "setlist": {
-   "command": "第一拍的牌型定为主打,打其他牌型分数减半",
+   "command": "第一拍的牌型定为主打,其他只得一半",
    "signal": "OTHERS ×50%"
   },
   "blindspot": {
@@ -74,7 +74,7 @@
    "signal": "TARGET +50%"
   },
   "trilogy": {
-   "command": "本段需打出 3 种牌型,每缺一种段目标+25%",
+   "command": "打满 3 种牌型,每缺一种目标分+25%",
    "signal": "VARIETY 3"
   },
   "blackout": {
@@ -86,7 +86,7 @@
    "signal": "DOUBLE LOCK"
   },
   "patchin": {
-   "command": "小丑牌只发挥一半;打出开拍时缓存里的牌恢复全效",
+   "command": "小丑牌减半;打出开拍时的缓存牌可全效",
    "signal": "POWER ×50%"
   },
   "ration": {
@@ -94,7 +94,7 @@
    "signal": "DISCARD 12"
   },
   "switchtrack": {
-   "command": "第一个动作二选一定轨:弃牌或交换,另一种本拍关闭",
+   "command": "首个动作二选一:弃牌或交换,另一种关闭",
    "signal": "ONE TRACK"
   },
   "rush": {
@@ -154,7 +154,7 @@
    "signal": "COLOR ROLL"
   },
   "callout": {
-   "command": "打出点名的牌型前,全场得分打 7 折;打出后下次商店多摆一张",
+   "command": "打出点名牌型前 7 折,打出后商店多一张",
    "signal": "CALLOUT"
   },
   "suitveil": {
@@ -190,7 +190,7 @@
    "signal": "DISCARD 1"
   },
   "setlist25": {
-   "command": "偏离定调的牌型只得 25% 分",
+   "command": "第一拍的牌型定为主打,其他只得 25%",
    "signal": "SETLIST 25%"
   },
   "norepeat75": {
@@ -222,7 +222,7 @@
    "signal": "LOCK 4s"
   },
   "trilogy4": {
-   "command": "本段要打出 4 种牌型,缺种加税",
+   "command": "打满 4 种牌型,每缺一种目标分+25%",
    "signal": "KINDS 4"
   },
   "crescendo07": {
@@ -236,22 +236,22 @@
  },
  "jokercard": {
   "twin": {
-   "trigger": "打出对子/两对:×6 倍率"
+   "trigger": "打出对子/两对:×1.4 倍率"
   },
   "stair": {
-   "trigger": "打出顺子/同花顺:×11 倍率"
+   "trigger": "打出顺子/同花顺:×4.8 倍率"
   },
   "mono": {
-   "trigger": "打出同花/同花顺:×12 倍率"
+   "trigger": "打出同花/同花顺:×5.6 倍率"
   },
   "triplet": {
-   "trigger": "打出三条/葫芦/四条:×10 倍率"
+   "trigger": "打出三条/葫芦/四条:×2 倍率"
   },
   "lonewolf": {
-   "trigger": "整拍零弃牌:+3◆;商店必出 Target"
+   "trigger": "零弃牌:+2◆;商店必出 Target"
   },
   "kaleido": {
-   "trigger": "成牌且与上拍不同:×4 倍率"
+   "trigger": "成牌与上拍不同:×4 倍率"
   },
   "shredder": {
    "trigger": "6 秒前收工且成牌:×4 倍率"
@@ -266,10 +266,10 @@
    "trigger": "每刷新一次商店:倍率永久 +0.05"
   },
   "goldenvoice": {
-   "trigger": "金币每 6 枚:倍率 +0.1"
+   "trigger": "金币每 6 枚:倍率+0.1(上限.5)"
   },
   "hush": {
-   "trigger": "本拍不弃不换:倍率 +0.4"
+   "trigger": "本拍不弃牌:倍率 +0.4"
   },
   "harmony": {
    "trigger": "缓存三张同花色:倍率 +0.3"
@@ -279,9 +279,6 @@
   },
   "allin": {
    "trigger": "每拍抛硬币:×2 或 ×0.5"
-  },
-  "jackpot": {
-   "trigger": "每段最后一拍:一半概率 ×3"
   },
   "loadeddice": {
    "trigger": "你所有的概率翻倍"
@@ -299,31 +296,28 @@
    "trigger": "每张盖着上台的得分牌:基础分+8"
   },
   "encore": {
-   "trigger": "与上拍同牌型:奖励分+目标分的58%"
+   "trigger": "与上拍同牌型:+目标分 78%"
   },
   "finale": {
-   "trigger": "最后 2 秒内有操作:奖励分+目标分的24%"
+   "trigger": "最后 2 秒有操作:+目标分 24%"
   },
   "turnover": {
-   "trigger": "每弃 1 张:奖励分+目标分的7%"
+   "trigger": "每弃 1 张:+目标分 22%"
   },
   "tipjar": {
-   "trigger": "整拍零弃牌:+2◆"
+   "trigger": "整拍零弃牌:+1◆"
   },
   "chord": {
    "trigger": "缓存三张同花色:+140 奖励分"
   },
   "neonsign": {
-   "trigger": "每拍必发:奖励分+目标分的12%"
+   "trigger": "每拍必发:+目标分 11%"
   },
   "vinyl": {
    "trigger": "每弃 1 张:基础分+1,永久累计"
   },
-  "chorus": {
-   "trigger": "每段最后一拍:加成+75%"
-  },
   "interest": {
-   "trigger": "金币每 4 枚:结算 +1◆"
+   "trigger": "金币每 8 枚:结算 +1◆"
   },
   "momentum": {
    "trigger": "每次提前收工:加成+10%,永久"
@@ -344,28 +338,25 @@
    "trigger": "每累计弃 8 张:倍率+0.25,永久"
   },
   "mirror": {
-   "trigger": "连续两拍达成 Target:以其一半倍率再乘一次"
+   "trigger": "连续两拍达成 Target:半倍率再乘"
   },
   "variation": {
-   "trigger": "成牌且与上拍不同:奖励分+目标分的20%"
+   "trigger": "成牌与上拍不同:+目标分 28%"
   },
   "reprise": {
-   "trigger": "与上拍同牌型:加成+80%"
+   "trigger": "与上拍同牌型:加成+140%"
   },
   "fullcast": {
-   "trigger": "打出顺/花/葫芦:奖励分+目标分的77%"
+   "trigger": "打出顺/花/葫芦:×1.2 倍率"
   },
   "superfan": {
    "trigger": "金币每 2 枚:加成 +5%"
   },
-  "opener": {
-   "trigger": "每段第 1 拍:加成+150%"
-  },
   "rainbow": {
-   "trigger": "成牌集齐四花色:奖励分+目标分的43%"
+   "trigger": "成牌集齐四花色:+目标分 39%"
   },
   "nopair": {
-   "trigger": "五张点数互不相同:奖励分+目标分的46%"
+   "trigger": "五张点数不同:+目标分 65%"
   },
   "rehearsal": {
    "trigger": "缓存三张点数连续:+200 奖励分"
@@ -377,22 +368,19 @@
    "trigger": "成牌含对子:加成+25%"
   },
   "triad": {
-   "trigger": "三条或更好:基础分+25"
+   "trigger": "三条或更好:基础分+14"
   },
   "triplebill": {
-   "trigger": "三条或更好:加成+60%"
+   "trigger": "三条或更好:加成+45%"
   },
   "backer": {
-   "trigger": "金币每 2 枚:基础分+1"
+   "trigger": "金币每 2 枚:基础分+1(上限10)"
   },
   "bench": {
    "trigger": "缓存最高点数计入基础分"
   },
   "boxseats": {
    "trigger": "缓存区每张人头牌:×1.35"
-  },
-  "trim": {
-   "trigger": "牌库移除全部 2 和 3"
   },
   "bassclef": {
    "trigger": "2~5 的小牌按 15 点计入基础分"
@@ -416,19 +404,19 @@
    "trigger": "提前收工:下一拍加成+30%"
   },
   "earlyout": {
-   "trigger": "弃牌全部在前 4 秒:奖励分+目标分的19%"
+   "trigger": "弃牌都在前 6 秒:+目标分 42%"
   },
   "segue": {
-   "trigger": "每张换入且计分的牌:奖励分+目标分的10%"
+   "trigger": "每张换入的计分牌:+目标分 13%"
   },
   "stilllife": {
-   "trigger": "整拍零交换:奖励分+目标分的14%"
+   "trigger": "整拍零交换:+目标分 32%"
   },
   "stageexit": {
-   "trigger": "每弃 1 张人头牌:奖励分+目标分的7%"
+   "trigger": "每弃 1 张人头牌:+目标分 10%"
   },
   "royalty": {
-   "trigger": "牌型自带的金币翻倍(基准:对子 2◆ · 顺子 4◆ · 同花 5◆)"
+   "trigger": "牌型金币 ×1.5"
   },
   "digger": {
    "trigger": "每刷新一次商店:基础分+12,永久"
@@ -436,20 +424,11 @@
   "collector": {
    "trigger": "每买一张卡:基础分+15(上限+30)"
   },
-  "doublebill": {
-   "trigger": "商店出 4 张,最多买 2 张"
-  },
-  "sponsor": {
-   "trigger": "商店所有卡便宜 1◆"
-  },
-  "jukebox": {
-   "trigger": "商店必出一张规则牌"
-  },
   "skint": {
    "trigger": "代价:金币上限 5 枚"
   },
   "rebrand": {
-   "trigger": "每换一次 Target:加成+40%,永久"
+   "trigger": "每次换旗:加成+40%(常驻旗)"
   },
   "blacktone": {
    "trigger": "♠♣ 算同一花色(黑同花)"
@@ -457,15 +436,12 @@
   "redtone": {
    "trigger": "♥♦ 算同一花色(红同花)"
   },
-  "popup": {
-   "trigger": "每段第 1 拍:奖励分+目标分的80%"
-  },
   "_comment": "⚑ 文案标准(2026-08-18 用户:「描述清晰比字数限制还重要」):① 句式一律「条件:效果」② 作用层只用四个词 —— 基础分(吃倍率)/倍率/加成%(乘区)/奖励分(不吃倍率), 与结算分解框(settle_fx)同一套词, 结算里见过的词卡面上就认识 ③ 数值进句子 ④ 跟随尺度的奖励写「+目标分的N%」—— 写死数字会撒谎。改数值要同步:本表数字 · manifest amount 章 · jokers.json 是效果真相。",
-  "superwild": {
-   "trigger": "四张 JOKER 加入牌库;洗牌键付费重掷整手, 弃牌堆洗回"
-  },
   "advance": {
-   "trigger": "每段初借 10◆, 段末还 12◆;还不上 = 演出失败"
+   "trigger": "每段借 10◆ 还 12◆;欠款=失败"
+  },
+  "perkeo": {
+   "trigger": "离开商店:复制一张消耗牌"
   }
  },
  "stage": {
@@ -545,6 +521,8 @@
   ],
   "target_line": "TARGET · 定义什么是好答案 · 免费",
   "support_line": "SUPPORT · 定义怎么到达答案 · ◆ %d",
+  "_comment_encore_line": "联票(doublebill)的续买态副标题 —— 参数 = [还能再选几张, 当前金币]。联票买的是**至多**两次不是必须两次, 所以这一行同时给出剩余次数与出口(2026-08-28 用户:「至多可以选 2 个, 如果钱只够选 1 个或者没有, 要点跳过」)。出口本身一直是「继续 ▸」那个键。",
+  "encore_line": "联票 · 还能再选 %d 张 · ◆ %d · 不买就点继续",
   "card_w": 200,
   "card_gap": 24,
   "card_w_4": 156,
@@ -642,5 +620,43 @@
   "7": "四条",
   "8": "同花顺",
   "9": "皇家同花顺"
+ },
+ "consumablecard": {
+  "opener": {
+   "trigger": "本拍:加成+150%"
+  },
+  "chorus": {
+   "trigger": "本拍:加成+75%"
+  },
+  "popup": {
+   "trigger": "本拍:+目标分 25%"
+  },
+  "jackpot": {
+   "trigger": "本拍:半概率 ×3 倍率"
+  },
+  "superwild": {
+   "trigger": "四张万能牌进牌堆"
+  },
+  "trim": {
+   "trigger": "牌堆移除所有 2 和 3"
+  },
+  "doublebill": {
+   "trigger": "本店:四选二"
+  },
+  "sponsor": {
+   "trigger": "本店:全场 −2◆"
+  },
+  "jukebox": {
+   "trigger": "下次货架必出规则牌"
+  },
+  "anvil": {
+   "trigger": "复制一张小丑牌,毁其余"
+  },
+  "encorecall": {
+   "trigger": "免费刷新一次"
+  },
+  "highroller": {
+   "trigger": "下次货架:8 以上"
+  }
  }
 }

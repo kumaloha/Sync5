@@ -29,6 +29,11 @@ func run(t) -> void:
 	# 万能牌唯一来源 = 超级百搭(2026-08-26 取代百搭)
 	var d := Deck.new(9)
 	t.eq(d.total(), 52, "deck starts without wilds")
-	var wj := Joker.by_id("superwild")
-	wj.on_acquire(d)
-	t.eq(d.total(), 56, "超级百搭 injects four JOKERs")
+	# ⚑ 超级百搭 2026-08-29 转生为消耗牌(注入后卡本身没用了 = 一次性)。
+	var wc := {}
+	for _e in DB.consumables():
+		if String(_e["id"]) == "superwild":
+			wc = _e
+	var wa: Dictionary = Consumable.new(wc).action
+	d.add_wilds("superwild", int(wa.get("wilds", 0)))
+	t.eq(d.total(), 56, "超级百搭(消耗牌) injects four JOKERs")

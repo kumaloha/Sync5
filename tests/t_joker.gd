@@ -5,7 +5,7 @@ func run(t) -> void:
 	# roster shape (2026-08-12 流派批: 删 popup/backup, 加族内件×4 + backer/bench/boxseats + trim;
 	# 缘由与增删改清单见 docs/design/archetypes.md §5)
 	var pool := Joker.pool()
-	t.eq(pool.size(), 77, "pool holds 77 jokers(08-26 +superwild/advance −wildcard)")
+	t.eq(pool.size(), 69, "pool holds 69 jokers(2026-08-29 消耗牌开轴:9 张「本质一次性」的卡转生为消耗牌 —— 开场/副歌/快闪/彩头/超级百搭/修剪/联票/赞助/点唱机;+帕奇欧)")
 	var targets := 0
 	var rarities := {"common": 0, "uncommon": 0, "rare": 0}
 	for j in pool:
@@ -20,7 +20,7 @@ func run(t) -> void:
 		t.check(j.fx_text.split(" ").size() <= 7, "%s card text within 7 words" % j.id)
 	t.eq(targets, 8, "eight targets —— 拆迁回池(beat_budget 校准 + 弃牌偏置后它可达了)")
 	# 概率线基建(archetypes.md §3.8): fourfingers/twotone 降罕见 —— 规则牌从 5% 池权重解放
-	t.eq(rarities["common"], 23, "twenty-three common supports(快闪 2026-08-16 回池)")
+	t.eq(rarities["common"], 22, "22 common supports(快闪/赞助 2026-08-29 转生为消耗牌)")
 	# ⚠ **twotone 已于 2026-08-14 升回 rare**(先验层实测它把同花抬 9.8×, 而同价位的
 	# 近道/四指只有 3.1×/3.0× —— 效力差三倍以上;见 docs/design/jokers.md「第三次重锚」)。
 	# ⚠⚠ **这撤销了上面那条「规则牌曝光」措施的一半, 是有意的**:先验数据说要救的是
@@ -29,8 +29,8 @@ func run(t) -> void:
 	# 配额上两个方向都在往 jokers_atlas.md §0 的目标(罕见 ~18 · 稀有 ~10)靠。
 	# 2026-08-25 对抗批 +13(全在 uncommon/rare:乘法出口按「稀有度=构筑依赖度」入 rare,
 	# 彩头/回收/客串/斗牛士/盲奏入 uncommon):uncommon 22→27 · rare 10→18。
-	t.eq(rarities["uncommon"], 28, "twenty-eight uncommon supports(08-26 advance +1)")
-	t.eq(rarities["rare"], 18, "eighteen rare supports(superwild +1, wildcard −1)")
+	t.eq(rarities["uncommon"], 24, "24 uncommon supports(开场/副歌/彩头/赞助 转生)")
+	t.eq(rarities["rare"], 15, "15 rare supports(超级百搭/修剪/联票/点唱机 转生, +帕奇欧)")
 	t.eq(String(Joker.by_id("fourfingers").rarity), "uncommon", "fourfingers stays uncommon (顺子线要救)")
 	# ⚑ 拆分后单张实测 5.3×(先验层 N=20万, Δ同花族 +29.7pp), 两张都装 9.6× = 老 twotone。
 	# 仍是同类规则牌里最强(近道/四指只 1.8×), 所以 rare 保持不动。
@@ -41,7 +41,10 @@ func run(t) -> void:
 	# S1 过半才开**, 玩家根本没机会在第 1 段拥有它(bot 2685 局触发 0%)。
 	# ⇒ 窗口改成**每段第 1 拍**的滚动窗口:每段都有第 1 拍 ⇒ 何时买到都够得着,
 	# 而窗口仍然窄(4/24 = 16.7%)⇒ 效果强(80% 每拍目标, 期望 13.3%/拍, 族内锚 12%)。
-	t.check(Joker.by_id("popup") != null, "快闪已回池(窗口从「只有第 1 段」改成「每段第 1 拍」)")
+	# ⚑ 快闪 2026-08-29 转生为消耗牌 —— 用户:「一局4次毫无意义, 也就4次, 不是每次」。
+	# 系统定时机 ⇒ 玩家被动;做成消耗牌后玩家自己选哪一拍烧。行为断言见 t_consumable。
+	t.check(Joker.by_id("popup") == null, "快闪已转生为消耗牌(不该还在小丑牌池)")
+	t.check(Joker.by_id("perkeo") != null, "帕奇欧在池(持续效果 ⇒ 留在小丑牌)")
 	t.check(Joker.by_id("backup") == null, "backup left the pool (boxseats 上位替代)")
 	t.check(Joker.by_id("nope") == null, "by_id on unknown id -> null")
 
@@ -98,7 +101,7 @@ func run(t) -> void:
 	t.eq(Settle.run(flush_res, [null, Joker.by_id("finale"), null, null], {"acted_late": true})["score"],
 		base + t._bonus("finale"), "finale bonus on a late action")
 	t.eq(Settle.run(flush_res, [null, Joker.by_id("turnover"), null, null], {"discards": 3})["score"],
-		base + 3 * t._bonus("turnover"), "turnover bonus per discard")
+		base + t._bonus_n("turnover", 3), "turnover bonus per discard")
 	t.eq(Settle.run(flush_res, [null, Joker.by_id("tipjar"), null, null], {"discards": 0})["coins"],
 		5 + 2, "tipjar +2 coins on zero discards(经济 v2:FLUSH 基础 5)")
 	t.eq(Settle.run(flush_res, [null, Joker.by_id("tipjar"), null, null], {"discards": 1})["coins"],
@@ -138,7 +141,7 @@ func run(t) -> void:
 		"vinyl growth rides every multiplier")
 
 	# chorus: only on the section's last phrase
-	t.eq(Settle.run(flush_res, [null, Joker.by_id("chorus"), null, null],
+	t.eq(Settle.run(flush_res, [null, Joker.by_id("triplebill"), null, null],
 		{"phrase_idx": GameConfig.PHRASES_PER_SECTION - 2})["score"],
 		base, "chorus silent mid-section")
 
@@ -257,7 +260,7 @@ func run(t) -> void:
 	# 断言随卡一起撤 —— 回池时连同 bot 弃牌流策略块一起恢复(同 wrecker/trio)。
 	# 让位:每张被弃的人头 —— 反贵宾路线的燃料
 	t.eq(Settle.run(flush_res, [null, Joker.by_id("stageexit"), null, null],
-		{"faces_discarded": 3})["score"], base + int(t._bonus("stageexit")) * 3,
+		{"faces_discarded": 3})["score"], base + t._bonus_n("stageexit", 3),
 		"stage exit pays per discarded face card")
 	# 定格:早锁只武装**下一拍**(脉冲计数器, 一拍后自动归零)
 	var frz := Joker.by_id("freeze")

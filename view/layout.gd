@@ -69,6 +69,19 @@ static func build(host: Control) -> Dictionary:
 	out["joker_views"] = _build_joker_row(host, margin, gap, pill_w)
 	_build_wave_zone(host, out, margin)
 	out["orbit"] = _build_orbit(host, hand_top)
+	# ⚑ 消耗品格 ×2(2026-08-29):手牌区上方那条 66px 空带的**右端**(y 672..738)。
+	# ⚠ **必须排在 orbit 之后** —— 轨道虽然是 IGNORE(不吃点击), 但绘制上后加的在上层;
+	#   排在它前面会被轨道的底纹盖住(2026-08-17 那次「手牌点不动」就是层序问题的近亲)。
+	# ⚠ 右端而不是左端:左端是节拍菱形走圈的起点。
+	var cslot_y: float = hand_top + (738.0 - hand_top - 88.0) * 0.5 - 14.0
+	out["cslots"] = []
+	for i in range(2):
+		var cs := Widgets.ConsumableSlot.new()
+		cs.idx = i
+		cs.size = Vector2(88, 88)
+		cs.position = Vector2(696.0 - 88.0 * float(2 - i) - 6.0 * float(1 - i), cslot_y)
+		host.add_child(cs)
+		out["cslots"].append(cs)
 	out["shop"] = Shop.new()
 	host.add_child(out["shop"])
 

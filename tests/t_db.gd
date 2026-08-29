@@ -19,9 +19,19 @@ func run(t) -> void:
 	# validation catches planted bad files
 	t.check(DB.validate_run({"phrases_per_section": 5}) != "", "missing run key detected")
 	t.check(DB.validate_economy({"starting_coins": 6, "typo_key": 1}) != "", "unknown economy key detected")
-	t.eq(Joker.pool().size(), 77, "77 jokers(08-26 +superwild/advance −wildcard[被超级百搭取代])")
+	t.eq(Joker.pool().size(), 69, "69 jokers(2026-08-29 消耗牌开轴:9 张「本质一次性」的卡转生为消耗牌 —— 开场/副歌/快闪/彩头/超级百搭/修剪/联票/赞助/点唱机;+帕奇欧)")
 	# 卡面文字随平衡改, 别抄死 —— 只锁「读得回来 + 符合 D2 的 ≤7 词」
 	t.check(Joker.by_id("twin").fx_text.length() > 0, "joker text roundtrip")
+	# ⚑ bot 估值地板与 evbook 必须同步(2026-08-30)。两处存同一份数 = 「两个家」,
+	# 而漂了**不报错** —— bot 只是估值偏低, 而估值偏低正是这个地板要修的病。
+	# ⚠ 这里只查**结构**(表在、非空、id 都在池里);逐值比对由 `tools/evsync.py --check` 做
+	# (它要读 evbook.md, 而测试不该依赖 docs/ 的格式)。
+	var measured: Dictionary = DB.sim().get("ev", {}).get("measured", {})
+	t.check(measured.size() >= 20, "ev.measured 已装载(%d 张;跑 tools/evsync.py 同步)" % measured.size())
+	for mid in measured:
+		t.check(Joker.by_id(String(mid)) != null,
+			"ev.measured 的 '%s' 还在小丑牌池(转生/退役后要重跑 evsync)" % mid)
+		t.check(float(measured[mid]) > 0.0, "ev.measured['%s'] 为正" % mid)
 	for oid in GameConfig.JOKER_PRICE_OVERRIDES:
 		t.check(Joker.by_id(String(oid)) != null, "price override id '%s' exists" % oid)
 	# ⚠ 夹具必须带 `proof` —— 否则 2026-08-09 加的「proof 必填」会**先**把它拦下,

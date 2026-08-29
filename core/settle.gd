@@ -84,6 +84,40 @@ static func run(result: Dictionary, slots: Array, extra: Dictionary) -> Dictiona
 			face_bit = true
 	var patch_power := SectionMod.joker_power(mod)
 	var patch_restored := bool(extra.get("patch_restored", false))
+	# ⚑ 消耗牌的当拍加成(2026-08-29):在小丑牌**之前**并进 ctx。
+	# ⚠ 位置有讲究 —— 放在小丑牌之前, 意味着它和小丑牌**同处一条乘法链**、
+	# 会被后面的 target/support 一起放大;放在之后则只是末尾平加。
+	# 选前者的理由:玩家是「看到这手牌、判断这拍能打大」才烧的牌
+	# (实时可点的设计意图), 它该吃到这一拍的全部倍率, 否则烧牌的时机判断就不值钱了。
+	for b in extra.get("phrase_boosts", []):
+		# ⚠ 概率类加成(彩头「半概率 ×3」)走**与小丑牌同一条随机源** `luck_rolls`,
+		# 灌铅骰的 `odds_mult` 因此对它一样生效 —— 不许各摇各的。
+		# ⚑ 2026-08-30 补:`chance` 键此前**从没被读过**, 彩头实际是 100% 触发的 ×3,
+		# 卡面在说谎, 而它的定价(724.6 分)也是按 100% 量的。
+		# ⚠ **不用 `continue`** —— Godot 4 的 GDScript 在这个 for 里 continue 会
+		# `Stack underflow! (Engine Bug)`(2026-08-30 实测刷了 311 万条)。改成显式 gate。
+		var fires := true
+		if b.has("chance"):
+			var rolls: Array = ctx.get("luck_rolls", [])
+			if rolls.is_empty():
+				fires = false                 # 没有预掷 = 这一拍不判概率(与 fx 同)
+			else:
+				var rv: float = float(rolls.pop_front())
+				fires = rv < minf(1.0, float(b["chance"])
+					* float(ctx.get("odds_mult", 1.0)))
+		if not fires:
+			b = {}                            # 没中:整张牌的加成都不生效
+		if b.has("bonus_pct"):
+			ctx.bonus_pct = float(ctx.bonus_pct) + float(b["bonus_pct"])
+		if b.has("mult"):
+			ctx.mult = float(ctx.mult) * float(b["mult"])
+		if b.has("bonus"):
+			ctx.bonus = int(ctx.bonus) + int(b["bonus"])
+		if b.has("bonus_target_pct"):
+			ctx.bonus = int(ctx.bonus) + int(round(float(b["bonus_target_pct"])
+				* float(extra.get("section_target", 0))))
+		if b.has("additive"):
+			ctx.additive = int(ctx.additive) + int(b["additive"])
 	var pre_joker_mult: float = ctx.mult
 	var pre_joker_additive: int = int(ctx.additive)
 	var pre_joker_bonus: int = int(ctx.bonus)

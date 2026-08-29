@@ -66,6 +66,9 @@ var replace: ReplaceFlow
 var wave: WaveView
 var eq: EqStrip
 var vinyl: VinylDeck
+var cslots: Array = []          # 消耗品格 ×2(2026-08-29)
+var _coffer                     # 本次商店货架上那张消耗牌
+var _coffer_used := false       # 一店一张:买走就不再补
 var orbit: OrbitZone
 var hand: Hand
 var hud: Hud
@@ -258,6 +261,10 @@ func _build_ui() -> void:
 	blind_card = n["blind_card"]
 	_bc_home = blind_card.position   # 商店停靠(见 _open_draft)与还原共用的初始位
 	vinyl = n["vinyl"]
+	cslots = n["cslots"]
+	for cs in cslots:
+		if not cs.used.is_connected(_on_consumable_used):
+			cs.used.connect(_on_consumable_used)
 	orbit = n["orbit"]
 	hand = n["hand"]
 	shop = n["shop"]
@@ -288,6 +295,8 @@ func _build_ui() -> void:
 	shop.skipped.connect(_on_shop_skipped)
 	shop.reroll_paid.connect(_on_shop_reroll)
 	shop.denied.connect(func(why: String) -> void: Tape.on("deny", {"why": why}))
+	shop.consumable_bought.connect(_on_consumable_bought)
+	shop.consumable_used.connect(_on_shop_consumable_used)
 	settle_fx.burst_started.connect(_on_settle_burst)
 	run_end.next_pressed.connect(_on_end_next)
 	run_end.retry_pressed.connect(_on_end_retry)
@@ -1018,6 +1027,172 @@ func _on_cash_out() -> void:
 	_settle()   # 本拍立刻结算, 结完就结段(_advance 读 _cash_out_pending)
 
 
+## ⚑ 玩家点了消耗品格(2026-08-29)。**经济/装槽动作只发生在编排器** —— 这条铁律
+## 决定了取牌、记账、打点都在这里, 格子本身只发一个 idx 信号。
+##
+## ⚠ `ctx` 传 "phrase":对局中点。商店里的那份走 shop 自己的入口(时机门在
+## `Consumable.usable_in`, 两处共用同一份判定, 不许各写一份)。
+## 买下货架上那张消耗牌。**经济动作只发生在编排器** —— 扣钱、收栏、打点都在这里。
+func _on_consumable_bought(c, price: int) -> void:
+	if not run.consumable_room():
+		shop.denied.emit("cfull")
+		return
+	phrase.coins -= price
+	run.coins = phrase.coins
+	run.take_consumable(c)
+	Tape.on("cbuy", {"id": c.id, "price": price, "coins": phrase.coins})
+	_coffer_used = true                      # 一店一张:买走就不再补
+	_refresh_shop_consumables()
+
+
+## 商店里点了栏位中的消耗牌(ctx = "shop")。
+func _on_shop_consumable_used(idx: int) -> void:
+	var used := run.use_consumable(idx, "shop")
+	if used.is_empty():
+		return
+	_apply_shop_action(String(used["id"]), used.get("action", {}))
+	Tape.on("consumable", {"id": String(used["id"]), "at_ctx": "shop"})
+	_refresh_shop_consumables()
+	_refresh_consumables()
+
+
+## ⚑ 商店类 action 的执行口 —— **只此一处**。
+## 六种动作各自改一个商店参数, 由 shop 在下一次 _deal/_render 时消费。
+func _apply_shop_action(id: String, act: Dictionary) -> void:
+	if act.has("shelf_slots"):               # 联票:这次商店 4 选 2
+		shop.grant_shelf(int(act["shelf_slots"]), int(act.get("buy_limit", 1)))
+	if act.has("price_delta"):               # 赞助:这次商店全场降价
+		shop.grant_price_delta(int(act["price_delta"]))
+	if act.has("rule_guaranteed"):           # 点唱机:下次货架必出规则牌
+		shop.grant_rule_guaranteed()
+	if act.has("free_reroll"):               # 加急:免费刷新
+		shop.grant_free_reroll(int(act["free_reroll"]))
+	if act.has("min_rank"):                  # 挑高:下次货架必出 8 以上
+		shop.grant_min_rank(int(act["min_rank"]))
+	if act.has("copy_one_destroy_rest"):     # 砧座:复制一张小丑牌, 摧毁其余
+		_anvil()
+	if act.has("wilds"):
+		run.deck.add_wilds(id, int(act["wilds"]))
+	if act.has("trim_low"):
+		run.deck.trim_low_ranks()
+
+
+## 砧座:随机留一张小丑牌并复制到相邻槽, 其余销毁。
+## ⚠ 只有**装着 ≥2 张**才有意义 —— 1 张时「复制一张、毁掉其余」= 什么都没发生,
+## 那种情况应当在按下之前就挡住(armed 判定), 而不是静默吃掉一张消耗牌。
+func _anvil() -> void:
+	var owned: Array = []
+	for i in range(run.joker_slots.size()):
+		if run.joker_slots[i] != null:
+			owned.append(i)
+	if owned.size() < 2:
+		return
+	var keep: int = owned[randi() % owned.size()]
+	var kept = run.joker_slots[keep]
+	for i in range(run.joker_slots.size()):
+		if i != keep:
+			run.joker_slots[i] = null
+	# 复制到第一个空的 support 槽(Target 槽只放 Target —— 与拖拽规则同一条线)
+	for i in range(1, run.joker_slots.size()):
+		if run.joker_slots[i] == null and kept.kind == "support":
+			run.joker_slots[i] = Joker.by_id(kept.id)
+			break
+	for i in range(joker_views.size()):
+		joker_views[i].set_joker(run.joker_slots[i])
+	Tape.on("anvil", {"kept": String(kept.id)})
+
+
+## 掷一张上架的消耗牌。等权重(消耗牌没有稀有度轴 —— 12 张的池子再分档就太细了),
+## 排除已在栏位里的。
+func _roll_consumable():
+	var held := {}
+	for c in run.consumables:
+		if c != null:
+			held[c.id] = true
+	var pool: Array = []
+	for e in DB.consumables():
+		if not held.has(String(e["id"])):
+			pool.append(e)
+	if pool.is_empty():
+		return null
+	return Consumable.new(pool[randi() % pool.size()])
+
+
+## 帕奇欧:离店时复制一张消耗牌。**三个 close 点都要走** —— 「第二条入口漏掉
+## 主路径的步骤」是这个项目最贵的形状之一(CLAUDE.md 开局三步那条)。
+## ⚠ 栏位满就不复制(静默跳过, 不是报错):那是玩家自己没腾位置。
+func _perkeo_on_exit() -> void:
+	if not Joker.slots_copy_consumable(run.joker_slots):
+		return
+	if not run.consumable_room():
+		return
+	var src: Array = []
+	for c in run.consumables:
+		if c != null:
+			src.append(c)
+	if src.is_empty():
+		return
+	var pick = src[randi() % src.size()]
+	for e in DB.consumables():
+		if String(e["id"]) == pick.id:
+			run.take_consumable(Consumable.new(e))
+			Tape.on("perkeo", {"id": pick.id})
+			break
+	_refresh_consumables()
+
+
+## ⚑ 这张牌**现在按下去会不会真的发生点什么**(2026-08-29)。
+## 时机对(`usable_in`)只是第一道门 —— 砧座在只装了 ≤1 张小丑牌时,
+## 「复制一张、摧毁其余」等于什么都没做, 而消耗牌是一次性的:
+## **点下去就没了**。让它 armed 等于给玩家挖一个静默的坑。
+## ⚠ 判据来自今天反复出现的形状:**不报错的失败最贵**。
+func _consumable_effective(c) -> bool:
+	if c.action.has("copy_one_destroy_rest"):
+		var n := 0
+		for j in run.joker_slots:
+			if j != null:
+				n += 1
+		return n >= 2
+	return true
+
+
+func _refresh_shop_consumables() -> void:
+	var eff: Array = []
+	for c in run.consumables:
+		eff.append(c != null and _consumable_effective(c))
+	shop.set_consumables(null if _coffer_used else _coffer, run.consumables, phrase.coins, eff)
+
+
+func _on_consumable_used(idx: int) -> void:
+	var used := run.use_consumable(idx, "phrase")
+	if used.is_empty():
+		cslots[idx].shake() if cslots[idx].has_method("shake") else null
+		return
+	# 立即动作(牌堆类):与 Joker.on_acquire 同一批键, 交给 Deck 执行。
+	var act: Dictionary = used.get("action", {})
+	if act.has("wilds"):
+		run.deck.add_wilds(String(used["id"]), int(act["wilds"]))
+	if act.has("trim_low"):
+		run.deck.trim_low_ranks()
+	if act.has("deck_rule"):
+		run.deck.rules[String(act["deck_rule"])] = true
+	Tape.on("consumable", {"id": String(used["id"]), "at_ctx": "phrase",
+		"phrase": run.phrase_in_section})
+	_refresh_consumables()
+	fx.pop(cslots[idx])
+
+
+## 把 `run.consumables` 画到两个格子上。armed = 这张牌**现在**点不点得动。
+func _refresh_consumables() -> void:
+	for i in range(cslots.size()):
+		var c = run.consumables[i] if i < run.consumables.size() else null
+		cslots[i].filled = c != null
+		cslots[i].label = c.display_name() if c != null else ""
+		cslots[i].armed = c != null and c.usable_in("phrase") and _consumable_effective(c)
+		cslots[i].accent = Widgets.StageCard.accent_for(run.section_idx)
+		cslots[i].queue_redraw()
+
+
 func _on_vinyl_tapped() -> void:
 	if not _can_early_lock():
 		return
@@ -1507,6 +1682,12 @@ func _open_draft() -> void:
 		run.phrases_left() if mid else -1,
 		run.target(),      # ⚠ 加码脸乘过的那个目标, 不是原始表(2026-08-09)
 		BlindBoon.by_id(run.boon()))
+	# ⚑ 每次开店抽一张消耗牌上架(2026-08-29)。**独立一格, 不进三选一** ——
+	# 混进去等于用消耗牌换掉小丑牌的多样性(与「转型/换旗抢名额」同型的资源错配)。
+	# 已持有的不再上架, 免得开局就撞见两张一样的。
+	_coffer = _roll_consumable()
+	_coffer_used = false
+	_refresh_shop_consumables()
 	# 分镜 D(v6):教学商店自己带条 —— 锚在商店盲注板下, focus 指货架价签行,
 	# 货架操作面(卡/价签/按钮)进常亮洞(玩家要挑的卡不许黑)。必须在 shop.open
 	# **之后**:价签行的矩形是 _layout 按当拍货架数摆出来的, 开店前是空的。
@@ -1563,8 +1744,10 @@ func _on_shop_bought(j, price: int) -> void:
 	# 收藏家:每买一张。⚠ **在装卡之前发** —— 否则刚买的这张会给自己记一次,
 	# 「每买 1 张 +15」就凭空多了第一次(转型同理:换旗不该给新旗自己记一次)。
 	Joker.notify_shop(run.joker_slots, "buy")
+	var _swapped_target := false
 	if j.kind == "target":
 		var swapping: bool = run.joker_slots[0] != null
+		_swapped_target = swapping
 		if swapping:
 			Joker.notify_shop(run.joker_slots, "target_swap")   # 转型:换旗有代价(丢掉旧旗)
 			# ⚑ 旧旗折半回收(2026-08-27 真人报「target 无法替换老 target」时查出的
@@ -1609,16 +1792,27 @@ func _on_shop_bought(j, price: int) -> void:
 	# v6:关店 = 消费分镜 D(这一课的展示面就是商店层), 后面是无提示自由拍。
 	if run.tutorial and j.kind == "target":
 		run.tutorial_shop_seen()
+		_perkeo_on_exit()
 		shop.close()
 		_start_phrase()
 		return
 	# 联票:限额未满就留在店里续买(同一货架摘牌重估, 不重掷)。
 	# 限额从槽位实时读 —— 本次买的若是联票, 当店立刻多出一次成交。
 	# ⚠ 走替换流(满槽)的成交不回商店:那条流程以 _start_phrase 收尾, 视为用掉全部余额。
-	_shop_buys += 1
-	if _shop_buys < Joker.slots_buy_limit(run.joker_slots):
-		shop.sold(j, run.joker_slots, phrase.coins)
+	# ⚑⚑ **换旗不占购买名额**(2026-08-29):换旗是路线决策, 不是囤货 —— 让它挤掉
+	# 当店唯一一次成交, 会造成一个**自我否定**的结构:奖励换旗的卡(转型)和换旗动作
+	# 抢同一个名额 ⇒ 想买转型就不能换旗, 想换旗就买不到转型。
+	# 实测(sim, 未稀释口径):**持有转型的局换旗 0.65 次, 未持有的反而 0.94 次** ——
+	# 拿着「每次换旗 +40%」的人换得更少, 因果就在这一行。
+	if not (j.kind == "target" and _swapped_target):
+		_shop_buys += 1
+	var buy_limit := Joker.slots_buy_limit(run.joker_slots)
+	if _shop_buys < buy_limit:
+		# 剩余配额由**这里**算并传下去 —— 视图不自己数(经济动作只发生在编排器),
+		# 它只拿这个数去写副标题的「还能再选 N 张」。
+		shop.sold(j, run.joker_slots, phrase.coins, buy_limit - _shop_buys)
 		return
+	_perkeo_on_exit()
 	shop.close()
 	_start_phrase()
 
@@ -1660,6 +1854,7 @@ func _on_shop_replace(j) -> void:
 	# 而只记成交和差钱, 分不出「换不起」还是「不值得换」。
 	Tape.on("repl_open", {"id": String(j.id), "price": Economy.shelf_price(j, run.joker_slots),
 		"coins": phrase.coins, "slots": Tape.slots(run.joker_slots)})
+	_perkeo_on_exit()
 	shop.close()
 	# UI 那摊(提示条带价、新卡钉出来、四个槽开始接手势)在 view/replace.gd
 	# 价从编排器传进去 —— 赞助的折扣价要和成交价同源(replace.gd 不认识槽位)
@@ -1673,6 +1868,7 @@ func _on_shop_skipped() -> void:
 		return
 	Tape.on("leave", {"coins": phrase.coins})
 	run.tutorial_shop_seen()   # v6:分镜 D 的另一个出口(不买也算上完这一课), 正式局无操作
+	_perkeo_on_exit()
 	shop.close()
 	_start_phrase()
 

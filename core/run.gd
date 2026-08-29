@@ -14,6 +14,17 @@ var phrase_in_section := 0
 var section_score := 0
 var phrase_index := 0
 var joker_slots: Array = [null, null, null, null]
+## 消耗品栏 —— **2 格**(2026-08-29 开轴, 原作同数)。存 `Consumable` 或 null。
+## ⚑ 为什么是 2 格而不是 1:用户拍板**实时可点**(「只在商店用其实有点怪, 应该实时可以点」),
+## 而实时可用的核心价值就是「攒着等关键拍」—— 1 格会退化成「拿到就烧」, 把这个价值废掉。
+## ⚠ 它和 `joker_slots` 是**两套槽位, 互不占用** —— 让消耗品来抢那 4 个小丑槽,
+## 等于逼玩家在「构筑」和「道具」之间做一个不该有的取舍(与 2026-08-29 修的
+## 「转型和换旗抢同一个购买名额」同型:奖励某件事的东西不能和那件事抢同一个资源)。
+var consumables: Array = [null, null]
+## 本拍已使用的消耗牌的加成 —— 结算时并进乘法链, 拍末清空。
+## 放 Run 而不是 Phrase:它由**编排器**在玩家点击时写入(经济/装槽动作只发生在编排器),
+## 而 Phrase 每拍重建, 存不住「这一拍我烧过一张牌」这件事。
+var phrase_boosts: Array = []
 var prev_kind := -99
 ## 上一拍旗条件是否触发(镜面的连击谓词;与 prev_kind 同生命周期同快照)。
 var prev_target_hit := false
@@ -472,6 +483,39 @@ func advance(cashed_out: bool = false) -> Dictionary:
 
 ## Phrases left in this section — the shop's 「还剩 N 拍」 readout, which is
 ## what makes a mid-section purchase a solvable problem instead of a bet.
+## ⚑ 用掉一张消耗牌。`ctx` = "phrase"(对局中点) | "shop"(商店里点)。
+## 返回它的 `action`(要由**调用方**去执行 —— 牌堆/货架/构筑的改动各有各的家),
+## `boost` 则就地并进本拍加成。用不了返回空字典。
+##
+## ⚠ **这里只做「取出并记账」, 不执行 action** —— core/ 是纯逻辑, 不认识货架也不碰 view。
+## 商店类动作(4选2/降价/必出规则牌)由 `view/shop.gd` 消费, 牌堆类由 `Deck` 消费,
+## 与 `Joker.on_acquire` 分工一致。
+func use_consumable(idx: int, ctx: String) -> Dictionary:
+	if idx < 0 or idx >= consumables.size():
+		return {}
+	var c = consumables[idx]
+	if c == null or not c.usable_in(ctx):
+		return {}
+	consumables[idx] = null                 # 一次性:取出即销毁
+	if not c.boost.is_empty():
+		phrase_boosts.append(c.boost)
+	return {"id": c.id, "action": c.action, "boost": c.boost}
+
+
+## 消耗品栏还有没有空位(商店判「能不能买」用)。
+func consumable_room() -> bool:
+	return consumables.has(null)
+
+
+## 收进栏位;满了返回 false(调用方负责拒绝并给提示 —— 与 support 满槽同一条线)。
+func take_consumable(c) -> bool:
+	var i := consumables.find(null)
+	if i < 0:
+		return false
+	consumables[i] = c
+	return true
+
+
 func phrases_left() -> int:
 	return maxi(0, GameConfig.PHRASES_PER_SECTION - phrase_in_section)
 

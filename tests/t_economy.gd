@@ -12,11 +12,17 @@ func run(t) -> void:
 
 	# draft shop pricing (2026-08)
 	t.eq(Economy.joker_price(Joker.by_id("neonsign")), 3, "common support costs 3(经济 v2 平价)")
-	t.eq(Economy.joker_price(Joker.by_id("chorus")), 3, "uncommon support costs 3(经济 v2 平价)")
+	t.eq(Economy.joker_price(Joker.by_id("triplebill")), 3, "uncommon support costs 3(经济 v2 平价)")
 	t.eq(Economy.joker_price(Joker.by_id("bassline")), 3, "rare support costs 3(经济 v2 平价)")
 	t.eq(Economy.joker_price(Joker.by_id("mirror")), 3, "mirror 平价(稀缺税随经济 v2 摘除;特例要回来必须在 levels.md 说明)")
-	t.eq(Economy.joker_price(Joker.by_id("superwild")), 4,
-		"superwild 特例价 4◆(2026-08-26 用户:「超级卡就4金币」, 说明在 levels.md)")
+	# ⚑ superwild 2026-08-29 转生为**消耗牌**(注入万能牌后卡本身没用了 = 一次性),
+	# 它的 4◆ 特例价随卡搬到 data/consumables.json。断言跟着搬, 不删。
+	var _sw := {}
+	for _e in DB.consumables():
+		if String(_e["id"]) == "superwild":
+			_sw = _e
+	t.eq(int(_sw.get("price", 0)), 4,
+		"超级百搭特例价 4◆(2026-08-26 用户:「超级卡就4金币」;2026-08-29 随卡转生到消耗牌)")
 	t.eq(Economy.joker_price(Joker.by_id("mono")), 0, "the first target is free")
 	# Target 回池(2026-08-06 用户拍板): 换旗不再有专属价, 走同一张稀有度价目表。
 	t.eq(Economy.joker_price(Joker.by_id("mono"), true), 3,

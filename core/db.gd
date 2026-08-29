@@ -81,6 +81,12 @@ static func jokers() -> Array:
 	return _load("jokers", func(d): return validate_jokers(d)).get("jokers", [])
 
 
+## 消耗牌(2026-08-29 开轴)。与 jokers() 同一条线:_load + 校验器,
+## 未知键/坏引用在测试期直接红(t_db 断言 load_error() == "")。
+static func consumables() -> Array:
+	return _load("consumables", func(d): return validate_consumables(d)).get("consumables", [])
+
+
 static func sim() -> Dictionary:
 	return _load("sim", func(d): return validate_sim(d))
 
@@ -1035,7 +1041,8 @@ const _JOKER_PROOFS := ["score", "solver", "coin", "shop"]
 ## shelf 的合法键(2026-08-12 补, 外部审查 V2 的 shelf 半边就此结案)。
 ## 拼错 shelf 键 = 货架结构卡静默不生效, 与 acquire 白名单同一条纪律。
 const _SHELF_KEYS := ["target_weight_mult", "target_guaranteed", "shelf_slots",
-	"buy_limit", "price_delta", "rule_guaranteed"]
+	"buy_limit", "price_delta", "rule_guaranteed",
+	"copy_consumable"]   # 帕奇欧:离店复制一张消耗牌(2026-08-29)
 
 ## ⚑ `curve` = 时间形状, support 配额表的记账单位(2026-08-10 用户定分类三题后必填)。
 ## 15→18 张时配额表静默过期, 病根是「这张卡属于哪类」可以被忘掉 ——
@@ -1074,6 +1081,56 @@ static func _validate_effects(effects: Array, owner: String, counters: Dictionar
 						return "per 引用了未声明的计数器 '%s' (%s)" % [pv, owner]
 				elif not _PER_SOURCES.has(pv) and not pv.begins_with("coins:"):
 					return "unknown per source '%s' (%s)" % [pv, owner]
+	return ""
+
+
+## ⚑ 消耗牌的校验 —— 与 validate_jokers 同型(未知键直接红)。
+## 额外守两条**只属于消耗牌**的契约:
+##   ① `when` 只能是 phrase/shop/any —— 写错等于这张牌永远点不亮, 且不报错。
+##   ② `action` 与 `boost` **至少有一个**, 否则它是一张用了什么也不发生的牌。
+const _CONSUMABLE_WHEN := ["phrase", "shop", "any"]
+## ⚑ 消耗牌的立即动作 —— **加新键时三处齐落**:这里 · `view/phrase.gd::_apply_shop_action`
+## · `tools/bot.gd::_apply_bot_action`。`tools/parity.py` 会机械核对后两处。
+const _CONSUMABLE_ACTIONS := ["wilds", "trim_low", "deck_rule", "shelf_slots",
+	"buy_limit", "price_delta", "rule_guaranteed", "free_reroll", "min_rank",
+	"copy_one_destroy_rest"]
+## 当拍加成的通道 —— 与 `core/settle.gd` 里 phrase_boosts 那段消费的键一一对应。
+const _CONSUMABLE_BOOSTS := ["bonus_pct", "mult", "bonus", "bonus_target_pct",
+	"additive", "chance"]
+
+static func validate_consumables(d: Dictionary) -> String:
+	if not d.has("consumables"):
+		return "wants 'consumables'"
+	var ids := {}
+	for e in d["consumables"]:
+		for k in e:
+			if not ["id", "name", "cn", "price", "when", "fx", "action", "boost"].has(k) \
+					and not String(k).begins_with("_"):
+				return "consumable unknown key '%s' (%s)" % [k, e.get("id", "?")]
+		var cid := String(e.get("id", ""))
+		if cid == "":
+			return "consumable without id"
+		if ids.has(cid):
+			return "duplicate consumable id '%s'" % cid
+		ids[cid] = true
+		if not _CONSUMABLE_WHEN.has(String(e.get("when", ""))):
+			return "consumable '%s' 的 when '%s' 不认识, 只能是 %s" \
+				% [cid, e.get("when", ""), str(_CONSUMABLE_WHEN)]
+		if e.get("action", {}).is_empty() and e.get("boost", {}).is_empty():
+			return "consumable '%s' 既没有 action 也没有 boost —— 用了什么都不会发生" % cid
+		# ⚠ action 键必须在白名单里 —— **拼错一个字母 = 两侧都不执行, 且不报错**
+		# (2026-08-30 教训:6/9 的键当时只有游戏侧实现, 而我用那份读数定了价)。
+		for ak in e.get("action", {}):
+			if not _CONSUMABLE_ACTIONS.has(String(ak)):
+				return "consumable '%s' 的 action 键 '%s' 不认识, 只能是 %s" \
+					% [cid, ak, str(_CONSUMABLE_ACTIONS)]
+		# boost 走的是 Fx 的通道名, 与小丑牌同一批 —— 这里只挡明显的手滑。
+		for bk in e.get("boost", {}):
+			if not _CONSUMABLE_BOOSTS.has(String(bk)):
+				return "consumable '%s' 的 boost 通道 '%s' 不认识, 只能是 %s" \
+					% [cid, bk, str(_CONSUMABLE_BOOSTS)]
+		if int(e.get("price", 0)) <= 0:
+			return "consumable '%s' 价格必须为正" % cid
 	return ""
 
 
@@ -1200,7 +1257,7 @@ static func validate_ui(d: Dictionary) -> String:
 		# tutorial.json, 因为**坐标归 ui.json** 是既定铁律(改布局改文案 = 改 JSON);
 		# tutorial.json 里只放**区域名**, `core/tutorial.gd` 也因此不认识像素。
 		if not ["stage", "hud", "shop", "hand", "banner", "blindcard", "jokercard",
-				"tutor_focus", "patterns"].has(k):
+				"consumablecard", "tutor_focus", "patterns"].has(k):
 			return "unknown section '%s'" % k
 	# 交叉校验(2026-08-21 评审 D):blindcard 覆盖每张入池脸 + 每个 boon, jokercard 覆盖每张
 	# 小丑牌;反向不许有孤儿条目(5 条退役卡的 jokercard 曾经一直躺在表里)。
@@ -1230,6 +1287,17 @@ static func validate_ui(d: Dictionary) -> String:
 	for k in jc:
 		if not String(k).begins_with("_") and not jids.has(String(k)):
 			return "ui.jokercard 有孤儿条目 '%s'(卡已退役, 删掉)" % k
+	# ⚑ 同款交叉校验(2026-08-29 消耗牌开轴):consumablecard 覆盖每张消耗牌,
+	# 反向不许有孤儿 —— 与 jokercard 同一条纪律(退役卡的条目曾一直躺在表里)。
+	var ccard: Dictionary = d.get("consumablecard", {})
+	var cids := {}
+	for ce in _load("consumables", func(_x): return "").get("consumables", []):
+		cids[String(ce["id"])] = true
+		if not ccard.has(String(ce["id"])):
+			return "ui.consumablecard 缺消耗牌 '%s' 的 trigger(卡面会退回英文 fx)" % ce["id"]
+	for ck in ccard:
+		if not cids.has(String(ck)):
+			return "ui.consumablecard 有孤儿条目 '%s'(消耗牌已不在池)" % ck
 	return ""
 
 

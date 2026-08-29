@@ -3,9 +3,9 @@
  "_comment_targets": "机器人尺度**影子表**, 只给 sim 判生死用 —— **不是**真人面对的表(那张在 run.json)。由 `tools/curve.gd` 生成(`BOT := \"adaptive\"`): 规则机器人打满 24 拍不判生死, 按设计谱 [10%,30%,45%,60%] 逐段在幸存者里取分位数。2026-08-07 重算: 旧值 [215,540,895,1345] 是 2026-08-06 定的, 之后经历公式改 chips×mult、节奏改 4×6、**弃牌免费**、牌型倍率两轮重定、Target 全面重定价, **一次都没重算** —— 失效到 `random` 队列通关 **95.3%**(乱打都能过), 尺子彻底没有区分度。⚠ **表长必须 == 段数**(短了会被静默截断成放水盘, 测试锁着)。⚠ 改任何规则或数值后都要重算它, 否则 sim 的绝对通关率不可读, 只能看相对排名。",
  "bot_targets": [
   390,
-  987,
-  4860,
-  10615
+  330,
+  1520,
+  3190
  ],
  "runs": 1000,
  "cohorts": [
@@ -56,6 +56,74 @@
    "name": "random",
    "bot": "random",
    "target": ""
+  },
+  {
+   "name": "dead:1",
+   "bot": "adaptive",
+   "prefer": [
+    "finale",
+    "tipjar",
+    "chord",
+    "vinyl",
+    "interest",
+    "momentum",
+    "vip",
+    "shortcut",
+    "fourfingers",
+    "blacktone",
+    "redtone"
+   ]
+  },
+  {
+   "name": "dead:2",
+   "bot": "adaptive",
+   "prefer": [
+    "bassline",
+    "mirror",
+    "fullcast",
+    "superfan",
+    "rainbow",
+    "bassclef",
+    "warmtone",
+    "cooltone",
+    "undertone",
+    "duo",
+    "duet"
+   ]
+  },
+  {
+   "name": "dead:3",
+   "bot": "adaptive",
+   "prefer": [
+    "triad",
+    "triplebill",
+    "backer",
+    "bench",
+    "boxseats",
+    "freeze",
+    "stageexit",
+    "royalty",
+    "skint",
+    "stopwatch",
+    "digger"
+   ]
+  },
+  {
+   "name": "dead:4",
+   "bot": "adaptive",
+   "prefer": [
+    "fastforward",
+    "deejay",
+    "goldenvoice",
+    "hush",
+    "harmony",
+    "allin",
+    "loadeddice",
+    "recycle",
+    "matador",
+    "blindplay",
+    "perkeo"
+   ]
   }
  ],
  "kind_prior": {
@@ -70,10 +138,10 @@
  },
  "counterfactual_tv": {
   "twin": 2.6,
-  "stair": 1.5,
-  "mono": 1.55,
-  "triplet": 2.2,
-  "lonewolf": 1.7,
+  "stair": 4.6,
+  "mono": 3.7,
+  "triplet": 3.4,
+  "lonewolf": 1.9,
   "kaleido": 2.3,
   "shredder": 2.0,
   "wrecker": 2.1
@@ -100,9 +168,6 @@
    "reprise": {
     "rate": "rep",
     "prior": 0.3
-   },
-   "opener": {
-    "fixed_rate": 0.167
    },
    "rainbow": {
     "fixed_rate": 0.25
@@ -156,9 +221,6 @@
    "vinyl": {
     "rate": "disc",
     "prior": 0.2
-   },
-   "chorus": {
-    "fixed_rate": 0.2
    },
    "interest": {
     "coin_mult": 1.2
@@ -220,23 +282,6 @@
    "boxseats": {
     "avg_faces": 0.7
    },
-   "trim": {
-    "on_target": [
-     "stair",
-     0.1,
-     7.0
-    ],
-    "off_target": 0.03
-   },
-   "sponsor": {
-    "saves": 2.0
-   },
-   "doublebill": {
-    "option_ev": 2.5
-   },
-   "jukebox": {
-    "search_ev": 1.5
-   },
    "stilllife": {
     "fixed_rate": 0.35
    },
@@ -271,7 +316,7 @@
     "events": 2.0
    },
    "rebrand": {
-    "events": 0.4
+    "events": 3.0
    },
    "blacktone": {
     "on_target": [
@@ -288,10 +333,6 @@
      5.0
     ],
     "off_target": 0.03
-   },
-   "popup": {
-    "fixed_rate": 0.167,
-    "_comment": "每段第 1 拍 = 1/6(同 opener);2026-08-21 评审:此前缺臂 ⇒ bot 永远不买 ⇒ 尺子里从不存在"
    },
    "fastforward": {
     "rate": "early",
@@ -317,9 +358,6 @@
    "allin": {
     "gain": 0.25
    },
-   "jackpot": {
-    "gain": 0.15
-   },
    "loadeddice": {
     "gain_per_gamble": 0.2
    },
@@ -334,17 +372,6 @@
    },
    "matador": {
     "bites_per_beat": 0.5
-   },
-   "superwild": {
-    "base": 0.2,
-    "target_bonus": [
-     [
-      "stair",
-      "triplet"
-     ],
-     0.15
-    ],
-    "_comment": "方向锚:百搭(0.1)的注入加倍版, 数值批 SOP 未走(TODO 路线⑥)"
    },
    "advance": {
     "base": 0.15,
@@ -388,7 +415,43 @@
    "wrecker": 4
   },
   "discard_kappa": 30.0,
-  "_comment_discard_kappa": "弃牌影子价(分/◆, 经济 v2):bot 弃 n 张要求 plan 增益 ≥ n×κ×discard_cost。初值 30 = coin_score_ratio(0.1)×典型拍分 300 的方向锚;decay.gd 纪律精扫后替换, 改动会动所有 bot 尺读数(新基线)。"
+  "_comment_discard_kappa": "弃牌影子价(分/◆, 经济 v2):bot 弃 n 张要求 plan 增益 ≥ n×κ×discard_cost。初值 30 = coin_score_ratio(0.1)×典型拍分 300 的方向锚;decay.gd 纪律精扫后替换, 改动会动所有 bot 尺读数(新基线)。",
+  "measured": {
+   "turnover": 73.4,
+   "encore": 55.6,
+   "variation": 47.1,
+   "nopair": 38.2,
+   "stilllife": 31.8,
+   "rainbow": 29.4,
+   "neonsign": 29.1,
+   "finale": 25.7,
+   "earlyout": 7.1,
+   "fullcast": 68.8,
+   "chord": 18.8,
+   "rehearsal": 8.4,
+   "vip": 67.1,
+   "bassclef": 66.4,
+   "bench": 53.0,
+   "undertone": 51.3,
+   "warmtone": 47.0,
+   "backer": 38.9,
+   "duo": 38.7,
+   "cooltone": 30.7,
+   "triad": 25.3,
+   "glowstick": 215.9,
+   "triplebill": 67.9,
+   "duet": 66.9,
+   "curtain": 55.0,
+   "superfan": 54.3,
+   "reprise": 48.1,
+   "gueststar": 187.4,
+   "skint": 112.4,
+   "boxseats": 96.5,
+   "goldenvoice": 81.2,
+   "hush": 54.1,
+   "harmony": 12.6
+  },
+  "_comment_measured": "⚑ `cf.gd` 反事实重放的**真实构筑** EV(分/拍), 由 docs/design/evbook.md 同步。用途:给 `_card_ev` 当**地板** —— 手写信念表系统性低估, 实测 2026-08-30:bot 从没买过的卡里 EV 最高的是 glowstick 215.9, **高于它买过的任何一张**(gueststar 187.4), 23 张 EV 为正的卡完全在视野外。⚠ 只当地板不当替代:evbook 量的是「装着一整局」的均值, 而 bot 要答「现在买值不值」(依赖剩余拍数与当前构筑)。"
  },
  "chase": {
   "gain": 2.2,
@@ -401,5 +464,6 @@
   "lam_samples": 2,
   "blind_samples": 4
  },
- "_comment_bot_targets": "**bot 尺度的目标分 —— 仪器刻度, 不是玩家面对的那张**(玩家的在 run.json 的 section_targets)。\n⚑ **2026-08-17 重锚**:08-16 那批(升级系统 + 加分族跟随尺度 + 快闪回池)让 bot 变强, 尺子自检红了 —— random 队列通关 3.4% 涨到 **7.5%**, 超过 5% 哨兵线。\n⚑ **按各段实测涨幅缩放, 不一刀切**:random 的每拍均分 S1 没动(214 → 214)、S4 涨 20%(774 → 927), **变强集中在后段** —— 正是升级累积 + 加分族跟随尺度的预期形状。\n  旧 [496, 995, 4004, 4741]  新 [496, 995, 4270, 5678]\n⚠⚠ **改这张表不影响玩家**, 它只决定「sim 这把尺子还准不准」。两张表混淆过一次:08-16 我把 S1 从 921 压到 560, 跑完 sim 读数纹丝不动 —— 因为 sim 结构上读不到 run.json。\n⚠ 判据是**两条**:random < 5%(尺子不放水)**且**最强队列 ≥ 3%(尺子有区分度)。只压第一条会把尺子调成「谁都过不了」, 那和放水一样没用。\n⚑ **2026-08-25 新基线重锚**(局外删除 + 探针世界有 boon):[390, 987, 4860, 10615](curve adaptive 混合人群反解;random 2.4% / 最强 35.6% 双判据过)。"
+ "_comment_bot_targets": "**bot 尺度的目标分 —— 仪器刻度, 不是玩家面对的那张**(玩家的在 run.json 的 section_targets)。\n⚑ **2026-08-17 重锚**:08-16 那批(升级系统 + 加分族跟随尺度 + 快闪回池)让 bot 变强, 尺子自检红了 —— random 队列通关 3.4% 涨到 **7.5%**, 超过 5% 哨兵线。\n⚑ **按各段实测涨幅缩放, 不一刀切**:random 的每拍均分 S1 没动(214 → 214)、S4 涨 20%(774 → 927), **变强集中在后段** —— 正是升级累积 + 加分族跟随尺度的预期形状。\n  旧 [496, 995, 4004, 4741]  新 [496, 995, 4270, 5678]\n⚠⚠ **改这张表不影响玩家**, 它只决定「sim 这把尺子还准不准」。两张表混淆过一次:08-16 我把 S1 从 921 压到 560, 跑完 sim 读数纹丝不动 —— 因为 sim 结构上读不到 run.json。\n⚠ 判据是**两条**:random < 5%(尺子不放水)**且**最强队列 ≥ 3%(尺子有区分度)。只压第一条会把尺子调成「谁都过不了」, 那和放水一样没用。\n⚑ **2026-08-25 新基线重锚**(局外删除 + 探针世界有 boon):[390, 987, 4860, 10615](curve adaptive 混合人群反解;random 2.4% / 最强 35.6% 双判据过)。",
+ "_comment_dead": "⚑ dead:N —— 强制试用「从没进过赢局」的卡(2026-08-30, 用户:「升级下机器人, 让他看到这几张必须用, 试试胜率」)。**分辨两件事**:卡真的弱(用了也赢不了) vs bot 的估值看不见它。⚠ 切成 4 组而不是一次全塞:一次塞 46 张等于每张只占构筑的 1/15, 什么都量不出来。"
 }

@@ -103,6 +103,9 @@ static func settle(run: Run, p: Phrase, flags: Dictionary = {}) -> Dictionary:
 	var outcome := Settle.run(res, run.joker_slots, {
 		"prev_kind": run.prev_kind,
 		"prev_target_hit": run.prev_target_hit,
+		# ⚑ 本拍烧掉的消耗牌(2026-08-29)。接在**共用的那一拍转移**里,
+		# 所以游戏与探针自动同步 —— 「规则在游戏里、不在模型里」这个形状本项目栽过 6 次。
+		"phrase_boosts": run.phrase_boosts,
 		"rolled_suit": int(run.mod_roll.get("suit", -1)),
 		"callout_unsolved": callout_unsolved,
 		"luck_rolls": luck_rolls,
@@ -149,6 +152,9 @@ static func settle(run: Run, p: Phrase, flags: Dictionary = {}) -> Dictionary:
 		run.first_kind = int(res.get("kind", -99))
 	run.prev_kind = int(res.get("kind", -99))
 	run.prev_target_hit = bool(outcome.get("target_hit", false))
+	# ⚑ 消耗牌的加成**只作用于这一拍** —— 结算读完就清, 清在这里(共用的一拍转移里),
+	# 游戏与探针同步。⚠ 清晚了会漏进下一拍, 清早了这一拍就白烧, 而两种错都不报错。
+	run.phrase_boosts.clear()
 	p.coins = Economy.grant(p.coins, int(outcome["coins"]), run.joker_slots)
 	run.coins = p.coins
 	if SectionMod.section_discard_budget(run.face()) >= 0:

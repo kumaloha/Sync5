@@ -255,6 +255,12 @@ func _one_run(cfg: Dictionary, run_idx: int) -> void:
 	report.eco_commit_run(int(res["coins"]), int(res["died_at"]) < 0)
 	var slots: Array = res["run"].joker_slots
 	var died: int = int(res["died_at"])
+	# 「持有过奖励换旗的卡」的局数 —— 分列口径的分母(见 report.gd 的两列说明)。
+	# ⚠ 用**局末**槽位近似「本局持有过」:中途卖掉/换掉会漏记, 但装备只增不减是常态。
+	for hj in slots:
+		if hj != null and hj.swap_bonus_pct() > 0.0:
+			report.swap_runs_held += 1
+			break
 	if died >= 0:
 		report.died_at.append(died)
 		report.record_run(slots, died)

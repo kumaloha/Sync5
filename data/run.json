@@ -14,9 +14,9 @@
  ],
  "section_targets": [
   420,
-  1500,
-  3100,
-  5600
+  510,
+  960,
+  1680
  ],
  "gig_clocks": [
   8.0,
@@ -29,7 +29,7 @@
  "late_act_window": 2.0,
  "final_act_window": 1.0,
  "early_finish_time": 3.5,
- "early_discard_window": 4.0,
+ "early_discard_window": 6.0,
  "early_lock_min": 2.0,
  "hand_size": 5,
  "cache_cap": 3,

@@ -230,7 +230,7 @@ func _check_kind_gate(fid: String) -> void:
 	print("    %-28s variety_penalty = %.2f  %s"
 		% [fid, pen, "✓ 缺种即加税(判生死接上了)" if ok else "❌ target 没有随缺种上升"])
 	if not ok:
-		_fail.append("%s: target()/cleared 没有随缺种加税 —— variety_mult 没接进 core/run.gd" % fid)
+		_fail.append("%s: target()/cleared 没有随缺种上涨 —— variety_mult 没接进 core/run.gd" % fid)
 
 
 ## --- ④ 结构单调性(docs/design/gates.md):无论数值怎么调都必须成立的方向。 ---

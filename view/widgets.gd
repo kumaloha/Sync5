@@ -1159,7 +1159,13 @@ class BlindCard:
 		var span := status_text if live_status else String(copy.get("signal", ""))
 		# 2026-08-11 文案重写成完整句后变长 —— 缩字到底仍装不下 13 字, 改两行:
 		# command 用 multiline 最多两行(10s), 短码/状态行沉底。裁断句子比挤一点更伤。
-		draw_multiline_string(zh, Vector2(fr2.position.x + 6.0 * s, fr2.position.y + 13.0 * s),
+		# ⚠⚠ **en 态换 Rajdhani**(2026-08-28):中文字体画拉丁字符走的是 CJK 度量,
+		# 一行只剩 ~12 个字符 ⇒ 同一批文案 en 态有 **10 条**被 `max_lines=2` 静默截掉,
+		# 而换 `num()` 量只剩 2 条 —— **病在字体选择,不是英文句子太长**,
+		# 不该让作者去砍英文。cn 仍用 zh(中文本来就该走 CJK 度量)。
+		# 契约锁在 `tests/t_lingo.gd` 第 ⑤ 层(两态各量各的字体)。
+		var body: Font = zh if Lingo.lang() != "en" else StageTheme.num("Medium")
+		draw_multiline_string(body, Vector2(fr2.position.x + 6.0 * s, fr2.position.y + 13.0 * s),
 			command, HORIZONTAL_ALIGNMENT_LEFT, fr2.size.x - 10.0 * s,
 			int(10.0 * s), 2, Color(HOT_INK.r, HOT_INK.g, HOT_INK.b, dim))
 		draw_string(zh if live_status else med,
@@ -1375,6 +1381,64 @@ class BlindBoard:
 					draw_string(zh, Vector2(rx, ry), sep,
 						HORIZONTAL_ALIGNMENT_LEFT, -1, rfs, StageTheme.rim(0.25))
 					rx += zh.get_string_size(sep, HORIZONTAL_ALIGNMENT_LEFT, -1, rfs).x
+
+
+## ⚑ 消耗品格(2026-08-29 开轴)。两格, 摆在**手牌区上方那条 66px 空带**
+## (y 672..738, 原本只有装饰轨道)——用户提的位置, 而它恰好是最省认知的一处:
+## 玩家判断手牌时视线本来就扫过那里, 不像顶栏那样要额外抬眼。
+##
+## ⚠ **热区必须比视觉大**:视觉 60×60, 但 `size` 给 88 —— 8 秒一拍、
+## 认知已占 3.37 秒, 一个点不准的小按钮会直接吃掉玩家的时间预算。
+## ⚠ 空格画成虚线轮廓而不是隐藏 —— 「我有几格、空着几格」必须一眼可见,
+## 否则玩家不会记得自己还能拿牌(与缓存区恒满 3 格同一条理由)。
+class ConsumableSlot:
+	extends Button
+	signal used(idx: int)
+	var idx := 0
+	var accent := Color.WHITE
+	var label := ""          # 卡的短名(cn/en 走 Lingo.pick, 由调用方填)
+	var filled := false
+	var armed := true        # 当前语境能不能点(phrase/shop 时机门)
+	const VIS := 60.0        # 视觉边长;热区 = size(88), 差额是留给手指的
+	func _init() -> void:
+		flat = true
+		focus_mode = Control.FOCUS_NONE
+		for st in ["normal", "hover", "pressed", "disabled", "focus"]:
+			add_theme_stylebox_override(st, StyleBoxEmpty.new())
+		pressed.connect(func() -> void:
+			if filled and armed:
+				used.emit(idx))
+	## ⚠ 画法跟全屏统一:**暗玻璃底 + 主色描边 + 外发光**(CLAUDE.md 美术方向)。
+	## 第一版画的是硬边方框, 渲染出来跟周围的圆角发光件格格不入 —— 「改了视觉
+	## 就渲染出来自己看」这条纪律当场兑现。
+	func _draw() -> void:
+		var c := Vector2(size.x, size.y) * 0.5
+		var r := Rect2(c - Vector2(VIS, VIS) * 0.5, Vector2(VIS, VIS))
+		var rad := 10.0
+		if not filled:
+			# 空格:只留一圈极淡的轮廓 —— 「这里有个位置」要看得见, 否则玩家不知道自己能拿牌
+			draw_style_box(StageTheme.box(Color(0, 0, 0, 0),
+				Color(accent.r, accent.g, accent.b, 0.10), 2, int(rad)), r.grow(-1.0))
+			return
+		var a := 1.0 if armed else 0.32     # 时机不对压暗, 但仍可见(不是隐藏)
+		# ⚠ **不走 `draw_card`** —— 它会贴 glass 素材, 而九宫格在这种小板尺寸下必坏
+		# (CLAUDE.md 明写)。这里用程序化圆角 `StageTheme.box`, 与顶栏/商店板同一条路。
+		for i in range(3):                                   # 外发光:三层递减
+			var g := 1.0 - float(i) / 3.0
+			draw_style_box(StageTheme.box(Color(0, 0, 0, 0),
+				Color(accent.r, accent.g, accent.b, 0.11 * g * a), 2, int(rad + i * 2)),
+				r.grow(float(i) * 2.0))
+		draw_style_box(StageTheme.box(Color(0.02, 0.02, 0.05, 0.82 * a),
+			Color(accent.r, accent.g, accent.b, 0.85 * a), 2, int(rad)), r)
+		var f: Font = StageTheme.zh()
+		var fs := 12
+		var w := f.get_string_size(label, HORIZONTAL_ALIGNMENT_CENTER, -1, fs).x
+		while w > VIS - 10.0 and fs > 9:
+			fs -= 1
+			w = f.get_string_size(label, HORIZONTAL_ALIGNMENT_CENTER, -1, fs).x
+		draw_string(f, r.position + Vector2((VIS - w) * 0.5, VIS * 0.5 + fs * 0.36),
+			label, HORIZONTAL_ALIGNMENT_LEFT, -1, fs,
+			Color(1, 1, 1, a) if armed else Color(accent.r, accent.g, accent.b, a))
 
 
 class DJKey:

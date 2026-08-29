@@ -15,6 +15,8 @@ const OVERSCAN := 1.35   # 方图母版塞横幅的折中倍率(理由见 _build
 ## 槽位里就是「光悬在玻璃上」)。**只此一份**:webslim 的 512 线借调本函数。
 ## a = max(r,g,b)(比亮度公式保饱和色的光强 —— 纯蓝辉光的 luma 很低会被杀),
 ## 底噪地板 0.03 以下归零(黑底的压缩噪点别变成一层雾)。
+## 键控完接一道**增益归一**(见 `normalize_glow`)—— 两件事都在这一份里做完,
+## 调用方(横幅线 / webslim 的 512 线)语法不变。
 static func key_black_to_alpha(img: Image) -> void:
 	img.convert(Image.FORMAT_RGBA8)
 	for y in range(img.get_height()):
@@ -24,6 +26,59 @@ static func key_black_to_alpha(img: Image) -> void:
 			if a < 0.03:
 				a = 0.0
 			img.set_pixel(x, y, Color(c.r, c.g, c.b, minf(a, c.a)))
+	normalize_glow(img)
+
+
+## ⚑⚑ 增益归一(2026-08-28 用户试玩第一条:「那个图有没有差不多」)。
+##
+## 上面那道键控**默认素材是「黑底 + 亮线」**:亮线的 rgb 与算出来的 a 都接近 1,
+## 合成到暗玻璃上就是光。而 quiet 那批母版是「黑底 + **暗**线」(峰值 rgb≈0.3),
+## 于是 **a 和 rgb 同时被拉低** —— 合成亮度 ≈ 0.3 × 0.4 = **0.12**。
+## **衰减是平方级的**,这就是屏幕上「图有跟没有差不多」的全部原因
+## (实测:合成到暗玻璃后峰值亮度只有 57~85/255,比卡面自己画的网格线还淡)。
+##
+## ⇒ 键控之后按**整图峰值**做一次增益,把峰值 alpha 拉到 TARGET_A、峰值**感知亮度**
+## 拉到 TARGET_LUMA。四条纪律:
+## ① **只提不降** —— 峰值已达标的旧画风素材直接返回,一个像素不动。
+## ② **rgb 同比放大** —— 保色相,不把暖调线稿染成青的(卡与卡的区分靠它;
+##    高饱和色的分量会撞 1.0 上限, 于是紫线提亮后趋向「白心 + 紫边」——
+##    那正是霓虹, 与美术方向同向)。
+## ③ **亮度基准用 luma 而不是 max(r,g,b)** —— 后者对饱和色不公平:把紫线的
+##    max 分量拉满(0.85), 它的感知亮度也才 0.56, 屏幕上依旧是暗的。
+##    实测同一张「包厢」:max 分量基准 → 合成峰值 130/255, luma 基准 → 181/255。
+## ④ **alpha 走 gamma>1 而不是线性** —— 线性会把 0.03~0.06 的压缩噪雾一起放大
+##    三倍,而 `JokerSlotView._content_bbox` 的内容包围盒按 a≥0.06 扫:噪雾一旦过线
+##    包围盒就被撑满、主体反而缩成角落小标(2026-08-27 灌铅骰「小灰标」正是这个形状,
+##    别用增益把它请回来)。γ=1.35 下峰值→0.92 而 12% 处的噪雾→0.053,仍在阈下。
+const GAIN_TARGET_A := 0.92
+const GAIN_TARGET_LUMA := 0.72
+const GAIN_ALPHA_GAMMA := 1.35
+
+static func normalize_glow(img: Image) -> void:
+	var w := img.get_width()
+	var h := img.get_height()
+	var peak_a := 0.0
+	var peak_l := 0.0
+	for y in range(h):
+		for x in range(w):
+			var c := img.get_pixel(x, y)
+			if c.a <= 0.0:
+				continue
+			peak_a = maxf(peak_a, c.a)
+			peak_l = maxf(peak_l, 0.299 * c.r + 0.587 * c.g + 0.114 * c.b)
+	if peak_a <= 0.0 or peak_l <= 0.0:
+		return
+	if peak_a >= GAIN_TARGET_A and peak_l >= GAIN_TARGET_LUMA:
+		return                                  # ① 已经够亮:原样返回
+	var gv: float = maxf(1.0, GAIN_TARGET_LUMA / peak_l)
+	for y in range(h):
+		for x in range(w):
+			var c := img.get_pixel(x, y)
+			if c.a <= 0.0:
+				continue
+			var a: float = pow(c.a / peak_a, GAIN_ALPHA_GAMMA) * GAIN_TARGET_A
+			img.set_pixel(x, y, Color(minf(c.r * gv, 1.0), minf(c.g * gv, 1.0),
+				minf(c.b * gv, 1.0), minf(a, 1.0)))
 const BBOX_PADDING := 24
 # 2026-08-16 双色调拆分后 manifest = 69(67 是过期常量, 2026-08-24 重设计接入时撞出)
 # 2026-08-25 对抗批·波2 +5(快进/打碟/金嗓/静场/和声)+ 波3 +5(合奏/孤注/彩头/

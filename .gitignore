@@ -31,3 +31,4 @@ _shot_*.png.import
 /export/
 *.pck
 *.zip
+.probe.lock

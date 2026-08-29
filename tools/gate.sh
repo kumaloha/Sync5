@@ -105,6 +105,19 @@ step() {  # step <名字> <命令...>
 	fi
 }
 
+# ⚠⚠ **跑门之前先跑秒级检查**(2026-08-30 立):
+#   python3 tools/parity.py --check && python3 tools/evsync.py --check
+# 理由:门要 30 分钟, 而这两条秒级检查能提前暴露「我还没改完」——
+# 2026-08-30 一天之内**四次**在门跑着的时候改了它正在读的文件, 每次都作废一轮。
+# 秒级检查先过, 说明代码面已经收口, 再启动那 30 分钟才划算。
+
+evsync() {
+	# ⚑ bot 估值地板(sim.json 的 ev.measured)必须与 evbook 同步(2026-08-30)。
+	# 两处存同一份数 = 「两个家」, 而漂了**不报错** —— bot 只是估值偏低,
+	# 而估值偏低正是这个地板要修的病(23 张 EV 为正的卡曾完全在 bot 视野外)。
+	python3 tools/evsync.py --check
+}
+
 tests() {
 	# 2026-08-21 评审 R7:此前这里只 `grep ', 0 failed'` —— 丢退出码、不数 SCRIPT ERROR / ^ERROR、不看通过数、
 	# 没有超时。四判据现在**只有一份**, 在 tools/unittest.sh(CI 也调它), 这里只是转发。
@@ -180,6 +193,9 @@ else
 	fi
 	# 下面四段**增量也跑** —— 它们是全局回归(流程/打点/重放/尺子), 与「改了哪张卡」无关,
 	# 合计约 190s。⚠ 尺子自检那条尤其不许省:它是「bot_targets 还没失效」的唯一警报。
+	step "估值地板同步" python3 tools/evsync.py --check
+	step "两侧规则对齐" python3 tools/parity.py --check
+	step "文档卡数一致" python3 tools/counts.py --check
 	step "流程回归" godot --headless --path . --script res://tools/flow_probe.gd
 	step "打点回归" godot --headless --path . --script res://tools/tapeprobe.gd
 	step "决策重放" godot --headless --path . --script res://tools/replay.gd

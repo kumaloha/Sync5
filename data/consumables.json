@@ -1,0 +1,145 @@
+{
+ "_comment": "消耗牌(2026-08-29 用户开轴:「消耗牌我认为我们也可以加, 只是不用特别多, 我要让决策复杂化」)。⚑ 判据 = **这个效果本质是一次性还是持续** —— 不是「这张卡死没死」(用户纠正:「不是为了解决大部分卡没进过赢局而设计消耗牌, 是因为他确实就适合一次性而非长期」)。⚠ 「每段一次」也算一次性:用户「一局4次毫无意义, 也就4次, 不是每次」—— 系统定时机 ⇒ 玩家被动;转生后玩家自己选哪一拍烧, 决策从被动变主动。⚠⚠ 星球牌(牌型升级)不做:升级系统 2026-08-26 已整体删除。",
+ "_comment_slots": "栏位 2 格(原作同数)。实时可点 —— 用户 2026-08-29:「只在商店用其实有点怪, 应该实时可以点」。位置 = 手牌区上方那条 66px 空带(y 672..738, 现在只有装饰轨道), 玩家判断手牌时视线本来就扫过, 几乎不加认知负担;⚠ 触控热区要比视觉大(视觉 60, 热区 ≥88), 且避开节拍菱形的运动路径。",
+ "_comment_when": "when = phrase(对局中点, 当拍生效) | shop(商店里点) | any(两处都行)。⚑ 实时可点让加成类的语义变好:商店用只能是「下一拍」(还没看手牌就押注), 实时用是「这一拍」(看到手牌再决定烧不烧)。",
+ "consumables": [
+  {
+   "id": "opener",
+   "cn": "开场",
+   "name": "Opener",
+   "price": 3,
+   "when": "phrase",
+   "fx": "This phrase: +57% bonus",
+   "boost": {
+    "bonus_pct": 0.57
+   }
+  },
+  {
+   "id": "chorus",
+   "cn": "副歌",
+   "name": "Chorus",
+   "price": 3,
+   "when": "phrase",
+   "fx": "This phrase: +200 bonus score",
+   "boost": {
+    "bonus": 200
+   }
+  },
+  {
+   "id": "popup",
+   "cn": "快闪",
+   "name": "Pop-Up",
+   "price": 3,
+   "when": "phrase",
+   "fx": "This phrase: +9.5% of target",
+   "boost": {
+    "bonus_target_pct": 0.095
+   }
+  },
+  {
+   "id": "jackpot",
+   "cn": "彩头",
+   "name": "Jackpot",
+   "price": 3,
+   "when": "phrase",
+   "fx": "This phrase: half chance x2.1",
+   "boost": {
+    "mult": 2.1,
+    "chance": 0.5
+   }
+  },
+  {
+   "id": "superwild",
+   "cn": "超级百搭",
+   "name": "Super Wild",
+   "price": 4,
+   "when": "any",
+   "fx": "Four jokers join your deck",
+   "action": {
+    "wilds": 4
+   }
+  },
+  {
+   "id": "trim",
+   "cn": "修剪",
+   "name": "Trim",
+   "price": 3,
+   "when": "any",
+   "fx": "Twos and threes leave deck",
+   "action": {
+    "trim_low": true
+   }
+  },
+  {
+   "id": "doublebill",
+   "cn": "联票",
+   "name": "Double Bill",
+   "price": 3,
+   "when": "shop",
+   "fx": "This shop: four cards, buy two",
+   "action": {
+    "shelf_slots": 4,
+    "buy_limit": 2
+   }
+  },
+  {
+   "id": "sponsor",
+   "cn": "赞助",
+   "name": "Sponsor",
+   "price": 3,
+   "when": "shop",
+   "fx": "This shop: everything two less",
+   "action": {
+    "price_delta": -2
+   }
+  },
+  {
+   "id": "jukebox",
+   "cn": "点唱机",
+   "name": "Jukebox",
+   "price": 3,
+   "when": "shop",
+   "fx": "Next shelf holds a rule card",
+   "action": {
+    "rule_guaranteed": true
+   }
+  },
+  {
+   "id": "anvil",
+   "cn": "砧座",
+   "name": "Anvil",
+   "price": 4,
+   "when": "shop",
+   "fx": "Copy one joker, destroy the rest",
+   "action": {
+    "copy_one_destroy_rest": true
+   }
+  },
+  {
+   "id": "encorecall",
+   "cn": "加急",
+   "name": "Encore Call",
+   "price": 3,
+   "when": "shop",
+   "fx": "One free reroll",
+   "action": {
+    "free_reroll": 1
+   }
+  },
+  {
+   "id": "highroller",
+   "cn": "挑高",
+   "name": "High Roller",
+   "price": 3,
+   "when": "shop",
+   "fx": "Next shelf: eights or better",
+   "action": {
+    "min_rank": 8
+   }
+  }
+ ],
+ "_comment_price": "⚑ 贴齐原作比例(2026-08-30 用户:「太贵了这些卡, 参考下原作」):Balatro 的 Tarot/Planet **$3** · Spectral **$4**, 而 Joker 是 Common $1-6 —— **消耗牌 ≈ Joker 同档或更便宜**。我此前定 8/10◆(小丑牌的 2.7 倍)是把限制压在了价格上, **而原作限制总量靠的是获得**(消耗品栏 2 格 · 商店位有限), 这两条我们本来就一样。⇒ 全部收回 3◆, 只有超级百搭(用户拍板 4)与砧座(重塑整个构筑, 对应 Spectral 档)是 4◆。**超模的真因是效果太强**, 不是价格太便宜 —— 一张 +150% 单次值 529 分, 而一张 common 小丑牌**一整局**才产 763 分。⇒ 拍内四张按「单次 ≈200 分 = 一张 common 小丑牌一局产出的 26%」重标。",
+ "_comment_boost_price": "⚑ 拍内加成四张按 `tools/ccf.gd` 拉平到 ~66 分/◆(2026-08-30):开场 529.6 分@8◆ = 66.2 当基准 · 副歌 264.9 分 ⇒ 降价 8→4◆ · 彩头 724.6 分 ⇒ 提价 8→11◆ · **快闪 1397.5 分 = 174.7 分/◆, 超模 5.3 倍** ⇒ 效果 0.66→0.25(而非提价到 21◆ —— 余额中位才 7~16)。⚠ 根因是通道量纲:`bonus_target_pct` 跟着**目标分**膨胀(晚段 ×4200), `bonus_pct` 的基数是**当拍分**。转生时沿用小丑牌时代的原值没重标。",
+ "_comment_superwild": "⚠⚠ 超级百搭保持 **4◆** —— 2026-08-26 用户拍板「超级卡就4金币」。2026-08-30 我按「一次性卡总量无上限 ⇒ 等值定价必然超模」(§2.52)把它提到 10◆, **门当场红** —— 那是**推翻用户拍板**, 不该自己做。⇒ 已恢复。**待用户判断**:那个 4◆ 是它作为**小丑牌**(永久、占 1/4 槽位)时定的;转生成消耗牌后**不占槽、用完即空**, 量纲变了。是维持 4◆(它会是全场最划算的一张), 还是按新量纲重定?",
+ "_comment_channels": "⚑ 拍内四张走**四个不同通道**(2026-08-30 用户选 B):开场 `bonus_pct`(乘法链内, 吃倍率, 牌好时烧)· 副歌 `bonus` 固定加分(乘法后落地, 差一点够线时烧)·快闪 `bonus_target_pct`(跟着关卡涨, 晚段强)· 彩头 `mult`+`chance`(唯一的赌博卡)。⚠ 起因:转生后**时机差异消失了**(原本是「每段第一拍」vs「最后一拍」), 拉平定价后连数值差也没了 ⇒ 会变成同一张牌。"
+}

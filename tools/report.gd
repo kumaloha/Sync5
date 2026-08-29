@@ -26,7 +26,11 @@ var presence_n: Dictionary = {}        # id -> settles while installed
 var discards_sum := 0
 var discards_n := 0
 var run_records: Array = []
+var consumables_bought := 0
+var consumables_used := 0
 var pivots_n := 0
+var pivots_held := 0      ## 其中「本局持有过转型」的换旗次数
+var swap_runs_held := 0   ## 本局持有过转型的局数
 var wall_mod: Dictionary = {}   # "S8 static" -> [runs, deaths]
 # 货架证物(kit shop 通路;bot._draft 记账): 进店数 / 首发含规则牌的店数 / 成交总数 /
 # 双购店数(一次进店成交 ≥2, 无联票时物理不可能) / 实收折扣(基础价 − 实付, 无赞助恒 0)。
@@ -120,7 +124,11 @@ func reset() -> void:
 	discards_sum = 0
 	discards_n = 0
 	run_records = []
+	consumables_bought = 0
+	consumables_used = 0
 	pivots_n = 0
+	pivots_held = 0
+	swap_runs_held = 0
 	wall_mod = {}
 	shops_n = 0
 	rule_shops_n = 0
@@ -185,8 +193,18 @@ func print_report(cfg: Dictionary) -> void:
 	print(pass_line)
 	last_clear = 100.0 * float(clears) / float(died_at.size())
 	print("  full clear: %.1f%%" % last_clear)
+	if consumables_bought > 0 or consumables_used > 0:
+		print("  消耗牌:买 %.2f 张/局 · 用 %.2f 张/局"
+			% [float(consumables_bought) / maxf(1.0, float(died_at.size())),
+			float(consumables_used) / maxf(1.0, float(died_at.size()))])
 	if pivots_n > 0:
 		print("  target pivots: %d (%.1f%% of runs)" % [pivots_n, 100.0 * float(pivots_n) / float(died_at.size())])
+		# ⚑ 分两列(2026-08-29):可控卡的触发率**因持有而改变**, 只报总平均会被未持有的局
+		# 稀释成一个谁也不是的数(与 probbook「基线 vs 持有态」同一条纪律)。
+		if swap_runs_held > 0:
+			print("    持有转型的局:%.2f 次/局(%d 局)· 未持有:%.2f 次/局"
+				% [float(pivots_held) / float(swap_runs_held), swap_runs_held,
+				float(pivots_n - pivots_held) / maxf(1.0, float(died_at.size() - swap_runs_held))])
 	if not wall_mod.is_empty():
 		var wkeys := wall_mod.keys()
 		wkeys.sort()

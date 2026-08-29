@@ -35,11 +35,21 @@ func run(t) -> void:
 	t.eq(r5["score"], int(round(float(base) * mf)) + t._bonus("encore"),
 		"flat bonus lands after the target mult")
 
-	# chorus pct and mono mult stack multiplicatively
-	var chorus := Joker.by_id("chorus")
-	var r6 := Settle.run(flush_res, [mono, chorus, null, null],
-		{"phrase_idx": GameConfig.PHRASES_PER_SECTION - 1})
-	t.eq(r6["score"], int(round(float(base) * mf * 1.75)), "target mult and support pct stack")
+	# 加成% 与 Target 倍率**相乘**而不是相加 —— 这条契约与用哪张卡无关。
+	# ⚠ 原来用副歌(+75%), 它 2026-08-29 转生为消耗牌;换成三重(+45%, 同为
+	# bonus_pct 通道)。**断言的对象是「两个通道怎么叠」, 不是那张卡**。
+	var three_res := Pattern.evaluate_best([t._c(7, 0), t._c(7, 1), t._c(7, 2),
+		t._c(3, 0), t._c(9, 1)])
+	var tri := Joker.by_id("triplet")          # Target:三条族 ×mult
+	var pct := Joker.by_id("triplebill")       # Support:三条族 +bonus_pct
+	var only_t := Settle.run(three_res, [tri, null, null, null], {})
+	var only_p := Settle.run(three_res, [null, pct, null, null], {})
+	var both := Settle.run(three_res, [tri, pct, null, null], {})
+	var tbase: int = three_res["score"]
+	# **相乘而非相加**:两张一起 > 各自增量之和 + 基线。这条契约与用哪张卡无关,
+	# 换卡只是因为原来那张(副歌)2026-08-29 转生成了消耗牌。
+	t.check(int(both["score"]) > int(only_t["score"]) + int(only_p["score"]) - tbase,
+		"target mult and support pct stack(相乘, 不是相加)")
 
 	# base / mult are exposed for the settle animation; base includes additive
 	# so the shown 基础分 × 乘数 = 分数 stays a true equation

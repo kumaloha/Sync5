@@ -322,8 +322,10 @@ func _display_window(win: Rect2, s: float, acc: Color) -> void:
 	sb.border_color = Color(acc.r, acc.g, acc.b, 0.30)
 	draw_style_box(sb, win)
 
-	# fine grid
-	var g := Color(acc.r, acc.g, acc.b, 0.08)
+	# fine grid —— 2026-08-28 从 0.08 压到 0.05:网格是**底衬**, 亮度必须低于插画一档。
+	# 素材增益归一之前它俩是同一个量级(实测插画合成峰值 57~85/255, 网格线肉眼同亮),
+	# 于是箱子里最抢眼的是网格而不是图。提亮插画之后再压网格, 两头同时拉开差距。
+	var g := Color(acc.r, acc.g, acc.b, 0.05)
 	var step := 11.0 * s
 	var gx := win.position.x + step
 	while gx < win.end.x:

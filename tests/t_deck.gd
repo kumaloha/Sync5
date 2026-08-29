@@ -56,9 +56,14 @@ func run(t) -> void:
 	var trf := Deck.new(11)
 	trf.trim_low_ranks()
 	t.check(trf.fork(1).trim_low, "fork carries the trim flag (solver sees the surgery)")
+	# ⚑ 修剪 2026-08-29 转生为消耗牌(移除 2/3 后卡本身没用了 = 一次性)。
+	# 链路仍从**卡数据**取参数, 不硬编码 —— 断言测的是「卡声明的动作真的发生了」。
 	var td := Deck.new(13)
-	Joker.by_id("trim").on_acquire(td)
-	t.eq(td.total(), 44, "trim joker on_acquire performs the surgery")
+	for _e in DB.consumables():
+		if String(_e["id"]) == "trim":
+			if Consumable.new(_e).action.get("trim_low", false):
+				td.trim_low_ranks()
+	t.eq(td.total(), 44, "修剪(消耗牌)的 action 真的做了手术")
 	t.eq(big.rank_label(), "★", "big joker glyph")
 	t.eq(Card.new(Card.JOKER_RANK, Card.JOKER_LITTLE).rank_label(), "☆", "little joker glyph")
 
@@ -73,9 +78,10 @@ func run(t) -> void:
 	t.check(aws.wild_extra.has("superwild"), "snapshot round-trip keeps the source ledger")
 	var awf := aw.fork(7)
 	t.check(awf.wild_extra.has("superwild"), "fork carries the ledger(求解器推演同世界)")
-	var sj := Joker.by_id("superwild")
+	# ⚑ 超级百搭转生为消耗牌后, 「按来源记账、注入不翻倍」这条契约仍由 Deck 守着 ——
+	# 它本来就在 deck 侧, 与谁调用无关。用两次 add_wilds 直接测那条契约。
 	var ad := Deck.new(22)
-	sj.on_acquire(ad)
-	t.eq(ad.total(), 56, "superwild on_acquire injects via acquire.wilds=4")
-	sj.on_acquire(ad)
-	t.eq(ad.total(), 56, "on_acquire twice = once(deck 侧来源记账挡)")
+	ad.add_wilds("superwild", 4)
+	t.eq(ad.total(), 56, "超级百搭注入四张万能")
+	ad.add_wilds("superwild", 4)
+	t.eq(ad.total(), 56, "注入两次 = 一次(deck 侧来源记账挡)")

@@ -360,14 +360,14 @@ func run(t) -> void:
 	t.eq(DB.validate_director(tn_bad), "", "context_tuning at the lower bounds passes")
 	# explore_boost 是纯函数:空 used ⇒ 空;有 used ⇒ 只有「没用过的 Target」进字典
 	var cands: Array = []
-	for jid in ["twin", "stair", "superwild"]:
+	for jid in ["twin", "stair", "collector"]:   # superwild 2026-08-29 转生为消耗牌
 		cands.append(Joker.by_id(jid))
 	t.check(Director.explore_boost(cands, {}).is_empty(), "explore_boost: no history ⇒ no boost")
 	var eb := Director.explore_boost(cands, {"twin": 3})
 	t.check(not eb.has("twin"), "explore_boost: a used Target is not boosted")
 	t.check(eb.has("stair") and absf(float(eb["stair"]) - Director.explore_mult()) < 1e-9,
 		"explore_boost: an unused Target gets explore_mult")
-	t.check(not eb.has("superwild"), "explore_boost: supports are never boosted")
+	t.check(not eb.has("collector"), "explore_boost: supports are never boosted")
 	# 开关开着时走 shift;ctx 为空仍恒等(逐字节退回的另一半契约)
 	t.eq(Director.bias_with_ctx("median", {"streak": -9}), "mild",
 		"switch on: losses soften the band")

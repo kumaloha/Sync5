@@ -23,6 +23,7 @@
 | ⑧ | [**tech**](tech.md) | 技术文档 —— 分层 · `data/*.json` schema · 一套规则 |
 | ⑨ | [**vision**](vision.md) | 初衷与玩法逻辑(⚠ 含过期内容,已标注) |
 | ⑩ | [**cards**](cards.md) | 牌与牌型 —— 牌流 + 牌型表与定价 |
+| ⑪ | [**consumables**](consumables.md) | **消耗牌**(2026-08-30 开轴)—— 一次性 vs 持续的分界 · 实时可点的交互 · 一次性卡的定价量纲 · 它顺带解决了「经济不稀缺」 |
 | ⑪ | [**telemetry**](telemetry.md) | 打点 —— 21 类事件 · 口径铁律 |
 
 **支撑三篇**(不属于主结构,但都是现行的):
@@ -37,7 +38,7 @@
 | [**versus**](versus.md) | **对抗设计总纲**(2026-08-25 与用户共建)—— 盲注=条件+惩罚 / 小丑=条件+激励的代数 · 惩罚三型 · 解法四种(错开/抵消/利用/调度)· 三档矩阵(被克/避开/顺应,推导不手维护)· 归属边界(什么住哪侧)· 两侧设计纪律。**②③ 两篇的接缝,加新脸新卡先过它** |
 | [**gates**](gates.md) | **那道门的规格** —— `gate.sh` 怎么造对照臂、覆盖自证契约、可加性检验 |
 | [**capability**](capability.md) | **模型能看见什么、打得多好** —— 七类规则分类 · 三层精度 · 三个缺口 |
-| [**numbers**](numbers.md) · [**probbook**](probbook.md) | **定价宪法**(三轴+六步 SOP)与概率账本(仪器读数,手改无效) |
+| [**numbers**](numbers.md) · [**probbook**](probbook.md) · [**evbook**](evbook.md) | **定价宪法**(三轴+六步 SOP)· **概率**账本(条件多久成立一次)· **EV** 账本(成立时值多少分,2026-08-28 新)。两本账都是**仪器读数,手改无效**;**可控卡必须两本一起读** —— 谢幕 EV 读 0.41× 像弱卡,那是基线态,它的持有态触发率是基线的 3.2 倍 |
 | [**jokers_atlas**](jokers_atlas.md) · [**archetypes**](archetypes.md) | **候选池**:小丑牌 60 张口径(卡片层)· 流派图谱(流派层,2026-08-12) |
 | `research_balatro_jokers` · `research_balatro_builds` · `research_balatro_bosses` · `research_pacing_retention` · `research_cycle` | **调研:外部事实**(卡普查 / 流派目录 / Boss / 节奏留存 / 跨局周期与操作收费经济 2026-08-26) |
 | [**jokers_history**](jokers_history.md) · [**blinds_history**](blinds_history.md) | **小丑牌 / 盲注的历次经过与当年实测**(2026-08-15 从 `jokers.md`(−456)与 `blinds.md`(−337)拆出)。⚠ **没删,只搬家** —— 它们含大量实测读数(z 值 / 触发率 / 真人反事实率 / 旧池价格),那些是**结果**。⚠⚠ `blinds` 那批**被删过一次**(2026-08-10 重写),后来发现证据丢了才恢复 —— **别再删第二次**。同 `solving_history` / `history_*` 的模式 |

@@ -135,6 +135,10 @@ static func play(o: Opts, bot: Bot) -> Dictionary:
 			if o.on_begin.is_valid():
 				o.on_begin.call(run, p)   # ⚠ 决策**之前**
 			var flags := _play(o, bot, p, run, section, mod)
+			# ⚑ 拍内消耗牌(2026-08-29):在**看过手牌、做完动作之后**决定烧不烧 ——
+			# 这正是「实时可点」相对「商店里用」的全部价值(用户拍板:商店里用
+			# 「有点怪」)。放在 settle 之前, 所以加成能进这一拍的乘法链。
+			bot._consumable_in_beat(run, p, section, pidx)
 			# ⚠ 必须在 `Beat.settle` **之前**抓 —— 它在里面就被更新了。
 			var prev_kind_before := run.prev_kind
 			var outcome := Beat.settle(run, p, flags)

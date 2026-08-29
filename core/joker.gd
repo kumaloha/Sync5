@@ -71,6 +71,16 @@ func shelf_target_guaranteed() -> bool:
 	return bool(_shelf.get("target_guaranteed", false))
 
 
+## 帕奇欧:离开商店时复制一张消耗牌(2026-08-29)。
+## ⚑ 它是**持续**效果(每次离店都触发), 所以留在小丑牌而不是转生成消耗牌 ——
+## 与「一次性 ⇒ 消耗牌」是同一条判据的两面。原作里它也是 Joker 不是消耗品。
+static func slots_copy_consumable(slots: Array) -> bool:
+	for j in slots:
+		if j != null and bool(j._shelf.get("copy_consumable", false)):
+			return true
+	return false
+
+
 ## ⚑⚑ **槽位归属 —— 唯一真相**(2026-08-16,真人试玩报 bug 后收口)。
 ##
 ## **0 号槽是 Target 专用,Support 只能进 1..3。** 这条规则原本没有单一出处:
@@ -239,6 +249,26 @@ func on_acquire(deck: Deck) -> void:
 ## Player discarded `n` cards (hand or cache) in one paid action.
 func on_discard(n: int) -> void:
 	Fx.on_discard(_counters, state, n)
+
+
+## ⚑ 换一次旗, 这张卡额外给多少「加成 %」(2026-08-29)。
+## 用途:让**决策方**(bot 的换旗判据 / 未来的提示 UI)看得见「换旗动作本身的回报」——
+## 转型这类卡的价值与「新旗比旧旗好多少」无关, 漏算它就等于这条打法不存在。
+## 通用实现:任何挂 `on_target_swap` 计数、且效果按 `per: counter:<n>` 放大的卡都算得出,
+## **新卡自动生效, 不在这里点名任何 id**。
+func swap_bonus_pct() -> float:
+	var total := 0.0
+	for e in _effects:
+		var d: Dictionary = e.get("do", {})
+		if not d.has("bonus_pct"):
+			continue
+		var per := String(d.get("per", ""))
+		if not per.begins_with("counter:"):
+			continue
+		var spec: Dictionary = _counters.get(per.substr(8), {})
+		if spec.has("on_target_swap"):
+			total += float(d["bonus_pct"]) * float(spec["on_target_swap"])
+	return total
 
 
 func on_swap() -> void:

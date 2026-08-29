@@ -109,7 +109,23 @@ func _mirror_power() -> float:
 var _no_arm_warned: Dictionary = {}
 
 
+## ⚑ 估值地板(2026-08-30):手写信念表**系统性低估** —— 实测 bot 从没买过的卡里
+## EV 最高的 glowstick(215.9)高于它买过的任何一张(gueststar 187.4), 23 张 EV 为正的
+## 卡完全在视野外, 而强制试用它们的四组通关率**全部高于正常路线均值**。
+## ⇒ 拿 `cf.gd` 的实测 EV 兜底:公式算低了就用实测值。
+## ⚠ **只当地板不当替代** —— evbook 量的是「装着一整局」的均值, 答不了
+## 「现在买值不值」(剩余拍数 / 当前构筑 / 替换谁), 那些仍归公式。
 func _card_ev(id: String, st: Dictionary, slots: Array, phrases_left: int) -> float:
+	var _floor: float = float(EV.get("measured", {}).get(id, 0.0)) * MEASURED_W
+	return maxf(_floor, _card_ev_formula(id, st, slots, phrases_left))
+
+
+## 实测地板的折扣 —— 不给满值:evbook 是**事后**均值(含玩家已经把构筑配好的局面),
+## 而买入决策发生在**事前**。0.5 是保守起步, 归数值批标定。
+const MEASURED_W := 0.5
+
+
+func _card_ev_formula(id: String, st: Dictionary, slots: Array, phrases_left: int) -> float:
 	var bw: float = float(EV["blend_w"])
 	var n: float = maxf(1.0, float(st["n"]))
 	var mult_mean: float = (float(st["mult"]) + float(EV["mult_prior"]) * bw) / (n + bw)
@@ -336,6 +352,18 @@ func _pick_target_ev(st: Dictionary, candidates: Array) -> Joker:
 ## 求解版只在 `cfg["solve_draft"]` 打开时启用 —— **规则 bot 永久保留手写表当回归基线**
 ## (`docs/design/history_parametric.md` 的既有决定), 而且它跑 9000 局, 换上去会慢一个量级。
 func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionary, phrases_left: int, section: int, faces: Dictionary = {}, cache: Array = [], done_phrases: int = 0, run = null) -> int:
+	# ⚑ 消耗牌先处理(2026-08-29)。**必须在开头** —— `_draft` 后面有多个
+	# `return coins`(买到卡就返回), 放末尾等于只有「什么都没买」时才执行:
+	# 实测买入 0.15 张/局、使用 0.07, 这一层几乎不存在。
+	# ⚠ 同族形状:kit 的 UNREACHABLE 分支、shop 的 for-else 空转 —— **多出口函数里
+	# 追加的代码, 默认是不可达的**, 除非你数过每一个 return。
+	# ⚠ 「本店」类授予每店清零 —— 忘了清就把一次性效果做成了永久 buff,
+	# 而那正是这些牌当初该被挪出小丑牌的理由(见 view/shop.gd::close 同款)。
+	_g_shelf = 0
+	_g_buy_limit = 0
+	_g_price = 0
+	_g_free_reroll = 0
+	coins = _consumables_in_shop(run, coins, slots)
 	var want := "target" if slots[0] == null else "support"
 	var owned: Array = []
 	for j in slots:
@@ -395,7 +423,8 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 	var lam: float = float(EV["coin_score_ratio"]) * score_mean \
 		* pow(horizon / DRAFT_HORIZON, float(EV["coin_decay"]))
 	# 货架位数与两个「必定出」补丁 —— **与 view/shop.gd::_deal 同一套规则**(shelf API 收口)。
-	var offer := _weighted_pick(candidates, Joker.slots_shelf_size(slots),
+	var _shelf_n: int = maxi(Joker.slots_shelf_size(slots), _g_shelf)
+	var offer := _weighted_pick(candidates, _shelf_n,
 		Joker.slots_target_mult(slots))
 	# 「必定出 Target」(独狼的卡面效果):抽完若一张 Target 都没有, 顶掉最后一位。
 	# ⚠ 只在**允许换旗**时生效 —— 强制 target 的队列是实验者的随机分配, 不能被卡面绕过。
@@ -424,6 +453,21 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 					rp.append(j)
 			if not rp.is_empty() and not offer.is_empty():
 				offer[0] = rp[_rng.randi_range(0, rp.size() - 1)]
+	# 「必定出规则牌」——点唱机(消耗牌)授予时也要生效, 与 `Joker.slots_rule_guaranteed`
+	# 同一个补丁形状(2026-08-30 补齐:此前只有小丑牌那条路)。
+	if _g_rule:
+		var has_r2 := false
+		for j in offer:
+			if j.is_rule_card():
+				has_r2 = true
+		if not has_r2:
+			var rp2: Array = []
+			for j in candidates:
+				if j.is_rule_card():
+					rp2.append(j)
+			if not rp2.is_empty() and not offer.is_empty():
+				offer[0] = rp2[_rng.randi_range(0, rp2.size() - 1)]
+		_g_rule = false          # 「下次货架」类:消费即清
 	# 商店行为臂的证物记账(kit `shop` 通路):每店一记, 首发货架含规则牌就记一次。
 	_rep.shops_n += 1
 	for j in offer:
@@ -434,7 +478,7 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 	for tj in offer:
 		if tj.kind != "target":
 			continue
-		var tprice := Economy.shelf_price(tj, slots)
+		var tprice := _price_now(tj, slots)
 		if coins < tprice:
 			break
 		var mm: float = (float(st["mult"]) + float(EV["mult_prior"]) * bw) \
@@ -442,6 +486,14 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 		var base_mean: float = score_mean / maxf(1.0, mm)
 		var gain: float = (float(COUNTERFACTUAL_TV.get(tj.id, 1.0))
 			- float(COUNTERFACTUAL_TV.get(String(slots[0].id), 1.0))) * base_mean
+		# ⚑⚑ **换旗动作本身的回报**(2026-08-29):上面那行只算「新旗比旧旗好多少」,
+		# 而转型这类卡奖励的是**换这个动作**, 与两面旗谁强无关。漏了它, bot 换到
+		# 最优旗之后就永远不再换(实测 0.88 次/局)⇒ **「反复换旗」这条打法在 sim 里
+		# 根本不存在**, 于是无论设计侧怎么加卡都量不出来。
+		# ⚠ 是永久加成 ⇒ 乘 horizon(剩余拍数), 与 gain 同尺度。
+		for sj in slots:
+			if sj != null:
+				gain += sj.swap_bonus_pct() * base_mean
 		# the preview turns faces into routing: a wolf that SEES norepeat
 		# or rotation on the next wall pivots with far less hesitation
 		var hyst := 1.5
@@ -452,23 +504,40 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 				break
 		if String(slots[0].id) == "lonewolf" and next_face in ["norepeat", "rotation"]:
 			hyst = 0.6
-		if gain * horizon > lam * float(tprice) * hyst:
+		# ⚑ 换旗的**净**成本 = 新旗价 − 旧旗折半回收(2026-08-29 对齐游戏侧)。
+		# 游戏侧 `view/phrase.gd` 08-27 就补上了这笔回收(真人报「target 无法替换
+		# 老 target」时查出的规则不一致), 而这里一直按**全价**判门槛、且换完不退钱
+		# —— 「规则在游戏里、不在模型里」的**第六次**。后果不是差几个金币:
+		# 门槛高 50% ⇒ 实测换旗只有 0.88 次/局 ⇒ **转型(每次换旗 +40%)这张
+		# 换旗打法的核心卡拿不到燃料**, 于是 sim 量出「灵活打法不值钱」的假结论。
+		var trefund: int = Economy.sell_value(slots[0]) if slots[0] != null else 0
+		if gain * horizon > lam * float(tprice - trefund) * hyst:
 			var coins_before_pivot := coins
 			coins -= tprice
 			# 与游戏侧同序:先发事件(收藏家/转型), 再装卡 —— 新旗不给自己记一次。
 			Joker.notify_shop(slots, "buy")
 			if slots[0] != null:
 				Joker.notify_shop(slots, "target_swap")
+				if trefund > 0:
+					coins = Economy.grant(coins, trefund, slots)
 			slots[0] = tj
 			tj.on_acquire(deck)
 			coins = Economy.cap_held(coins, slots)     # 装卡后修剪(同编排器)
 			# 经济账本:买卡净支出 = 成交前后余额差(含上限修剪;旁路, 不动决策)。
 			_rep.eco_add("spend_buy", coins_before_pivot - coins)
 			_rep.pivots_n += 1
+			# 分列口径:这次换旗时手上有没有「奖励换旗」的卡(转型 …)。
+			for hj in slots:
+				if hj != null and hj.swap_bonus_pct() > 0.0:
+					_rep.pivots_held += 1
+					break
 			_rep.buys_total += 1
 			_rep.discount_coins += maxi(0, Economy.joker_price(tj, true) - tprice)
-			# 换旗即离店(联票的续买不覆盖 pivot —— 换旗是路线决策, 不是囤货)。
-			return coins
+			# ⚑⚑ 换旗**不再离店**(2026-08-29,与游戏侧同改):换旗占掉当店唯一成交名额
+			# 会让「奖励换旗的卡」和「换旗」互斥 —— 实测持有转型的局换旗 0.65 次 <
+			# 未持有的 0.94 次, 拿着奖励卡的人反而换得少。换旗是路线决策, 不是囤货,
+			# 名额该留给买卡。⇒ 换完继续走下面的买卡循环。
+			break
 		break
 	# 联票:一次进店最多成交 buy_limit 张(限额随槽位实时读 —— 买到联票当店多一次)。
 	# 两轮尝试的语义不变:第一轮什么都没买才允许一次付费刷新。
@@ -481,13 +550,27 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 		var best = null
 		var best_gain := 0.0
 		var best_cost := 0
+		# ⚑ `cfg.prefer` —— 实验者指定的**优先买**清单(2026-08-30)。
+		# 用途:强制 bot 试用那些「从没进过赢局」的卡, 分辨两件事 ——
+		#   **它真的弱**(用了也赢不了) vs **只是 bot 的估值看不见它**(用了就能赢)。
+		# ⚠ 这是**实验者的随机分配**, 与 `cfg.target` 同性质:它是干净的因果通道,
+		# 不能让 bot 自己的偏好污染。所以只加一条「买得起就优先」, 不改 EV 计算。
+		var prefer: Array = cfg.get("prefer", [])
+		if not prefer.is_empty():
+			for j in offer:
+				if j.kind != "target" and prefer.has(String(j.id)) \
+						and coins >= _price_now(j, slots) and slots.has(null):
+					best = j
+					best_gain = 1e9      # 压过一切正常比价
+					best_cost = _price_now(j, slots)
+					break
 		for j in offer:
 			# Target 回池后货架里可能混着 Target, 它走上面那段换旗路径(顶掉槽 0),
 			# 不参与 support 的装槽/替换比价。⚠ 不显式跳过的话,
 			# `joker_price(j)` 少传 has_target 会把它算成**免费**。
 			if j.kind == "target":
 				continue
-			var price := Economy.shelf_price(j, slots)
+			var price := _price_now(j, slots)
 			# ⚑ 求解买牌(docs/design/solving.md 第三部分):不查手写表, 直接**在已知的脸序列下算边际价值**。
 			# 前提是「四段的脸开局全可见」(docs/design/solving.md §2.2)—— 用户 2026-08-08:
 			# 「没有脸信息就没有选牌策略」。
@@ -555,7 +638,7 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 						weak_ev = oe
 						weak_k = k2
 				coins = Economy.grant(coins, Economy.sell_value(slots[weak_k]), slots) \
-					- Economy.shelf_price(best, slots)
+					- _price_now(best, slots)
 				Joker.notify_shop(slots, "buy")            # 替换也是一次购买(同编排器)
 				slots[weak_k] = best
 				best.on_acquire(deck)
@@ -568,18 +651,23 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 			if buys >= 2:
 				_rep.multi_shops_n += 1        # 双购店:联票的零基线证物
 			_rep.discount_coins += maxi(0,
-				Economy.joker_price(best) - Economy.shelf_price(best, slots))
+				Economy.joker_price(best) - _price_now(best, slots))
 			# 联票:限额未满 → 同一货架摘掉已购的那张继续挑(与 view/phrase.gd 的
 			# sold 流程同构;不重掷 —— 重掷就成了免费刷新)。
-			if buys >= Joker.slots_buy_limit(slots):
+			if buys >= maxi(Joker.slots_buy_limit(slots), _g_buy_limit):
 				return coins
 			offer.erase(best)
 			continue
 		# nothing worth buying: one paid reroll if rich, else just walk away
 		# (2026-08-06: leaving the shop pays nothing — the skip reward is gone)
-		if attempt == 0 and buys == 0 and coins >= Economy.reroll_cost(0) + 6:
-			coins -= Economy.reroll_cost(0)
-			_rep.eco_add("spend_reroll", Economy.reroll_cost(0))   # 经济账本:付费刷新
+		var _rr_free: bool = _g_free_reroll > 0
+		if attempt == 0 and buys == 0 \
+				and (_rr_free or coins >= Economy.reroll_cost(0) + 6):
+			if _rr_free:
+				_g_free_reroll -= 1          # 加急(消耗牌):免费刷新一次
+			else:
+				coins -= Economy.reroll_cost(0)
+				_rep.eco_add("spend_reroll", Economy.reroll_cost(0))   # 经济账本:付费刷新
 			Joker.notify_shop(slots, "reroll")             # 淘碟(同编排器)
 			# ⚠ 刷新后的货架沿用既有行为:只重掷、不重放两个「必定出」补丁 ——
 			# 游戏侧 redeal 会重放, 这是 bot 的既有保真缺口, 记档不扩大(证物只数首发)。
@@ -587,6 +675,154 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 			continue
 		break
 	return coins
+
+
+## ⚑ 消耗牌:买 + 在商店里用(2026-08-29 开轴时同批接进 bot)。
+##
+## ⚠ **不接就等于这一层不存在** —— 转生当天实测:消耗牌在 sim 里使用率 **0%**,
+## 「多少卡没进赢局」的比例因此**一动不动**(35% → 35%), 绝对数从 50 掉到 45
+## 也只是分母变小(把最不容易进赢局的 9 张挪走了)。**问题跟着搬家, 没被解决。**
+## ⇒ 用户 2026-08-29:「需要升级下机器人, 让他看到这几张必须用, 试试胜率」。
+##
+## 策略刻意简单(**先让它会用, 不追求最优**):
+##   买 —— 栏位有空 + 买得起 + 买完还剩得下下一次刷新的钱
+##   用 —— shop 类进店就用(一次性, 攒着没有额外价值);
+##         phrase 类留给拍内决策(见 `_consumable_in_beat`)
+## 本店实价 —— **唯一真相**:所有比价/成交都走它, 别散着调 `Economy.shelf_price`。
+## 赞助(消耗牌)的本店降价叠在这里, 地板 1◆(免费只属于首张 Target 那个特例, 与游戏侧同)。
+func _price_now(j, slots: Array) -> int:
+	var base := Economy.shelf_price(j, slots)
+	return base if base <= 0 else maxi(1, base + _g_price)
+
+
+## 本店授予(消耗牌的商店类 action)。**与 `view/shop.gd` 的 `_grant_*` 同名同义** ——
+## 2026-08-30 逐键核对发现这 6 个键**只在游戏侧实现**, bot 会买、会「用掉」,
+## 但用了什么都不发生 ⇒ 我用那份读数给它们定的 8◆ 是**在「它们是空白卡」的世界里量的**。
+## ⚠ 每店开头清零 —— 「本店」类就是一次性。
+var _g_shelf := 0
+var _g_buy_limit := 0
+var _g_price := 0
+var _g_rule := false
+var _g_free_reroll := 0
+var _g_min_rank := 0
+
+
+func _consumables_in_shop(run, coins: int, slots: Array) -> int:
+	if run == null:
+		return coins
+	# ① 先用掉手上能在商店用的(用完腾位, 才谈买)
+	for i in range(run.consumables.size()):
+		var c = run.consumables[i]
+		if c == null or not c.usable_in("shop"):
+			continue
+		if c.action.has("copy_one_destroy_rest"):
+			var n := 0
+			for j in slots:
+				if j != null:
+					n += 1
+			if n < 2:
+				continue                      # 砧座:≤1 张时用了等于白烧
+		var used: Dictionary = run.use_consumable(i, "shop")
+		if not used.is_empty():
+			_apply_bot_action(run, slots, used)
+			_rep.consumables_used += 1
+	# ② 帕奇欧:离店时复制一张消耗牌 —— **与游戏侧 `_perkeo_on_exit` 对齐**。
+	# ⚠ 2026-08-30 补:开轴当天只接了游戏侧, bot 侧漏了 ⇒ sim 里帕奇欧是**纯废卡**
+	# (rare, 占一个槽, 什么也不做), bot 算出价值 0、永不购买, 这张牌永远进不了读数。
+	# 「规则在游戏里、不在模型里」的**第七次**。
+	if Joker.slots_copy_consumable(slots) and run.consumable_room():
+		var src: Array = []
+		for c in run.consumables:
+			if c != null:
+				src.append(c)
+		if not src.is_empty():
+			var pk = src[_rng.randi_range(0, src.size() - 1)]
+			for e in DB.consumables():
+				if String(e["id"]) == pk.id:
+					run.take_consumable(Consumable.new(e))
+					break
+	# ③ 再买 —— 一店最多一张(与游戏侧「货架只出一张」同构)
+	if not run.consumable_room():
+		return coins
+	var pool: Array = []
+	var held := {}
+	for c in run.consumables:
+		if c != null:
+			held[c.id] = true
+	for e in DB.consumables():
+		if not held.has(String(e["id"])):
+			pool.append(e)
+	if pool.is_empty():
+		return coins
+	var pick = Consumable.new(pool[_rng.randi_range(0, pool.size() - 1)])
+	if coins < pick.price + 3:                # 留出下一次刷新的钱, 别把自己买空
+		return coins
+	coins -= pick.price
+	run.take_consumable(pick)
+	_rep.eco_add("spend_buy", pick.price)
+	_rep.consumables_bought += 1
+	return coins
+
+
+## ⚑ 拍内烧消耗牌。策略:**攒到段末再用** —— 段目标是硬生死线, 而消耗牌是
+## 一次性的, 早烧等于把它花在一个「本来也能过」的拍上。
+## ⚠ 这是个**保守而非最优**的启发式:真人会看着手牌决定(比如凑到大牌型才烧),
+## bot 看不到那么远。它的作用是**让这一层在读数里存在**, 不是替玩家找最优解。
+func _consumable_in_beat(run, p, section: int, pidx: int) -> void:
+	if run == null:
+		return
+	# 只在段末两拍考虑(差得越多越该烧)
+	if pidx < GameConfig.PHRASES_PER_SECTION - 2:
+		return
+	for i in range(run.consumables.size()):
+		var c = run.consumables[i]
+		if c == null or not c.usable_in("phrase"):
+			continue
+		var used: Dictionary = run.use_consumable(i, "phrase")
+		if not used.is_empty():
+			_apply_bot_action(run, run.joker_slots, used)
+			_rep.consumables_used += 1
+			return                     # 一拍只烧一张(与玩家的手速预算同构)
+
+
+## 消耗牌的立即动作在 bot 侧的执行。⚠ 只做**模型看得见**的那几种:
+## 牌堆类(注入万能/移除低牌)与构筑类(砧座)真的改状态;
+## 商店类(4选2/降价/必出规则牌)在 bot 的一次性货架里没有对应物, 记账但不改 ——
+## **这是已知的保真缺口, 写在这里而不是假装它生效了**(与 reroll 不重放补丁同款处理)。
+func _apply_bot_action(run, slots: Array, used: Dictionary) -> void:
+	var act: Dictionary = used.get("action", {})
+	# ---- 商店类六键(2026-08-30 补齐;此前只在游戏侧实现)----
+	if act.has("shelf_slots"):
+		_g_shelf = maxi(_g_shelf, int(act["shelf_slots"]))
+	if act.has("buy_limit"):
+		_g_buy_limit = maxi(_g_buy_limit, int(act["buy_limit"]))
+	if act.has("price_delta"):
+		_g_price += int(act["price_delta"])
+	if act.has("rule_guaranteed"):
+		_g_rule = true
+	if act.has("free_reroll"):
+		_g_free_reroll += int(act["free_reroll"])
+	if act.has("min_rank"):
+		_g_min_rank = maxi(_g_min_rank, int(act["min_rank"]))
+	if act.has("wilds"):
+		run.deck.add_wilds(String(used["id"]), int(act["wilds"]))
+	if act.has("trim_low"):
+		run.deck.trim_low_ranks()
+	if act.has("copy_one_destroy_rest"):
+		var owned: Array = []
+		for i in range(slots.size()):
+			if slots[i] != null:
+				owned.append(i)
+		if owned.size() >= 2:
+			var keep: int = owned[_rng.randi_range(0, owned.size() - 1)]
+			var kept = slots[keep]
+			for i in range(slots.size()):
+				if i != keep:
+					slots[i] = null
+			for i in range(1, slots.size()):
+				if slots[i] == null and kept.kind == "support":
+					slots[i] = Joker.by_id(kept.id)
+					break
 
 
 ## 货架抽卡 —— 算法在 `Economy.weighted_pick`(**唯一真相**,2026-08-15 收口)。

@@ -7,14 +7,14 @@
    "kind": "target",
    "rarity": "rare",
    "proof": "score",
-   "fx": "Pairs and two pairs: ×6",
+   "fx": "Pairs and two pairs: ×1.4",
    "effects": [
     {
      "when": {
       "kind": "PAIR"
      },
      "do": {
-      "mult": 6.0
+      "mult": 1.4
      }
     },
     {
@@ -22,7 +22,7 @@
       "kind": "TWO_PAIR"
      },
      "do": {
-      "mult": 6.0
+      "mult": 1.4
      }
     }
    ]
@@ -34,14 +34,14 @@
    "kind": "target",
    "rarity": "rare",
    "proof": "score",
-   "fx": "Straights and straight flushes: ×11",
+   "fx": "Straights and straight flushes: ×4.3",
    "effects": [
     {
      "when": {
       "kind": "STRAIGHT"
      },
      "do": {
-      "mult": 11.0
+      "mult": 4.8
      }
     },
     {
@@ -52,7 +52,7 @@
       ]
      },
      "do": {
-      "mult": 11.0
+      "mult": 4.8
      }
     }
    ]
@@ -64,14 +64,14 @@
    "kind": "target",
    "rarity": "rare",
    "proof": "score",
-   "fx": "Flushes and straight flushes: ×12",
+   "fx": "Flushes and straight flushes: ×5",
    "effects": [
     {
      "when": {
       "kind": "FLUSH"
      },
      "do": {
-      "mult": 12.0
+      "mult": 5.6
      }
     },
     {
@@ -82,7 +82,7 @@
       ]
      },
      "do": {
-      "mult": 12.0
+      "mult": 5.6
      }
     }
    ]
@@ -94,14 +94,14 @@
    "kind": "target",
    "rarity": "rare",
    "proof": "score",
-   "fx": "Trips, full house, quads: ×10",
+   "fx": "Trips, full house, quads: ×3.6",
    "effects": [
     {
      "when": {
       "kind": "THREE_KIND"
      },
      "do": {
-      "mult": 10.0
+      "mult": 2
      }
     },
     {
@@ -109,7 +109,7 @@
       "kind": "FULL_HOUSE"
      },
      "do": {
-      "mult": 10.0
+      "mult": 2
      }
     },
     {
@@ -117,7 +117,7 @@
       "kind": "FOUR_KIND"
      },
      "do": {
-      "mult": 10.0
+      "mult": 2
      }
     }
    ]
@@ -129,14 +129,14 @@
    "kind": "target",
    "rarity": "rare",
    "proof": "coin",
-   "fx": "No discards: +3 coins; Targets always offered",
+   "fx": "No discards: +2 coins; Targets always",
    "effects": [
     {
      "when": {
       "discards_eq": 0
      },
      "do": {
-      "coins": 3
+      "coins": 2
      }
     }
    ],
@@ -152,14 +152,14 @@
    "rarity": "common",
    "curve": "burst",
    "proof": "score",
-   "fx": "Same hand as last phrase: +240",
+   "fx": "Same hand as last phrase: +328",
    "effects": [
     {
      "when": {
       "same_as_prev": true
      },
      "do": {
-      "bonus_target_pct": 0.577
+      "bonus_target_pct": 0.78
      }
     }
    ]
@@ -172,7 +172,7 @@
    "rarity": "common",
    "curve": "burst",
    "proof": "score",
-   "fx": "Act in final 2 seconds: +100",
+   "fx": "Act in final 2 seconds: +101",
    "effects": [
     {
      "when": {
@@ -192,14 +192,14 @@
    "rarity": "common",
    "curve": "burst",
    "proof": "score",
-   "fx": "+30 per discard this phrase",
+   "fx": "+92 per discard this phrase",
    "effects": [
     {
      "when": {
       "discards_gte": 1
      },
      "do": {
-      "bonus_target_pct": 0.072,
+      "bonus_target_pct": 0.22,
       "per": "discard"
      }
     }
@@ -213,14 +213,14 @@
    "rarity": "common",
    "curve": "burst",
    "proof": "coin",
-   "fx": "Zero discards this phrase: +2 coins",
+   "fx": "Zero discards this phrase: +1 coin",
    "effects": [
     {
      "when": {
       "discards_eq": 0
      },
      "do": {
-      "coins": 2
+      "coins": 1
      }
     }
    ]
@@ -253,31 +253,11 @@
    "rarity": "common",
    "curve": "fixed",
    "proof": "score",
-   "fx": "+50",
+   "fx": "+46",
    "effects": [
     {
      "do": {
-      "bonus_target_pct": 0.12
-     }
-    }
-   ]
-  },
-  {
-   "id": "popup",
-   "name": "Pop-Up",
-   "cn": "快闪",
-   "kind": "support",
-   "rarity": "common",
-   "curve": "fixed",
-   "proof": "score",
-   "fx": "First phrase each section: big bonus",
-   "effects": [
-    {
-     "when": {
-      "first_phrase": true
-     },
-     "do": {
-      "bonus_target_pct": 0.8
+      "bonus_target_pct": 0.11
      }
     }
    ]
@@ -312,26 +292,6 @@
    ]
   },
   {
-   "id": "chorus",
-   "name": "Chorus",
-   "cn": "副歌",
-   "kind": "support",
-   "rarity": "uncommon",
-   "curve": "burst",
-   "proof": "score",
-   "fx": "Last phrase of section: +75%",
-   "effects": [
-    {
-     "when": {
-      "last_phrase": true
-     },
-     "do": {
-      "bonus_pct": 0.75
-     }
-    }
-   ]
-  },
-  {
    "id": "interest",
    "name": "Interest",
    "cn": "利息",
@@ -339,7 +299,7 @@
    "rarity": "uncommon",
    "curve": "floating",
    "proof": "coin",
-   "fx": "+1 coin per 4 held",
+   "fx": "+1 coin per 8 held",
    "effects": [
     {
      "when": {
@@ -347,8 +307,8 @@
      },
      "do": {
       "coins": 1,
-      "per": "coins:4",
-      "cap": 5
+      "per": "coins:8",
+      "cap": 3
      }
     }
    ]
@@ -551,20 +511,6 @@
    ]
   },
   {
-   "id": "superwild",
-   "name": "Super Wildcard",
-   "cn": "超级百搭",
-   "kind": "support",
-   "rarity": "rare",
-   "curve": "fixed",
-   "proof": "solver",
-   "fx": "Four jokers join your deck",
-   "acquire": {
-    "wilds": 4
-   },
-   "_comment": "2026-08-26 用户创意:四张 JOKER 入堆 + 付费洗牌钓卡(reshuffle_cost, 金币第三出口)。与百搭共存还是取代待拍板;弃牌仍免费不动。 ⚑ 2026-08-26 用户拍板:取代百搭(wildcard 已删, 万能牌唯一来源);特例价 4◆(用户:「超级卡就4金币」, overrides 在 economy.json, 说明在 levels.md)。"
-  },
-  {
    "id": "kaleido",
    "name": "Kaleidoscope",
    "cn": "万花筒",
@@ -602,14 +548,14 @@
    "rarity": "common",
    "curve": "burst",
    "proof": "score",
-   "fx": "Different hand than last phrase: +85",
+   "fx": "Different hand than last phrase: +118",
    "effects": [
     {
      "when": {
       "diff_from_prev": true
      },
      "do": {
-      "bonus_target_pct": 0.204
+      "bonus_target_pct": 0.28
      }
     }
    ]
@@ -622,14 +568,14 @@
    "rarity": "uncommon",
    "curve": "burst",
    "proof": "score",
-   "fx": "Same hand as last: +80%",
+   "fx": "Same hand as last: +140%",
    "effects": [
     {
      "when": {
       "same_as_prev": true
      },
      "do": {
-      "bonus_pct": 0.8
+      "bonus_pct": 1.4
      }
     }
    ]
@@ -642,7 +588,7 @@
    "rarity": "common",
    "curve": "burst",
    "proof": "score",
-   "fx": "Five-card hands: +320",
+   "fx": "Five-card hands: x1.2",
    "effects": [
     {
      "when": {
@@ -655,7 +601,7 @@
       ]
      },
      "do": {
-      "bonus_target_pct": 0.769
+      "mult": 1.2
      }
     }
    ]
@@ -713,26 +659,6 @@
    ]
   },
   {
-   "id": "opener",
-   "name": "Opener",
-   "cn": "开场",
-   "kind": "support",
-   "rarity": "uncommon",
-   "curve": "burst",
-   "proof": "score",
-   "fx": "First phrase of section: +150%",
-   "effects": [
-    {
-     "when": {
-      "first_phrase": true
-     },
-     "do": {
-      "bonus_pct": 1.5
-     }
-    }
-   ]
-  },
-  {
    "id": "rainbow",
    "name": "Rainbow",
    "cn": "彩虹",
@@ -740,14 +666,14 @@
    "rarity": "common",
    "curve": "burst",
    "proof": "score",
-   "fx": "All four suits in hand: +180",
+   "fx": "All four suits in hand: +164",
    "effects": [
     {
      "when": {
       "all_suits": true
      },
      "do": {
-      "bonus_target_pct": 0.433
+      "bonus_target_pct": 0.39
      }
     }
    ]
@@ -760,14 +686,14 @@
    "rarity": "common",
    "curve": "burst",
    "proof": "score",
-   "fx": "No pair in hand: +190",
+   "fx": "No pair in hand: +273",
    "effects": [
     {
      "when": {
       "no_pair": true
      },
      "do": {
-      "bonus_target_pct": 0.457
+      "bonus_target_pct": 0.65
      }
     }
    ]
@@ -934,7 +860,7 @@
       ]
      },
      "do": {
-      "additive": 25
+      "additive": 14
      }
     }
    ]
@@ -958,7 +884,7 @@
       ]
      },
      "do": {
-      "bonus_pct": 0.6
+      "bonus_pct": 0.45
      }
     }
    ]
@@ -971,7 +897,7 @@
    "rarity": "common",
    "curve": "floating",
    "proof": "score",
-   "fx": "+1 chip per 2 coins held",
+   "fx": "+1 chip per 2 coins, max 10",
    "effects": [
     {
      "when": {
@@ -979,7 +905,8 @@
      },
      "do": {
       "additive": 1,
-      "per": "coins:2"
+      "per": "coins:2",
+      "cap": 10
      }
     }
    ]
@@ -1021,59 +948,6 @@
    "_comment": "2026-08-27 用户:「×1.2/张太低, 都是很难的条件」(占格机会成本大)—— 0.2→0.35/张(满 3 张 ×2.05);五因子口径, 全池重标时再校。"
   },
   {
-   "id": "trim",
-   "name": "Trim",
-   "cn": "修剪",
-   "kind": "support",
-   "rarity": "rare",
-   "curve": "fixed",
-   "proof": "solver",
-   "fx": "Twos and threes leave deck",
-   "acquire": {
-    "trim_low": true
-   }
-  },
-  {
-   "id": "doublebill",
-   "name": "Double Bill",
-   "cn": "联票",
-   "kind": "support",
-   "rarity": "rare",
-   "curve": "fixed",
-   "proof": "shop",
-   "fx": "Shops offer 4; buy up to 2",
-   "shelf": {
-    "shelf_slots": 4,
-    "buy_limit": 2
-   }
-  },
-  {
-   "id": "sponsor",
-   "name": "Sponsor",
-   "cn": "赞助",
-   "kind": "support",
-   "rarity": "uncommon",
-   "curve": "fixed",
-   "proof": "shop",
-   "fx": "Shop cards cost 1 less",
-   "shelf": {
-    "price_delta": -1
-   }
-  },
-  {
-   "id": "jukebox",
-   "name": "Jukebox",
-   "cn": "点唱机",
-   "kind": "support",
-   "rarity": "rare",
-   "curve": "fixed",
-   "proof": "shop",
-   "fx": "Shops always offer a rule card",
-   "shelf": {
-    "rule_guaranteed": true
-   }
-  },
-  {
    "id": "freeze",
    "name": "Freeze Frame",
    "cn": "定格",
@@ -1109,14 +983,14 @@
    "rarity": "common",
    "curve": "burst",
    "proof": "score",
-   "fx": "Zero swaps this phrase: +60",
+   "fx": "Zero swaps this phrase: +134",
    "effects": [
     {
      "when": {
       "swaps_eq": 0
      },
      "do": {
-      "bonus_target_pct": 0.144
+      "bonus_target_pct": 0.32
      }
     }
    ]
@@ -1129,11 +1003,11 @@
    "rarity": "common",
    "curve": "burst",
    "proof": "score",
-   "fx": "Swapped cards that score: +40 each",
+   "fx": "Swapped cards that score: +55 each",
    "effects": [
     {
      "do": {
-      "bonus_target_pct": 0.096,
+      "bonus_target_pct": 0.13,
       "per": "swapped_scoring"
      }
     }
@@ -1147,11 +1021,11 @@
    "rarity": "common",
    "curve": "burst",
    "proof": "score",
-   "fx": "Each face card discarded: +30",
+   "fx": "Each face card discarded: +42",
    "effects": [
     {
      "do": {
-      "bonus_target_pct": 0.072,
+      "bonus_target_pct": 0.1,
       "per": "face_discard"
      }
     }
@@ -1165,11 +1039,11 @@
    "rarity": "uncommon",
    "curve": "floating",
    "proof": "coin",
-   "fx": "Hand coin rewards are doubled",
+   "fx": "Hand coin rewards x1.5",
    "effects": [
     {
      "do": {
-      "coins_factor": 2
+      "coins_factor": 1.5
      }
     }
    ]
@@ -1240,14 +1114,14 @@
    "rarity": "common",
    "curve": "burst",
    "proof": "score",
-   "fx": "All discards in first 4 seconds: +80",
+   "fx": "All discards in first 6 seconds: +176",
    "effects": [
     {
      "when": {
       "early_discards": true
      },
      "do": {
-      "bonus_target_pct": 0.192
+      "bonus_target_pct": 0.42
      }
     }
    ]
@@ -1319,7 +1193,7 @@
    "rarity": "uncommon",
    "curve": "growth",
    "proof": "shop",
-   "fx": "Each Target change: +40% forever",
+   "fx": "Targets always offered; each change +40%",
    "counters": {
     "n": {
      "on_target_swap": 1
@@ -1338,7 +1212,10 @@
       "per": "counter:n"
      }
     }
-   ]
+   ],
+   "shelf": {
+    "target_guaranteed": true
+   }
   },
   {
    "id": "wrecker",
@@ -1437,7 +1314,7 @@
    "rarity": "rare",
    "curve": "floating",
    "proof": "score",
-   "fx": "×0.1 per six coins held",
+   "fx": "x0.1 per 6 coins, max 0.5",
    "effects": [
     {
      "when": {
@@ -1445,7 +1322,8 @@
      },
      "do": {
       "mult_add": 0.1,
-      "per": "coins:6"
+      "per": "coins:6",
+      "cap": 0.5
      }
     }
    ]
@@ -1458,14 +1336,14 @@
    "rarity": "rare",
    "curve": "burst",
    "proof": "score",
-   "fx": "No discards this phrase: x1.15",
+   "fx": "No discards this phrase: x1.4",
    "effects": [
     {
      "when": {
       "discards_eq": 0
      },
      "do": {
-      "mult_add": 0.15
+      "mult_add": 0.4
      }
     }
    ],
@@ -1525,27 +1403,6 @@
      },
      "do": {
       "mult": 4.0
-     }
-    }
-   ]
-  },
-  {
-   "id": "jackpot",
-   "name": "Jackpot",
-   "cn": "彩头",
-   "kind": "support",
-   "rarity": "uncommon",
-   "curve": "burst",
-   "proof": "score",
-   "fx": "Last phrase: half chance ×3",
-   "effects": [
-    {
-     "when": {
-      "last_phrase": true,
-      "chance": 0.5
-     },
-     "do": {
-      "mult": 3.0
      }
     }
    ]
@@ -1631,6 +1488,20 @@
      }
     }
    ]
+  },
+  {
+   "id": "perkeo",
+   "name": "Perkeo",
+   "cn": "帕奇欧",
+   "kind": "support",
+   "rarity": "rare",
+   "curve": "fixed",
+   "proof": "shop",
+   "fx": "Leaving shop: copy one consumable",
+   "effects": [],
+   "shelf": {
+    "copy_consumable": true
+   }
   }
  ]
 }
