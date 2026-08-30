@@ -249,6 +249,8 @@ func _one_run(cfg: Dictionary, run_idx: int) -> void:
 
 	o.on_section = func(_run: Run, section: int, _sec_score: int, coins: int) -> void:
 		report.coins_at_section[section] += float(coins)
+		if section < report.section_scores.size():
+			report.section_scores[section].append(float(_sec_score))
 		report.coins_at_n[section] += 1
 
 	var res := RunLoop.play(o, bot)

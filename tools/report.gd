@@ -13,6 +13,11 @@ func _init(runs: int, sections: int) -> void:
 
 
 var died_at: Array = []          # section index of death, _sections = cleared
+## ⚑ 段分的**全样本**(2026-08-30 加)——定关卡分只能看它, 不能看均值。
+## ⚠⚠ 实测:段产出均值是关卡分的 **3~4 倍**, 而通关率只有 **38~48%** ——
+## 说明**方差极大**, 而 `full clear` 要求四段全过、一段失手就完。
+## ⇒ 拿均值定一个受方差支配的量, 必错(我差点据此把关卡分抬到 2 倍)。
+var section_scores: Array = []          # [段][局] 的原始段分
 var phrase_score_sum: Array = []
 var phrase_score_n: Array = []
 var coins_at_section: Array = []
@@ -106,6 +111,9 @@ static func eco_median(vals: Array) -> float:
 
 func reset() -> void:
 	died_at = []
+	section_scores = []
+	for _i in range(_sections):
+		section_scores.append([])
 	phrase_score_sum = []
 	phrase_score_n = []
 	coins_at_section = []
@@ -241,6 +249,17 @@ func print_report(cfg: Dictionary) -> void:
 		if phrase_score_n[i] > 0:
 			score_line += "S%d:%d " % [i + 1, int(phrase_score_sum[i] / float(phrase_score_n[i]))]
 	print(score_line)
+	# ⚑ 段分的分位数 —— 关卡分该落在下沿附近(「打得差也够得着」的那条线)。
+	var q_line := "  段分 p10/p25/中位: "
+	for i in range(_sections):
+		var v: Array = section_scores[i].duplicate()
+		if v.is_empty():
+			continue
+		v.sort()
+		q_line += "S%d:%d/%d/%d " % [i + 1,
+			int(v[int(v.size() * 0.10)]), int(v[int(v.size() * 0.25)]),
+			int(v[v.size() / 2])]
+	print(q_line)
 	var coin_line := "  avg coins at section end: "
 	for i in range(_sections):
 		if coins_at_n[i] > 0:

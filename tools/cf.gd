@@ -30,6 +30,13 @@ extends SceneTree
 ##   per 的计数没记 → 串场(swapped_scoring)/让位(faces_discarded)/盲奏(hidden_scoring)/
 ##     回收(cache_discard_rank_sum)
 ##   依赖 Target 状态 → 镜面(prev_target_hit)
+## ⚠⚠ **这 12 张算不出来, 是因为记录里的信息不够**(2026-08-30 复核):
+## 它们的效果取决于「这一拍具体弃了哪几张牌」(按牌面 / 花色 / 计数器算),
+## 而我们只记了「弃了 3 张」这个数字, **没记是哪 3 张**。
+## ⇒ 要么让 Tape 记下每次弃牌的牌面, 要么重放时从 `disc` 事件逐张还原 ——
+## 两条都是独立一批的工作量, **不在这个文件里修**。
+## ⚑ 代价:机器人判断这 12 张时**没有实测保底值**, 只能靠手写公式,
+## 而手写公式正是 2026-08-30 证明会系统性算低的东西(23 张卡因此从没被买过)。
 const NO_CTX := ["shredder", "stopwatch", "freeze", "fastforward", "momentum",
 	"allin", "jackpot", "segue", "stageexit", "blindplay", "recycle", "mirror"]
 

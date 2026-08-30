@@ -85,6 +85,42 @@ def write_only():
     return bad
 
 
+def card_face():
+    """第四层:**卡面上的数字与数据里的值对不上**。
+
+    ⚑ 2026-08-30 一天撞三次:彩头的 `chance` 从没被读过(卡面「半概率」实为 100%)·
+    挑高的「必出 8 以上」在货架上没有对应物 · 拍内四张改了数值但中文卡面还是旧的。
+    ⇒ **改数值时卡面是最容易漏的一环**, 而漏了玩家会按错的规则做决策。
+
+    做法:把卡面里出现的数字抠出来, 与该卡 boost/action 的值比对。
+    ⚠ 只查**能机械对上**的形状(百分比 / 倍率 / 整数加分), 对不上的形状跳过 ——
+    宁可漏报, 不可误报(一把爱喊狼来了的尺会被无视)。
+    """
+    import json, re
+    cons = json.loads((ROOT / "data/consumables.json").read_text(encoding="utf-8"))["consumables"]
+    ui = json.loads((ROOT / "data/ui.json").read_text(encoding="utf-8")).get("consumablecard", {})
+    bad = []
+    for c in cons:
+        face = ui.get(c["id"], {}).get("trigger", "")
+        nums = [float(x) for x in re.findall(r"(\d+(?:\.\d+)?)", face)]
+        if not nums:
+            continue
+        vals = []
+        for k, v in list(c.get("boost", {}).items()) + list(c.get("action", {}).items()):
+            if isinstance(v, bool) or not isinstance(v, (int, float)):
+                continue
+            # 原值 / 百分比 / 绝对值(卡面写「−2◆」而数据是 -2, 符号在文案里)
+            vals += [float(v), float(v) * 100.0, abs(float(v)), abs(float(v)) * 100.0]
+        if not vals:
+            continue
+        for n in nums:
+            if not any(abs(n - v) < 0.51 for v in vals):
+                bad.append("%s: 卡面「%s」里的 %g 在数据里找不到 %s"
+                           % (c["id"], face, n, {**c.get("boost", {}), **c.get("action", {})}))
+                break
+    return bad
+
+
 def main():
     quiet = "--check" in sys.argv
     bad = []
@@ -101,6 +137,11 @@ def main():
             flag = "✗ 只在 bot 侧 —— 模型里有游戏里没有"; bad.append(e)
         if not quiet:
             print("%-26s %6d %6d %6d  %s" % (e, v, t, c, flag))
+    fbad = card_face()
+    if fbad:
+        print("✗ %d 张卡的**卡面与数据对不上**(玩家会按错的规则做决策):" % len(fbad))
+        for b in fbad:
+            print("   " + b)
     wbad = write_only()
     if wbad:
         print("✗ %d 个授予变量**写了但没人读**(那张卡在游戏里是空白的):%s" % (len(wbad), " ".join(wbad)))
@@ -110,7 +151,7 @@ def main():
     if abad:
         print("✗ %d 个 action 键两侧不齐:%s" % (len(abad), " ".join(abad)))
         print("  ⚠ 后果不止低估 —— 用这种读数定的价**无效**(见 LESSONS 同名条)")
-    if bad or abad or wbad:
+    if bad or abad or wbad or fbad:
         if bad:
             print("✗ %d 个入口两侧不对齐:%s" % (len(bad), " ".join(bad)))
         return 1

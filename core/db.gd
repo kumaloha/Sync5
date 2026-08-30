@@ -1104,7 +1104,8 @@ static func validate_consumables(d: Dictionary) -> String:
 	var ids := {}
 	for e in d["consumables"]:
 		for k in e:
-			if not ["id", "name", "cn", "price", "when", "fx", "action", "boost"].has(k) \
+			if not ["id", "name", "cn", "price", "when", "fx", "action", "boost",
+					"proof"].has(k) \
 					and not String(k).begins_with("_"):
 				return "consumable unknown key '%s' (%s)" % [k, e.get("id", "?")]
 		var cid := String(e.get("id", ""))
@@ -1131,6 +1132,11 @@ static func validate_consumables(d: Dictionary) -> String:
 					% [cid, bk, str(_CONSUMABLE_BOOSTS)]
 		if int(e.get("price", 0)) <= 0:
 			return "consumable '%s' 价格必须为正" % cid
+		# ⚠ `proof` 必填 —— 与小丑牌同一条锁:没声明 = 这张牌可以悄悄绕过 kit 那道门,
+		# 而 2026-08-30 正是三张「游戏里是空白的」消耗牌没被任何单卡门抓到。
+		if not ["score", "shop"].has(String(e.get("proof", ""))):
+			return "consumable '%s' 的 proof '%s' 不认识, 只能是 score / shop" \
+				% [cid, e.get("proof", "")]
 	return ""
 
 

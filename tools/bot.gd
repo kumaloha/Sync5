@@ -220,6 +220,13 @@ func _card_ev_formula(id: String, st: Dictionary, slots: Array, phrases_left: in
 			return _amt(id) * float(p["events"]) * (future * gh) * mult_mean
 		"rebrand":
 			return _amt(id) * float(p["events"]) * (future * gh) * score_mean
+		"perkeo":
+			# ⚑ 帕奇欧(2026-08-30 补):离店复制一张消耗牌 ⇒ 价值 = 每局离店次数 ×
+			# 一张消耗牌的均值。⚠ 加卡当天**没接这条臂**, warning 一直在打印
+			# (「_card_ev 缺臂:'perkeo' 估值恒 0」)而我一直没看 ——
+			# 注释里就写着「快闪就这么隐身了一周」, **同一个坑又踩一次**。
+			# ⇒ 每局 7 次商店 × 栏位有空的概率(约半数)× 一张消耗牌的单次价值(≈200 分)
+			return float(p["events"]) * float(p["value"]) * gh
 		"curtain":          # 压哨 pct:比例 × 均分
 			return float(p["fixed_rate"]) * _amt(id) * score_mean
 		"stopwatch":        # 每剩 1 秒 pct:期望秒数 × 每秒比例 × 均分
@@ -366,6 +373,7 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 	_g_buy_limit = 0
 	_g_price = 0
 	_g_free_reroll = 0
+	_cfg_no_cons = bool(cfg.get("no_consumables", false))
 	coins = _consumables_in_shop(run, coins, slots)
 	var want := "target" if slots[0] == null else "support"
 	var owned: Array = []
@@ -722,6 +730,7 @@ func _price_now(j, slots: Array) -> int:
 var _g_shelf := 0
 var _g_buy_limit := 0
 var _g_price := 0
+var _cfg_no_cons := false      # cfg.no_consumables 的缓存(拍内烧牌也要读)
 var _g_rule := false
 var _g_free_reroll := 0
 var _g_min_rarity := ""
@@ -729,6 +738,11 @@ var _g_min_rarity := ""
 
 func _consumables_in_shop(run, coins: int, slots: Array) -> int:
 	if run == null:
+		return coins
+	# ⚑ `cfg.no_consumables` —— 对照组开关(2026-08-30 用户问「sim 要不要因为新卡更新」)。
+	# ⚠ 现有的 `no_jokers` 是**关掉整个商店**实现的, 连消耗牌一起没了 ⇒ 隔离不出这一层。
+	# 有了它才答得了「消耗牌这一层值多少」—— 与 `baseline(no jokers)` 之于小丑牌同理。
+	if bool(_cfg_no_cons):
 		return coins
 	# ① 先用掉手上能在商店用的(用完腾位, 才谈买)
 	for i in range(run.consumables.size()):
@@ -789,7 +803,7 @@ func _consumables_in_shop(run, coins: int, slots: Array) -> int:
 ## ⚠ 这是个**保守而非最优**的启发式:真人会看着手牌决定(比如凑到大牌型才烧),
 ## bot 看不到那么远。它的作用是**让这一层在读数里存在**, 不是替玩家找最优解。
 func _consumable_in_beat(run, p, section: int, pidx: int) -> void:
-	if run == null:
+	if run == null or _cfg_no_cons:
 		return
 	# 只在段末两拍考虑(差得越多越该烧)
 	if pidx < GameConfig.PHRASES_PER_SECTION - 2:

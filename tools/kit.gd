@@ -197,6 +197,16 @@ const SHOP_WITNESS := {
 	"rebrand": "counter",
 	"deejay": "counter",
 	"advance": "spend",   # 2026-08-25 波2:每刷新倍率永久涨 —— 与淘碟同证物(计数动了=规则活着)
+	# ---- 消耗牌(2026-08-30 开轴)——证物与同形状的小丑牌共用 ----
+	# ⚠ 加急/挑高/砧座是**新形状**, 各自声明:
+	#   encorecall = 省下的刷新钱(discount 同族的零基线读数)
+	#   highroller = 首发货架的非普通卡占比(rule_offer 同族)
+	#   anvil      = 槽位重塑 —— 用 buys(它清空后 bot 会重新买)当代理证物
+	# ⚠ doublebill / sponsor / jukebox **本来就在表里**(它们转生前是小丑牌),
+	# 键不用重加 —— 证物形状没变, 变的只是承载它的东西。
+	"encorecall": "discount",
+	"highroller": "rule_offer",
+	"anvil": "multi_shops",
 }
 
 var _rng := RandomNumberGenerator.new()
@@ -225,7 +235,11 @@ func _initialize() -> void:
 			var t := part.strip_edges()
 			if t != "":
 				wanted.append(t)
-	for e in DB.jokers():
+	# ⚑ 消耗牌一并纳入(2026-08-30):此前 12 张**没有任何单卡门**, 而其中三张
+	# 当时在游戏里是空白的(grant 写了没人读)却没被任何仪器抓到。
+	var all_cards: Array = DB.jokers().duplicate()
+	all_cards.append_array(DB.consumables())
+	for e in all_cards:
 		var jid := String(e["id"])
 		if not wanted.is_empty() and not wanted.has(jid):
 			continue
@@ -613,10 +627,32 @@ func _prereq(jid: String) -> Array:
 ## ⚠ 2026-08-25:支援槽必须**递增分配** —— 旧写法把所有支援装进同一个槽,
 ## 「支援前置 + 支援本卡」的臂里后者会顶掉前者(灌铅骰的 kit 读数恰好是
 ## 孤注增益的精确负值, 连 ± 都相同, 就是这么来的;镜面没中招纯因它的前置是旗)。
+## ⚠⚠ **消耗牌的 kit 支持:接了, 但 score 通路尚未验证成功**(2026-08-30)。
+## 现象:`opener` 跑出 +0.0 差异, 而诊断显示**栏位补满了、烧牌逻辑没触发** ——
+## `_consumable_in_beat` 收到的 `pidx` 恒为 0(一局只见 8 次调用, 而 4 段 × 6 拍应有 24 次),
+## 于是「段末两拍才烧」的条件永不成立。⚠ **这可能是 kit 既有的短路机制**
+## (score 通路关商店、`mortal=false`), 不是消耗牌引入的 —— 但**没查清就不能声称它可用**。
+## ⇒ shop 通路(商店类六张)未试;score 通路(拍内四张 + 牌堆两张)**当前量不到**。
+## 已挂 TODO, 别把「kit 认识消耗牌了」当成「消耗牌过了单卡门」。
+##
+## ⚑ 槽号 **-1 = 消耗品栏**(2026-08-30):消耗牌不进 joker_slots, 用完即弃 ——
+## 实验臂的语义因此是「**每拍补满**」(等价于玩家一直持有这张牌), 而不是「装着不动」。
+const CONSUMABLE_SLOT := -1
+
+func _is_consumable(id: String) -> bool:
+	for e in DB.consumables():
+		if String(e["id"]) == id:
+			return true
+	return false
+
+
 func _install(ids: Array) -> Array:
 	var out: Array = []
 	var next_support := SUPPORT_SLOT
 	for jid in ids:
+		if _is_consumable(String(jid)):
+			out.append([CONSUMABLE_SLOT, String(jid)])
+			continue
 		var j := Joker.by_id(String(jid))
 		if j == null:
 			_fail.append("装不上 '%s' —— 不在 jokers.json 里" % jid)
@@ -752,8 +788,12 @@ func _play(cfg: Dictionary, install: Array, shop: bool, perfect: bool, n: int) -
 			"zerod": 0.0, "faces": 0.0, "chord": 0.0, "tgt": 0.0,
 			"score": 0.0, "mult": 0.0, "kinds": {}}
 		var pinned := {}                     # 槽位 -> 这一局专属的 Joker 实例
+		var pinned_cons: Array = []          # 消耗牌 id(槽号 -1):每拍补满
 		for pair in install:
-			pinned[int(pair[0])] = Joker.by_id(String(pair[1]))
+			if int(pair[0]) == CONSUMABLE_SLOT:
+				pinned_cons.append(String(pair[1]))
+			else:
+				pinned[int(pair[0])] = Joker.by_id(String(pair[1]))
 		var once := {"done": false}
 		# ⚠ **GDScript 的 lambda 按值捕获局部变量** —— int 计数器在闭包里 `+=` 传不出来,
 		# 而 Dictionary 是引用类型所以正常。一半状态正常、一半静默丢失, 输出仍是合理的数字。
@@ -769,6 +809,14 @@ func _play(cfg: Dictionary, install: Array, shop: bool, perfect: bool, n: int) -
 		o.st = st
 		o.tally_mult_kinds = false
 		o.on_begin = func(run: Run, _p: Phrase) -> void:
+			# 消耗牌:每拍把栏位补满 —— 用完即弃, 不补就只生效一次,
+			# 而实验臂要量的是「一直持有它」与「从没有它」的差。
+			for cid in pinned_cons:
+				if run.consumable_room():
+					for ce in DB.consumables():
+						if String(ce["id"]) == cid:
+							run.take_consumable(Consumable.new(ce))
+							break
 			for slot in pinned:
 				if run.joker_slots[slot] != pinned[slot]:
 					run.joker_slots[slot] = pinned[slot]

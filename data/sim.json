@@ -53,6 +53,12 @@
    "pivot": true
   },
   {
+   "name": "nocons",
+   "bot": "adaptive",
+   "pivot": true,
+   "no_consumables": true
+  },
+  {
    "name": "random",
    "bot": "random",
    "target": ""
@@ -376,6 +382,10 @@
    "advance": {
     "base": 0.15,
     "_comment": "tempo 方向锚(2026-08-26), ⑥ 精扫"
+   },
+   "perkeo": {
+    "events": 3.5,
+    "value": 200.0
    }
   },
   "timing": {
@@ -451,7 +461,8 @@
    "hush": 54.1,
    "harmony": 12.6
   },
-  "_comment_measured": "⚑ `cf.gd` 反事实重放的**真实构筑** EV(分/拍), 由 docs/design/evbook.md 同步。用途:给 `_card_ev` 当**地板** —— 手写信念表系统性低估, 实测 2026-08-30:bot 从没买过的卡里 EV 最高的是 glowstick 215.9, **高于它买过的任何一张**(gueststar 187.4), 23 张 EV 为正的卡完全在视野外。⚠ 只当地板不当替代:evbook 量的是「装着一整局」的均值, 而 bot 要答「现在买值不值」(依赖剩余拍数与当前构筑)。"
+  "_comment_measured": "⚑ `cf.gd` 反事实重放的**真实构筑** EV(分/拍), 由 docs/design/evbook.md 同步。用途:给 `_card_ev` 当**地板** —— 手写信念表系统性低估, 实测 2026-08-30:bot 从没买过的卡里 EV 最高的是 glowstick 215.9, **高于它买过的任何一张**(gueststar 187.4), 23 张 EV 为正的卡完全在视野外。⚠ 只当地板不当替代:evbook 量的是「装着一整局」的均值, 而 bot 要答「现在买值不值」(依赖剩余拍数与当前构筑)。",
+  "_comment_perkeo": "帕奇欧:每局 7 次商店 × 栏位有空的概率(≈半数)= 3.5 次复制;value 200 = 一张消耗牌的单次价值(ccf.gd 拉平后的锚)。⚠ 2026-08-30 补 —— 加卡当天漏了这条臂, 它在所有 sim/curve 里都是废卡, 而 warning 一直在打印。"
  },
  "chase": {
   "gain": 2.2,

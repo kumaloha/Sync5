@@ -316,12 +316,9 @@
   "金币每 6 枚:倍率+0.1(上限.5)": "Per 6◆ held: +0.1 mult",
   "打出顺/花/葫芦:×1.2 倍率": "Str/Flush/House: x1.2 mult",
   "离开商店:复制一张消耗牌": "Leaving shop: copy one consumable",
-  "本拍:加成+150%": "This phrase: +150% bonus",
   "开场": "Opener",
-  "本拍:加成+75%": "This phrase: +75% bonus",
   "副歌": "Chorus",
   "快闪": "Pop-Up",
-  "本拍:半概率 ×3 倍率": "This phrase: half chance x3",
   "彩头": "Jackpot",
   "四张万能牌进牌堆": "Four jokers join your deck",
   "牌堆移除所有 2 和 3": "Twos and threes leave deck",
@@ -336,12 +333,15 @@
   "免费刷新一次": "One free reroll",
   "加急": "Encore Call",
   "挑高": "High Roller",
-  "本拍:+目标分 25%": "This phrase: +25% of target",
   "金币每 8 枚:结算 +1◆": "+1 coin per 8 held",
   "牌型金币 ×1.5": "Hand coin rewards x1.5",
   "整拍零弃牌:+1◆": "Zero discards this phrase: +1 coin",
   "零弃牌:+2◆;商店必出 Target": "No discards: +2 coins; Targets always",
   "下次货架:没有普通卡": "Next shelf: no common cards",
-  "复制一张 SUPPORT,毁其余": "Copy one support, destroy others"
+  "复制一张 SUPPORT,毁其余": "Copy one support, destroy others",
+  "本拍:加成+57%": "This phrase: +57% bonus",
+  "本拍:+200 奖励分": "This phrase: +200 bonus score",
+  "本拍:+目标分 9.5%": "This phrase: +9.5% of target",
+  "本拍:半概率 ×2.1": "This phrase: half chance x2.1"
  }
 }

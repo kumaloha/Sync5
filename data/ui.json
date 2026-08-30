@@ -623,16 +623,16 @@
  },
  "consumablecard": {
   "opener": {
-   "trigger": "本拍:加成+150%"
+   "trigger": "本拍:加成+57%"
   },
   "chorus": {
-   "trigger": "本拍:加成+75%"
+   "trigger": "本拍:+200 奖励分"
   },
   "popup": {
-   "trigger": "本拍:+目标分 25%"
+   "trigger": "本拍:+目标分 9.5%"
   },
   "jackpot": {
-   "trigger": "本拍:半概率 ×3 倍率"
+   "trigger": "本拍:半概率 ×2.1"
   },
   "superwild": {
    "trigger": "四张万能牌进牌堆"
