@@ -21,7 +21,7 @@ Lumines 的节奏推进 + Balatro 的构筑。一局 4 段 × 6 拍 × 8 秒 ≈
 |---|---|---|
 | 单元测试 | **3172 passed / 0 failed**(2026-08-30:消耗牌开轴 + 经济收口 + code review 15 个 bug;含 `t_consumable` **119 条**)。⚠ **耗时 ~31 分钟**(从 12 分涨上来)—— 08-29 删掉 goldenvoice 的 SOLVER_BLIND 豁免后 `t_draft` 要真跑一次求解器推演。⚠⚠ 那条豁免 **08-30 又加回来了**(收入重构后金币贴地, 「持币 ≥6」再次不成立)—— **它的成立与否取决于经济参数**, 别当永久声明 | `./tools/unittest.sh`(四判据唯一一份)。⚑ **跑之前先跑三条秒级检查**:`parity.py --check && evsync.py --check && counts.py --check` |
 | CI | `.github/workflows/tests.yml`(push/PR 跑 `--import` + `unittest.sh`;**尚未在 GitHub 上验证过一次**,首跑可能要调 Godot 下载链接) | 推送即触发 |
-| 小丑牌覆盖门 | **65 张**(2026-08-30 两批转生:首批 9 张 +帕奇欧, 二批 4 张规则牌);单卡 kit 直跑 ~10 秒(不含单测)。✅ **kit 已认识消耗牌**(12→16 张全部量到) | `SYNC5_KIT_ID=<id> godot --headless --path . --script res://tools/kit.gd` |
+| 小丑牌覆盖门 | **64 张**(2026-08-30 三批转生:首批 9 张 +帕奇欧 · 二批 4 张规则牌 · 三批预支);单卡 kit 直跑 ~10 秒(不含单测)。✅ **kit 已认识消耗牌**(12→16 张全部量到) | `SYNC5_KIT_ID=<id> godot --headless --path . --script res://tools/kit.gd` |
 | 内容门 | **08-26 全量门跑完**(4.9h,对抗批新基线):五红三过期全部尸检处置(声明/仪器层,内容零改;细账 CHANGELOG 08-26b),ranking 已由 rankgen 重刷 | `./tools/gate.sh`(增量 = `--changed`) |
 | 求解器一致性 | **三关配对差 +0.0**(08-16 分级门) | `godot --headless --path . --script res://tools/pair.gd` |
 | 流程/打点/重放 | 0 违规 | 已并进 `gate.sh` |
@@ -38,7 +38,7 @@ Lumines 的节奏推进 + Balatro 的构筑。一局 4 段 × 6 拍 × 8 秒 ≈
 
 | | 现役 |
 |---|---|
-| 小丑牌 | **65 张** · **消耗牌 16 张**(2026-08-30 开轴 + 二批转生四张规则牌, 见 [consumables](docs/design/consumables.md))。⚠ 这一行历史上写错过多次(23/61/63/76 都出现过)—— **一律以 `data/*.json` 的计数为准, 别手抄** |
+| 小丑牌 | **64 张** · **消耗牌 17 张**(2026-08-30 开轴 + 二批四张规则牌 + 三批预支, 见 [consumables](docs/design/consumables.md))。⚠ 这一行历史上写错过多次(23/61/63/76 都出现过)—— **一律以 `data/*.json` 的计数为准, 别手抄** |
 | Boss 脸 | **28 张在池**(按 `tier` 计 8/8/8/4,以 `faces.json` 有无 `tier` 为准)+ 5 张无 tier 未入池(unplugged/static/rotation/cover/freshsheet)。⚠ 此前三处写着 29/30/28 打架(2026-08-21 评审),以本行为准 |
 | 主角 | ~~8 个~~ **已删除**(2026-08-24 局外 build 整体删除,含被动层与全部立绘素材) |
 | 结构 | 4 段 × 6 拍 × 8 秒,每 3 拍一次商店 |

@@ -1078,6 +1078,16 @@ func _apply_shop_action(id: String, act: Dictionary) -> void:
 		shop.grant_free_reroll(int(act["free_reroll"]))
 	if act.has("min_rarity"):                  # 挑高:下次货架没有普通卡
 		shop.grant_min_rarity(String(act["min_rarity"]))
+	if act.has("loan"):                      # 预支:当场借, 下一个段边界还
+		var ln: Dictionary = act["loan"]
+		# ⚠ 走 `Economy.grant` 收口 —— 与旧的循环贷同一条(要吃穷开心的 coin_cap)。
+		phrase.coins = Economy.grant(phrase.coins, int(ln.get("borrow", 0)), run.joker_slots)
+		run.coins = phrase.coins
+		run.debt += int(ln.get("repay", 0))
+		Tape.on("loan", {"get": int(ln.get("borrow", 0)), "owe": run.debt,
+			"coins": run.coins})
+		if not run.tutorial:            # 借入流金(fx_advance ①)
+			burst.loan_borrow(_purse_anchor(), int(ln.get("borrow", 0)))
 	if act.has("copy_one_destroy_rest"):     # 砧座:复制一张小丑牌, 摧毁其余
 		_anvil()
 	if act.has("wilds"):
@@ -1342,7 +1352,7 @@ func _advance() -> void:
 		# 预支还款(2026-08-26 金融组):工资入账后判 —— 付不起 = run 失败,
 		# **含 S4**(通关那一刻也得先还钱, 卡面写明 "or die")。死因记 Tape;
 		# fail 屏的死因行归 UI 批(现屏只念分数, 分数达标却失败的困惑由卡面契约兜)。
-		var loan_out := Joker.slots_loan(run.joker_slots)
+		var loan_out := {"repay": run.debt}
 		if int(loan_out.repay) > 0:
 			if phrase.coins < int(loan_out.repay):
 				Tape.close({"ok": false, "sec": run.section_idx,
@@ -1424,7 +1434,7 @@ func _next_section() -> void:
 	var before: Array = run.joker_slots.duplicate()
 	run.next_section()
 	_bow_out(before)
-	_loan_borrow()
+	# ⚠ 段初自动借款已删(2026-08-30 三批转生):预支变成消耗牌, 玩家在商店主动烧。
 	_tape_section()
 	_open_draft()
 
@@ -1447,30 +1457,15 @@ func _purse_anchor() -> Vector2:
 	return hud.coin_anchor() + Vector2(150, 15)
 
 
-## 持有预支卡的那个槽位中心(全局);找不到就退回钱包 —— 碎的必须是**那张卡**。
+## ⚠ 违约碎裂的锚点:预支转生为消耗牌后**没有常驻槽位**了 ⇒ 固定落在钱包。
+## (旧版找的是「持有预支卡的那个槽位」, 那时它是一张一直在场的小丑牌。)
 func _loan_anchor() -> Vector2:
-	for i in range(run.joker_slots.size()):
-		var j = run.joker_slots[i]
-		if j != null and int(Joker.slots_loan([j]).repay) > 0:
-			return joker_views[i].get_global_position() + joker_views[i].size * 0.5
 	return _purse_anchor()
 
 
-## 预支借款(2026-08-26 金融组):段初自动 +borrow, 走 grant 收口(吃穷开心 cap)。
-## 开局(S1 初)不接:那时持仓恒空(首张卡最早来自第一次商店), 借款恒 0。
-func _loan_borrow() -> void:
-	var loan := Joker.slots_loan(run.joker_slots)
-	if int(loan.borrow) <= 0:
-		return
-	if phrase == null:
-		run.coins = Economy.grant(run.coins, int(loan.borrow), run.joker_slots)
-	else:
-		phrase.coins = Economy.grant(phrase.coins, int(loan.borrow), run.joker_slots)
-		run.coins = phrase.coins
-	Tape.on("loan", {"get": int(loan.borrow), "coins": run.coins})
-	# 借入流金(fx_advance ①):金币拖着青尾流进钱包。教学关不演(它没有预支卡, 这行是纪律)。
-	if not run.tutorial:
-		burst.loan_borrow(_purse_anchor(), int(loan.borrow))
+## ⚠⚠ **`_loan_borrow` 已删(2026-08-30 三批转生)** —— 借款不再是段初的自动动作,
+## 而是玩家在商店烧掉预支消耗牌的那一刻(见 `_apply_shop_action` 的 `loan` 分支)。
+## 留这段注释是因为「段初自动 +borrow」这个行为在 Tape 里有历史读数, 别把两代混着看。
 
 
 ## success screen: 下一场演出 (or 谢幕 on the finale)

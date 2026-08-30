@@ -21,6 +21,13 @@ var joker_slots: Array = [null, null, null, null]
 ## 等于逼玩家在「构筑」和「道具」之间做一个不该有的取舍(与 2026-08-29 修的
 ## 「转型和换旗抢同一个购买名额」同型:奖励某件事的东西不能和那件事抢同一个资源)。
 var consumables: Array = [null, null]
+## ⚑ 预支的**待还款**(2026-08-30 三批转生)。玩家在商店烧掉预支 ⇒ 当场 +borrow、
+## 记下 repay;**下一个段边界**结算, 付不起 = run 死(卡面写着 "or die")。
+## ⚠⚠ 它取代了 `Joker.slots_loan` 的循环贷 —— 旧形态是**每段初自动借、段末自动还**,
+## 玩家零决策, 而判据「每段一次也判一次性」正好指着它(consumables.md)。
+## ⚠ 必须进存档:2026-08-30 code review 抓到过「存档没存消耗牌 ⇒ 续玩后凭空消失」,
+## 债务比卡更要命 —— 丢了等于白拿 10◆。
+var debt := 0
 ## 本拍已使用的消耗牌的加成 —— 结算时并进乘法链, 拍末清空。
 ## 放 Run 而不是 Phrase:它由**编排器**在玩家点击时写入(经济/装槽动作只发生在编排器),
 ## 而 Phrase 每拍重建, 存不住「这一拍我烧过一张牌」这件事。
@@ -231,7 +238,7 @@ func snapshot(run_index: int) -> Dictionary:
 		# ⚑ 消耗品栏(2026-08-30 code review 补):首版**漏了** —— 玩家买了两张牌、
 		# 暂停退出、续玩时它们凭空消失, 钱还白花了。⚠ `phrase_boosts` **不存**:
 		# 它是拍内的, 跨存档丢失反而是对的(那一拍本来就没结算完)。
-		"consumables": consumables_out,
+		"consumables": consumables_out, "debt": debt,
 	}
 
 
@@ -264,6 +271,7 @@ func restore(d: Dictionary) -> bool:
 		joker_slots[i] = j
 	# 消耗品栏 —— 与 slots 同款处理:认不出的 id 就空着(比开不了机好)。
 	consumables = [null, null]
+	debt = int(d.get("debt", 0))          # 旧档没有这个键 ⇒ 0(无债), 不需要升版
 	var cons_in: Array = d.get("consumables", [])
 	for i in range(mini(cons_in.size(), consumables.size())):
 		var cid = cons_in[i]

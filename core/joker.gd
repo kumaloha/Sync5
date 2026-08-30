@@ -194,6 +194,9 @@ static func slots_price_delta(slots: Array) -> int:
 
 ## 预支 advance(2026-08-26, 金融组):持仓的循环贷合计 —— 段初借 borrow, 段末还 repay,
 ## 付不起 = run 失败。多张自然叠加(借 20 还 24)。两界(runloop / 编排器)共用这一口。
+## ⚠⚠ **2026-08-30 起没有真值来源** —— 预支已转生为消耗牌(`action.loan` + `run.debt`),
+## 而它是唯一带 `hold.loan` 的小丑牌。保留是因为「小丑牌也能有持有期借贷」这条通路
+## 本身仍成立, **但现役的借贷不走这里**(见 `core/run.gd::debt`)。
 static func slots_loan(slots: Array) -> Dictionary:
 	var borrow := 0
 	var repay := 0

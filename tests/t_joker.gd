@@ -5,7 +5,7 @@ func run(t) -> void:
 	# roster shape (2026-08-12 流派批: 删 popup/backup, 加族内件×4 + backer/bench/boxseats + trim;
 	# 缘由与增删改清单见 docs/design/archetypes.md §5)
 	var pool := Joker.pool()
-	t.eq(pool.size(), 65, "pool holds 65 jokers(2026-08-30 二批转生:四张规则牌(近道/四指/黑调/红调)——它们的 `acquire.deck_rule` 把规则**烙进牌堆且没有撤销路径**, 卖掉后规则依然生效 ⇒ 按判据「用完之后这张卡还有没有意义」= 一次性)")
+	t.eq(pool.size(), 64, "pool holds 65 jokers(2026-08-30 二批转生:四张规则牌(近道/四指/黑调/红调)——它们的 `acquire.deck_rule` 把规则**烙进牌堆且没有撤销路径**, 卖掉后规则依然生效 ⇒ 按判据「用完之后这张卡还有没有意义」= 一次性)")
 	var targets := 0
 	var rarities := {"common": 0, "uncommon": 0, "rare": 0}
 	for j in pool:
@@ -29,7 +29,7 @@ func run(t) -> void:
 	# 配额上两个方向都在往 jokers_atlas.md §0 的目标(罕见 ~18 · 稀有 ~10)靠。
 	# 2026-08-25 对抗批 +13(全在 uncommon/rare:乘法出口按「稀有度=构筑依赖度」入 rare,
 	# 彩头/回收/客串/斗牛士/盲奏入 uncommon):uncommon 22→27 · rare 10→18。
-	t.eq(rarities["uncommon"], 22, "22 uncommon supports(二批再转生近道/四指)")
+	t.eq(rarities["uncommon"], 21, "21 uncommon supports(二批近道/四指 · 三批预支)")
 	t.eq(rarities["rare"], 13, "13 rare supports(二批再转生黑调/红调)")
 	# ⚑ 拆分后单张实测 5.3×(先验层 N=20万, Δ同花族 +29.7pp), 两张都装 9.6× = 老 twotone。
 	# 仍是同类规则牌里最强(近道/四指只 1.8×), 所以 rare 保持不动。
@@ -388,19 +388,27 @@ func run(t) -> void:
 	_t_loan(t)
 
 
-## 预支 advance(2026-08-26 金融组):循环贷合计的结构契约。借还的两界行为
-## (runloop / 编排器)与失败通道由 kit 行为臂与真人试玩量, 这里锁数据形状。
+## 预支 advance —— 2026-08-30 三批转生为**消耗牌**(判据:「每段一次」也判一次性,
+## 而且它是系统自动借还、**玩家零决策**)。这里锁新形态的数据契约;
+## 借还的两界行为由 `run.debt` 承载(编排器 / runloop 各一处), 端到端在 t_consumable。
 func _t_loan(t) -> void:
+	t.check(Joker.by_id("advance") == null, "预支已不在小丑牌池")
 	var none: Array = [null, null, null, null]
 	t.eq(int(Joker.slots_loan(none)["borrow"]), 0, "空槽不借")
-	t.eq(int(Joker.slots_loan(none)["repay"]), 0, "空槽不还")
-	var adv := Joker.by_id("advance")
-	t.check(adv != null, "advance 在池")
-	var one: Array = [null, adv, null, null]
-	t.eq(int(Joker.slots_loan(one)["borrow"]), 10, "单张借 10")
-	t.eq(int(Joker.slots_loan(one)["repay"]), 12, "单张还 12(利息 2 = 每段的 tempo 价)")
-	var two: Array = [null, adv, Joker.by_id("advance"), null]
-	t.eq(int(Joker.slots_loan(two)["borrow"]), 20, "两张自然叠加借 20")
-	t.eq(int(Joker.slots_loan(two)["repay"]), 24, "两张还 24")
-	t.check(int(Joker.slots_loan(one)["repay"]) > int(Joker.slots_loan(one)["borrow"]),
+	# ⚠⚠ `slots_loan` 现在**没有真值来源**。留着这条是为了「将来又有小丑牌挂借贷」时
+	# 仍被守住 —— 但**现役的借贷不走这里**(见 core/run.gd::debt)。
+	for j in Joker.pool():
+		t.eq(int(Joker.slots_loan([j])["repay"]), 0,
+			"%s 不该带 hold.loan —— 借贷已整体搬到消耗牌(run.debt)" % j.id)
+	var adv := {}
+	for e in DB.consumables():
+		if String(e["id"]) == "advance":
+			adv = e
+	t.check(not adv.is_empty(), "预支在消耗牌里")
+	var ln: Dictionary = (adv.get("action", {}) as Dictionary).get("loan", {})
+	t.eq(int(ln.get("borrow", 0)), 10, "借 10")
+	t.eq(int(ln.get("repay", 0)), 12, "还 12(利息 2 = 一段的 tempo 价)")
+	t.check(int(ln["repay"]) > int(ln["borrow"]),
 		"还 > 借 —— 这卡是贷款不是印钞机(数值再调也不许倒挂)")
+	t.eq(String(adv.get("when", "")), "shop",
+		"预支只在商店点 —— 借钱是为了买卡, 拍内借了没有出口")

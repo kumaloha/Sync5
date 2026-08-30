@@ -647,9 +647,10 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 			else:
 				ev = _card_ev(j.id, st, slots, phrases_left)
 			if empty_slot >= 0:
-				# 预支风控(2026-08-26 金融组):持贷时买入预算扣掉段末还款储备 ——
-				# runloop 段末自动扣款, bot 把还款钱花掉 = 自己判自己死。
-				var reserve := int(Joker.slots_loan(slots).repay)
+				# 预支风控:欠债时买入预算扣掉段末还款储备 —— runloop 段末自动扣款,
+				# bot 把还款钱花掉 = 自己判自己死。
+				# ⚠ 2026-08-30 三批转生:读的是 `run.debt`(消耗牌记下的待还), 不再是持仓。
+				var reserve := 0 if run == null else int(run.debt)
 				if price > coins - reserve:
 					continue
 				var gain := ev * horizon - lam * float(price)
@@ -794,6 +795,12 @@ func _consumables_in_shop(run, coins: int, slots: Array) -> int:
 		var used: Dictionary = run.use_consumable(i, "shop")
 		if not used.is_empty():
 			_apply_bot_action(run, slots, used)
+			# ⚑ 预支:借款要改**本地的 coins**, 而 `_apply_bot_action` 拿不到它 ⇒ 在这里结。
+			# ⚠ 与游戏侧 `_apply_shop_action` 的 `loan` 分支同一份语义(grant 收口 + 记债)。
+			var ln: Dictionary = (used.get("action", {}) as Dictionary).get("loan", {})
+			if not ln.is_empty():
+				coins = Economy.grant(coins, int(ln.get("borrow", 0)), slots)
+				run.debt += int(ln.get("repay", 0))
 			_rep.consumables_used += 1
 	# ② 帕奇欧:离店时复制一张消耗牌 —— **与游戏侧 `_perkeo_on_exit` 对齐**。
 	# ⚠ 2026-08-30 补:开轴当天只接了游戏侧, bot 侧漏了 ⇒ sim 里帕奇欧是**纯废卡**
@@ -837,7 +844,8 @@ func _consumables_in_shop(run, coins: int, slots: Array) -> int:
 	if pick.is_rule_card():
 		_rep.rule_shops_n += 1                # 点唱机的证物:消耗牌位出规则牌的店数
 	_rep.cov_offer(String(pick.id))           # 消耗牌货架恒 1 张, 这就是上架
-	if coins < pick.price + 3:                # 留出下一次刷新的钱, 别把自己买空
+	# ⚠ 欠债时同样要留出还款储备(与买卡那条同一条风控) —— 段末付不起 = run 死。
+	if coins < pick.price + 3 + int(run.debt):
 		return coins
 	coins -= pick.price
 	run.take_consumable(pick)

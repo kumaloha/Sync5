@@ -343,10 +343,6 @@
    "matador": {
     "bites_per_beat": 0.5
    },
-   "advance": {
-    "base": 0.15,
-    "_comment": "tempo 方向锚(2026-08-26), ⑥ 精扫"
-   },
    "perkeo": {
     "events": 3.5,
     "value": 200.0

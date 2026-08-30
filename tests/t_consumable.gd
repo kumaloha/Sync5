@@ -8,6 +8,7 @@ extends RefCounted
 ##   ③ **时机门**:phrase 类在商店点不动, shop 类在对局中点不动
 ##   ④ **两套槽位互不占用**:消耗品栏满了不影响买小丑牌, 反之亦然
 ##   ⑤ **加成真的进乘法链**:烧掉一张 +150% 的牌, 分数必须真的涨
+##   ⑥ **预支的债进存档**:借了钱不还是 run 死, 而债只活在 run 里 ⇒ 必须存
 ## ⚠ ⑤ 是今天两次「改了没生效」的直接教训:数据落地 ≠ 运行时生效,
 ##   必须有一条端到端断言把「点下去 → 分数变了」这条路走一遍。
 
@@ -70,9 +71,14 @@ func run(t) -> void:
 	# 但用了什么都不发生 —— 而我正是用那份读数给它们定的价。
 	# 机械核对在 `tools/parity.py`(它读得了源码);这里守数据侧的前提:
 	# **每张牌的 action 键都得是已知的那 9 个之一**, 拼错一个字母 = 静默失效。
+	# ⚠⚠ **这张表是「第二个家」** —— `core/db.gd::_CONSUMABLE_ACTIONS` 是第一个。
+	# 2026-08-30 加 `loan` 时只改了 db 那份, 这里当场红 —— **这次红得对**:
+	# 它逼着两处一起动, 正是本项目「两个家」纪律要的效果。⇒ 加新键时**四处齐落**:
+	# db 白名单 · 这张表 · `view/phrase.gd::_apply_shop_action` · `tools/bot.gd::_apply_bot_action`
+	# (后两处由 `tools/parity.py` 第 ② 层机械核对)。
 	var known := ["wilds", "trim_low", "deck_rule", "shelf_slots", "buy_limit",
 		"price_delta", "rule_guaranteed", "free_reroll", "min_rarity",
-		"copy_one_destroy_rest"]
+		"copy_one_destroy_rest", "loan"]
 	for e in raw:
 		for k in Consumable.new(e).action:
 			t.check(known.has(String(k)),
@@ -127,3 +133,36 @@ func run(t) -> void:
 		{"phrase_boosts": [{"mult": 3.0}]})
 	t.check(int(mult_boost["score"]) > int(base_out["score"]),
 		"mult 类加成同样生效(%d → %d)" % [base_out["score"], mult_boost["score"]])
+
+
+	# ---- ⑥ 预支(2026-08-30 三批转生):借 → 记债 → 进存档 ----
+	# ⚠ 它是**唯一**会在结算之外杀死 run 的消耗牌(付不起就死), 而债只活在 `run.debt`。
+	# 08-30 code review 抓到过「存档没存消耗牌 ⇒ 续玩后凭空消失」—— 债丢了等于白拿 10◆,
+	# 所以这条端到端必须走一遍存档往返。
+	var lr := Run.new()
+	lr.reset(1)
+	lr.deck = Deck.new(3)
+	var adv_e := {}
+	for e in raw:
+		if String(e["id"]) == "advance":
+			adv_e = e
+	t.check(not adv_e.is_empty(), "预支在消耗牌表里")
+	t.check(lr.take_consumable(Consumable.new(adv_e)), "预支收进栏位")
+	t.eq(lr.debt, 0, "还没烧, 不欠债")
+	t.check(lr.use_consumable(0, "phrase").is_empty(), "预支是 shop 类 —— 对局中点不动")
+	var out: Dictionary = lr.use_consumable(0, "shop")
+	t.check(not out.is_empty(), "商店里点得动")
+	var ln: Dictionary = (out.get("action", {}) as Dictionary).get("loan", {})
+	t.eq(int(ln.get("borrow", 0)), 10, "action 带出借款额")
+	# ⚠ 记债由**调用方**做(core 只负责取出与记账, 与其它 action 同一条分工),
+	# 所以这里手动记一次, 再验存档往返。
+	lr.debt += int(ln.get("repay", 0))
+	t.eq(lr.debt, 12, "欠 12")
+	var loan_snap: Dictionary = lr.snapshot(0)
+	var lr2 := Run.new()
+	t.check(lr2.restore(loan_snap), "快照可还原")
+	t.eq(lr2.debt, 12, "**债进了存档** —— 续玩后还得还")
+	var fresh := Run.new()
+	fresh.reset(1)
+	t.eq(fresh.debt, 0, "新局不带债")
+	t.check(int(ln["repay"]) > int(ln["borrow"]), "还 > 借")

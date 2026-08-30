@@ -22,7 +22,9 @@ ENTRIES = [
     # ⚠ `slots_rule_guaranteed` 已移出:2026-08-30 规则牌整体转生为消耗牌之后
     # 它没有真值来源, 两侧都只剩定义 —— 留在这张表里会让「0 vs 0」被读成「对齐」。
     "slots_shelf_size", "slots_buy_limit",
-    "slots_coin_cap", "slots_loan", "slots_odds_mult", "use_consumable",
+    # ⚠ `slots_loan` 已移出:2026-08-30 预支转生为消耗牌之后它没有真值来源,
+    # 两侧都只剩定义 —— 留着会让「0 vs 0」被读成「对齐」(同 slots_rule_guaranteed)。
+    "slots_coin_cap", "slots_odds_mult", "use_consumable",
     "take_consumable", "add_wilds", "trim_low_ranks",
 ]
 # 这些只属于一侧, 有充分理由 —— 写清理由, 否则就是给例外开后门
