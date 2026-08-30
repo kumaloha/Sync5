@@ -7,44 +7,78 @@ poker-deckbuilder gameplay and cyberpunk live-performance identity at a glance.
 
 ## Approved Direction
 
-Use a single emblem that fuses a playing card with a vinyl record. The card is
-the outer silhouette; a partially exposed record forms the central circular
-mass. A short cyan-to-magenta groove or waveform accent connects the two ideas
-without adding a separate symbol.
+Use two unmistakable playing cards as one fused emblem. The foreground card is
+a pale face card with one large cyan spade. The rear card is a dark card back
+whose entire back design is built from vinyl-record grooves, a center label,
+and a spindle point contained within the rounded rectangle. The music identity
+therefore belongs to the deck itself instead of appearing as a separate prop.
+
+This revision explicitly fixes the first version's failure: the oversized
+record and pulse line made the icon read as a music game before it read as a
+card game. The third revision also fixes the second version's presentation
+failure: a pure-black outer field blended into surrounding UI and made the art
+look like a floating logo instead of a complete App Store icon. The fourth
+revision fixes the remaining collage problem: separate cards and a separate
+record looked like three adjacent assets rather than one designed mark.
 
 ## Composition
 
 - Square 1:1 master artwork, composed to remain legible inside rounded launcher
   masks.
-- Near-black background with generous safe-area padding.
-- One slightly tilted dark-glass playing card as the dominant silhouette.
-- One vinyl record integrated into, or emerging from, the card rather than
-  floating beside it.
-- Minimal internal detail: a bright center label, two or three broad grooves,
-  and one compact waveform or pulse accent.
-- No title, letters, numbers, suits, characters, UI, border frame, or watermark.
+- Use an opaque, full-bleed dark violet-to-blue gradient background that remains
+  visibly distinct from surrounding black UI all the way to every canvas edge.
+- Do not include black outer margins, a floating panel, or a baked outer rounded
+  rectangle in the upload master.
+- Two fanned, rounded-rectangle playing cards occupy roughly 76 percent of the
+  canvas and share the same perspective, thickness, overlap, and center of
+  gravity.
+- The foreground pale card uses one large cyan spade and omits ranks and corner
+  text.
+- The rear dark card uses concentric vinyl grooves clipped entirely inside its
+  card-back rectangle, with a small magenta-violet center label. At most a
+  subtle circular highlight may suggest rotation; no separate round disc may
+  protrude outside the card silhouette.
+- Remove the heart suit so the foreground spade and vinyl card-back center do
+  not compete for attention.
+- Remove the reflective floor plane and contact reflections; the emblem floats
+  cleanly on the full-bleed gradient.
+- No waveform, pulse line, equalizer, music note, title, letters, numbers,
+  characters, UI, border frame, or watermark.
 
 ## Visual Language
 
 - Match the project's locked neon-stage art direction.
 - Palette: cyan `#1effec`, magenta `#ff328d`, violet `#7642ff`, with restrained
   white-hot highlights.
-- Materials: dark translucent glass for the card; glossy black vinyl for the
-  record; crisp neon rim light and restrained bloom.
-- Background stays black. All visible light comes from the emblem and its glow.
+- Materials: lightly reflective paper face card and glossy black-vinyl card
+  back, both with the same physical card thickness and crisp neon rim light.
+- The full-bleed background stays dark but visibly colored. Cyan and magenta
+  light may softly illuminate it without creating an empty black moat.
 - Render as a polished stylized 3D icon with clean geometry, not a detailed
   illustration or realistic scene.
 
 ## Readability Criteria
 
-- The card-and-record fusion must still read at 64 px.
+- The playing cards must read before the record at both full size and 64 px.
+- The spade and both rectangular card silhouettes must remain recognizable at
+  64 px; the vinyl grooves may simplify into a circular sheen.
+- After applying an iOS rounded-square mask, no essential part of the cards,
+  suits, or record may be cropped.
 - The silhouette must not depend on tiny lines, text, or fine texture.
-- Cyan and magenta highlights should separate the card edge from the black
-  background without washing out the vinyl shape.
-- The focal point is the record center; secondary focus is the card corner and
-  waveform accent.
+- Cyan and magenta highlights should separate the card edges from the dark
+  gradient background without washing out the pale card faces.
+- The focal point is the spade face card; the record identity is discovered in
+  the rear card back rather than read as a third object.
 
 ## Deliverable
 
-Generate one 1024×1024 PNG master for review. After approval, derive any
-platform-specific launcher variants from the master as a separate step.
+Generate two review artifacts:
+
+- `assets/app_icon/v4/sync5-game-icon-master.png`: opaque 1024×1024 sRGB upload master with a
+  square, unmasked, full-bleed background.
+- `assets/app_icon/v4/sync5-game-icon-ios-preview.png`: the same artwork shown through an iOS
+  rounded-square mask for visual approval only; this preview is not uploaded to
+  App Store Connect.
+
+After approval, use the square master as the source for Icon Composer or the
+Xcode asset catalog.
