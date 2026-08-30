@@ -198,15 +198,17 @@ const SHOP_WITNESS := {
 	"deejay": "counter",
 	"advance": "spend",   # 2026-08-25 波2:每刷新倍率永久涨 —— 与淘碟同证物(计数动了=规则活着)
 	# ---- 消耗牌(2026-08-30 开轴)——证物与同形状的小丑牌共用 ----
-	# ⚠ 加急/挑高/砧座是**新形状**, 各自声明:
-	#   encorecall = 省下的刷新钱(discount 同族的零基线读数)
-	#   highroller = 首发货架的非普通卡占比(rule_offer 同族)
-	#   anvil      = 槽位重塑 —— 用 buys(它清空后 bot 会重新买)当代理证物
+	# ⚠⚠ 加急/挑高/砧座是**新形状**, 各自有**自己的**零基线证物(2026-08-30 修)。
+	# 此前这三行借了形状不对的键 —— `discount` 是价格折扣、`rule_offer` 是含规则牌店率、
+	# `multi_shops` 是双购店 —— 而**上面这段注释里写的意图是对的, 代码映射的却是另一个键**。
+	# 后果:借来的键根本不会动 ⇒ 三张卡报红, 却红在「这卡没效果」而不是「证物挂错了」,
+	# 而 kit 的失败清单里恰好有「① 没接进模型」这一项在等着被误选。
+	# ⇒ **注释写了什么不算数, 键映射到哪才算数。**
+	"encorecall": "free_reroll",   # 免费刷新真的被用掉几次(无加急恒 0)
+	"highroller": "rich_shelf",    # 首发货架 0 张普通卡的店数(无挑高近 0)
+	"anvil": "anvil_copy",         # 复制成功几次(无砧座恒 0)
 	# ⚠ doublebill / sponsor / jukebox **本来就在表里**(它们转生前是小丑牌),
 	# 键不用重加 —— 证物形状没变, 变的只是承载它的东西。
-	"encorecall": "discount",
-	"highroller": "rule_offer",
-	"anvil": "multi_shops",
 }
 
 var _rng := RandomNumberGenerator.new()
@@ -469,6 +471,7 @@ func _run_shop(cfg: Dictionary, ids: Array, n: int) -> void:
 	print("\n  ---- ④ shop 通路(规则 bot, **开商店**)—— 货架结构卡, 证物按卡声明 ----")
 	print("    硬判据(全部零基线机械读数, 见 SHOP_WITNESS 注):")
 	print("    multi_shops=双购店数↑ · discount=实收折扣◆↑ · rule_offer=含规则牌店率↑")
+	print("    free_reroll=免费刷新数↑ · rich_shelf=零普通卡货架数↑ · anvil_copy=复制成功数↑")
 	var base := _play(cfg, [], true, false, n)
 	print("    基准:每局成交 %.2f 张 · 双购店 %.2f · 折扣 %.1f◆ · 含规则牌店率 %.0f%%"
 		% [Stat.mean(_rec_series(base, "buys")), Stat.mean(_rec_series(base, "multi_shops")),
@@ -496,6 +499,18 @@ func _run_shop(cfg: Dictionary, ids: Array, n: int) -> void:
 				_judge("%s: 含规则牌店率" % jid, _rule_rate_series(jbase),
 					_rule_rate_series(arm), Stat.mean(_rule_rate_series(jbase)),
 					"货架证物=首发成分", true, true)
+			"free_reroll":
+				_judge("%s: 免费刷新次数" % jid, _rec_series(jbase, "free_reroll"),
+					_rec_series(arm, "free_reroll"), Stat.mean(_rec_series(jbase, "free_reroll")),
+					"货架证物=免费刷新(基准恒0)", true, true)
+			"rich_shelf":
+				_judge("%s: 零普通卡货架数" % jid, _rec_series(jbase, "rich_shelf"),
+					_rec_series(arm, "rich_shelf"), Stat.mean(_rec_series(jbase, "rich_shelf")),
+					"货架证物=首发无普通卡(基准≈0)", true, true)
+			"anvil_copy":
+				_judge("%s: 复制成功次数" % jid, _rec_series(jbase, "anvil_copy"),
+					_rec_series(arm, "anvil_copy"), Stat.mean(_rec_series(jbase, "anvil_copy")),
+					"构筑证物=复制成功(基准恒0)", true, true)
 			"counter":
 				# 商店事件驱动的成长:证物 = 一局末的计数器终值(基准恒 0)。
 				# ⚠ 分差也报(参考):成长卡的分数效应本来就该被量到, 但它受
@@ -847,12 +862,18 @@ func _play(cfg: Dictionary, install: Array, shop: bool, perfect: bool, n: int) -
 		var r0 := rep.rule_shops_n
 		var m0 := rep.multi_shops_n
 		var d0 := rep.discount_coins
+		var fr0 := rep.free_rerolls
+		var rs0 := rep.rich_shelves
+		var ac0 := rep.anvil_copies
 		var res_run := RunLoop.play(o, bot)
 		rec["buys"] = float(rep.buys_total - b0)
 		rec["shops"] = float(rep.shops_n - s0)
 		rec["rule_shops"] = float(rep.rule_shops_n - r0)
 		rec["multi_shops"] = float(rep.multi_shops_n - m0)
 		rec["discount"] = float(rep.discount_coins - d0)
+		rec["free_reroll"] = float(rep.free_rerolls - fr0)
+		rec["rich_shelf"] = float(rep.rich_shelves - rs0)
+		rec["anvil_copy"] = float(rep.anvil_copies - ac0)
 		# 被钉的那张卡的计数器终值(商店成长族的证物)。⚠ 取**这一局那个实例**的 state:
 		# `pinned` 每局新建, 所以它就是「这一局涨到多少」;基准臂没有这张卡 → 恒 0。
 		var cend := 0.0

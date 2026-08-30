@@ -5,8 +5,9 @@
 #    (四次改 data/ 让单测/sim 读到半新半旧, 一次改 core/ 让 sim 直接
 #     `Stack underflow! (Engine Bug)`)。⇒ 靠记性守不住的纪律要落成机械。
 #
-#   tools/run.sh sim              后台跑 sim, 期间锁住工作区
+#   tools/run.sh sim <log>        后台跑 sim, 期间锁住工作区
 #   tools/run.sh unittest <log>   同上, 跑单测
+#   tools/run.sh probe <名> <log> 同上, 跑 tools/<名>.gd(任意探针)
 #   tools/run.sh --status         看谁在跑、锁了多久
 #   tools/run.sh --unlock         强制解锁(进程已死但锁还在时)
 #
@@ -65,7 +66,17 @@ case "${1:-}" in
 selftest) sleep 3; rc=0 ;;
 sim)      godot --headless --path . --script res://tools/sim.gd > "${2:-/tmp/sim.log}" 2>&1; rc=$? ;;
 unittest) tools/unittest.sh "${2:-/tmp/tests.log}"; rc=$? ;;
-*)        echo "用法: tools/run.sh {sim|unittest} <日志路径>"; rm -f "$LOCK"; exit 2 ;;
+# ⚑ 通用探针(2026-08-30 补):锁此前只覆盖 sim 与 unittest **两个**, 而 tools/ 下有五十多个
+# 探针都是长跑 —— 「长探针一律走 run.sh」这条纪律对其余的**根本没法遵守**。
+# ⚠ 这正是这把尺自己的第四个盲区:前三个(只读锁目录 / BSD find / 只看 .gd .json)
+# 都让它静默失效, 这一个让它**覆盖不到**。用法:
+#   tools/run.sh probe coin /tmp/coin.log            → tools/coin.gd
+#   SYNC5_KIT_ID=x tools/run.sh probe kit /tmp/k.log → 环境变量照常透传
+probe)
+	[[ -n "${2:-}" ]] || { echo "用法: tools/run.sh probe <tools 下的脚本名(不含 .gd)> <日志路径>"; rm -f "$LOCK"; exit 2; }
+	[[ -f "tools/$2.gd" ]] || { echo "✗ 没有 tools/$2.gd"; rm -f "$LOCK"; exit 2; }
+	godot --headless --path . --script "res://tools/$2.gd" > "${3:-/tmp/probe.log}" 2>&1; rc=$? ;;
+*)        echo "用法: tools/run.sh {sim|unittest|probe <名字>} <日志路径>"; rm -f "$LOCK"; exit 2 ;;
 esac
 
 FP1=$(fingerprint)

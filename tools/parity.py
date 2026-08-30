@@ -121,6 +121,36 @@ def card_face():
     return bad
 
 
+def amount_channels():
+    """第 ⑤ 层:jokers.json 里的每个 `do` 键, `tools/bot.gd::_amt` 认不认识。
+
+    ⚑ 2026-08-30:`coins_factor` 不在 `_amt` 的白名单里(全池只有版税用它)⇒
+       `_amt` 落到末尾 `return 0.0`, 而版税的臂写的是 `(_amt(id) - 1.0)` ⇒ **EV 变成负数**
+       ⇒ 买牌的 `best_gain` 从 0.0 起比, **这张卡永远不可能被选中**。
+       实测装机率 **0.0%**(全池唯一一张一次都没被买过的), 而单卡门量出来它值
+       **+1191.7 分/局**, 是一张 common 的两倍。**一个白名单漏了一个键, 判了一张卡死刑。**
+    判据:每个 `do` 键要么在 `_amt` 的通道白名单里, 要么在 `NON_AMOUNT_KEYS` 里(显式声明「它不是数额」)。
+    """
+    import json
+    bot = (ROOT / "tools/bot.gd").read_text(encoding="utf-8")
+    known = set()
+    m = re.search(r'for ch in \[([^\]]+)\]', bot)
+    if m:
+        known |= set(re.findall(r'"([a-z_]+)"', m.group(1)))
+    # 特判分支(各自 return 的通道)+ 显式声明的非数额键
+    known |= set(re.findall(r'fx\.get\("do", \{\}\)\.has\("([a-z_]+)"\)', bot))
+    m2 = re.search(r'const NON_AMOUNT_KEYS := \[([^\]]+)\]', bot, re.S)
+    if m2:
+        known |= set(re.findall(r'"([a-z_]+)"', m2.group(1)))
+    used = {}
+    for j in json.loads((ROOT / "data/jokers.json").read_text(encoding="utf-8"))["jokers"]:
+        for fx in (j.get("effects") or []):
+            for k in (fx.get("do") or {}):
+                used.setdefault(k, []).append(j["id"])
+    bad = [(k, used[k]) for k in sorted(used) if k not in known]
+    return len(used), bad
+
+
 def main():
     quiet = "--check" in sys.argv
     bad = []
@@ -145,13 +175,21 @@ def main():
     wbad = write_only()
     if wbad:
         print("✗ %d 个授予变量**写了但没人读**(那张卡在游戏里是空白的):%s" % (len(wbad), " ".join(wbad)))
+    nch, chbad = amount_channels()
+    if not quiet:
+        print("\njokers.json 的 do 通道:%d 个, _amt 认识 %d 个" % (nch, nch - len(chbad)))
+    if chbad:
+        print("✗ %d 个 do 通道 `_amt` 不认识(那些卡的数额会被推导成 0):" % len(chbad))
+        for k, ids in chbad:
+            print("   %-22s %d 张: %s" % (k, len(ids), " ".join(ids[:8])))
+        print("  ⚠ 数额 0 不只是「少算一点」—— 臂里写 `(_amt-1)` 的会变成**负 EV = 永不购买**")
     acts, abad = action_keys()
     if not quiet:
         print("\n消耗牌 action 键:%d 个, 两侧齐 %d 个" % (len(acts), len(acts) - len(abad)))
     if abad:
         print("✗ %d 个 action 键两侧不齐:%s" % (len(abad), " ".join(abad)))
         print("  ⚠ 后果不止低估 —— 用这种读数定的价**无效**(见 LESSONS 同名条)")
-    if bad or abad or wbad or fbad:
+    if bad or abad or wbad or fbad or chbad:
         if bad:
             print("✗ %d 个入口两侧不对齐:%s" % (len(bad), " ".join(bad)))
         return 1

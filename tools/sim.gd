@@ -42,6 +42,15 @@ func _initialize() -> void:
 		ecos[String(c.get("name", "?"))] = report.last_eco
 	var bad := _sanity(rates)
 	_eco_bands(rates, ecos)
+	# ⚑ 覆盖率是**全局**问题 —— 跨 cohort 合计后才问一次(见 report.print_coverage 的注释)。
+	var jids: Array = []
+	for j in Joker.pool():
+		jids.append(String(j.id))
+	report.print_coverage("小丑牌", jids)
+	var cids: Array = []
+	for e in DB.consumables():
+		cids.append(String(e["id"]))
+	report.print_coverage("消耗牌", cids)
 	print("\n[sim] total %.1fs" % ((Time.get_ticks_msec() - t0) / 1000.0))
 	quit(1 if bad else 0)
 
@@ -156,6 +165,8 @@ func _sanity(rates: Dictionary) -> bool:
 
 func _run_cohort(cfg: Dictionary) -> void:
 	report.reset()
+	# ⚑ 覆盖率的「自然口径」要把强制试用队列摘出去(见 report.gd 的 cov_forced 注释)。
+	report.cov_forced = cfg.has("prefer")
 	for r in range(RUNS):
 		_rng.seed = 90000 + r
 		_one_run(cfg, r)

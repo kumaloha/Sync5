@@ -29,6 +29,36 @@ var presence_n: Dictionary = {}        # id -> settles while installed
 var discards_sum := 0
 var discards_n := 0
 var run_records: Array = []
+
+# ── 卡面覆盖账本(2026-08-30 加;回答「多少卡没进过赢局」)──
+# ⚠⚠ **跨 cohort 不清零**(`reset()` 不碰它)—— 问「整把尺子跑完有几张卡进过赢局」
+# 是全局问题, 按 cohort 分母算会把「这条路线用不上它」误读成「没人用它」。
+# ⚑ **四列拆开才有意义** —— 旧口径只有最后一列(`run_records` 的局末槽位),
+# 而「没进赢局」至少有四种完全不同的原因, 混在一个数里谁也答不了该改什么:
+#   offered   上过货架几次      —— 排除「根本没被抽到」(候选池/稀有度权重的问题)
+#   bought    装进槽位几次      —— **bot 的估值看不看得见它**(仪器问题, 08-30 已翻案一次)
+#   held_win  赢局里装过        —— 装了到底能不能赢(**这一列才是内容强弱**)
+#   final_win 赢局末仍在槽位    —— 旧口径。中途被替换掉的卡在这一列消失,
+#                                 但它可能已经把前三段打过去了 ⇒ 旧口径系统性低估
+var cov_offered: Dictionary = {}
+var cov_bought: Dictionary = {}
+var cov_held_win: Dictionary = {}
+var cov_final_win: Dictionary = {}
+var cov_runs := 0
+var cov_wins := 0
+var _cov_run: Dictionary = {}          # 本局装过的 id(每局开头清)
+## ⚑⚑ **自然口径**(不含 `cfg.prefer` 的强制试用队列)—— 由 sim.gd 每 cohort 设 `cov_forced`。
+## ⚠⚠ 少了这一刀, 上面那套读数会**全绿而且是假的**:`dead:1..4` 是**实验者按住 bot 的手**
+## 让它买那 44 张卡, 而这四条队列每次 sim 都跑 ⇒ 合计口径下「有没有人装过」恒为真。
+## 首跑就撞上了(69/69 全绿), 而这个数正是要用来判「bot 自己会不会用它」的。
+## ⇒ **强制试用是干净的因果通道, 但它不能同时当观察值。**
+var nat_offered: Dictionary = {}
+var nat_bought: Dictionary = {}
+var nat_held_win: Dictionary = {}
+var nat_final_win: Dictionary = {}
+var nat_runs := 0
+var nat_wins := 0
+var cov_forced := false                # 本 cohort 是不是强制试用队列
 var consumables_bought := 0
 var consumables_used := 0
 var pivots_n := 0
@@ -44,6 +74,15 @@ var rule_shops_n := 0
 var buys_total := 0
 var multi_shops_n := 0
 var discount_coins := 0
+## ⚑ 消耗牌三个**新形状**的证物(2026-08-30 补)。此前它们借用了形状不对的证物 ——
+## 加急(免费刷新)借 `discount`(那是价格折扣)· 挑高(货架不出普通卡)借 `rule_offer`
+## (那是含规则牌店率)· 砧座(复制一张毁其余)借 `multi_shops`(那是双购店)——
+## **kit.gd 的注释里写着正确的意图, 代码映射的却是另一个键**, 而借来的键根本不会动
+## ⇒ 三张卡在单卡门里报红, 却红在「这卡没效果」而不是「证物挂错了」。
+## 三个都是**零基线**读数:没有那张卡时恒 0(或近 0)。
+var free_rerolls := 0     # 加急:免费刷新真的被用掉几次
+var rich_shelves := 0     # 挑高:首发货架 0 张普通卡的店数
+var anvil_copies := 0     # 砧座:复制成功几次
 
 # ── 经济 v2 收支账本(2026-08-27;对照 docs/design/levels.md 经济 v2「怎么调」四条健康带)──
 # **旁路记账, 只记事实**:钱真的动了 / 拒绝真的发生了。不消耗 RNG、不碰任何决策。
@@ -69,6 +108,7 @@ var last_eco: Dictionary = {}
 
 func eco_begin_run() -> void:
 	eco = {}
+	_cov_run = {}
 
 
 func eco_add(key: String, v: int) -> void:
@@ -141,9 +181,26 @@ func reset() -> void:
 	buys_total = 0
 	multi_shops_n = 0
 	discount_coins = 0
+	free_rerolls = 0
+	rich_shelves = 0
+	anvil_copies = 0
 	eco = {}
 	eco_runs = []
 	last_eco = {}
+
+
+func cov_offer(id: String) -> void:
+	cov_offered[id] = int(cov_offered.get(id, 0)) + 1
+	if not cov_forced:
+		nat_offered[id] = int(nat_offered.get(id, 0)) + 1
+
+
+## 装进槽位/收进消耗品栏 —— **口径是「装上了」不是「上了货架」**。
+func cov_install(id: String) -> void:
+	cov_bought[id] = int(cov_bought.get(id, 0)) + 1
+	_cov_run[id] = true
+	if not cov_forced:
+		nat_bought[id] = int(nat_bought.get(id, 0)) + 1
 
 
 func record_run(slots: Array, died: int) -> void:
@@ -154,6 +211,24 @@ func record_run(slots: Array, died: int) -> void:
 	sup.sort()
 	run_records.append({"t": "" if slots[0] == null else String(slots[0].id),
 		"sup": sup, "died": died})
+	cov_runs += 1
+	if not cov_forced:
+		nat_runs += 1
+	if died < _sections:
+		return
+	cov_wins += 1
+	if not cov_forced:
+		nat_wins += 1
+	for id in _cov_run:
+		cov_held_win[id] = int(cov_held_win.get(id, 0)) + 1
+		if not cov_forced:
+			nat_held_win[id] = int(nat_held_win.get(id, 0)) + 1
+	for k in range(slots.size()):
+		if slots[k] != null:
+			var fid := String(slots[k].id)
+			cov_final_win[fid] = int(cov_final_win.get(fid, 0)) + 1
+			if not cov_forced:
+				nat_final_win[fid] = int(nat_final_win.get(fid, 0)) + 1
 
 
 func track_triggers(slots: Array, outcome: Dictionary) -> void:
@@ -353,7 +428,14 @@ func print_playbooks() -> void:
 		kit_n[key] = int(kit_n.get(key, 0)) + 1
 	var keys := kit_n.keys()
 	keys.sort_custom(func(x, y) -> bool: return int(kit_n[x]) > int(kit_n[y]))
-	var kit_line := "  winning kits: "
+	# ⚠⚠ **这一行只印前 3 名, 不是全集** —— 必须把总数写出来。
+	# 2026-08-30:「多少卡没进过赢局 65%/48%/45%」这一整串数字, 事后查明是**数这一行里
+	# 出现过几个 id** 算出来的。14 条 cohort × 3 种阵容 ≈ 40 个槽位、还高度重复 ⇒
+	# 它**结构上最多只能显示三十几张卡**, 无论内容多健康都会报出「一半的卡没进赢局」。
+	# (同一批数据的真实覆盖率:自然口径 68/69。)
+	# ⇒ **一个带截断的展示行, 被当成了普查。** 这就是「no silent caps」那条:
+	# 界面砍掉的东西必须自己说出来, 否则下一个读它的人会把「没显示」读成「不存在」。
+	var kit_line := "  winning kits(前 3 名, 共 %d 种阵容;⚠ 不是覆盖率, 覆盖率看文末): " % keys.size()
 	for i in range(mini(3, keys.size())):
 		kit_line += "[%s]×%d  " % [keys[i], int(kit_n[keys[i]])]
 	print(kit_line)
@@ -394,3 +476,85 @@ func print_playbooks() -> void:
 				continue
 			trig_line += "%s:%d%%(%d) " % [id, int(round(100.0 * float(trigger_n.get(id, 0)) / float(pn))), int(support_drafted.get(id, 0))]
 		print(trig_line)
+
+
+## ⚑⚑ 卡面覆盖率报表(2026-08-30)——「多少卡没进过赢局」这个数**必须拆开看**。
+##
+## 起因:08-30 这个数字从 65% 一路走到 48%, 而**一张卡的内容都没改** ——
+## 推动它的全是仪器修复(`ev.measured` 地板 / bot 侧补齐 6 个 action 键 / 帕奇欧补臂)。
+## 教训写在 LESSONS「65% 的卡没进过赢局是仪器问题」:
+## **旧口径测的是「bot 会不会用」×「卡强不强」的乘积**, 而前者被证明有系统偏差。
+##
+## 所以这里按**四道闸门**逐张列, 每张卡卡在哪一道一目了然:
+##   ① 上过货架吗   —— 没上 = 候选池/权重的问题(结构)
+##   ② 被装上过吗   —— 上了没人装 = **估值看不见**(仪器)
+##   ③ 赢局里装过吗 —— 装了从没赢 = **内容真的弱**(唯一该改内容的一格)
+##   ④ 赢局末还在吗 —— 旧口径。②③ 都过、④ 不过 = **被换掉了**, 不是弱
+func print_coverage(label: String, pool_ids: Array) -> void:
+	if nat_runs == 0:
+		return
+	print("\n\n=== %s 覆盖率 ===" % label)
+	print("  四道闸门:上架 → 装上 → 赢局里装过 → 赢局末仍在槽位")
+	_cov_block("自然口径(不含 dead:N 强制试用)", pool_ids, nat_offered, nat_bought,
+		nat_held_win, nat_final_win, nat_runs, nat_wins)
+	_cov_block("含强制试用(dead:N 是实验者按住 bot 的手, 只能当因果通道不能当观察值)",
+		pool_ids, cov_offered, cov_bought, cov_held_win, cov_final_win, cov_runs, cov_wins)
+
+
+func _cov_block(title: String, pool_ids: Array, offered: Dictionary, bought: Dictionary,
+		held: Dictionary, final: Dictionary, runs: int, wins: int) -> void:
+	var never_offered: Array = []
+	var never_bought: Array = []
+	var never_won: Array = []
+	var replaced: Array = []
+	var ok: Array = []
+	for id in pool_ids:
+		var sid := String(id)
+		if int(offered.get(sid, 0)) == 0:
+			never_offered.append(sid)
+		elif int(bought.get(sid, 0)) == 0:
+			never_bought.append(sid)
+		elif int(held.get(sid, 0)) == 0:
+			never_won.append(sid)
+		elif int(final.get(sid, 0)) == 0:
+			replaced.append(sid)
+		else:
+			ok.append(sid)
+	var n := pool_ids.size()
+	print("\n  ── %s · %d 局 / %d 赢局 ──" % [title, runs, wins])
+	print("   ① 从没上过货架   %2d/%d (%.0f%%)  %s"
+		% [never_offered.size(), n, 100.0 * never_offered.size() / n, " ".join(PackedStringArray(never_offered))])
+	print("   ② 上架但没人装   %2d/%d (%.0f%%)  %s"
+		% [never_bought.size(), n, 100.0 * never_bought.size() / n, " ".join(PackedStringArray(never_bought))])
+	print("   ③ 装过但从没赢   %2d/%d (%.0f%%)  %s"
+		% [never_won.size(), n, 100.0 * never_won.size() / n, " ".join(PackedStringArray(never_won))])
+	print("   ④ 赢过但被换掉   %2d/%d (%.0f%%)  %s"
+		% [replaced.size(), n, 100.0 * replaced.size() / n, " ".join(PackedStringArray(replaced))])
+	print("   ⑤ 赢局末在场     %2d/%d (%.0f%%)" % [ok.size(), n, 100.0 * ok.size() / n])
+	print("   ⇒ 旧口径「进赢局」= ⑤ = %.0f%%;按「赢局里装过」算 = %.0f%%"
+		% [100.0 * ok.size() / n, 100.0 * (ok.size() + replaced.size()) / n])
+	var rate := {}
+	for id in pool_ids:
+		var sid2 := String(id)
+		var off := int(offered.get(sid2, 0))
+		if off >= 20:
+			rate[sid2] = float(bought.get(sid2, 0)) / float(off)
+	var rk := rate.keys()
+	rk.sort_custom(func(x, y) -> bool: return float(rate[x]) < float(rate[y]))
+	# ⚑ **全表, 不截断** —— 「有没有进过赢局」是个会饱和的二值(1 万局下几乎必然为真),
+	# 真正的内容信号是**连续量**:同样上了货架, 这张卡被选中的比例。
+	print("   装机率(装上/上架, 上架≥20 者全列, 升序;⚠ 这是「bot 选不选它」不是「它强不强」):")
+	var line := "    "
+	for i in range(rk.size()):
+		line += "%s:%.0f%% " % [rk[i], 100.0 * float(rate[rk[i]])]
+		if (i + 1) % 8 == 0:
+			print(line)
+			line = "    "
+	if line.strip_edges() != "":
+		print(line)
+	var cold: Array = []
+	for id in rk:
+		if float(rate[id]) < 0.05:
+			cold.append(String(id))
+	print("   ⇒ 冷门(装机率 <5%%)%d/%d 张: %s"
+		% [cold.size(), pool_ids.size(), " ".join(PackedStringArray(cold))])

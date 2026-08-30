@@ -153,7 +153,24 @@ static func play(o: Opts, bot: Bot) -> Dictionary:
 			# 达标即收工(2026-08-27 A 案, 两界镜像):bot 的判据 = 段分已达标 + 剩余拍的
 			# 落袋 ≥ 继续打的期望收入(牌型金币 ~2.1◆/拍 —— 用 cashout 单价直接比,
 			# 高于它就落袋)。⚠ 只在**拍边界**判, 与游戏侧同一时机。
-			if run.section_score >= Run.section_target_for(o.targets, section, mod) \
+			#
+			# ⚠⚠⚠ **`o.targets` 为空时绝不收工**(2026-08-30 修, 这条漏了整整三天)。
+			# `Run.section_target_for([], …)` 返回 **0**, 而 `section_score >= 0` **恒真**
+			# ⇒ 不传目标表的探针**每段打完第一拍就落袋走人**。实测:默认 Opts 一局
+			# **4.0 拍**, 传了 targets 才 17.6 拍(应有 24)。
+			# **全仓只有 `sim.gd` 和 `dpcheck.gd` 传 `o.targets`** —— 其余十几个探针
+			# (curve / kit / price / gate / coin / addit / lam / wallet / decay …)
+			# 从 08-27 起量的都是**四拍的局**:
+			#   · `curve.gd` 反解的关卡分 `[64,106,345,1422]` 是四拍局的分位数 ——
+			#     「curve 段分中位 228/153/345/882 vs sim 500~3500 差 3~4 倍」那个
+			#     一直归给「不死局 vs 幸存者偏差」的口径谜题, **真身就是这个 bug**;
+			#   · `coin.gd` 量 κ 时一局只收 7.7◆(四拍), 于是 κ 读成 0.0;
+			#   · `kit.gd` 的消耗牌永远烧不掉(它的启发式要 `pidx >= 4`, 而 pidx 只到 0)。
+			# ⚑ **它一次都没报错, 每个探针都还在输出合理的数。**
+			# ⇒ 这里的判据不是「达标了吗」而是**「有没有一条生死线可言」** ——
+			# 没有目标表 = 不死局 = 打满(`curve.gd` 的记账约定原文:「不死局:打满 24 拍」)。
+			if not o.targets.is_empty() \
+					and run.section_score >= Run.section_target_for(o.targets, section, mod) \
 					and pidx + 1 < GameConfig.PHRASES_PER_SECTION \
 					and GameConfig.CASHOUT_PER_PHRASE > 2:
 				var left: int = GameConfig.PHRASES_PER_SECTION - (pidx + 1)

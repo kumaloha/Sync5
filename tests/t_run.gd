@@ -2,6 +2,7 @@ extends RefCounted
 
 func run(t) -> void:
 	_t_cashout(t)
+	_t_probe_runs_full(t)
 	_test_run_structure(t)
 	_test_run_machine(t)
 	_t_fork_complete(t)
@@ -296,6 +297,43 @@ func _test_run_machine(t) -> void:
 	out = r.advance()
 	t.check(bool(out["finale"]), "the last section is the finale")
 
+
+
+## ⚠⚠⚠ **不传目标表的探针必须打满** —— 2026-08-30 修的一个漏了三天、一次都没报错的回归。
+##
+## 「达标即收工」(08-27)判的是 `run.section_score >= Run.section_target_for(o.targets, …)`,
+## 而 `section_target_for([], …)` 返回 **0** ⇒ `score >= 0` 恒真 ⇒ **不传 `o.targets` 的探针
+## 每段打完第一拍就落袋走人**(实测一局 4.0 拍, 应有 24)。全仓只有 `sim.gd` / `dpcheck.gd`
+## 传这张表, 其余十几个探针(curve / kit / price / gate / coin / addit / lam / wallet …)
+## 从那天起量的都是四拍的局 —— 包括 `curve.gd` 反解出来的那张关卡分表。
+## ⇒ 这条断言锁的是**「没有生死线就没有收工」**, 不是某个具体拍数。
+func _t_probe_runs_full(t) -> void:
+	var RL = load("res://tools/runloop.gd")
+	t.eq(Run.section_target_for([], 0, ""), 0,
+		"空目标表 = 0 —— 这就是为什么收工判据必须先查表非空")
+	var full: int = GameConfig.PHRASES_PER_SECTION * GameConfig.SECTIONS_PER_RUN
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 620000
+	var rep = load("res://tools/report.gd").new(1, GameConfig.SECTIONS_PER_RUN)
+	rep.reset()
+	var bot = load("res://tools/bot.gd").new(rng, rep)
+	var o = RL.Opts.new()
+	o.rng = rng
+	o.deck_seed = 5
+	o.player = "adaptive"
+	o.cfg = {"bot": "adaptive", "target": "twin"}
+	# ⚠ **商店必须关掉** —— `bot._draft` 从 `Joker.pool()` 拿的是**共享实例**, 买一张就
+	# 改了它的成长计数器, 而 runner 的域顺序即契约(vinyl/glowstick/bassline 跨用例累积)。
+	# 一条测试悄悄改掉后面几个域的分数, 正是这份 runner 顶上警告的那件事。
+	# 收工的判据与商店无关, 关掉不影响这条断言。
+	o.shop = false
+	o.mortal = false
+	o.st = {"n": 0.0, "disc": 0.0, "rep": 0.0, "late": 0.0, "early": 0.0,
+		"zerod": 0.0, "faces": 0.0, "chord": 0.0, "tgt": 0.0,
+		"score": 0.0, "mult": 0.0, "kinds": {}}
+	var res: Dictionary = RL.play(o, bot)
+	t.eq(int(res["beats"]), full,
+		"不死局 + 没有目标表 ⇒ 打满 %d 拍(curve.gd 的记账约定)" % full)
 
 
 ## 2026-08-21 外部审查:RunLoop.fork 漏拷七个字段 ⇒ 买牌推演的世界与本尊分叉。

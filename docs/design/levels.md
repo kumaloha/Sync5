@@ -112,7 +112,7 @@ per-gig data shape stay, so re-introducing a curve is a JSON edit.
   casual play scored 万-level while bot-calibrated targets sat at 几百 —
   humans out-score the bots by roughly an order of magnitude, mainly via
   unlimited discard spending and deliberate cache curation):
-  `[850, 2400, 6900, 19300]`(⚠ 两代过期的数;**现行 `run.json` = `[420, 1500, 3100, 5600]`**,08-15~17 真人重锚)
+  `[850, 2400, 6900, 19300]`(⚠ 两代过期的数;⚠ **现行 `run.json` = `[420, 510, 960, 1680]`**,已知作废待重定,见 difficulty.md 末节)
   Re-cut for 4 sections by resampling the previous curve at the same cumulative
   BEAT positions (total beats stay 24), so the shape is unchanged. Tables from
   other structures are NOT comparable section-by-section — only beat-for-beat.
@@ -278,7 +278,7 @@ lightweight strip, not a run_end mode.
 总拍数始终是 24,所以两张表都按「旧曲线在同一累计拍位上的几何插值」重采样,形状不变:
 
 ```
-section_targets (人锚) = [850, 2400, 6900, 19300]   ← ⚠ 过期;现行 run.json = [420, 1500, 3100, 5600]
+section_targets (人锚) = [850, 2400, 6900, 19300]   ← ⚠ 过期;现行 run.json = [420, 510, 960, 1680](亦待重定)
 sim.json bot_targets   = [215, 540, 895, 1345]      ← ⚠ 过期;现行 sim.json = [496, 995, 4270, 5678]
 ```
 

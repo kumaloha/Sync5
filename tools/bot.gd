@@ -51,6 +51,14 @@ func _rate(st: Dictionary, key: String, prior: float) -> float:
 
 ## First-effect channel amount of a joker, straight from data/jokers.json —
 ## the bot prices what the card actually pays, no hand copy.
+## `_amt` **不管**的 do 键 —— 它们不是「数额」通道(修饰符 / 由专门的臂处理)。
+## ⚑ 存在的意义是给 `tools/parity.py` 第 ⑤ 层对账:**jokers.json 里出现的每个 `do` 键,
+## 要么在 `_amt` 的白名单里, 要么在这张表里** —— 加了新操作码却忘了教 `_amt`,
+## 当场红, 而不是等某张卡的 EV 悄悄变成 0 或负数。
+const NON_AMOUNT_KEYS := ["per", "cap", "step", "card_filter", "mult",
+	"additive_cache_top", "additive_face_value"]
+
+
 func _amt(id: String) -> float:
 	for e in DB.jokers():
 		if String(e["id"]) == id:
@@ -64,6 +72,17 @@ func _amt(id: String) -> float:
 				if fx.get("do", {}).has("bonus_target_pct"):
 					var pr = fx["do"]["bonus_target_pct"]
 					return 0.0 if pr is Dictionary else float(pr) * _avg_beat_target()
+				# ⚠⚠ **`coins_factor` 返回的是「倍数」不是「点数」**(与 `mult_from_target_factor`
+				# 同族), 因为它的臂写的是 `(_amt(id) - 1.0)` —— 要的就是这个倍数。
+				# 2026-08-30 补:漏了这一条的后果**不是少算一点**, 而是 `_amt` 落到末尾
+				# `return 0.0` ⇒ `(0.0 - 1.0) = -1` ⇒ **版税的 EV 变成负数**,
+				# 而买牌的 `best_gain` 从 0.0 起比 ⇒ **这张卡永远不可能被选中**。
+				# 实测:装机率 **0.0%**(全池唯一一张一次都没被买过的), 而它用修好的
+				# 单卡门量出来是 **+1191.7 分/局(占基准 15.5%)** —— 一张 common 的两倍。
+				# ⇒ **「没进过赢局」的最后一张卡, 病根是一张白名单漏了一个键。**
+				if fx.get("do", {}).has("coins_factor"):
+					var cf = fx["do"]["coins_factor"]
+					return 0.0 if cf is Dictionary else float(cf)
 				for ch in ["mult_add", "additive", "bonus", "bonus_pct", "coins",
 						"chips_per_card", "additive_low_value"]:
 					if fx.get("do", {}).has(ch):
@@ -107,6 +126,17 @@ func _mirror_power() -> float:
 ## sim.json, card amounts from jokers.json (multiplication order kept
 ## exactly — the A/B identity check is byte-strict).
 var _no_arm_warned: Dictionary = {}
+var _zero_ev_warned: Dictionary = {}
+## EV **合法**为 0 的卡 —— 它们的价值取决于场上有没有别的东西:
+##   `loadeddice` 灌铅骰:没有赌卡时确实一文不值(`gambles == 0`)
+##   `mirror`     镜面:没有旗时没有倍率可镜(`_target_peak("") - 1.0 == 0`)
+## ⚠ 这是**声明, 不是豁免** —— 不在表里的卡一旦 EV ≤0 就响警告, 因为那多半是
+## 「白名单漏了个键」那一类(2026-08-30 版税:`coins_factor` 没进 `_amt` ⇒ 负 EV ⇒ 永不购买)。
+## ⚑ 一个会为正常情况响的警告等于没有警告 —— 这个项目已经有过一次
+## 「warning 一直在打印, 我一直没看」(帕奇欧)。**声明清楚, 让它保持安静。**
+## ⚠ 顺带记一条设计事实:**组合卡在贪心 bot 眼里天然被低估** —— 它只看「现在装上值多少」,
+## 看不见「先买 A 再买 B」。灌铅骰装机率 1% 就是这个形状, 不是它弱。
+const CONTEXT_ZERO_OK := ["loadeddice", "mirror"]
 
 
 ## ⚑ 估值地板(2026-08-30):手写信念表**系统性低估** —— 实测 bot 从没买过的卡里
@@ -117,7 +147,16 @@ var _no_arm_warned: Dictionary = {}
 ## 「现在买值不值」(剩余拍数 / 当前构筑 / 替换谁), 那些仍归公式。
 func _card_ev(id: String, st: Dictionary, slots: Array, phrases_left: int) -> float:
 	var _floor: float = float(EV.get("measured", {}).get(id, 0.0)) * MEASURED_W
-	return maxf(_floor, _card_ev_formula(id, st, slots, phrases_left))
+	var v := maxf(_floor, _card_ev_formula(id, st, slots, phrases_left))
+	# ⚑ **EV ≤ 0 的支援卡 = 永远不会被买**(`best_gain` 从 0.0 起比)。
+	# 这与「缺臂」是同一类失败, 只是更隐蔽:臂在、公式跑了、结果是 0 或负数。
+	# 2026-08-30 版税就是这样隐身的(`_amt` 白名单漏了 `coins_factor` ⇒ `(0−1)=−1`),
+	# 而它是全池唯一一张装机率 0.0% 的卡。⇒ 与缺臂同款:响一声, 只响一次。
+	if v <= 0.0 and not CONTEXT_ZERO_OK.has(id) and not _zero_ev_warned.has(id):
+		_zero_ev_warned[id] = true
+		push_warning("[bot] _card_ev 估值 ≤0: '%s' 永远不会被买(公式给 %.2f, 地板 %.2f)"
+			% [id, _card_ev_formula(id, st, slots, phrases_left), _floor])
+	return v
 
 
 ## 实测地板的折扣 —— 不给满值:evbook 是**事后**均值(含玩家已经把构筑配好的局面),
@@ -405,6 +444,9 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 			pick = _pick_target_ev(st, candidates)
 		slots[0] = pick
 		pick.on_acquire(deck)
+		for cj in candidates:
+			_rep.cov_offer(String(cj.id))
+		_rep.cov_install(String(pick.id))
 		return coins
 	# supports: value = EV/phrase × horizon, cost in the same score currency
 	var solve_draft: bool = bool(cfg.get("solve_draft", false))
@@ -498,6 +540,18 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 		_g_min_rarity = ""
 	# 商店行为臂的证物记账(kit `shop` 通路):每店一记, 首发货架含规则牌就记一次。
 	_rep.shops_n += 1
+	# 覆盖账本的第一道闸门:这张卡**上过货架**。记在补丁全部生效之后 ——
+	# 量的是玩家真正看见的那三张, 不是抽出来又被顶掉的那张。
+	for oj in offer:
+		_rep.cov_offer(String(oj.id))
+	# 挑高的零基线证物:**首发货架一张普通卡都没有**的店数。
+	# ⚠ 记在补丁全部生效之后 —— 量的就是玩家看见的那三张。
+	var _commons := 0
+	for oj3 in offer:
+		if oj3.rarity == "common":
+			_commons += 1
+	if _commons == 0 and not offer.is_empty():
+		_rep.rich_shelves += 1
 	for j in offer:
 		if j.is_rule_card():
 			_rep.rule_shops_n += 1
@@ -550,6 +604,7 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 					coins = Economy.grant(coins, trefund, slots)
 			slots[0] = tj
 			tj.on_acquire(deck)
+			_rep.cov_install(String(tj.id))
 			coins = Economy.cap_held(coins, slots)     # 装卡后修剪(同编排器)
 			# 经济账本:买卡净支出 = 成交前后余额差(含上限修剪;旁路, 不动决策)。
 			_rep.eco_add("spend_buy", coins_before_pivot - coins)
@@ -657,6 +712,7 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 				best.on_acquire(deck)
 				coins = Economy.cap_held(coins, slots)     # 装卡后修剪(同编排器)
 				_rep.support_drafted[best.id] = int(_rep.support_drafted.get(best.id, 0)) + 1
+				_rep.cov_install(String(best.id))
 			else:
 				var weak_k := 1
 				var weak_ev := 1.0e18
@@ -672,6 +728,7 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 				best.on_acquire(deck)
 				coins = Economy.cap_held(coins, slots)     # 装卡后修剪(同编排器)
 				_rep.support_drafted[best.id] = int(_rep.support_drafted.get(best.id, 0)) + 1
+				_rep.cov_install(String(best.id))
 			# 经济账本:买卡净支出 = 成交前后余额差(替换含回收抵扣与上限修剪)。
 			_rep.eco_add("spend_buy", coins_before_buy - coins)
 			buys += 1
@@ -693,6 +750,7 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 				and (_rr_free or coins >= Economy.reroll_cost(0) + 6):
 			if _rr_free:
 				_g_free_reroll -= 1          # 加急(消耗牌):免费刷新一次
+				_rep.free_rerolls += 1       # 零基线证物:没有加急时恒 0
 			else:
 				coins -= Economy.reroll_cost(0)
 				_rep.eco_add("spend_reroll", Economy.reroll_cost(0))   # 经济账本:付费刷新
@@ -700,6 +758,8 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 			# ⚠ 刷新后的货架沿用既有行为:只重掷、不重放两个「必定出」补丁 ——
 			# 游戏侧 redeal 会重放, 这是 bot 的既有保真缺口, 记档不扩大(证物只数首发)。
 			offer = _weighted_pick(candidates, Joker.slots_shelf_size(slots))
+			for oj2 in offer:
+				_rep.cov_offer(String(oj2.id))
 			continue
 		break
 	return coins
@@ -774,6 +834,7 @@ func _consumables_in_shop(run, coins: int, slots: Array) -> int:
 			for e in DB.consumables():
 				if String(e["id"]) == pk.id:
 					run.take_consumable(Consumable.new(e))
+					_rep.cov_install(String(e["id"]))
 					break
 	# ③ 再买 —— 一店最多一张(与游戏侧「货架只出一张」同构)
 	if not run.consumable_room():
@@ -789,10 +850,12 @@ func _consumables_in_shop(run, coins: int, slots: Array) -> int:
 	if pool.is_empty():
 		return coins
 	var pick = Consumable.new(pool[_rng.randi_range(0, pool.size() - 1)])
+	_rep.cov_offer(String(pick.id))           # 消耗牌货架恒 1 张, 这就是上架
 	if coins < pick.price + 3:                # 留出下一次刷新的钱, 别把自己买空
 		return coins
 	coins -= pick.price
 	run.take_consumable(pick)
+	_rep.cov_install(String(pick.id))
 	_rep.eco_add("spend_buy", pick.price)
 	_rep.consumables_bought += 1
 	return coins
@@ -857,6 +920,7 @@ func _apply_bot_action(run, slots: Array, used: Dictionary) -> void:
 			for i in range(1, slots.size()):
 				if slots[i] == null and kept.kind == "support":
 					slots[i] = Joker.by_id(kept.id)
+					_rep.anvil_copies += 1     # 零基线证物:没有砧座时恒 0
 					break
 
 

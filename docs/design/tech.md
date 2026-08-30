@@ -18,7 +18,7 @@
 > schema 的权威 = `data/*.json` 本身 + `core/db.gd` 的 `validate_*`(测试期门禁,`t_db` 断言零违规)。**
 > 已知过期处,读到时按下面这张表改:
 > · `run.json` 示例写 12 段 / `blind_names` 小盲大盲 / 5 拍 / `gig_clocks 9.0` —— 现行 **4 段 × 6 拍 × 8s**,
->   `section_targets [420,1500,3100,5600]`,`blind_names` 只剩档位;
+>   `section_targets`(⚠ 现行 `[420, 510, 960, 1680]`,以 `data/run.json` 为准),`blind_names` 只剩档位;
 > · `economy.json` 示例写 `discard_cost: 1`、权重 70/25/5、含 `target_swap` —— 现行 **弃牌免费、35/30/25、无 target_swap、
 >   `joker_upgrade` 曾在 08-16~26 存在, 已随升级系统删除**;
 > · `tutorial.json` 示例写 6 步 × 12s、键只有 `seconds/unlock/command/signal` —— 现行 **4 步 × 8s**,键是
