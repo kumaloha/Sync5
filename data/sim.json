@@ -157,6 +157,7 @@
   "blend_w": 6.0,
   "mult_prior": 1.6,
   "score_prior": 180.0,
+  "_comment_coin_score_ratio": "⚠⚠ **2026-08-30 试过 0.38, 当场把尺子跑坏了, 已回滚**。`tools/coin.gd` 实测 κ = 102.2 分/◆(z=11.34), 而 bot 心里 ≈ 0.1×本局均分 ≈ 27 —— 看着该抬 3.8 倍。抬上去之后:random 队列 3.7% → **6.3% > 5% 哨兵线**(尺子失效)· 局末余额中位 9 → **14◆**(离开个位数健康带)· 弃牌 0.60 → 0.85 张/拍。\n⚑ **根因不是数不对, 是一个数被用在两处**:`coin_score_ratio` 同时当①产币卡的**价值**换算(挣到一枚金币值多少分)和②买卡的**成本**换算(`lam`, 花掉一枚金币放弃多少分)。实测的 102 是**边际产出**(多给一枚金币, 这一局多拿多少分), 它回答的是①;直接拿去当②, bot 就觉得买什么都贵 ⇒ 囤钱、少弃牌, 而囤着的钱本作**零终局价值**。\n⚠ 而且 κ 是**内生**的:它在旧策略下测出, 策略一变定点就移 ⇒ **不能一次替换, 要和 bot_targets 一起迭代**。\n⇒ 下一步是**拆成两个参数**(价值侧 / 成本侧), 不是继续调这一个。",
   "coin_score_ratio": 0.1,
   "_comment_coin_decay": "金币影子价的衰减指数(2026-08-09)。lam = coin_score_ratio × 本局均分 × (horizon/20)^coin_decay,horizon = min(剩余拍数, 20)。金币在本作**零终局价值**,它唯一的价值是「还能买到多少分」——而一次购买付 ev × horizon,所以 horizon 收缩时影子价必须同比往下走。0 = pow(x,0)=1 = **精确复现 2026-08-09 之前的行为**;1 = 严格正比于 horizon(此时 horizon 从买/不买的判据里整个约掉);更大 = 一离开满 horizon 就几乎归零。⚠ **由 tools/decay.gd 扫出来,不许拍脑袋**(和 solver.lam 同一条纪律)。⚠ 改这个数会让所有以 bot 为尺子的既有读数失效(bot_targets / curve.gd / gate.sh / price.gd / addit.gd / kit.gd),要重算。",
   "coin_decay": 1.0,
@@ -385,7 +386,7 @@
    "wrecker": 4
   },
   "discard_kappa": 30.0,
-  "_comment_discard_kappa": "弃牌影子价(分/◆, 经济 v2):bot 弃 n 张要求 plan 增益 ≥ n×κ×discard_cost。初值 30 = coin_score_ratio(0.1)×典型拍分 300 的方向锚;decay.gd 纪律精扫后替换, 改动会动所有 bot 尺读数(新基线)。",
+  "_comment_discard_kappa": "弃牌影子价(分/◆, 经济 v2):bot 弃 n 张要求 plan 增益 ≥ n×κ×discard_cost。⚑ 2026-08-30 随 coin_score_ratio 一起改成 114 = 0.38×典型拍分 300 —— 它和 coin_score_ratio 是**同一个量的两个家**, 只改一处就会漂。旧值 30 = 0.1×300;decay.gd 纪律精扫后替换, 改动会动所有 bot 尺读数(新基线)。",
   "measured": {
    "turnover": 73.4,
    "encore": 55.6,
