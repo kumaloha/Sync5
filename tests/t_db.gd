@@ -19,7 +19,7 @@ func run(t) -> void:
 	# validation catches planted bad files
 	t.check(DB.validate_run({"phrases_per_section": 5}) != "", "missing run key detected")
 	t.check(DB.validate_economy({"starting_coins": 6, "typo_key": 1}) != "", "unknown economy key detected")
-	t.eq(Joker.pool().size(), 69, "69 jokers(2026-08-29 消耗牌开轴:9 张「本质一次性」的卡转生为消耗牌 —— 开场/副歌/快闪/彩头/超级百搭/修剪/联票/赞助/点唱机;+帕奇欧)")
+	t.eq(Joker.pool().size(), 65, "65 jokers(2026-08-29 首批转生 9 张;2026-08-30 二批转生:四张规则牌(近道/四指/黑调/红调)——它们的 `acquire.deck_rule` 把规则**烙进牌堆且没有撤销路径**, 卖掉后规则依然生效 ⇒ 按判据「用完之后这张卡还有没有意义」= 一次性)")
 	# 卡面文字随平衡改, 别抄死 —— 只锁「读得回来 + 符合 D2 的 ≤7 词」
 	t.check(Joker.by_id("twin").fx_text.length() > 0, "joker text roundtrip")
 	# ⚑ bot 估值地板与 evbook 必须同步(2026-08-30)。两处存同一份数 = 「两个家」,

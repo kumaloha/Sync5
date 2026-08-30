@@ -206,6 +206,9 @@ static func slots_loan(slots: Array) -> Dictionary:
 
 ## 持有点唱机 jukebox 时, 货架必定有一张规则牌(概率线的定向搜索,
 ## 独狼 target_guaranteed 的同款机制)。
+## ⚠⚠ **2026-08-30 起没有真值来源** —— 唯一写 `shelf.rule_guaranteed` 的是点唱机,
+## 而它已转生为消耗牌;规则牌本身也全在消耗牌一侧。保留是为了「小丑牌也能有货架效果」
+## 这条通路不消失, **但点唱机的实现已经不走这里**(见 `Consumable.is_rule_card`)。
 static func slots_rule_guaranteed(slots: Array) -> bool:
 	for j in slots:
 		if j != null and bool(j._shelf.get("rule_guaranteed", false)):
@@ -227,6 +230,11 @@ static func slots_coin_cap(slots: Array) -> int:
 ## 「规则牌」的机械判据 = 带 acquire 键(shortcut/fourfingers/twotone/wildcard/trim)。
 ## 点唱机的「必出规则牌」与 numbers.md §2 的「概率放大器」用的是同一个集合 ——
 ## 判据挂在数据形状上, 加新规则牌不用改这里。
+## ⚠⚠ **2026-08-30 起恒为 false** —— 四张规则牌(近道/四指/黑调/红调)已转生为消耗牌,
+## 而它们是**仅有的**带 `acquire` 的小丑牌 ⇒ 这个谓词现在没有真值来源。
+## 保留是因为「小丑牌带 acquire = 规则牌」这条判据本身仍然成立(将来再加就还能用),
+## **但任何依赖它选卡的逻辑都必须迁到 `Consumable.is_rule_card()`** ——
+## 留着不迁 = 一条静默失效的规则(本项目栽过七次的形状)。
 func is_rule_card() -> bool:
 	return not _acquire.is_empty()
 

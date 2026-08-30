@@ -409,58 +409,6 @@
    ]
   },
   {
-   "id": "shortcut",
-   "name": "Shortcut",
-   "cn": "近道",
-   "kind": "support",
-   "rarity": "uncommon",
-   "curve": "fixed",
-   "proof": "solver",
-   "fx": "Straights may skip one rank",
-   "acquire": {
-    "deck_rule": "shortcut"
-   }
-  },
-  {
-   "id": "fourfingers",
-   "name": "Four Fingers",
-   "cn": "四指",
-   "kind": "support",
-   "rarity": "uncommon",
-   "curve": "fixed",
-   "proof": "solver",
-   "fx": "Four cards make straights and flushes",
-   "acquire": {
-    "deck_rule": "fourfingers"
-   }
-  },
-  {
-   "id": "blacktone",
-   "name": "Black Tone",
-   "cn": "黑调",
-   "kind": "support",
-   "rarity": "rare",
-   "curve": "fixed",
-   "proof": "solver",
-   "fx": "Black suits count as one",
-   "acquire": {
-    "deck_rule": "blacktone"
-   }
-  },
-  {
-   "id": "redtone",
-   "name": "Red Tone",
-   "cn": "红调",
-   "kind": "support",
-   "rarity": "rare",
-   "curve": "fixed",
-   "proof": "solver",
-   "fx": "Red suits count as one",
-   "acquire": {
-    "deck_rule": "redtone"
-   }
-  },
-  {
    "id": "bassline",
    "name": "Bassline",
    "cn": "贝斯线",

@@ -148,6 +148,54 @@
     "min_rarity": "uncommon"
    },
    "proof": "shop"
+  },
+  {
+   "id": "shortcut",
+   "cn": "近道",
+   "name": "Shortcut",
+   "price": 3,
+   "when": "any",
+   "fx": "Straights may skip one rank",
+   "action": {
+    "deck_rule": "shortcut"
+   },
+   "proof": "score"
+  },
+  {
+   "id": "fourfingers",
+   "cn": "四指",
+   "name": "Four Fingers",
+   "price": 3,
+   "when": "any",
+   "fx": "Four cards make straights and flushes",
+   "action": {
+    "deck_rule": "fourfingers"
+   },
+   "proof": "score"
+  },
+  {
+   "id": "blacktone",
+   "cn": "黑调",
+   "name": "Black Tone",
+   "price": 4,
+   "when": "any",
+   "fx": "Black suits count as one",
+   "action": {
+    "deck_rule": "blacktone"
+   },
+   "proof": "score"
+  },
+  {
+   "id": "redtone",
+   "cn": "红调",
+   "name": "Red Tone",
+   "price": 4,
+   "when": "any",
+   "fx": "Red suits count as one",
+   "action": {
+    "deck_rule": "redtone"
+   },
+   "proof": "score"
   }
  ],
  "_comment_price": "⚑ 贴齐原作比例(2026-08-30 用户:「太贵了这些卡, 参考下原作」):Balatro 的 Tarot/Planet **$3** · Spectral **$4**, 而 Joker 是 Common $1-6 —— **消耗牌 ≈ Joker 同档或更便宜**。我此前定 8/10◆(小丑牌的 2.7 倍)是把限制压在了价格上, **而原作限制总量靠的是获得**(消耗品栏 2 格 · 商店位有限), 这两条我们本来就一样。⇒ 全部收回 3◆, 只有超级百搭(用户拍板 4)与砧座(重塑整个构筑, 对应 Spectral 档)是 4◆。**超模的真因是效果太强**, 不是价格太便宜 —— 一张 +150% 单次值 529 分, 而一张 common 小丑牌**一整局**才产 763 分。⇒ 拍内四张按「单次 ≈200 分 = 一张 common 小丑牌一局产出的 26%」重标。",

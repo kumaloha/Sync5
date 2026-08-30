@@ -493,34 +493,11 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 					tp.append(j)
 			if not tp.is_empty() and not offer.is_empty():
 				offer[offer.size() - 1] = tp[_rng.randi_range(0, tp.size() - 1)]
-	# 「必定出规则牌」(点唱机)—— 同上;两补丁同时顶位时各占一头(规则牌顶第一位)。
-	if Joker.slots_rule_guaranteed(slots):
-		var has_r := false
-		for j in offer:
-			if j.is_rule_card():
-				has_r = true
-		if not has_r:
-			var rp: Array = []
-			for j in candidates:
-				if j.is_rule_card():
-					rp.append(j)
-			if not rp.is_empty() and not offer.is_empty():
-				offer[0] = rp[_rng.randi_range(0, rp.size() - 1)]
-	# 「必定出规则牌」——点唱机(消耗牌)授予时也要生效, 与 `Joker.slots_rule_guaranteed`
-	# 同一个补丁形状(2026-08-30 补齐:此前只有小丑牌那条路)。
-	if _g_rule:
-		var has_r2 := false
-		for j in offer:
-			if j.is_rule_card():
-				has_r2 = true
-		if not has_r2:
-			var rp2: Array = []
-			for j in candidates:
-				if j.is_rule_card():
-					rp2.append(j)
-			if not rp2.is_empty() and not offer.is_empty():
-				offer[0] = rp2[_rng.randi_range(0, rp2.size() - 1)]
-		_g_rule = false          # 「下次货架」类:消费即清
+	# ⚠⚠ **「必定出规则牌」的两段货架补丁已删(2026-08-30 二批转生)** ——
+	# 规则牌(近道/四指/黑调/红调)全部转生为消耗牌, 而它们是**仅有的**带 `acquire`
+	# 的小丑牌 ⇒ 这两段在小丑牌货架上**永远找不到目标, 静默什么都不做**。
+	# 点唱机的目标已搬到**消耗牌位**(见 `_consumables_in_shop` 的 `_g_rule`),
+	# 与游戏侧 `view/phrase.gd::_roll_consumable` 同一份语义。
 	# 挑高(消耗牌):下次货架没有普通卡 —— 与游戏侧 `_grant_min_rarity` 同义。
 	# ⚠ 2026-08-30 补:改名 min_rank→min_rarity 时只改了赋值端, 消费端漏了 ⇒
 	# 这个变量「写了但没人读」, 被「只写不读」扫描当场抓到。
@@ -538,7 +515,9 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 			if rich.size() == offer.size():
 				offer = rich
 		_g_min_rarity = ""
-	# 商店行为臂的证物记账(kit `shop` 通路):每店一记, 首发货架含规则牌就记一次。
+	# 商店行为臂的证物记账(kit `shop` 通路):每店一记。
+	# ⚠ 「首发货架含规则牌」那一记**已改口径** —— 规则牌 2026-08-30 全部转生为消耗牌,
+	# 小丑牌货架上永远不会再有 ⇒ 证物改记「消耗牌位出规则牌的店数」(见 `_consumables_in_shop`)。
 	_rep.shops_n += 1
 	# 覆盖账本的第一道闸门:这张卡**上过货架**。记在补丁全部生效之后 ——
 	# 量的是玩家真正看见的那三张, 不是抽出来又被顶掉的那张。
@@ -552,10 +531,6 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 			_commons += 1
 	if _commons == 0 and not offer.is_empty():
 		_rep.rich_shelves += 1
-	for j in offer:
-		if j.is_rule_card():
-			_rep.rule_shops_n += 1
-			break
 	# 换旗:货架上**真的抽到** Target 时才发生(不再有专属骰子), 买入顶掉旧的、无回收。
 	for tj in offer:
 		if tj.kind != "target":
@@ -849,7 +824,18 @@ func _consumables_in_shop(run, coins: int, slots: Array) -> int:
 			pool.append(e)
 	if pool.is_empty():
 		return coins
+	# 点唱机(与游戏侧 `_roll_consumable` 同一份语义):这一次只从规则牌里抽, 抽不出退回全池。
+	if _g_rule:
+		_g_rule = false
+		var rp: Array = []
+		for e in pool:
+			if Consumable.new(e).is_rule_card():
+				rp.append(e)
+		if not rp.is_empty():
+			pool = rp
 	var pick = Consumable.new(pool[_rng.randi_range(0, pool.size() - 1)])
+	if pick.is_rule_card():
+		_rep.rule_shops_n += 1                # 点唱机的证物:消耗牌位出规则牌的店数
 	_rep.cov_offer(String(pick.id))           # 消耗牌货架恒 1 张, 这就是上架
 	if coins < pick.price + 3:                # 留出下一次刷新的钱, 别把自己买空
 		return coins
@@ -905,6 +891,11 @@ func _apply_bot_action(run, slots: Array, used: Dictionary) -> void:
 		run.deck.add_wilds(String(used["id"]), int(act["wilds"]))
 	if act.has("trim_low"):
 		run.deck.trim_low_ranks()
+	if act.has("deck_rule"):
+		# 规则牌(2026-08-30 二批转生):烙进牌堆, 与 `view/phrase.gd` 两条通路同义。
+		# ⚠ 这一支是 `parity.py` 第 ② 层当场抓出来的 —— 数据里加了新 action 键,
+		# 游戏侧已有而 bot 侧没有, 正是「规则在游戏里、不在模型里」那个形状。
+		run.deck.rules[String(act["deck_rule"])] = true
 	if act.has("copy_one_destroy_rest"):
 		# 与游戏侧同:只在 support(槽 1..3)里掷 —— 留 Target 时复制无处可放。
 		var owned: Array = []

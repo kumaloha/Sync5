@@ -32,9 +32,24 @@ func run(t) -> void:
 	t.eq(Pattern.evaluate_best(sf4, {"fourfingers": true})["kind"], Pattern.Kind.STRAIGHT_FLUSH,
 		"四张同花连号 = 同花顺(顺半边与花半边叠加)")
 	var rd := Deck.new(11)
-	Joker.by_id("shortcut").on_acquire(rd)
-	Joker.by_id("blacktone").on_acquire(rd)
-	t.check(bool(rd.rules.get("shortcut", false)) and bool(rd.rules.get("blacktone", false)), "rule jokers set deck flags")
+	# ⚑ 规则牌 2026-08-30 转生为**消耗牌**:标志位由 `action.deck_rule` 写进牌堆,
+	# 执行口在 `view/phrase.gd`(两条通路)与 `tools/bot.gd::_apply_bot_action`。
+	# 这里锁的是**数据契约**:这四张确实带 deck_rule, 且值指向真的规则名。
+	var rule_ids := {"shortcut": true, "fourfingers": true, "blacktone": true, "redtone": true}
+	var seen := {}
+	for e in DB.consumables():
+		var c := Consumable.new(e)
+		if not c.is_rule_card():
+			continue
+		seen[String(e["id"])] = true
+		t.eq(String(c.action["deck_rule"]), String(e["id"]),
+			"%s 的 deck_rule 指向它自己(规则名 = 卡 id, Pattern 按这个键查)" % e["id"])
+		rd.rules[String(c.action["deck_rule"])] = true
+	t.eq(seen, rule_ids, "四张规则牌全在消耗牌里(转生后 Joker 侧一张都没有)")
+	t.check(bool(rd.rules.get("shortcut", false)) and bool(rd.rules.get("blacktone", false)),
+		"规则牌把标志位写进牌堆")
+	# ⚠⚠ **写进去就撤不掉** —— 全仓没有任何撤销路径, 这正是判它们「一次性」的依据。
+	t.check(not Joker.by_id("shortcut") is Joker, "近道已不在小丑牌池(by_id 返回 null)")
 	var rp := Phrase.new(rd, [], 6)
 	rp.start()
 	t.check(not rp.current_best().is_empty(), "phrase evaluates under deck rules")

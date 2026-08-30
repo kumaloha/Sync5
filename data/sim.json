@@ -73,11 +73,7 @@
     "vinyl",
     "interest",
     "momentum",
-    "vip",
-    "shortcut",
-    "fourfingers",
-    "blacktone",
-    "redtone"
+    "vip"
    ]
   },
   {
@@ -251,22 +247,6 @@
     "streak": 0.75,
     "_comment": "2026-08-25 镜面改造:连续两拍达成才生效, streak = 连击折扣先验(仪器重跑后接管)"
    },
-   "shortcut": {
-    "on_target": [
-     "stair",
-     0.12,
-     7.0
-    ],
-    "off_target": 0.02
-   },
-   "fourfingers": {
-    "on_target": [
-     "stair",
-     0.3,
-     7.0
-    ],
-    "off_target": 0.03
-   },
    "duo": {
     "fixed_rate": 0.7
    },
@@ -323,22 +303,6 @@
    },
    "rebrand": {
     "events": 3.0
-   },
-   "blacktone": {
-    "on_target": [
-     "mono",
-     0.35,
-     5.0
-    ],
-    "off_target": 0.03
-   },
-   "redtone": {
-    "on_target": [
-     "mono",
-     0.35,
-     5.0
-    ],
-    "off_target": 0.03
    },
    "fastforward": {
     "rate": "early",

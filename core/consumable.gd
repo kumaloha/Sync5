@@ -47,6 +47,15 @@ func usable_in(ctx: String) -> bool:
 	return when == "any" or when == ctx
 
 
+## 规则牌 = 带 `deck_rule` 的消耗牌(2026-08-30 二批转生:近道/四指/黑调/红调)。
+## ⚑ **「规则牌」这个概念整体搬到了消耗牌这一侧** —— 它此前的机械判据是
+## 「小丑牌带 `acquire` 键」, 而转生之后**没有任何小丑牌还带 `acquire`**
+## ⇒ `Joker.is_rule_card()` 恒为 false, 点唱机(必出规则牌)会**静默变成空操作**。
+## 所以点唱机的目标也一起搬:它现在保证的是**下一次商店的消耗牌位出一张规则牌**。
+func is_rule_card() -> bool:
+	return action.has("deck_rule")
+
+
 ## 显示名 —— 与小丑牌同一条语言层规则(探针恒 cn)。
 func display_name() -> String:
 	return Lingo.pick({"cn": cn_name, "name": name})

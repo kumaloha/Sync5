@@ -63,7 +63,6 @@ var _coffer                     # 当前货架上的 Consumable(或 null)
 var _grant_shelf := 0           # 联票:本店货架张数(0 = 无授予)
 var _grant_buy_limit := 0       # 联票:本店可成交张数
 var _grant_price := 0           # 赞助:本店全场价格增量(负数 = 便宜)
-var _grant_rule := false        # 点唱机:下次货架必出规则牌
 var _grant_free_reroll := 0     # 加急:免费刷新次数
 var _grant_min_rarity := ""       # 挑高:下次货架的最低稀有度("" = 无授予)
 var _coins := 0
@@ -201,10 +200,6 @@ func grant_shelf(n: int, buy_limit: int) -> void:
 func grant_price_delta(d: int) -> void:
 	_grant_price += d
 	_render(false)
-
-
-func grant_rule_guaranteed() -> void:
-	_grant_rule = true
 
 
 func grant_free_reroll(n: int) -> void:
@@ -410,20 +405,10 @@ func _deal() -> void:
 						tp.append(j)
 				if not tp.is_empty() and not _candidates.is_empty():
 					_candidates[_candidates.size() - 1] = tp[randi_range(0, tp.size() - 1)]
-		# 「必定出规则牌」(点唱机)—— 同 Target 补丁的形状;两个补丁同时要顶位时
-		# 各占一头(规则牌顶第一位, Target 顶最后一位), 免得互相覆盖。
-		if Joker.slots_rule_guaranteed(_slots) or _grant_rule:
-			var has_r := false
-			for j in _candidates:
-				if j.is_rule_card():
-					has_r = true
-			if not has_r:
-				var rp: Array = []
-				for j in candidates:
-					if j.is_rule_card():
-						rp.append(j)
-				if not rp.is_empty() and not _candidates.is_empty():
-					_candidates[0] = rp[randi_range(0, rp.size() - 1)]
+		# ⚠⚠ **「必定出规则牌」的货架补丁已删(2026-08-30 二批转生)** ——
+		# 规则牌(近道/四指/黑调/红调)全部转生为消耗牌, 而它们是**仅有的**带 `acquire`
+		# 的小丑牌 ⇒ 这段补丁在小丑牌货架上**永远找不到目标, 静默什么都不做**。
+		# 点唱机的目标已搬到消耗牌位(`view/phrase.gd::_roll_consumable` 的 `_rule_next`)。
 	# (升级上架段 2026-08-26 随升级系统整体删除 —— 路线 ③。)
 	# ⚑ 挑高(消耗牌):下次货架只留「高价值」的卡 —— 2026-08-30 code review 补,
 	# `_grant_min_rarity` 此前**只被写入和清零, 从没被读过**。
@@ -443,7 +428,7 @@ func _deal() -> void:
 			if rich.size() == _candidates.size():
 				_candidates = rich
 	# ⚑ 消耗牌的「下次货架」类授予在这里**消费并清零** —— 一次性。
-	_grant_rule = false
+	# ⚠ 点唱机的 `_grant_rule` 已随规则牌转生一起搬走(现在管的是消耗牌位)。
 	_grant_min_rarity = ""
 	_render(true)
 

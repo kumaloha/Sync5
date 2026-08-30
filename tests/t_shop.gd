@@ -45,8 +45,15 @@ func run(t) -> void:
 	t.check(not Joker.slots_rule_guaranteed(plain), "no guarantee without jukebox")
 	# 规则牌的机械判据 = 带 acquire 键;点唱机自己**不是**规则牌(shelf-only),
 	# 所以它不满足自己的保证 —— 这是故意的(它保证的是搜到别人)。
-	t.check(Joker.by_id("shortcut").is_rule_card(), "shortcut is a rule card")
-	t.check(Joker.by_id("fourfingers").is_rule_card(), "fourfingers is a rule card(trim 2026-08-29 转生为消耗牌)")
+	# ⚑ 「规则牌」整体搬到消耗牌一侧(2026-08-30 二批转生)——
+	# 机械判据从「小丑牌带 acquire」换成「消耗牌带 action.deck_rule」。
+	var n_rule := 0
+	for e in DB.consumables():
+		if Consumable.new(e).is_rule_card():
+			n_rule += 1
+	t.eq(n_rule, 4, "四张规则牌都在消耗牌里(近道/四指/黑调/红调)")
+	for j in Joker.pool():
+		t.check(not j.is_rule_card(), "%s 不该是规则牌 —— 转生后小丑牌侧一张都不剩" % j.id)
 	t.check(not Joker.by_id("neonsign").is_rule_card(), "neonsign is not")
 	# ⚑ 赞助 2026-08-29 转生为消耗牌 —— 折扣改由 `Shop.grant_price_delta` 授予
 	# (−2◆, 用户:「−1 好抠」), 断言见 t_consumable。这里只留不依赖它的价格基线。

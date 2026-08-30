@@ -68,6 +68,7 @@ var eq: EqStrip
 var vinyl: VinylDeck
 var cslots: Array = []          # 消耗品格 ×2(2026-08-29)
 var _coffer                     # 本次商店货架上那张消耗牌
+var _rule_next := false         # 点唱机:下一次消耗牌货架只出规则牌
 var _coffer_used := false       # 一店一张:买走就不再补
 var orbit: OrbitZone
 var hand: Hand
@@ -1063,8 +1064,16 @@ func _apply_shop_action(id: String, act: Dictionary) -> void:
 		shop.grant_shelf(int(act["shelf_slots"]), int(act.get("buy_limit", 1)))
 	if act.has("price_delta"):               # 赞助:这次商店全场降价
 		shop.grant_price_delta(int(act["price_delta"]))
-	if act.has("rule_guaranteed"):           # 点唱机:下次货架必出规则牌
-		shop.grant_rule_guaranteed()
+	if act.has("rule_guaranteed"):           # 点唱机:下次商店的**消耗牌位**必出规则牌
+		# ⚠⚠ 2026-08-30 二批转生后**目标换了** —— 规则牌全部搬到消耗牌一侧,
+		# 小丑牌货架上再也不会有规则牌, 原来的 `shop.grant_rule_guaranteed()`
+		# 会**静默变成空操作**(那正是本项目栽过七次的形状)。
+		_rule_next = true
+	if act.has("deck_rule"):                 # 规则牌(近道/四指/黑调/红调):烙进牌堆
+		# ⚠ 商店通路此前**没有这一支** —— 拍内通路有(`_on_consumable_used`),
+		# 而这四张 `when: "any"` 两处都能点。少一支 = 在商店点它什么都不发生。
+		run.deck.rules[String(act["deck_rule"])] = true
+		_fx_rule_decree(id)
 	if act.has("free_reroll"):               # 加急:免费刷新
 		shop.grant_free_reroll(int(act["free_reroll"]))
 	if act.has("min_rarity"):                  # 挑高:下次货架没有普通卡
@@ -1127,6 +1136,15 @@ func _roll_consumable():
 	for e in DB.consumables():
 		if not held.has(String(e["id"])):
 			pool.append(e)
+	# 点唱机:这一次的消耗牌位只从**规则牌**里抽(抽不出就退回全池, 不空手)。
+	if _rule_next:
+		_rule_next = false
+		var rp: Array = []
+		for e in pool:
+			if Consumable.new(e).is_rule_card():
+				rp.append(e)
+		if not rp.is_empty():
+			pool = rp
 	if pool.is_empty():
 		return null
 	# ⚠ 同一条随机源纪律:走 `run.deck.pick_index`, 探针才复现得出同一张货架。
@@ -1197,6 +1215,7 @@ func _on_consumable_used(idx: int) -> void:
 		run.deck.trim_low_ranks()
 	if act.has("deck_rule"):
 		run.deck.rules[String(act["deck_rule"])] = true
+		_fx_rule_decree(String(used["id"]))
 	Tape.on("consumable", {"id": String(used["id"]), "at_ctx": "phrase",
 		"phrase": run.phrase_in_section})
 	_refresh_consumables()
@@ -1862,11 +1881,23 @@ func _fx_acquired(j, slot: int) -> void:
 		# 「商店购入时的一次性入库仪式」, 不在结算链内)。
 		burst.superwild(Vector2(360, 534))
 		return
-	if j.is_rule_card():
-		# 文案全部来自 data/jokers.json(cn_name / fx_text)—— view 里不写卡面字。
-		# 收尾缩向刚装上的那个槽位:那张卡就是这条规则的常驻标记。
-		burst.rule_decree(String(j.cn_name), String(j.fx_text), String(j.id),
-			joker_views[slot].get_global_position() + joker_views[slot].size * 0.5)
+	# ⚠ 规则牌的宣告横幅**已移到 `_fx_rule_decree`** —— 2026-08-30 起规则牌是消耗牌,
+	# 它的时刻不再是「装进槽位」而是「用掉」, 也没有可以收尾缩向的常驻槽位。
+
+
+## 规则宣告横幅 —— 规则牌(消耗牌)被用掉的那一刻。
+## ⚠ 文案取自 `data/consumables.json`(cn / fx), **view 里不写卡面字**(与小丑牌同一条)。
+## 收尾落在屏幕中轴:规则改的是牌堆, 而牌堆在游戏里没有实体, 挂到某个槽位上会说错话
+## (与超级百搭的入库仪式同一条理由)。
+func _fx_rule_decree(cid: String) -> void:
+	if run.tutorial:
+		return
+	for e in DB.consumables():
+		if String(e["id"]) == cid:
+			var c := Consumable.new(e)
+			burst.rule_decree(c.display_name(), String(c.fx_text), cid,
+				Vector2(360, 534))
+			return
 
 
 ## full slots: pick which support to swap out (old sells for half)

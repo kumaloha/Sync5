@@ -5,7 +5,7 @@ func run(t) -> void:
 	# roster shape (2026-08-12 流派批: 删 popup/backup, 加族内件×4 + backer/bench/boxseats + trim;
 	# 缘由与增删改清单见 docs/design/archetypes.md §5)
 	var pool := Joker.pool()
-	t.eq(pool.size(), 69, "pool holds 69 jokers(2026-08-29 消耗牌开轴:9 张「本质一次性」的卡转生为消耗牌 —— 开场/副歌/快闪/彩头/超级百搭/修剪/联票/赞助/点唱机;+帕奇欧)")
+	t.eq(pool.size(), 65, "pool holds 65 jokers(2026-08-30 二批转生:四张规则牌(近道/四指/黑调/红调)——它们的 `acquire.deck_rule` 把规则**烙进牌堆且没有撤销路径**, 卖掉后规则依然生效 ⇒ 按判据「用完之后这张卡还有没有意义」= 一次性)")
 	var targets := 0
 	var rarities := {"common": 0, "uncommon": 0, "rare": 0}
 	for j in pool:
@@ -29,13 +29,12 @@ func run(t) -> void:
 	# 配额上两个方向都在往 jokers_atlas.md §0 的目标(罕见 ~18 · 稀有 ~10)靠。
 	# 2026-08-25 对抗批 +13(全在 uncommon/rare:乘法出口按「稀有度=构筑依赖度」入 rare,
 	# 彩头/回收/客串/斗牛士/盲奏入 uncommon):uncommon 22→27 · rare 10→18。
-	t.eq(rarities["uncommon"], 24, "24 uncommon supports(开场/副歌/彩头/赞助 转生)")
-	t.eq(rarities["rare"], 15, "15 rare supports(超级百搭/修剪/联票/点唱机 转生, +帕奇欧)")
-	t.eq(String(Joker.by_id("fourfingers").rarity), "uncommon", "fourfingers stays uncommon (顺子线要救)")
+	t.eq(rarities["uncommon"], 22, "22 uncommon supports(二批再转生近道/四指)")
+	t.eq(rarities["rare"], 13, "13 rare supports(二批再转生黑调/红调)")
 	# ⚑ 拆分后单张实测 5.3×(先验层 N=20万, Δ同花族 +29.7pp), 两张都装 9.6× = 老 twotone。
 	# 仍是同类规则牌里最强(近道/四指只 1.8×), 所以 rare 保持不动。
-	t.eq(String(Joker.by_id("blacktone").rarity), "rare", "黑调 rare")
-	t.eq(String(Joker.by_id("redtone").rarity), "rare", "红调 rare")
+	# ⚠ 近道/四指/黑调/红调的稀有度断言已删 —— 2026-08-30 二批转生, 它们是**消耗牌**了,
+	# 消耗牌没有稀有度轴(TODO 里挂着「要不要加」)。它们现在的契约在 t_consumable。
 	# ⚑ 快闪 2026-08-16 **按用户 08-15 那条原则复活**:「仅限一轮的卡不该删, 该是窗口窄 ⇒ 效果强」。
 	# ⚠ 但**光加数额是假修**(docs/design/jokers.md 原话)—— 它的死因是 `section_eq: 0` 而**商店最早
 	# S1 过半才开**, 玩家根本没机会在第 1 段拥有它(bot 2685 局触发 0%)。
