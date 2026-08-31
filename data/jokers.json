@@ -791,7 +791,7 @@
       ]
      },
      "do": {
-      "additive": 14
+      "additive": 30
      }
     }
    ]
@@ -989,12 +989,12 @@
    "proof": "score",
    "fx": "Coins cap at five; hands x1.3",
    "hold": {
-    "coin_cap": 5
+    "coin_cap": 12
    },
    "effects": [
     {
      "do": {
-      "mult_add": 0.3
+      "mult_add": 0.6
      }
     }
    ]

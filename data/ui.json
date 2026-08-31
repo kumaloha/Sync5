@@ -641,7 +641,7 @@
    "trigger": "免费刷新一次"
   },
   "highroller": {
-   "trigger": "下次货架:没有普通卡"
+   "trigger": "这次商店:刷新也不出普通卡"
   },
   "shortcut": {
    "trigger": "顺子可以跳过一个点数"

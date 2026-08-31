@@ -413,6 +413,9 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 	_g_price = 0
 	_g_free_reroll = 0
 	_cfg_no_cons = bool(cfg.get("no_consumables", false))
+	# 挑高:保证期 = **整次进店**(含刷新)⇒ 上一次进店的残留在这里清掉,
+	# 本次进店用掉它才重新点亮(`_apply_bot_action`)。与游戏侧 `Shop.open()` 同刻。
+	_g_min_rarity = ""
 	coins = _consumables_in_shop(run, coins, slots)
 	var want := "target" if slots[0] == null else "support"
 	var owned: Array = []
@@ -498,23 +501,10 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 	# 的小丑牌 ⇒ 这两段在小丑牌货架上**永远找不到目标, 静默什么都不做**。
 	# 点唱机的目标已搬到**消耗牌位**(见 `_consumables_in_shop` 的 `_g_rule`),
 	# 与游戏侧 `view/phrase.gd::_roll_consumable` 同一份语义。
-	# 挑高(消耗牌):下次货架没有普通卡 —— 与游戏侧 `_grant_min_rarity` 同义。
-	# ⚠ 2026-08-30 补:改名 min_rank→min_rarity 时只改了赋值端, 消费端漏了 ⇒
-	# 这个变量「写了但没人读」, 被「只写不读」扫描当场抓到。
-	if _g_min_rarity != "":
-		var rich: Array = []
-		for j in offer:
-			if j.rarity != "common":
-				rich.append(j)
-		if rich.size() < offer.size():
-			for j in candidates:
-				if rich.size() >= offer.size():
-					break
-				if j.rarity != "common" and not rich.has(j):
-					rich.append(j)
-			if rich.size() == offer.size():
-				offer = rich
-		_g_min_rarity = ""
+	# 挑高(消耗牌):**这次商店**不再出普通卡, **含刷新** —— 与游戏侧同义。
+	# ⚠⚠ 2026-08-30 用户改判:旧版只管下一次发牌, 而「用户宁愿走刷新」⇒ 买了不如不买。
+	# 清零挪到进店(`_draft` 开头), 刷新处重放同一份过滤器。
+	offer = _rich_only(offer, candidates)
 	# 商店行为臂的证物记账(kit `shop` 通路):每店一记。
 	# ⚠ 「首发货架含规则牌」那一记**已改口径** —— 规则牌 2026-08-30 全部转生为消耗牌,
 	# 小丑牌货架上永远不会再有 ⇒ 证物改记「消耗牌位出规则牌的店数」(见 `_consumables_in_shop`)。
@@ -731,9 +721,11 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 				coins -= Economy.reroll_cost(0)
 				_rep.eco_add("spend_reroll", Economy.reroll_cost(0))   # 经济账本:付费刷新
 			Joker.notify_shop(slots, "reroll")             # 淘碟(同编排器)
-			# ⚠ 刷新后的货架沿用既有行为:只重掷、不重放两个「必定出」补丁 ——
-			# 游戏侧 redeal 会重放, 这是 bot 的既有保真缺口, 记档不扩大(证物只数首发)。
-			offer = _weighted_pick(candidates, Joker.slots_shelf_size(slots))
+			# ⚠ 刷新后只重掷, 不重放「必定出 Target」那个补丁(既有保真缺口, 不扩大);
+			# ⚑ **但挑高要重放** —— 它的保证期是整次进店(含刷新), 不重放就等于
+			# 「刷一次就失效」, 而那正是它输给「直接刷新」的原因(用户 2026-08-30 改判)。
+			offer = _rich_only(
+				_weighted_pick(candidates, Joker.slots_shelf_size(slots)), candidates)
 			for oj2 in offer:
 				_rep.cov_offer(String(oj2.id))
 			continue
@@ -752,6 +744,25 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 ##   买 —— 栏位有空 + 买得起 + 买完还剩得下下一次刷新的钱
 ##   用 —— shop 类进店就用(一次性, 攒着没有额外价值);
 ##         phrase 类留给拍内决策(见 `_consumable_in_beat`)
+## 挑高的过滤器 —— **首发与刷新共用这一份**(各写一遍就是「两个家」)。
+## 语义:把货架里的普通卡换成非普通卡;换不满就整份放弃(宁可不生效, 不给半份)。
+func _rich_only(offer: Array, candidates: Array) -> Array:
+	if _g_min_rarity == "":
+		return offer
+	var rich: Array = []
+	for j in offer:
+		if j.rarity != "common":
+			rich.append(j)
+	if rich.size() >= offer.size():
+		return offer
+	for j in candidates:
+		if rich.size() >= offer.size():
+			break
+		if j.rarity != "common" and not rich.has(j):
+			rich.append(j)
+	return rich if rich.size() == offer.size() else offer
+
+
 ## 本店实价 —— **唯一真相**:所有比价/成交都走它, 别散着调 `Economy.shelf_price`。
 ## 赞助(消耗牌)的本店降价叠在这里, 地板 1◆(免费只属于首张 Target 那个特例, 与游戏侧同)。
 func _price_now(j, slots: Array) -> int:

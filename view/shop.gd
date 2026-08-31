@@ -207,8 +207,14 @@ func grant_free_reroll(n: int) -> void:
 	_draw_refill()
 
 
+## 挑高:**当场重发一次**, 之后整次进店(含刷新)都保持过滤。
+## ⚠⚠ 只设标志位是不够的 —— 玩家点它的时候货架**已经发过了**, 不重发就等于
+## 「这张卡什么都没发生」, 而它正是因为这个而输给「直接刷新」(用户 2026-08-30)。
+## ⚠ 重发不收费也不计刷新次数:钱在买这张卡的时候已经付过了。
 func grant_min_rarity(r: String) -> void:
 	_grant_min_rarity = r
+	_deal()
+	_render(true)
 
 
 ## 本店还剩几次免费刷新(编排器算刷新价时读)。
@@ -289,6 +295,8 @@ func open(slots: Array, coins: int, section_idx: int, mod = null,
 	# 续买配额归零只发生在**进店**这一刻 —— 刷新(redeal)走的是同一次进店, 联票的
 	# 第二次选择不该被一次刷新吃掉。
 	_buys_left = 0
+	# 挑高同理:保整次进店(含刷新), 所以清零也只发生在进店这一刻。
+	_grant_min_rarity = ""
 	_blind_board.setup(section_idx,
 		target if target >= 0 else Run.section_target_for(
 			GameConfig.SECTION_TARGETS, section_idx,
@@ -410,10 +418,13 @@ func _deal() -> void:
 		# 的小丑牌 ⇒ 这段补丁在小丑牌货架上**永远找不到目标, 静默什么都不做**。
 		# 点唱机的目标已搬到消耗牌位(`view/phrase.gd::_roll_consumable` 的 `_rule_next`)。
 	# (升级上架段 2026-08-26 随升级系统整体删除 —— 路线 ③。)
-	# ⚑ 挑高(消耗牌):下次货架只留「高价值」的卡 —— 2026-08-30 code review 补,
-	# `_grant_min_rarity` 此前**只被写入和清零, 从没被读过**。
-	# ⚠ 「必出 8 以上」在货架上**没有对应物**(货架摆的是小丑牌不是扑克牌),
-	# 所以语义改成「没有普通卡」, 卡面同步改 —— **卡面必须说实话**。
+	# ⚑ 挑高(消耗牌):**这次商店**不再出普通卡 —— 含刷新与续买后的重发。
+	# ⚠⚠ 2026-08-30 用户改判:旧版只管**下一次发牌**, 而「用户宁愿走刷新」——
+	# 花 3◆ 买一次性的过滤, 不如同样的钱去刷新, 于是这张卡**买了还不如不买**
+	# (实测总分 −1556, z=−5.96)。⇒ 保证期改成**整次进店**, 刷新出来的也必是好卡,
+	# 它才真的比「多刷一次」值钱。清零点搬到 `open()`(进店)。
+	# ⚠ 「必出 8 以上」在货架上没有对应物(货架摆的是小丑牌不是扑克牌),
+	# 所以语义是「没有普通卡」, 卡面同步 —— **卡面必须说实话**。
 	if _grant_min_rarity != "":
 		var rich: Array = []
 		for j in _candidates:
@@ -427,9 +438,8 @@ func _deal() -> void:
 					rich.append(j)
 			if rich.size() == _candidates.size():
 				_candidates = rich
-	# ⚑ 消耗牌的「下次货架」类授予在这里**消费并清零** —— 一次性。
-	# ⚠ 点唱机的 `_grant_rule` 已随规则牌转生一起搬走(现在管的是消耗牌位)。
-	_grant_min_rarity = ""
+	# ⚠ 挑高的授予**不在这里清零** —— 它保整次进店(含刷新), 清零点在 `open()`。
+	# 点唱机的 `_grant_rule` 已随规则牌转生搬走(现在管的是消耗牌位)。
 	_render(true)
 
 
