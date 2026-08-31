@@ -36,7 +36,6 @@
   "每拍 6 秒,只能弃一次": "6s beats; one discard only",
   "打出对子/两对:×1.4 倍率": "Play Pair / Two Pair: ×6 mult",
   "成牌与上拍不同:×4 倍率": "Made hand, new type: ×4 mult",
-  "6 秒前收工且成牌:×4 倍率": "Made hand before 6s: ×4 mult",
   "本拍弃满 3 张且成牌:×3.5 倍率": "3+ discards, made hand: ×3.5",
   "与上拍同牌型:+目标分 78%": "Same hand again: +58% bonus",
   "最后 2 秒有操作:+目标分 24%": "Act in last 2s: +24% bonus",
@@ -45,7 +44,6 @@
   "每拍必发:+目标分 11%": "Every beat: +12% bonus",
   "每弃 1 张:基础分+1,永久累计": "Each discard: +1 chip, forever",
   "每段最后一拍:加成+75%": "Section last beat: +75% boost",
-  "每次提前收工:加成+10%,永久": "Early finish: +10%, forever",
   "J/Q/K 按 20 点计入基础分": "J/Q/K count as 20 chips",
   "加成+60%起步,每拍递减 6%": "+60% boost, fades 6% per beat",
   "顺子可以跳过一个点数": "Straights may skip one rank",
@@ -69,7 +67,6 @@
   "每张计分 ≤5 小牌:基础分+9": "Scoring cards ≤5: +9 chips",
   "最后 1 秒内有操作:加成+60%": "Final second act: +60% boost",
   "结算时每剩 1 秒:加成+8%": "Per second left: +8% boost",
-  "提前收工:下一拍加成+30%": "Finish early: next beat +30%",
   "弃牌都在前 6 秒:+目标分 42%": "Discards all in 4s: +19% bonus",
   "每张换入的计分牌:+目标分 13%": "Swapped-in scorer: +10% bonus",
   "整拍零交换:+目标分 32%": "Zero swaps: +14% bonus",
@@ -232,7 +229,6 @@
   "开场转盘:封缓存 1 格,一半概率封 2 格": "Roll: seal 1 cache slot, half chance 2",
   "开场掷一种花色,整关它算分减半": "Roll a suit; it scores half all gig",
   "本拍弃满 6 张且成牌:×3.5 倍率": "6+ discards, made hand: ×3.5",
-  "每次提前收工:倍率永久 +0.1": "Early finish: mult +0.1 forever",
   "每刷新一次商店:倍率永久 +0.05": "Shop reroll: mult +0.05 forever",
   "本拍不弃牌:倍率 +0.4": "No discards or swaps: +0.4 mult",
   "缓存三张同花色:倍率 +0.3": "3 cached same suit: +0.3 mult",
@@ -299,7 +295,6 @@
   "金币每 2 枚:基础分 +1": "+1 chip per 2 coins held",
   "金币每 2 枚:加成 +5%": "+5% bonus per 2 coins held",
   "代价:金币上限 5 枚": "Cost: coins cap at 5",
-  "收工 · +%d ◆": "Cash out · +%d",
   "暂停": "Paused",
   "退出本局(不计战绩)": "Quit run (not recorded)",
   "上次的演出还没结束": "Your last show is unfinished",
@@ -342,6 +337,11 @@
   "本拍:加成+57%": "This phrase: +57% bonus",
   "本拍:+200 奖励分": "This phrase: +200 bonus score",
   "本拍:+目标分 9.5%": "This phrase: +9.5% of target",
-  "本拍:半概率 ×2.1": "This phrase: half chance x2.1"
+  "本拍:半概率 ×2.1": "This phrase: half chance x2.1",
+  "消 耗 品": "I T E M S",
+  "提前打完且成牌:×4 倍率": "Finish early with a hand: ×4",
+  "每次提前打完:倍率永久 +0.1": "Each early finish: ×0.1 forever",
+  "每次提前打完:加成+10%,永久": "Each early finish: +10% forever",
+  "提前打完:下一拍加成+30%": "After early finish: next phrase +30%"
  }
 }

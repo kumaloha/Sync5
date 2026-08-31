@@ -484,20 +484,11 @@ static func variety_mult(mod: String, kinds_made: int) -> float:
 ## no banner. That is the whole point: you shop having already played half the
 ## blind, so you buy AGAINST a known deficit instead of betting on an unseen
 ## one. Never both flags at once — the last phrase's boundary is section_done.
-## ⚑ 达标即收工(2026-08-27 用户拍板 A 案):段分够了就可以立刻结束这一段,
-## 剩余拍数换金币(Economy.cashout)。段分照旧**独立清零** —— 补的是原作 cash out
-## 那个出口, 不是累加制(全局累加明确不做, levels.md 有账)。
-## ⚠ 判据只有一处:段分 ≥ target()。它与 advance() 的 cleared 用同一个比较,
-## 别在调用方另写一份(「判生死只有这一份」的同款纪律)。
-func can_cash_out() -> bool:
-	return section_score >= target() and phrases_left() > 0
-
-
-func advance(cashed_out: bool = false) -> Dictionary:
+## ⚠⚠ **「达标即收工」已整体退役**(2026-08-31 用户拍板:「不要提前结束的机制了。
+## 我玩起来也不用」)。连带退役:`can_cash_out()` · `Economy.cashout()` · 唱片主动锁定。
+## ⇒ 每一段都打满 `PHRASES_PER_SECTION` 拍, 早收只剩**被动判据**(见 `EARLY_FINISH_LEFT`)。
+func advance() -> Dictionary:
 	phrase_in_section += 1
-	# 收工 = 把这一段直接推到边界(拍数不再走, 与打满同一条结算路径)。
-	if cashed_out:
-		phrase_in_section = GameConfig.PHRASES_PER_SECTION
 	var done := phrase_in_section >= GameConfig.PHRASES_PER_SECTION
 	# 曲目的种数配额已并进 target()(variety_mult, 裁决 #8)—— cleared 只比分数,
 	# 不再有第二条判定;旧的 requirements_met 键随硬门一起删(零消费点)。

@@ -53,10 +53,10 @@ func set_shelf_rarity_mult(m: Dictionary) -> void:
 
 
 var _slots: Array = []
-var _cshelf                     # 货架上那张消耗牌的按钮
-var _cshelf_price: Label
+var _cshelf: Array = []         # 货架上的消耗牌按钮 ×2(2026-08-31:1 → 2)
+var _cshelf_price: Array = []
 var _cslots: Array = []         # 商店里的消耗品栏 ×2
-var _coffer                     # 当前货架上的 Consumable(或 null)
+var _coffer: Array = []         # 当前货架上的 Consumable ×2(可含 null)
 # ---- 消耗牌授予的一次性商店改动(2026-08-29)。⚠ 全部**用完即清**:
 # 「这次商店」类在 close() 清, 「下次货架」类在 _deal() 消费后清 —— 忘了清
 # 就等于把一次性效果做成了永久 buff, 而那正是这些牌当初该被挪出小丑牌的理由。
@@ -149,7 +149,7 @@ func _layout(count: int) -> void:
 	# ⚠ **只建一次** —— `_layout()` 每次 `_render` 都会跑, 不守就会每刷一次货架
 	# 就多出一对格子叠在原处(实测第二次开店时 _cslots 变成 4 个, 而
 	# `set_consumables` 只更新前两个 ⇒ 屏幕上是新旧混着的错乱)。
-	if _cshelf == null:
+	if _cshelf.is_empty():
 		_build_consumable_row(by + 96.0)
 	_reroll_btn.position = Vector2(360.0 - 220.0 - 12.0, by)
 	_skip_btn.position = Vector2(360.0 + 12.0, by)
@@ -166,19 +166,28 @@ func _v2(a: Array) -> Vector2:
 ## 小丑牌的多样性;而且那正是 2026-08-29 修过的形状:**奖励某件事的东西不能和
 ## 那件事抢同一个资源**(转型 vs 换旗抢购买名额)。
 func _build_consumable_row(y: float) -> void:
-	_cshelf = Widgets.ConsumableSlot.new()
-	_cshelf.idx = -1                      # -1 = 货架位(买), 0/1 = 栏位(用)
-	_cshelf.size = Vector2(88, 88)
-	# ⚠ x=220 而不是靠左 —— 商店里盲注卡被挪到 (28, 940) 停靠(2026-08-27 用户
-	# 「压住小丑牌很奇怪, 放下面」), 会把左下角整块盖掉。渲染验收当场撞见。
-	_cshelf.position = Vector2(220, y)
-	_cshelf.pressed.connect(_on_cshelf_pressed)
-	_layer.add_child(_cshelf)
-	_cshelf_price = Label.new()
-	_cshelf_price.position = Vector2(220, y + 90)
-	_cshelf_price.add_theme_font_override("font", StageTheme.num("SemiBold"))
-	_cshelf_price.add_theme_font_size_override("font_size", 15)
-	_layer.add_child(_cshelf_price)
+	# ⚑ 货架 **1 → 2 格**(2026-08-31 用户:「每次出 3 小丑 2 消耗给用户选」)。
+	# ⚠⚠ **5 选 1**(2026-08-31 用户拍板):这两张与三张小丑牌是**同一个池子**,
+	# 一次进店只成交 1 张 —— 消耗牌**不再有专属名额**, 它和小丑牌抢同一次购买。
+	# 计数在编排器的 `_shop_buys`(经济动作只发生在编排器), 视图不自己数。
+	# ⚑ 这是**收紧**:此前消耗牌每店白送一格, 而这一层实测值 **+18.8pt 通关率**。
+	# ⚑ 联票(本店 4 选 2)因此变成「买完还能再挑」——用户:「点完那个 4 选 2, 可以直接再选 2 张」。
+	# ⚠ 卡形与局内一致(62×104 的红卡), 不再是 88×88 的方块。
+	for i in range(2):
+		var sh := Widgets.ConsumableSlot.new()
+		sh.idx = -1 - i                   # -1/-2 = 货架位(买), 0/1 = 栏位(用)
+		sh.size = Vector2(62, 104)
+		# ⚠ x 从 220 起而不是靠左 —— 商店里盲注卡停靠在 (28, 940), 会盖掉左下角。
+		sh.position = Vector2(220 + i * 70, y)
+		sh.pressed.connect(_on_cshelf_pressed.bind(i))
+		_layer.add_child(sh)
+		_cshelf.append(sh)
+		var pl := Label.new()
+		pl.position = Vector2(220 + i * 70, y + 106)
+		pl.add_theme_font_override("font", StageTheme.num("SemiBold"))
+		pl.add_theme_font_size_override("font_size", 15)
+		_layer.add_child(pl)
+		_cshelf_price.append(pl)
 	for i in range(2):
 		var cs := Widgets.ConsumableSlot.new()
 		cs.idx = i
@@ -234,34 +243,38 @@ func consume_free_reroll() -> bool:
 	return true
 
 
-func _on_cshelf_pressed() -> void:
-	if _coffer == null:
+func _on_cshelf_pressed(i: int = 0) -> void:
+	var _c = _coffer[i] if i < _coffer.size() else null
+	if _c == null:
 		return
-	if _coins < _coffer.price:
+	if _coins < _c.price:
 		denied.emit("consumable")
-		_cshelf.shake()
+		_cshelf[i].shake()
 		return
-	consumable_bought.emit(_coffer, _coffer.price)
+	consumable_bought.emit(_c, _c.price)
 
 
 ## 编排器在开店/买卖后调这个刷新整块区域。`held` = run.consumables。
-func set_consumables(offer, held: Array, coins: int, effective: Array = []) -> void:
+## `offer` 现在是**数组**(两张货架牌, 可含 null)。
+func set_consumables(offer: Array, held: Array, coins: int, effective: Array = []) -> void:
 	_coffer = offer
 	_coins = coins
-	if _cshelf != null:
-		_cshelf.filled = offer != null
-		_cshelf.label = offer.display_name() if offer != null else ""
-		_cshelf.armed = offer != null and coins >= offer.price
-		_cshelf.accent = StageTheme.GOLD
-		_cshelf.queue_redraw()
-		_cshelf_price.text = ("◆ %d" % offer.price) if offer != null else ""
+	for i in range(_cshelf.size()):
+		var o = offer[i] if i < offer.size() else null
+		_cshelf[i].filled = o != null
+		_cshelf[i].label = o.display_name() if o != null else ""
+		_cshelf[i].armed = o != null and coins >= o.price
+		# ⚑ 货架位用**金**(它是"待售"), 栏位用**卡牌红**(它是"我的") —— 两者要分得开。
+		_cshelf[i].accent = StageTheme.GOLD
+		_cshelf[i].queue_redraw()
+		_cshelf_price[i].text = ("◆ %d" % o.price) if o != null else ""
 	for i in range(_cslots.size()):
 		var c = held[i] if i < held.size() else null
 		_cslots[i].filled = c != null
 		_cslots[i].label = c.display_name() if c != null else ""
 		var ok: bool = true if i >= effective.size() else bool(effective[i])
 		_cslots[i].armed = c != null and c.usable_in("shop") and ok
-		_cslots[i].accent = StageTheme.CYAN
+		_cslots[i].accent = StageTheme.SUIT_RED
 		_cslots[i].queue_redraw()
 
 

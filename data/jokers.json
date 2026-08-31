@@ -566,7 +566,7 @@
    "kind": "target",
    "rarity": "rare",
    "proof": "score",
-   "fx": "Early finish: made hands ×4",
+   "fx": "Finish early with a hand: ×4",
    "effects": [
     {
      "when": {

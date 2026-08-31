@@ -11,11 +11,7 @@ static func discard_cost(count: int) -> int:
 	return count * GameConfig.DISCARD_COST
 
 
-## 达标即收工的落袋(2026-08-27 A 案):剩 n 拍换多少金币。
-## ⚠ 与「继续打」的期望收入(牌型金币 ~2.1◆/拍)对标 —— 低于它没人收工,
-## 等于它是无差别选择;略高才构成「落袋为安 vs 继续榨分」的真选择。
-static func cashout(phrases_left: int) -> int:
-	return maxi(0, phrases_left) * GameConfig.CASHOUT_PER_PHRASE
+## ⚠ `cashout()`(剩余拍换金币)已随「达标即收工」退役(2026-08-31 用户拍板)。
 
 
 ## 洗牌(2026-08-26, 超级百搭配套):整手回堆 + 弃牌堆洗回 + 重发。

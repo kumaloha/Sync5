@@ -416,6 +416,7 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 	# 挑高:保证期 = **整次进店**(含刷新)⇒ 上一次进店的残留在这里清掉,
 	# 本次进店用掉它才重新点亮(`_apply_bot_action`)。与游戏侧 `Shop.open()` 同刻。
 	_g_min_rarity = ""
+	_cons_bought = false
 	coins = _consumables_in_shop(run, coins, slots)
 	var want := "target" if slots[0] == null else "support"
 	var owned: Array = []
@@ -589,7 +590,8 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 		break
 	# 联票:一次进店最多成交 buy_limit 张(限额随槽位实时读 —— 买到联票当店多一次)。
 	# 两轮尝试的语义不变:第一轮什么都没买才允许一次付费刷新。
-	var buys := 0
+	# ⚑ 5 选 1:消耗牌与小丑牌**共用成交名额**(见 `_cons_bought` 的注释)。
+	var buys := 1 if _cons_bought else 0
 	for attempt in range(2):
 		# 规则在 `Joker.first_free_support`(唯一真相, 2026-08-16 收口)。
 		# ⚑ bot 这一份**本来就是对的**(只看 1..3), 错的是 `view/shop.gd`——
@@ -781,6 +783,9 @@ var _cfg_no_cons := false      # cfg.no_consumables 的缓存(拍内烧牌也要
 var _g_rule := false
 var _g_free_reroll := 0
 var _g_min_rarity := ""
+## ⚑⚑ **5 选 1**(2026-08-31):3 小丑 + 2 消耗是同一个池子, 一次进店只成交 1 张。
+## ⇒ 买了消耗牌就**占掉小丑牌那次购买** —— 分开数等于又给了消耗牌一个专属名额。
+var _cons_bought := false
 
 
 func _consumables_in_shop(run, coins: int, slots: Array) -> int:
@@ -832,37 +837,55 @@ func _consumables_in_shop(run, coins: int, slots: Array) -> int:
 	# ③ 再买 —— 一店最多一张(与游戏侧「货架只出一张」同构)
 	if not run.consumable_room():
 		return coins
-	var pool: Array = []
+	# ⚑ 货架 **2 格**(2026-08-31, 与游戏侧 `_roll_consumables` 同一份语义):
+	# 掷两张互不重复的, **最多成交一张**(「2 选 1」, 供给不变、选择变多)。
+	# ⚠ bot 的挑法刻意简单:买得起的里面挑**贵的那张**(价格是我们唯一的强度代理,
+	# 而消耗牌的 EV 尺 `ccf.gd` 还没覆盖全池)。**先让它会选, 不追求最优。**
 	var held := {}
 	for c in run.consumables:
 		if c != null:
 			held[c.id] = true
+	var pool: Array = []
 	for e in DB.consumables():
 		if not held.has(String(e["id"])):
 			pool.append(e)
-	if pool.is_empty():
+	var offer2: Array = []
+	for i2 in range(2):
+		if pool.is_empty():
+			break
+		var use := pool
+		if i2 == 0 and _g_rule:
+			_g_rule = false
+			var rp: Array = []
+			for e in pool:
+				if Consumable.new(e).is_rule_card():
+					rp.append(e)
+			if not rp.is_empty():
+				use = rp
+		var picked = use[_rng.randi_range(0, use.size() - 1)]
+		offer2.append(picked)
+		pool.erase(picked)
+	if offer2.is_empty():
 		return coins
-	# 点唱机(与游戏侧 `_roll_consumable` 同一份语义):这一次只从规则牌里抽, 抽不出退回全池。
-	if _g_rule:
-		_g_rule = false
-		var rp: Array = []
-		for e in pool:
-			if Consumable.new(e).is_rule_card():
-				rp.append(e)
-		if not rp.is_empty():
-			pool = rp
-	var pick = Consumable.new(pool[_rng.randi_range(0, pool.size() - 1)])
-	if pick.is_rule_card():
-		_rep.rule_shops_n += 1                # 点唱机的证物:消耗牌位出规则牌的店数
-	_rep.cov_offer(String(pick.id))           # 消耗牌货架恒 1 张, 这就是上架
-	# ⚠ 欠债时同样要留出还款储备(与买卡那条同一条风控) —— 段末付不起 = run 死。
-	if coins < pick.price + 3 + int(run.debt):
+	var best = null
+	for e in offer2:
+		var c2 := Consumable.new(e)
+		_rep.cov_offer(String(c2.id))          # 两张都算上架
+		if c2.is_rule_card():
+			_rep.rule_shops_n += 1
+		# ⚠ 欠债时留出还款储备(与买卡同一条风控) —— 段末付不起 = run 死。
+		if coins < c2.price + 3 + int(run.debt):
+			continue
+		if best == null or c2.price > best.price:
+			best = c2
+	if best == null:
 		return coins
-	coins -= pick.price
-	run.take_consumable(pick)
-	_rep.cov_install(String(pick.id))
-	_rep.eco_add("spend_buy", pick.price)
+	coins -= best.price
+	run.take_consumable(best)
+	_rep.cov_install(String(best.id))
+	_rep.eco_add("spend_buy", best.price)
 	_rep.consumables_bought += 1
+	_cons_bought = true          # 占掉这次进店的成交名额(5 选 1)
 	return coins
 
 

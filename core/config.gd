@@ -40,12 +40,14 @@ static var FINAL_ACT_WINDOW: float = float(_run["final_act_window"])
 ## (<5% 禁止入池),而窗口扫描 5s→12% / **6s→27%(爆发档)** / 7s→43%。
 ## ⇒ 这**不是数额问题,是条件与手速打架**;数额一分没动,只把门槛挪到人做得到的地方。
 static var EARLY_DISCARD_WINDOW: float = float(_run["early_discard_window"])
-## 「点唱片提前收工」的最小时间(2026-08-13 用户拍板加的主动锁定)。
-## ⚠ 存在的理由是**防手滑**:开局第一下就点到唱片会直接结束这一拍。
-## 2 秒这个值来自 docs/design/jokers.md 里 Punk 主角的原始设计(「2 秒后可以提前锁定」)——
-## 那条设计早就写着, 只是从未实装。
-static var EARLY_LOCK_MIN: float = float(_run["early_lock_min"])
-static var EARLY_FINISH_TIME: float = float(_run["early_finish_time"])
+## ⚠ `EARLY_LOCK_MIN`(点唱片的防手滑下限)已随主动收工一起退役(2026-08-31)。
+## ⚑⚑ 早收判据 **B**(2026-08-31 用户拍板):「**本轮最后一次动作距离结算的时间**」。
+## 旧口径是「最后动作 ≤ 3.5s」(距**开拍**), 8 秒拍下与本口径等价 —— 但**拍长一变就分叉**,
+## 而拍长是个会动的旋钮(`phrase_duration()`)。⇒ 改成距**结算**的相对剩余, 自动跟随。
+## ⚠ 同批退役了「点唱片主动收工」与「达标即收工」⇒ 每一拍无论如何走满全长,
+## 「早点动完手然后干等」的**干等代价因此消失** —— 这个条件现在只奖励**决策速度**,
+## 不奖励挂机(实测真人认知 3.37s、平均 6.16s 才动完手, 4.5s 剩余是真难度)。
+static var EARLY_FINISH_LEFT: float = float(_run["early_finish_left"])
 
 # --- Card flow ---
 static var HAND_SIZE: int = int(_run["hand_size"])
@@ -92,7 +94,7 @@ static func discard_batch(duration: float, section_idx: int) -> int:
 static var STARTING_COINS: int = int(_eco["starting_coins"])
 static var DISCARD_COST: int = int(_eco["discard_cost"])
 static var RESHUFFLE_COST: int = int(_eco.get("reshuffle_cost", 3))
-static var CASHOUT_PER_PHRASE: int = int(_eco.get("cashout_per_phrase", 3))
+## ⚠ `CASHOUT_PER_PHRASE`(落袋单价)已随「达标即收工」一起退役(2026-08-31)。
 static var SECTION_CLEAR_REWARD: int = int(_eco["section_clear_reward"])
 static var DRAFT_RARITY_WEIGHTS: Dictionary = _eco["draft_rarity_weights"]
 static var JOKER_PRICES: Dictionary = _eco["joker_prices"]

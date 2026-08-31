@@ -1399,7 +1399,13 @@ class ConsumableSlot:
 	var label := ""          # 卡的短名(cn/en 走 Lingo.pick, 由调用方填)
 	var filled := false
 	var armed := true        # 当前语境能不能点(phrase/shop 时机门)
-	const VIS := 60.0        # 视觉边长;热区 = size(88), 差额是留给手指的
+	## ⚠⚠ **视觉尺寸跟着 `size` 走, 不再写死** —— 2026-08-31 栏位从「手牌上沿的 88×88
+	## 小方块」搬到「唱片位的 62×104 卡形」, 而旧代码写死 `VIS = 60`, 搬完只会在
+	## 大框里画一个小方块。⇒ 内缩固定边距, 形状由调用方的 size 决定。
+	const INSET := 2.0
+	## 空格的底色 —— **暗玻璃, 不是透明**。透明底意味着这一格只剩 2px 描边可看,
+	## 而它画在纯黑上(局内 BG0 = #000000), 那正是上一版看不见的原因。
+	const EMPTY_BG := Color(10.0 / 255, 14.0 / 255, 22.0 / 255, 0.55)
 	func _init() -> void:
 		set_process(false)
 		flat = true
@@ -1433,12 +1439,24 @@ class ConsumableSlot:
 		var c := Vector2(size.x, size.y) * 0.5
 		if _shake_t > 0.0:
 			c.x += sin(_shake_t * 60.0) * _shake_t * 12.0
-		var r := Rect2(c - Vector2(VIS, VIS) * 0.5, Vector2(VIS, VIS))
+		var vis := size - Vector2(INSET, INSET) * 2.0
+		var r := Rect2(c - vis * 0.5, vis)
 		var rad := 10.0
 		if not filled:
-			# 空格:只留一圈极淡的轮廓 —— 「这里有个位置」要看得见, 否则玩家不知道自己能拿牌
-			draw_style_box(StageTheme.box(Color(0, 0, 0, 0),
-				Color(accent.r, accent.g, accent.b, 0.10), 2, int(rad)), r.grow(-1.0))
+			# 空格:「这里有个位置、你可以拿牌」要**一眼看得见**, 但不能抢手牌的注意力。
+			# ⚠⚠ 2026-08-31 用户试玩报「没看到消耗牌在哪」—— 上一版是**透明底 + alpha 0.10
+			# 的 2px 描边画在纯黑上**, 按感知亮度算约 **18/255**, 等于没画。
+			# 注释当时就写着「要看得见」, **意图对了、数值没兑现** —— 与 08-28 那次
+			# 「键控衰减到 57/255, 比卡面自己画的网格线还淡」同一族(LESSONS:亮度基准要用 luma)。
+			# ⇒ 方向 A(Claude Design 出稿, 用户 08-31 选定):**浅暗玻璃底 + 描边提到 .34
+			# + 中央一个加号**。底是暗的所以不抢戏, 加号给出「可以放东西」的语义 ——
+			# 只靠描边提亮会和旁边发光的手牌打架。
+			draw_style_box(StageTheme.box(EMPTY_BG,
+				Color(accent.r, accent.g, accent.b, 0.34), 2, int(rad)), r.grow(-1.0))
+			var pc := Color(accent.r, accent.g, accent.b, 0.52)
+			var half := minf(vis.x, vis.y) * 0.15   # 加号跟着框缩放(设计稿 60 框里 ±5 ≈ 0.17)
+			draw_line(c - Vector2(half, 0.0), c + Vector2(half, 0.0), pc, 1.6, true)
+			draw_line(c - Vector2(0.0, half), c + Vector2(0.0, half), pc, 1.6, true)
 			return
 		var a := 1.0 if armed else 0.32     # 时机不对压暗, 但仍可见(不是隐藏)
 		# ⚠ **不走 `draw_card`** —— 它会贴 glass 素材, 而九宫格在这种小板尺寸下必坏
@@ -1453,10 +1471,10 @@ class ConsumableSlot:
 		var f: Font = StageTheme.zh()
 		var fs := 12
 		var w := f.get_string_size(label, HORIZONTAL_ALIGNMENT_CENTER, -1, fs).x
-		while w > VIS - 10.0 and fs > 9:
+		while w > vis.x - 10.0 and fs > 9:
 			fs -= 1
 			w = f.get_string_size(label, HORIZONTAL_ALIGNMENT_CENTER, -1, fs).x
-		draw_string(f, r.position + Vector2((VIS - w) * 0.5, VIS * 0.5 + fs * 0.36),
+		draw_string(f, r.position + Vector2((vis.x - w) * 0.5, vis.y * 0.5 + fs * 0.36),
 			label, HORIZONTAL_ALIGNMENT_LEFT, -1, fs,
 			Color(1, 1, 1, a) if armed else Color(accent.r, accent.g, accent.b, a))
 
