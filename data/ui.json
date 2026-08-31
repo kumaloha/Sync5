@@ -254,13 +254,13 @@
    "trigger": "成牌与上拍不同:×4 倍率"
   },
   "shredder": {
-   "trigger": "6 秒前收工且成牌:×4 倍率"
+   "trigger": "提前打完且成牌:×4 倍率"
   },
   "wrecker": {
    "trigger": "一批弃满 4 张:本拍成牌 ×2"
   },
   "fastforward": {
-   "trigger": "每次提前收工:倍率永久 +0.1"
+   "trigger": "每次提前打完:倍率永久 +0.1"
   },
   "deejay": {
    "trigger": "每刷新一次商店:倍率永久 +0.05"
@@ -320,7 +320,7 @@
    "trigger": "金币每 8 枚:结算 +1◆"
   },
   "momentum": {
-   "trigger": "每次提前收工:加成+10%,永久"
+   "trigger": "每次提前打完:加成+10%,永久"
   },
   "vip": {
    "trigger": "J/Q/K 按 20 点计入基础分"
@@ -395,7 +395,7 @@
    "trigger": "结算时每剩 1 秒:加成+8%"
   },
   "freeze": {
-   "trigger": "提前收工:下一拍加成+30%"
+   "trigger": "提前打完:下一拍加成+30%"
   },
   "earlyout": {
    "trigger": "弃牌都在前 6 秒:+目标分 42%"
@@ -441,7 +441,12 @@
   "cache_y": 1024,
   "lift_base": 16,
   "lift_scoring": 8,
-  "lift_selected": -2
+  "lift_selected": -2,
+  "cons_tab": "消 耗 品",
+  "cons_tab_pos": [
+   404,
+   688
+  ]
  },
  "hud": {
   "pos": [

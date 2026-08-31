@@ -434,30 +434,20 @@ func _t_fork_complete(t) -> void:
 	t.check(not Run.new().restore({}), "空快照被拒")
 	t.check(not Run.new().restore({"v": 99, "deck": {}, "faces": {}}), "未知版本被拒")
 
-## 达标即收工(2026-08-27 用户拍板 A 案):段分独立不变, 补 cash out 出口。
+## ⚠⚠ **「达标即收工」已整体退役**(2026-08-31 用户:「不要提前结束的机制了。我玩起来也不用」)。
+## 这条从「锁收工契约」翻面成**锁它真的没了** —— 退役的东西要留一条反向断言,
+## 否则下一个人看不出是「本来有过」还是「忘了写」。
 func _t_cashout(t) -> void:
+	t.check(not Run.new().has_method("can_cash_out"), "can_cash_out 已退役")
+	# ⚠ Economy 是纯静态类, `has_method` 只能对实例调 —— 改断数据面:
+	# 落袋单价的配置键已从 economy.json 删掉(db 的白名单也不再认它)。
+	t.check(not DB.economy().has("cashout_per_phrase"), "落袋单价的配置键已删")
 	var r := Run.new()
 	r.reset(1)
-	r.section_idx = 0
-	r.phrase_in_section = 2
-	r.section_score = 0
-	t.check(not r.can_cash_out(), "没达标不能收工")
-	r.section_score = r.target()
-	t.check(r.can_cash_out(), "达标即可收工")
-	t.eq(r.phrases_left(), GameConfig.PHRASES_PER_SECTION - 2, "剩余拍数按已打拍算")
-	var out: Dictionary = r.advance(true)
-	t.check(bool(out["section_done"]), "收工 = 直接推到段边界")
-	t.check(bool(out["cleared"]), "收工时段分已达标 ⇒ 判过关")
-	t.eq(r.phrases_left(), 0, "收工后没有剩余拍")
-	# 打满的老路径逐位不变(收工是新增出口, 不许改既有行为)
-	var r2 := Run.new()
-	r2.reset(1)
-	r2.phrase_in_section = GameConfig.PHRASES_PER_SECTION - 1
-	r2.section_score = r2.target()
-	var out2: Dictionary = r2.advance()
-	t.check(bool(out2["section_done"]) and bool(out2["cleared"]), "打满达标照旧过关")
-	t.check(not r2.can_cash_out(), "最后一拍打完没有剩余拍, 收工键不该出现")
-	# 落袋算术:每剩一拍固定单价, 0 拍不给钱
-	t.eq(Economy.cashout(3), 3 * GameConfig.CASHOUT_PER_PHRASE, "落袋 = 剩余拍 × 单价")
-	t.eq(Economy.cashout(0), 0, "没剩拍不落袋")
-	t.check(GameConfig.CASHOUT_PER_PHRASE > 0, "单价必须为正 —— 否则收工是纯亏, 键等于骗人")
+	r.phrase_in_section = GameConfig.PHRASES_PER_SECTION - 1
+	var out: Dictionary = r.advance()          # 已不收 cashed_out 参数
+	t.check(bool(out["section_done"]), "打满仍然推到段边界")
+	# ⚑ 早收**没有消失**:变成纯被动判据(距结算的剩余), 四张时机卡照常活着。
+	t.check(GameConfig.EARLY_FINISH_LEFT > 0.0, "早收判据 B 的门槛为正")
+	t.check(GameConfig.EARLY_FINISH_LEFT < GameConfig.phrase_duration(0),
+		"门槛必须小于拍长 —— 否则这个条件永远不成立")

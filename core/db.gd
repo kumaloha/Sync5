@@ -32,12 +32,12 @@ static var _err := ""
 const _RUN_KEYS := ["phrases_per_section", "phrases_per_shop", "sections_per_gig",
 	"gigs_per_run", "blind_names", "gig_names", "section_targets", "gig_clocks",
 	"warning_offset", "lock_offset", "late_act_window", "final_act_window",
-	"early_finish_time", "early_discard_window", "early_lock_min",
+	"early_finish_left", "early_discard_window",
 	"hand_size", "cache_cap", "beat_budget", "death_spec",
 	"s1_face_min_run", "s1_easy_chance"]
 const _ECO_KEYS := ["starting_coins", "discard_cost", "section_clear_reward",
 	"draft_rarity_weights", "joker_prices", "joker_price_overrides",
-	"reroll", "reshuffle_cost", "kind_coins", "cashout_per_phrase"]
+	"reroll", "reshuffle_cost", "kind_coins"]
 const _TAPE_KEYS := ["enabled", "to_file", "dir", "max_events", "mute"]   # upload 是可选节, 另查
 
 

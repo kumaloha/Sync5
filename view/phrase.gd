@@ -65,9 +65,8 @@ var replace: ReplaceFlow
 # --- ui refs ---
 var wave: WaveView
 var eq: EqStrip
-var vinyl: VinylDeck
 var cslots: Array = []          # 消耗品格 ×2(2026-08-29)
-var _coffer                     # 本次商店货架上那张消耗牌
+var _coffer: Array = []         # 本次商店货架上的消耗牌 ×2(2026-08-31:1 → 2)
 var _rule_next := false         # 点唱机:下一次消耗牌货架只出规则牌
 var _coffer_used := false       # 一店一张:买走就不再补
 var orbit: OrbitZone
@@ -81,10 +80,6 @@ var blind_card: Widgets.BlindCard
 var _bc_home := Vector2.ZERO
 ## 达标即收工(2026-08-27 A 案):按下按钮 → 本拍照常打完 → _advance 时结段并落袋。
 ## ⚠ 不做「立刻结段」:那会吞掉玩家本拍已经做的动作与这拍的分, 而按钮是在拍中按的。
-var _cash_out_pending := false
-var _cash_out_left := 0
-var _cash_out_gain := 0
-var cash_btn: Button = null
 ## 暂停(2026-08-27 用户:「局内没有退出按钮……左上角应该有暂停, 二级菜单可以退出或者继续」)。
 ## ⚠ 冻的是**钟**不是画面:_process 在暂停时不推 elapsed, 手牌照旧显示但不吃操作。
 var _paused := false
@@ -208,11 +203,6 @@ func start_run() -> void:
 	if _home != null and is_instance_valid(_home):
 		_home.queue_free()
 	_home = null
-	# 点唱片 = 提前收工(2026-08-13 用户拍板)。⚠ 连在这里而不是 _ready:
-	# `vinyl` 是 StageLayout 建的, 开局之后才拿到引用。
-	if not vinyl.tapped.is_connected(_on_vinyl_tapped):
-		vinyl.tapped.connect(_on_vinyl_tapped)
-	_ensure_cash_btn()
 	_ensure_pause_ui()
 	# ⚑ 教学关:**只在第一次启动时出现一次**(用户 2026-08-07 拍板「教学只要一次」)。
 	# 判据存在 `SaveState`(`user://`), 与将来的断点续玩共用同一个存档层。
@@ -261,7 +251,6 @@ func _build_ui() -> void:
 	eq = n["eq"]
 	blind_card = n["blind_card"]
 	_bc_home = blind_card.position   # 商店停靠(见 _open_draft)与还原共用的初始位
-	vinyl = n["vinyl"]
 	cslots = n["cslots"]
 	for cs in cslots:
 		if not cs.used.is_connected(_on_consumable_used):
@@ -751,8 +740,6 @@ func _process(delta: float) -> void:
 				_refresh()
 			var warn := elapsed >= cur_warning
 			orbit.set_progress(elapsed / cur_lock, warn, cur_lock - elapsed)
-			# 可以收工时唱片亮金环 + 中心显示能省下几秒(时钟只在这里读)
-			vinyl.set_armed(_can_early_lock(), maxf(0.0, cur_lock - elapsed))
 			# final-seconds heartbeat: eq curtain reddens/speeds, each countdown
 			# second kicks the wave and spins the record up toward the drop
 			eq.urgency = clampf((elapsed - cur_warning) / maxf(cur_lock - cur_warning, 0.1), 0.0, 1.0) if warn else 0.0
@@ -761,7 +748,6 @@ func _process(delta: float) -> void:
 				if d != _last_warn_digit:
 					_last_warn_digit = d
 					wave.on_action()
-					vinyl.spin_boost()
 			if elapsed >= cur_lock:
 				_settle()
 		St.RESOLVE:
@@ -877,24 +863,9 @@ func _on_settle_burst() -> void:
 			_refresh())
 
 
-## 提前收工:立刻结算这一拍。**2026-08-13 起真的有调用方了** ——
-## 点唱片(`_on_vinyl_tapped`), 用户拍板的交互。
-## ⚠ 这个函数在此之前是**孤立的钩子**(零调用方), 而四张时机卡
-## (速弹/惯性/定格/秒表)全建在它上面 —— 于是「早锁」的真实语义一直是
-## 「早点动完手然后干等」, 真人早锁率 8% / bot 78% 的差距根因就在这里:
-## 干等 4.5 秒的代价对真人是真的, 对不感知时间的 bot 是零。
-func early_settle() -> void:
-	if state == St.DECISION:
-		_settle()
-
-
-## 能不能收工:必须在决策态、过了防手滑的下限、且**动过至少一次手**。
-## ⚠ 最后一条与 `_acted_early()` 同源(A4:不许挂机)—— 一拍不动就点收工
-## 拿不到早锁加成, 那就别让它看起来可点。
-func _can_early_lock() -> bool:
-	return state == St.DECISION and elapsed >= GameConfig.EARLY_LOCK_MIN \
-		and last_action_time >= 0.0
-
+## ⚠⚠ **主动收工整块退役**(2026-08-31 用户:「不要提前结束的机制了。我玩起来也不用」)：
+## `early_settle()` · `_can_early_lock()` · `_on_vinyl_tapped()` · 收工键 · 落袋经济。
+## ⚑ 早收**没消失**, 它变成纯被动判据(见 `_acted_early`)—— 四张时机卡照常活着。
 
 ## 收工键(2026-08-27 A 案):段分达标才现身, 写明能落袋多少 ——
 ## 与唱片(单拍提前结算)**语义分开**:唱片结这一拍, 它结这一段。
@@ -997,37 +968,6 @@ func _on_quit_run() -> void:
 	_open_home()
 
 
-func _ensure_cash_btn() -> void:
-	if cash_btn != null:
-		return
-	cash_btn = Button.new()
-	cash_btn.add_theme_font_override("font", StageTheme.zh())
-	cash_btn.add_theme_font_size_override("font_size", 17)
-	cash_btn.focus_mode = Control.FOCUS_NONE
-	var box := StageTheme.box(Color(0.20, 0.15, 0.03, 0.92),
-		Color(StageTheme.GOLD.r, StageTheme.GOLD.g, StageTheme.GOLD.b, 0.75), 1, 12)
-	for st in ["normal", "hover", "pressed"]:
-		cash_btn.add_theme_stylebox_override(st, box)
-	cash_btn.add_theme_color_override("font_color", Color("ffe0a8"))
-	cash_btn.position = Vector2(26, 646)
-	cash_btn.size = Vector2(150, 38)
-	cash_btn.z_index = 40
-	cash_btn.visible = false
-	cash_btn.pressed.connect(_on_cash_out)
-	add_child(cash_btn)
-
-
-func _on_cash_out() -> void:
-	if state != St.DECISION or not run.can_cash_out() or _cash_out_pending:
-		return
-	_cash_out_left = run.phrases_left() - 1   # 本拍照常打完, 落袋的是它之后那几拍
-	_cash_out_gain = Economy.cashout(_cash_out_left)
-	_cash_out_pending = true
-	fx.pop(cash_btn)
-	_refresh()
-	_settle()   # 本拍立刻结算, 结完就结段(_advance 读 _cash_out_pending)
-
-
 ## ⚑ 玩家点了消耗品格(2026-08-29)。**经济/装槽动作只发生在编排器** —— 这条铁律
 ## 决定了取牌、记账、打点都在这里, 格子本身只发一个 idx 信号。
 ##
@@ -1042,8 +982,28 @@ func _on_consumable_bought(c, price: int) -> void:
 	run.coins = phrase.coins
 	run.take_consumable(c)
 	Tape.on("cbuy", {"id": c.id, "price": price, "coins": phrase.coins})
-	_coffer_used = true                      # 一店一张:买走就不再补
+	# ⚑⚑ **5 选 1**(2026-08-31 用户拍板):3 张小丑 + 2 张消耗是**同一个池子**,
+	# 一次进店只成交 **1 张** —— 消耗牌不再有专属名额, 它和小丑牌**抢同一次购买**。
+	# ⚠ 这是**收紧**:此前消耗牌每店白送一格, 而这一层实测值 +18.8pt 通关率。
+	# ⚠⚠ 所以计数走**同一个 `_shop_buys`** —— 分开数就等于又给了它一个专属名额,
+	# 那正是 2026-08-29 修过的形状(「奖励某件事的东西不能和那件事抢同一个资源」的反面:
+	# 这里要的恰恰是**让它们抢**)。
+	_shop_buys += 1
+	_coffer_used = true
+	var buy_limit := maxi(Joker.slots_buy_limit(run.joker_slots), shop.granted_buy_limit())
+	if _shop_buys < buy_limit:
+		# 联票:还有配额 ⇒ 货架不清, 可以接着从五张里再挑(用户:「点完那个 4 选 2,
+		# 可以直接再选 2 张」)。⚠ 买走的那张要从货架上摘掉, 不重掷(重掷 = 免费刷新)。
+		_coffer_used = false
+		for i in range(_coffer.size()):
+			if _coffer[i] != null and String(_coffer[i].id) == String(c.id):
+				_coffer[i] = null
+		_refresh_shop_consumables()
+		return
 	_refresh_shop_consumables()
+	_perkeo_on_exit()
+	shop.close()
+	_start_phrase()
 
 
 ## 商店里点了栏位中的消耗牌(ctx = "shop")。
@@ -1137,7 +1097,10 @@ func _anvil() -> void:
 
 ## 掷一张上架的消耗牌。等权重(消耗牌没有稀有度轴 —— 12 张的池子再分档就太细了),
 ## 排除已在栏位里的。
-func _roll_consumable():
+## ⚑ 掷**两张**货架消耗牌(2026-08-31:1 → 2, 用户「每次出 3 小丑 2 消耗给用户选」)。
+## ⚠ 两张互不重复、也不与栏位里已有的重复 —— 「2 选 1」里出两张一样的等于没得选。
+## ⚠ 点唱机(`_rule_next`)只作用在**第一张**上:它保证的是「出一张规则牌」, 不是全出。
+func _roll_consumables() -> Array:
 	var held := {}
 	for c in run.consumables:
 		if c != null:
@@ -1146,19 +1109,26 @@ func _roll_consumable():
 	for e in DB.consumables():
 		if not held.has(String(e["id"])):
 			pool.append(e)
-	# 点唱机:这一次的消耗牌位只从**规则牌**里抽(抽不出就退回全池, 不空手)。
-	if _rule_next:
-		_rule_next = false
-		var rp: Array = []
-		for e in pool:
-			if Consumable.new(e).is_rule_card():
-				rp.append(e)
-		if not rp.is_empty():
-			pool = rp
-	if pool.is_empty():
-		return null
-	# ⚠ 同一条随机源纪律:走 `run.deck.pick_index`, 探针才复现得出同一张货架。
-	return Consumable.new(pool[run.deck.pick_index(pool.size())])
+	var out: Array = []
+	for i in range(2):
+		if pool.is_empty():
+			out.append(null)
+			continue
+		var use := pool
+		# 点唱机:这一次的**第一格**只从规则牌里抽(抽不出就退回全池, 不空手)。
+		if i == 0 and _rule_next:
+			_rule_next = false
+			var rp: Array = []
+			for e in pool:
+				if Consumable.new(e).is_rule_card():
+					rp.append(e)
+			if not rp.is_empty():
+				use = rp
+		# ⚠ 同一条随机源纪律:走 `run.deck.pick_index`, 探针才复现得出同一张货架。
+		var pick = use[run.deck.pick_index(use.size())]
+		out.append(Consumable.new(pick))
+		pool.erase(pick)
+	return out
 
 
 ## 帕奇欧:离店时复制一张消耗牌。**三个 close 点都要走** —— 「第二条入口漏掉
@@ -1209,7 +1179,8 @@ func _refresh_shop_consumables() -> void:
 	var eff: Array = []
 	for c in run.consumables:
 		eff.append(c != null and _consumable_effective(c))
-	shop.set_consumables(null if _coffer_used else _coffer, run.consumables, phrase.coins, eff)
+	# ⚠ 成交上限仍是**每店一张**(与小丑牌「3 选 1」同构)⇒ 买过之后两格一起清空。
+	shop.set_consumables([] if _coffer_used else _coffer, run.consumables, phrase.coins, eff)
 
 
 func _on_consumable_used(idx: int) -> void:
@@ -1239,22 +1210,24 @@ func _refresh_consumables() -> void:
 		cslots[i].filled = c != null
 		cslots[i].label = c.display_name() if c != null else ""
 		cslots[i].armed = c != null and c.usable_in("phrase") and _consumable_effective(c)
-		cslots[i].accent = Widgets.StageCard.accent_for(run.section_idx)
+		# ⚑ 消耗牌恒用**卡牌的红**(`SUIT_RED`), 不跟档位色 —— 颜色本身就是分类:
+		# 红 = 一次性(消耗牌), 档位色 = 这一关(小丑牌/盲注)。用户 2026-08-31 拍板
+		# 「小丑牌和消耗牌用一样的 UI 底, 只是改成红色版本」。
+		cslots[i].accent = StageTheme.SUIT_RED
 		cslots[i].queue_redraw()
-
-
-func _on_vinyl_tapped() -> void:
-	if not _can_early_lock():
-		return
-	Tape.on("lock", {"at": elapsed, "left": maxf(0.0, cur_lock - elapsed)})
-	early_settle()
 
 
 ## "Early finish" needs at least one action — an untouched phrase never counts,
 ## or momentum would grow while the player idles (principle A4).
 ## _settle 与 _advance 共用这一份判据(判定只许有一份真相)。
 func _acted_early() -> bool:
-	return last_action_time >= 0.0 and last_action_time <= GameConfig.EARLY_FINISH_TIME
+	# ⚑⚑ 判据 **B**(2026-08-31 用户):「最后一次动作**距离结算**还有多久」。
+	# 旧口径 `last_action_time <= 3.5`(距开拍)在 8 秒拍下等价, 但**拍长一变就分叉**。
+	# ⚠ 一拍不动手拿不到(A4:不许挂机)。⚠ 主动收工已退役 ⇒ 每拍走满全长,
+	# 所以代价是**决策速度**, 不再是「早点动完然后干等」(那条老病一并消掉)。
+	if last_action_time < 0.0:
+		return false
+	return (cur_lock - last_action_time) >= GameConfig.EARLY_FINISH_LEFT
 
 
 ## 分数滚动进行中(含 burst 前的等待:settle_fx 还没到 1.5s 时 tween 尚未建, 看 fx 的相位)
@@ -1279,17 +1252,7 @@ func _advance() -> void:
 	# 因为 `tutorial_done()` 读的正是 try_advance 推出来的那个下标。
 	run.tutorial_note("play")
 	run.tutorial_try_advance()
-	var out := run.advance(_cash_out_pending)
-	if _cash_out_pending:
-		# 达标即收工(2026-08-27 A 案):把剩余拍换成金币, 走 grant 收口(吃金币上限)。
-		# ⚠ 顺序:advance 之前先读 phrases_left(它把 phrase_in_section 推到边界了)。
-		phrase.coins = Economy.grant(phrase.coins, _cash_out_gain, run.joker_slots)
-		run.coins = phrase.coins
-		Tape.on("cash", {"left": _cash_out_left, "gain": _cash_out_gain,
-			"coins": phrase.coins, "sec": run.section_idx})
-		fx.float_text("+%d ◆" % _cash_out_gain,
-			hud.coin_anchor() + Vector2(20, 40), StageTheme.GOLD)
-		_cash_out_pending = false
+	var out := run.advance()
 	# ⚑ 教学关的商店时刻只有一个(2026-08-24 用户:「一开始就是没有小丑牌, 直接跳出来
 	# 让玩家选小丑牌」;v6 = 分镜 D):推进到**最后一步**时弹真商店(首张 Target 免费
 	# 三选一, 与正式局同一个流程), D 的提示条锚在商店盲注板下、focus 指价签行;
@@ -1649,9 +1612,6 @@ func _resume_run() -> bool:
 	_front_latch = true
 	for i in range(joker_views.size()):
 		joker_views[i].set_joker(run.joker_slots[i])
-	if not vinyl.tapped.is_connected(_on_vinyl_tapped):
-		vinyl.tapped.connect(_on_vinyl_tapped)
-	_ensure_cash_btn()
 	# 恢复开新 Tape 流并打上 resume 标记 —— 原流没有 close(那本身就是「中断过」的信号),
 	# 分析侧按 resume + 同 install_id 把两截拼回一局。
 	Tape.begin({"sess": _sess, "tutorial": false, "resume": true,
@@ -1720,7 +1680,7 @@ func _open_draft() -> void:
 	# ⚑ 每次开店抽一张消耗牌上架(2026-08-29)。**独立一格, 不进三选一** ——
 	# 混进去等于用消耗牌换掉小丑牌的多样性(与「转型/换旗抢名额」同型的资源错配)。
 	# 已持有的不再上架, 免得开局就撞见两张一样的。
-	_coffer = _roll_consumable()
+	_coffer = _roll_consumables()
 	_coffer_used = false
 	_refresh_shop_consumables()
 	# 分镜 D(v6):教学商店自己带条 —— 锚在商店盲注板下, focus 指货架价签行,
@@ -2270,7 +2230,6 @@ func _on_hand_discard(sel_h: Array, sel_c: Array) -> void:
 			_note_tutorial("multiselect")
 		_notify_discard(total)
 		hand.clear_selection()
-		vinyl.spin_boost()
 		_action_feedback()
 	_refresh()
 
@@ -2314,7 +2273,6 @@ func _on_hand_single_discard(zone: String, idx: int) -> void:
 		# 不是「用哪个手势弃的」。只记多选那条路会让拖拽玩家永远推进不了。
 		_note_tutorial("discard")
 		hand.clear_selection()
-		vinyl.spin_boost()
 		_action_feedback()
 	else:
 		Tape.on("deny", {"why": "blind_discard", "k": 1, "at": elapsed})
@@ -2339,13 +2297,6 @@ func _refresh() -> void:
 		"score": _shown_score, "target": target, "phrase_no": run.phrase_index,
 		# 教学关 target = 0 ⇒ 0/0 = NaN(GDScript 浮点除零不报错), 进度条会画成残条(评审)
 		"fraction": 0.0 if target <= 0 else float(run.section_score) / float(target)})
-	# 收工键:段分达标 + 还有剩余拍 + 决策态才亮(教学关不出 —— 它不判生死)
-	if cash_btn != null:
-		var can_cash: bool = decide and not run.tutorial and run.can_cash_out() \
-			and not _cash_out_pending
-		cash_btn.visible = can_cash
-		if can_cash:
-			cash_btn.text = Lingo.t("收工 · +%d ◆") % Economy.cashout(run.phrases_left() - 1)
 	# 洗牌键:牌堆里有万能才亮(装了百搭/超级百搭);付不起时压暗但不藏 —— 玩家要看得见价。
 	hand.reshuffle_key.visible = decide and not phrase.deck.wild_extra.is_empty()
 	hand.reshuffle_key.fee = Economy.reshuffle_cost()
@@ -2387,4 +2338,4 @@ func _refresh() -> void:
 		"swap_blocked_hand": phrase.swap_blocked_hand(),
 		"swap_blocked_cache": phrase.swap_blocked_cache(),
 		"marked_cards": marked_cards})
-	vinyl.set_count(run.deck.remaining())
+	# ⚠ 牌堆剩余张数**不再显示**(2026-08-31 用户拍板)——唱片是它唯一的显示位。

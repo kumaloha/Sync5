@@ -77,21 +77,8 @@ static func build(host: Control) -> Dictionary:
 	# 首版硬编码了 738 与 696 ⇒ 改 JSON 的布局时格子不会跟着走, 违反
 	# 「改布局改文案 = 改 JSON」这条铁律)。
 	# 竖向:格子中心对齐「轨道顶到手牌卡顶」这条带;横向:右缘与手牌行右缘齐。
-	var cs_side := 88.0
-	var band_top: float = hand_top
-	var band_bot: float = float(ui["hand_card_y"])
-	var cslot_y: float = band_top + (band_bot - band_top - cs_side) * 0.5
-	var hand_right: float = float(ui["margin"]) + 5.0 * float(ui["card_w"]) \
-		+ 4.0 * float(ui["gap"])
-	out["cslots"] = []
-	for i in range(2):
-		var cs := Widgets.ConsumableSlot.new()
-		cs.idx = i
-		cs.size = Vector2(cs_side, cs_side)
-		cs.position = Vector2(hand_right - cs_side * float(2 - i) - 6.0 * float(1 - i),
-			cslot_y)
-		host.add_child(cs)
-		out["cslots"].append(cs)
+	# ⚠ 手牌上沿那条 66px 带里的旧消耗品栏已移走(见上面唱片那段)——
+	# 那个位置只有 66px 高, 装不下带描述的卡, 而用户 2026-08-31 试玩报「没看到消耗牌在哪」。
 	out["shop"] = Shop.new()
 	host.add_child(out["shop"])
 
@@ -246,10 +233,26 @@ static func _build_wave_zone(host: Control, out: Dictionary, margin: float) -> v
 	out["blind_card"].mouse_filter = Control.MOUSE_FILTER_IGNORE
 	host.add_child(out["blind_card"])
 
-	out["vinyl"] = VinylDeck.new()
-	out["vinyl"].size = Vector2(132, 132)
-	out["vinyl"].position = Vector2(720 - margin - 132, 426 + (216 - 132) * 0.5)
-	host.add_child(out["vinyl"])
+	# ⚠⚠ **唱片(VinylDeck)已退役**(2026-08-31 用户拍板三连):
+	#   ① 「提前结束」整个机制不要了 ⇒ 它的键没有用途;
+	#   ② 消耗品栏「放光碟那」⇒ 它的位置让出来;
+	#   ③ 牌堆剩余张数「干脆不显示」⇒ 它最后一个职责也没了。
+	# ⚑ 代价说清楚:排版铁律写着「盲注卡 + 音浪 + 唱片(左中右)」, 右边那个配重
+	# 现在换成了**两张红卡** —— 构图仍是三段, 只是右段从"转的唱片"变成"我的消耗牌"。
+	# 消耗牌是**红的**(`SUIT_RED`, 卡牌的红), 与小丑牌的档位色分开 ——
+	# 颜色本身承担了标签的功能:红 = 一次性, 不用再写「消 耗 品」四个字。
+	var cw := 62.0
+	var ch := 104.0
+	var cx := 720.0 - margin - (cw * 2.0 + 8.0)
+	var cy := 426.0 + (216.0 - ch) * 0.5
+	out["cslots"] = []
+	for i in range(2):
+		var cs := Widgets.ConsumableSlot.new()
+		cs.idx = i
+		cs.size = Vector2(cw, ch)
+		cs.position = Vector2(cx + i * (cw + 8.0), cy)
+		host.add_child(cs)
+		out["cslots"].append(cs)
 
 
 static func _build_orbit(host: Control, hand_top: float) -> OrbitZone:
