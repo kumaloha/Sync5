@@ -380,7 +380,8 @@ Tape 是第二条证据线（`tape_required` 标志），不是第五条 proof �
 | `holdnote` 延音 | 删除 | 把六秒恢复到七至八秒，破坏第四轮主机制 |
 
 ⚠ **裁决权级别不同**：`cover` / `freshsheet` / `rotation` 三行有用户认可的审查依据；
-`static` / `unplugged` / `holdnote` 三行是 Codex 的建议裁决，**待用户拍板**
+`static` / `unplugged` / `holdnote` 三行是 Codex 的建议裁决，**待用户拍板**(⚠ 三者均**未实装**)
+⚠ 其中 **延音 `holdnote` 从未实装** —— `faces.json` 里没有它,这一行是**提案记录**不是现役脸。
 （[`blinds_review.md`](blinds_review.md) §6 —— 延音那行审查方明确持异议）。
 
 经济侧的欲望与选择继续留在小丑牌管线；例如“联票”可以扩张商店选择，但不属于盲注。

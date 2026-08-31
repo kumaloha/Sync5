@@ -296,7 +296,7 @@
 | 成本 | 内容 | 解锁 |
 |---|---|---|
 | 零 | `diff_from_prev` `base_gte` `top_rank_gte` `coins_gte` `kind/kind_in` `acted_late` `discards_gte` | T-02/04/05、J-B3/B5/B6、J-15、J-29~33 等 12+ 张 |
-| 小(谓词/信号) | `first_phrase` `phrase_idx` `swaps 计数` `批量大小` `cache_min_rank` `cache_run` `cache_rank_trio` `cache_all_faces` `prev2` | 时机/缓存/序列三族 |
+| 小(谓词/信号)⚠**提案, 未实现** | `first_phrase` `phrase_idx` `swaps 计数` `批量大小` `cache_min_rank` `cache_run` `cache_rank_trio` `cache_all_faces` `prev2` | 时机/缓存/序列三族 |
 | 中(操作码) | `chip_per_card{filter}`(解锁整个牌面族 6 张) · `additive_low_value` · shelf 键扩展(联票/赞助/回收) · 自毁(烟花) | 牌面族、规则族、经济族 |
 | 大(手术,标远期) | 判定层(首尾 J-28) | 单卡 |
 

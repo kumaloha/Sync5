@@ -173,7 +173,7 @@ Existing ctx signals: `kind, base_score, mult, bonus_pct, coins_bonus,
 prev_kind, acted_late, discards, coins`.
 
 To add for the v0.1 roster: `additive` (B1 channel), `last_action_time`,
-`phrase_idx_in_section`, cache contents at settle, per-joker state counters.
+`phrase_in_section`(Run 上的字段名), cache contents at settle, per-joker state counters.
 Economy hook: discard cost must consult installed jokers.
 
 ⚑ 2026-08-10 批 3 扩容后的现役 ctx 追加:`phrase_idx` `cache_cards` `scoring_cards`

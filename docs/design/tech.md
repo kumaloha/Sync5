@@ -289,7 +289,7 @@ plan search) stays code — it is the bot's brain, the numbers are its beliefs.
 2. **Sim A/B byte-diff**: full `sim.gd` run before vs after must produce an
    identical report (the sim is fully seeded — proven by two identical runs
    during the gig re-calibration). Any diff = behavior changed = bug.
-3. Screenshot probes unchanged (`card_sheet` / `crew_sheet` / `draft_sheet`
+3. Screenshot probes unchanged (`card_sheet` / ~~`crew_sheet`~~(随主角系统 2026-08-24 一起删) / `draft_sheet`
    render from the same fields).
 
 ### Non-goals
@@ -383,7 +383,7 @@ _advance/_next_section` 编排、run_end/banner/picker 接线、settle 演出
 ### 后续入册 (2026-08-05)
 
 - `view/home.gd`(`HomeScreen`)= 首页,规格 `docs/mockups/home.html`。整屏自绘,
-  只发两个意图信号(`start_pressed` / `character_pressed`),不碰 run 状态。
+  只发意图信号(`start_pressed`;~~`character_pressed`~~ 随主角选择器 2026-08-24 删除),不碰 run 状态。
 - `Widgets.StageCard` = 首页大玻璃卡与局内盲注板**共用的外观定义**(玻璃板/
   角标/点阵/渐变分隔/均衡器带/档位配色/难度星),`Widgets.BlindBoard` 是它的
   局内尺寸。用户拍板「关卡就是盲注」,所以两者必须是同一个对象。
@@ -502,7 +502,7 @@ static func after(run: Run, opt: Opts) -> Verdict
 |---|---|---|
 | `shop: bool` | coin(无商店对照臂) | 各写各的 if |
 | `judge: bool` | curve/gate(不死局) | 有的有有的没有 |
-| `target_table` | sim 用影子表 / 游戏用真人表 | 两处硬编码 |
+| `bot_targets`(sim.json) vs `section_targets`(run.json) | sim 用影子表 / 游戏用真人表 | 两处硬编码 ⚠ **别用 sim 验后者**,它结构上读不到 —— 08-16 与 08-30 各栽过一次 |
 | `target_scale: float` | gate 的单调性臂 | gate 独有 |
 | `coin_delta: int` | coin 的 ±1/拍 | coin 独有 |
 | `faces: Dictionary` | 全部(强制某张脸 / 掷点) | 各写各的 |
