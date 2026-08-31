@@ -4,7 +4,7 @@
 > 待办看 [TODO.md](TODO.md) · 变更史看 [CHANGELOG.md](CHANGELOG.md) · 经验看 [LESSONS.md](LESSONS.md)
 > 规则与美术的**原则**在 [CLAUDE.md](CLAUDE.md) · 设计规格在 `docs/design/`
 >
-> **最后更新:2026-08-26**(增量见文末「增量快照」节,数字冲突以那节为准)
+> **最后更新:2026-08-31**(增量见文末「增量快照」节,数字冲突以那节为准)
 
 ---
 
@@ -19,6 +19,7 @@ Lumines 的节奏推进 + Balatro 的构筑。一局 4 段 × 6 拍 × 8 秒 ≈
 
 | 项 | 状态 | 命令 |
 |---|---|---|
+| 单元测试 | **3330 passed / 0 failed**(2026-08-31 平衡批后)。⚠ 耗时 ~31 分钟 | `./tools/unittest.sh`。⚑ 跑之前先跑四条秒级检查:`parity.py --check && evsync.py --check && counts.py --check && docscan.py` |
 | 单元测试 | **3172 passed / 0 failed**(2026-08-30:消耗牌开轴 + 经济收口 + code review 15 个 bug;含 `t_consumable` **119 条**)。⚠ **耗时 ~31 分钟**(从 12 分涨上来)—— 08-29 删掉 goldenvoice 的 SOLVER_BLIND 豁免后 `t_draft` 要真跑一次求解器推演。⚠⚠ 那条豁免 **08-30 又加回来了**(收入重构后金币贴地, 「持币 ≥6」再次不成立)—— **它的成立与否取决于经济参数**, 别当永久声明 | `./tools/unittest.sh`(四判据唯一一份)。⚑ **跑之前先跑三条秒级检查**:`parity.py --check && evsync.py --check && counts.py --check` |
 | CI | `.github/workflows/tests.yml`(push/PR 跑 `--import` + `unittest.sh`;**尚未在 GitHub 上验证过一次**,首跑可能要调 Godot 下载链接) | 推送即触发 |
 | 小丑牌覆盖门 | **64 张**(2026-08-30 三批转生:首批 9 张 +帕奇欧 · 二批 4 张规则牌 · 三批预支);单卡 kit 直跑 ~10 秒(不含单测)。✅ **kit 已认识消耗牌**(12→16 张全部量到) | `SYNC5_KIT_ID=<id> godot --headless --path . --script res://tools/kit.gd` |
@@ -211,6 +212,17 @@ tools/bot.gd                   玩家策略(完美玩家 / 规则 bot)
 现役篇的主角/券/旧数字已扫(细账 CHANGELOG);任何残留过时处**以代码与 `data/*.json` 为准**。
 
 ---
+
+## ⚑ 2026-08-31 快照(交接用)
+
+**小丑牌 64 张 · 消耗牌 17 张**(三批转生:首批 9+帕奇欧 · 二批四张规则牌 · 三批预支)。
+覆盖率**自然口径 64/64 = 100%**(「上架但没人装」0/64), 消耗牌 17/17 全部用到;
+尺子自检 ✅(random 2.0% ≤ 5%);各路线通关率 17~46%, 地形极差 **44.4 pt**;
+局末余额中位 10◆;消耗牌这一层值 **+18.8pt**。
+⚠⚠ **08-27~08-30 期间所有以 bot 为尺的读数曾整体作废**(`RunLoop` 截断 + 三批转生),
+本快照是修复并重跑之后的。全量门 / price→ranking / curve(bot 尺)在 08-31 会话末重跑中。
+⚠ `curve.gd perfect`(真人尺度那张表)**未跑** —— 修复后按拍数比例约 9 小时, 且它的产物
+无论如何要等真人试玩才能验。
 
 ## 三条一眼就该知道的现状
 
