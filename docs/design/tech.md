@@ -200,7 +200,7 @@ apply sites (`Settle.run`, `view/phrase.gd`) read accessors on `SectionMod`.
 ### run.json
 
 **权威 = 文件本身 + `core/db.gd::validate_run`**(2026-08-21:原示例块写 12 段/小盲大盲/5 拍,整块删除)。
-现行顶层键:`phrases_per_section` · `phrases_per_shop` · `sections_per_gig` · `gigs_per_run` · `blind_names` · `gig_names` · `section_targets` · `gig_clocks` · `warning_offset` · `lock_offset` · `late_act_window` · `final_act_window` · `early_finish_time` · `early_discard_window` · `early_lock_min` · `hand_size` · `cache_cap` · `beat_budget` · `death_spec`。
+现行顶层键:`phrases_per_section` · `phrases_per_shop` · `sections_per_gig` · `gigs_per_run` · `blind_names` · `gig_names` · `section_targets` · `gig_clocks` · `warning_offset` · `lock_offset` · `late_act_window` · `final_act_window` · `early_finish_time` · `early_discard_window` · ~~`early_lock_min`~~(2026-08-31 随主动收工退役) · `hand_size` · `cache_cap` · `beat_budget` · `death_spec`。
 结构常量(4 段 × 6 拍 × 8s,`phrases_per_shop: 3` ⇒ 7 次商店)的推导在 [`levels.md`](levels.md);
 ⚠ 所有按段索引的表长度必须 = 段数(`t_run` 锁着,表短会被静默截断成放水盘)。
 
