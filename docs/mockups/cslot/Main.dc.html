@@ -1,0 +1,93 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&display=swap">
+  <style>
+    body { margin: 0; background: #000; font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; }
+    a { color: #23cdff; } a:hover { color: #1effec; }
+    .num { font-family: Rajdhani, system-ui, sans-serif; font-weight: 600; letter-spacing: .04em; }
+  </style>
+</helmet>
+<div style="width: 720px; height: 560px; background: #000000; position: relative; display: flex; flex-direction: column; gap: 0;">
+
+  <div style="padding: 22px 26px 6px; display: flex; flex-direction: column; gap: 4px;">
+    <div class="num" style="color: {{accent}}; font-size: 12px; letter-spacing: .18em; text-transform: uppercase;">Consumable Slot · 60px visual / 88px hit</div>
+    <div style="color: #7b88ab; font-size: 12px;">四态一览 · 纯黑底 · 档位色 {{accent}}</div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; padding: 14px 26px 0;">
+
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+      <div style="width: 88px; height: 88px; display: flex; align-items: center; justify-content: center;">
+        <div style="width: 60px; height: 60px; border-radius: 10px; border: 2px solid rgba(35,205,255,.34); background: rgba(10,14,22,.55); display: flex; align-items: center; justify-content: center;">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 4v10M4 9h10" stroke="rgba(35,205,255,.52)" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </div>
+      </div>
+      <div style="color: #cfd6e6; font-size: 12px;">① 空</div>
+      <div style="color: #5b667f; font-size: 10px; text-align: center; line-height: 1.5;">看得见「有个位置」<br>但不抢手牌</div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+      <div style="width: 88px; height: 88px; display: flex; align-items: center; justify-content: center;">
+        <div style="width: 60px; height: 60px; border-radius: 10px; border: 2px solid rgba(35,205,255,.85); background: rgba(5,5,13,.82); box-shadow: 0 0 0 2px rgba(35,205,255,.11), 0 0 0 4px rgba(35,205,255,.073), 0 0 0 6px rgba(35,205,255,.037), 0 0 18px rgba(35,205,255,.20); display: flex; align-items: center; justify-content: center;">
+          <span style="color: #ffffff; font-size: 12px;">超级百搭</span>
+        </div>
+      </div>
+      <div style="color: #cfd6e6; font-size: 12px;">② 有牌 · 可点</div>
+      <div style="color: #5b667f; font-size: 10px; text-align: center; line-height: 1.5;">暗玻璃底 + 主色描边<br>三层外发光</div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+      <div style="width: 88px; height: 88px; display: flex; align-items: center; justify-content: center;">
+        <div style="width: 60px; height: 60px; border-radius: 10px; border: 2px solid rgba(35,205,255,.27); background: rgba(5,5,13,.26); box-shadow: 0 0 0 2px rgba(35,205,255,.035), 0 0 0 4px rgba(35,205,255,.023); display: flex; align-items: center; justify-content: center;">
+          <span style="color: rgba(35,205,255,.32); font-size: 12px;">超级百搭</span>
+        </div>
+      </div>
+      <div style="color: #cfd6e6; font-size: 12px;">③ 时机不对</div>
+      <div style="color: #5b667f; font-size: 10px; text-align: center; line-height: 1.5;">压暗但仍可见<br>不是隐藏</div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+      <div style="width: 88px; height: 88px; display: flex; align-items: center; justify-content: center;">
+        <div style="width: 60px; height: 60px; border-radius: 10px; border: 2px solid rgba(255,54,50,.72); background: rgba(5,5,13,.82); transform: translateX(-7px); box-shadow: 0 0 16px rgba(255,54,50,.28); display: flex; align-items: center; justify-content: center;">
+          <span style="color: rgba(255,255,255,.5); font-size: 12px;">超级百搭</span>
+        </div>
+      </div>
+      <div style="color: #cfd6e6; font-size: 12px;">④ 点击被拒</div>
+      <div style="color: #5b667f; font-size: 10px; text-align: center; line-height: 1.5;">横向抖 0.35s<br>不许无声</div>
+    </div>
+  </div>
+
+  <div style="margin-top: 26px; padding: 0 26px;">
+    <div style="color: #5b667f; font-size: 11px; margin-bottom: 8px;">真实语境 · 1:1 · 手牌上沿那条 66px 空带(y 672–738)</div>
+    <div style="position: relative; width: 668px; height: 150px; background: #000; border-top: 1px solid rgba(123,136,171,.16);">
+      <div style="position: absolute; left: 466px; top: 3px; width: 60px; height: 60px; border-radius: 10px; border: 2px solid rgba(35,205,255,.34); background: rgba(10,14,22,.55); display: flex; align-items: center; justify-content: center;">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 4v10M4 9h10" stroke="rgba(35,205,255,.52)" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </div>
+      <div style="position: absolute; left: 560px; top: 3px; width: 60px; height: 60px; border-radius: 10px; border: 2px solid rgba(35,205,255,.85); background: rgba(5,5,13,.82); box-shadow: 0 0 0 2px rgba(35,205,255,.11), 0 0 0 4px rgba(35,205,255,.073), 0 0 18px rgba(35,205,255,.20); display: flex; align-items: center; justify-content: center;">
+        <span style="color: #fff; font-size: 12px;">修剪</span>
+      </div>
+      <div style="position: absolute; left: 0; top: 66px; display: flex; gap: 16px;">
+        <div style="width: 114px; height: 84px; border-radius: 12px; border: 1.5px solid rgba(159,233,255,.55); background: rgba(6,8,16,.9); box-shadow: 0 0 14px rgba(159,233,255,.14);"></div>
+        <div style="width: 114px; height: 84px; border-radius: 12px; border: 1.5px solid rgba(255,106,169,.55); background: rgba(6,8,16,.9); box-shadow: 0 0 14px rgba(255,106,169,.14);"></div>
+        <div style="width: 114px; height: 84px; border-radius: 12px; border: 1.5px solid rgba(159,233,255,.55); background: rgba(6,8,16,.9); box-shadow: 0 0 14px rgba(159,233,255,.14);"></div>
+        <div style="width: 114px; height: 84px; border-radius: 12px; border: 1.5px solid rgba(255,106,169,.55); background: rgba(6,8,16,.9); box-shadow: 0 0 14px rgba(255,106,169,.14);"></div>
+        <div style="width: 114px; height: 84px; border-radius: 12px; border: 1.5px solid rgba(159,233,255,.55); background: rgba(6,8,16,.9); box-shadow: 0 0 14px rgba(159,233,255,.14);"></div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"accent":{"editor":"color","default":"#23cdff","options":["#23cdff","#ff9b2b","#ff3632","#ff328d"]}}'>
+class Component extends DCLogic {
+  renderVals() { return { accent: this.props.accent ?? "#23cdff" }; }
+}
+</script>
+</body>
+</html>

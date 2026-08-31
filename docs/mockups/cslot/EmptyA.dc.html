@@ -1,0 +1,48 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600&display=swap">
+  <style>
+    body { margin: 0; background: #000; font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; }
+    a { color: #23cdff; } a:hover { color: #1effec; }
+  </style>
+</helmet>
+<div style="width: 720px; height: 400px; background: #000; display: flex; flex-direction: column; gap: 0;">
+  <div style="padding: 20px 26px 0; display: flex; flex-direction: column; gap: 5px;">
+    <div style="font-family: Rajdhani, sans-serif; font-weight: 600; color: #23cdff; font-size: 13px; letter-spacing: .16em;">DIRECTION A · PLUS OUTLINE</div>
+    <div style="color: #7b88ab; font-size: 12px; line-height: 1.6;">描边提到 alpha .34、底加一层很浅的暗玻璃(.55)，中央一个 18px 的加号。<br>最直白:「这里能放东西」。代价是加号是新符号,全屏别处没有。</div>
+  </div>
+  <div style="display: flex; gap: 44px; padding: 24px 26px 0; align-items: flex-start;">
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 9px;">
+      <div style="width: 88px; height: 88px; display: flex; align-items: center; justify-content: center;"><div style="width: 60px; height: 60px; border-radius: 10px; border: 2px solid rgba(35,205,255,.34); background: rgba(10,14,22,.55); display: flex; align-items: center; justify-content: center;"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 4v10M4 9h10" stroke="rgba(35,205,255,.52)" stroke-width="1.6" stroke-linecap="round"/></svg></div></div>
+      <div style="color: #cfd6e6; font-size: 12px;">空</div>
+    </div>
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 9px;">
+      <div style="width: 88px; height: 88px; display: flex; align-items: center; justify-content: center;">
+        <div style="width: 60px; height: 60px; border-radius: 10px; border: 2px solid rgba(35,205,255,.85); background: rgba(5,5,13,.82); box-shadow: 0 0 0 2px rgba(35,205,255,.11), 0 0 0 4px rgba(35,205,255,.073), 0 0 18px rgba(35,205,255,.20); display: flex; align-items: center; justify-content: center;">
+          <span style="color: #fff; font-size: 12px;">修剪</span>
+        </div>
+      </div>
+      <div style="color: #cfd6e6; font-size: 12px;">有牌(不变)</div>
+    </div>
+    <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 9px;">
+      <div style="color: #5b667f; font-size: 11px;">远看 · 空带里两格都空</div>
+      <div style="position: relative; height: 74px; background: #000; border: 1px solid rgba(123,136,171,.14); border-radius: 6px; overflow: hidden;">
+        <div style="position: absolute; right: 96px; top: 7px;"><div style="width: 60px; height: 60px; border-radius: 10px; border: 2px solid rgba(35,205,255,.34); background: rgba(10,14,22,.55); display: flex; align-items: center; justify-content: center;"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 4v10M4 9h10" stroke="rgba(35,205,255,.52)" stroke-width="1.6" stroke-linecap="round"/></svg></div></div>
+        <div style="position: absolute; right: 8px; top: 7px;"><div style="width: 60px; height: 60px; border-radius: 10px; border: 2px solid rgba(35,205,255,.34); background: rgba(10,14,22,.55); display: flex; align-items: center; justify-content: center;"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 4v10M4 9h10" stroke="rgba(35,205,255,.52)" stroke-width="1.6" stroke-linecap="round"/></svg></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script data-dc-script>
+class Component extends DCLogic {}
+</script>
+</body>
+</html>

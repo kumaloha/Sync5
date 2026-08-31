@@ -1,0 +1,12 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html",   "x": 0,    "y": 0,   "w": 720, "h": 560 },
+    { "file": "EmptyA.dc.html", "x": 0,    "y": 700, "w": 720, "h": 400 },
+    { "file": "EmptyB.dc.html", "x": 800,  "y": 700, "w": 720, "h": 400 },
+    { "file": "EmptyC.dc.html", "x": 1600, "y": 700, "w": 720, "h": 400 }
+  ],
+  "annotations": [
+    { "id": "brief", "x": 800, "y": 0, "w": 300, "text": "问题:空栏位现在是 alpha 0.10 的 2px 描边画在纯黑上 —— 实测约 18/255,等于看不见。\n\n上排 = 四态一览(空态用的是方向 A)。\n下排 = 空态的三个方向,各带一句代价。\n\n② ③ ④ 三态照抄现行实现的真值,没动。" }
+  ],
+  "launch": { "view": "canvas" }
+}
