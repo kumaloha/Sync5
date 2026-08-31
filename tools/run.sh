@@ -8,6 +8,7 @@
 #   tools/run.sh sim <log>        后台跑 sim, 期间锁住工作区
 #   tools/run.sh unittest <log>   同上, 跑单测
 #   tools/run.sh probe <名> <log> 同上, 跑 tools/<名>.gd(任意探针)
+#   tools/run.sh gate <log>      同上, 跑全量门(最长的一个)
 #   tools/run.sh --status         看谁在跑、锁了多久
 #   tools/run.sh --unlock         强制解锁(进程已死但锁还在时)
 #
@@ -66,6 +67,9 @@ case "${1:-}" in
 selftest) sleep 3; rc=0 ;;
 sim)      godot --headless --path . --script res://tools/sim.gd > "${2:-/tmp/sim.log}" 2>&1; rc=$? ;;
 unittest) tools/unittest.sh "${2:-/tmp/tests.log}"; rc=$? ;;
+# ⚑ 门本身也要带锁(2026-08-31 补)—— 它是**最长**的一个(数小时), 也是最该守
+# 「跑着别改」的那个, 而此前 run.sh 恰恰不覆盖它。
+gate)     tools/gate.sh "${@:3}" > "${2:-/tmp/gate.log}" 2>&1; rc=$? ;;
 # ⚑ 通用探针(2026-08-30 补):锁此前只覆盖 sim 与 unittest **两个**, 而 tools/ 下有五十多个
 # 探针都是长跑 —— 「长探针一律走 run.sh」这条纪律对其余的**根本没法遵守**。
 # ⚠ 这正是这把尺自己的第四个盲区:前三个(只读锁目录 / BSD find / 只看 .gd .json)
@@ -76,7 +80,7 @@ probe)
 	[[ -n "${2:-}" ]] || { echo "用法: tools/run.sh probe <tools 下的脚本名(不含 .gd)> <日志路径>"; rm -f "$LOCK"; exit 2; }
 	[[ -f "tools/$2.gd" ]] || { echo "✗ 没有 tools/$2.gd"; rm -f "$LOCK"; exit 2; }
 	godot --headless --path . --script "res://tools/$2.gd" > "${3:-/tmp/probe.log}" 2>&1; rc=$? ;;
-*)        echo "用法: tools/run.sh {sim|unittest|probe <名字>} <日志路径>"; rm -f "$LOCK"; exit 2 ;;
+*)        echo "用法: tools/run.sh {sim|unittest|gate|probe <名字>} <日志路径>"; rm -f "$LOCK"; exit 2 ;;
 esac
 
 FP1=$(fingerprint)
