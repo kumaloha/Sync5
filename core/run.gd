@@ -20,7 +20,13 @@ var joker_slots: Array = [null, null, null, null]
 ## ⚠ 它和 `joker_slots` 是**两套槽位, 互不占用** —— 让消耗品来抢那 4 个小丑槽,
 ## 等于逼玩家在「构筑」和「道具」之间做一个不该有的取舍(与 2026-08-29 修的
 ## 「转型和换旗抢同一个购买名额」同型:奖励某件事的东西不能和那件事抢同一个资源)。
-var consumables: Array = [null, null]
+## ⚑⚑ **待播队列(2026-09-01):不再是 2 格栏位, 而是一摞排队的碟。**
+## 消耗牌全部自动触发 ⇒ 「栏位」这个概念本身没了:`buy` 类买下即执行、根本不进队,
+## 只有时机卡(开场①/副歌④/彩头⑥/快闪▸)会在这里等它的拍号。
+## ⚠ 上限是**算出来的 4** 而不是拍的:商店每 3 拍一次, 一张卡最长等 5 拍 ⇒ 跨得过
+## 一次商店、跨不过两次;联票能在一店买 2 ⇒ 2 店 × 2 = 4。**不设硬上限** ——
+## 一条几乎不触发的规则, 玩家要为它付理解成本却几乎用不上(UI 显示 3 + 「+1」)。
+var consumables: Array = []
 ## ⚑ 预支的**待还款**(2026-08-30 三批转生)。玩家在商店烧掉预支 ⇒ 当场 +borrow、
 ## 记下 repay;**下一个段边界**结算, 付不起 = run 死(卡面写着 "or die")。
 ## ⚠⚠ 它取代了 `Joker.slots_loan` 的循环贷 —— 旧形态是**每段初自动借、段末自动还**,
@@ -210,7 +216,7 @@ func snapshot(run_index: int) -> Dictionary:
 			else {"id": j.id, "st": j.state.duplicate(true)})
 	var consumables_out: Array = []
 	for c in consumables:
-		consumables_out.append(null if c == null else String(c.id))
+		consumables_out.append({"id": String(c.id), "q": int(c.queued_beats)})
 	var ages_out := {}
 	var ages: Dictionary = cache_meta.get("ages", {})
 	for i in range(cache.size()):
@@ -270,16 +276,20 @@ func restore(d: Dictionary) -> bool:
 		# ⚠ 不调 on_acquire:它改牌堆(百搭洗入大小王等), 而牌堆快照里已经是改完的样子
 		joker_slots[i] = j
 	# 消耗品栏 —— 与 slots 同款处理:认不出的 id 就空着(比开不了机好)。
-	consumables = [null, null]
+	consumables = []
 	debt = int(d.get("debt", 0))          # 旧档没有这个键 ⇒ 0(无债), 不需要升版
-	var cons_in: Array = d.get("consumables", [])
-	for i in range(mini(cons_in.size(), consumables.size())):
-		var cid = cons_in[i]
-		if cid == null:
+	# ⚠ 旧档存的是 `[id|null, id|null]`(2 格栏位), 新档是 `[{id, q}, …]`(待播队列)。
+	# 两种都读得回来 —— 认不出的 id 就跳过, 与 slots 同款(比开不了机好)。
+	for item in d.get("consumables", []):
+		if item == null:
 			continue
+		var cid := String(item.get("id", "")) if typeof(item) == TYPE_DICTIONARY else String(item)
 		for e in DB.consumables():
-			if String(e["id"]) == String(cid):
-				consumables[i] = Consumable.new(e)
+			if String(e["id"]) == cid:
+				var c := Consumable.new(e)
+				if typeof(item) == TYPE_DICTIONARY:
+					c.queued_beats = int(item.get("q", 0))
+				consumables.append(c)
 				break
 	phrase_boosts.clear()          # 拍内状态不跨存档
 	run_faces = {}
@@ -508,30 +518,41 @@ func advance() -> Dictionary:
 ## ⚠ **这里只做「取出并记账」, 不执行 action** —— core/ 是纯逻辑, 不认识货架也不碰 view。
 ## 商店类动作(4选2/降价/必出规则牌)由 `view/shop.gd` 消费, 牌堆类由 `Deck` 消费,
 ## 与 `Joker.on_acquire` 分工一致。
-func use_consumable(idx: int, ctx: String) -> Dictionary:
-	if idx < 0 or idx >= consumables.size():
-		return {}
-	var c = consumables[idx]
-	if c == null or not c.usable_in(ctx):
-		return {}
-	consumables[idx] = null                 # 一次性:取出即销毁
+## 取出一张并记账(一次性:取出即销毁)。`boost` 就地并进本拍加成。
+func _take(c) -> Dictionary:
+	consumables.erase(c)
 	if not c.boost.is_empty():
 		phrase_boosts.append(c.boost)
 	return {"id": c.id, "action": c.action, "boost": c.boost}
 
 
-## 消耗品栏还有没有空位(商店判「能不能买」用)。
-func consumable_room() -> bool:
-	return consumables.has(null)
+## 买下的那一刻:`buy` 类直接返回它的 action 交给调用方执行, 其余排进队列。
+## ⚠ 返回空字典 = 「它排队去了, 这一刻什么也不执行」, **不是失败**。
+func take_consumable(c) -> Dictionary:
+	if c.is_instant():
+		if not c.boost.is_empty():
+			phrase_boosts.append(c.boost)
+		return {"id": c.id, "action": c.action, "boost": c.boost}
+	c.queued_beats = 0
+	consumables.append(c)
+	return {}
 
 
-## 收进栏位;满了返回 false(调用方负责拒绝并给提示 —— 与 support 满槽同一条线)。
-func take_consumable(c) -> bool:
-	var i := consumables.find(null)
-	if i < 0:
-		return false
-	consumables[i] = c
-	return true
+## 一拍开始时推进队列的年龄。**必须在 `due_consumables` 之前调一次**, 否则
+## 「下一拍」永远等不到(它判的是 `queued_beats >= 1`)。
+func age_consumables() -> void:
+	for c in consumables:
+		c.queued_beats += 1
+
+
+## 这一拍轮到谁了 —— 取出并返回它们的 {id, action, boost}。`beat` 从 1 起。
+## ⚠ 一拍可能同时到期多张(两枚都刻着 ④), 所以返回数组而不是单张。
+func due_consumables(beat: int) -> Array:
+	var out: Array = []
+	for c in consumables.duplicate():
+		if c.due_on(beat, c.queued_beats):
+			out.append(_take(c))
+	return out
 
 
 func phrases_left() -> int:

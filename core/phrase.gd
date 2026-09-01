@@ -146,44 +146,12 @@ func start() -> void:
 			hidden[hand[pick_pool[j]]] = true
 			pick_pool.remove_at(j)
 
-## 洗牌(2026-08-26 超级百搭配套的付费动作):整手回弃牌堆 → 弃牌堆洗回抽牌堆
-## → 重发 HAND_SIZE 张 —— 堆里的 JOKER 全部回到可抽态, 这是「付费钓卡」的实体。
-## 只在牌堆里有万能时开放(否则它只是免费全弃的付费重复, 纯坑)。缓存不动。
-## 封条随旧手牌离场(花金币洗掉封条 = versus.md「构筑相关成本」的合法解除);
-## 暗场/蒙面按脸的语义对新手牌**重掷**(否则 3◆ 把脸洗成空气)。
-func can_reshuffle() -> bool:
-	if locked or coins < Economy.reshuffle_cost():
-		return false
-	return not deck.wild_extra.is_empty()
-
-
-func reshuffle() -> void:
-	if not can_reshuffle():
-		return
-	coins -= Economy.reshuffle_cost()
-	for c in hand:
-		if c != null:
-			hidden.erase(c)
-			deck.discard(c)
-	hand.clear()
-	deck.recycle()
-	for i in range(GameConfig.HAND_SIZE):
-		var c := deck.draw()
-		if c != null:
-			hand.append(c)
-	if sealed_hand_card != null and not hand.has(sealed_hand_card):
-		sealed_hand_card = null
-	if SectionMod.hide_faces(mod):
-		for c in hand:
-			if c != null and c.rank >= 11 and c.rank <= 13:
-				hidden[c] = true
-	var extra_hide := SectionMod.hide_random(mod)
-	if extra_hide > 0 and not hand.is_empty():
-		var pick_pool: Array = range(hand.size())
-		for _k in range(mini(extra_hide, pick_pool.size())):
-			var j := deck.pick_index(pick_pool.size())
-			hidden[hand[pick_pool[j]]] = true
-			pick_pool.remove_at(j)
+## ⚠⚠ **付费洗牌整块退役(2026-09-01 用户拍板:「万能牌只需要在弃牌的时候有几率洗出来
+## 就行, 不用专门一个洗牌按钮」)**。它 2026-08-26 随超级百搭一起加, 职责是「付费钓卡」——
+## 而 `Deck.draw()` 空了本来就会 `_reshuffle_discard()`, **万能牌本来就会在弃牌补牌时循环出来**,
+## 那个按钮是同一件事的第二套机制。⇑ 连带删除:金币的第三出口没了(只剩弃牌 + 买牌),
+## `reshuffle_cost` / `RESHUFFLE_COST` / 洗牌键 / bot 的洗牌臂 / `rsfl` 打点一并清。
+## ⚠ `tools/replay.gd` 的 `rsfl` 分支**保留** —— 旧 Tape 是历史记录, 不能因为机制退役就读不回来。
 
 
 func can_discard(count: int) -> bool:
@@ -458,10 +426,8 @@ func _oldest_cache_card() -> Card:
 func sort_hand() -> void:
 	if locked:
 		return
-	hand.sort_custom(func(a: Card, b: Card) -> bool:
-		if a.rank != b.rank:
-			return a.rank > b.rank
-		return a.suit > b.suit)
+	# ⚑ 比较器在 `Card.sort_desc` —— 重放侧也要用同一份(见那边的注释)。
+	hand.sort_custom(Card.sort_desc)
 
 ## Live best-five preview of the current hand (for UI).
 func current_best() -> Dictionary:

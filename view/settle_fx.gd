@@ -31,6 +31,11 @@ var _bonus := 0
 var _final := 0
 var _shards: Array = []       # [pos, vel_target, size, delay]
 var _target := Vector2(96, 112)
+## ⚑ **这一拍有哪张碟播了**(2026-09-01 用户:「算的时候提示是什么卡生效就好了」)。
+## 由编排器在拍开始时灌入 [{name, beat}], 结算动画在乘区上方画一条红带报出来。
+## ⚠ **不进乘区** —— 消耗牌的 boost 已经并进了「加成」或「奖励分」那两框, 再单开一框
+## 就是把同一笔钱数两遍。这一条是**归因**不是乘区:它回答「刚才那下是谁干的」。
+var pending_consumables: Array = []
 
 
 func _ready() -> void:
@@ -126,6 +131,7 @@ func _draw() -> void:
 		return
 
 	var cx := size.x * 0.5
+	_draw_consumable_strip(cx)
 	# ---- 乘区逐个上台(为 1/为 0 的不占位, 玩家看到的每一框都真的参与了这拍)----
 	var boxes: Array = [
 		{"cap": Lingo.t("基础分"), "val": str(_base), "col": Color("ff9ecb"),
@@ -235,6 +241,35 @@ func _draw() -> void:
 			draw_string(font, Vector2(x, PANEL_Y + bh * 0.5 + 11.0), String(syms[i]),
 				HORIZONTAL_ALIGNMENT_CENTER, sep_w, 30, Color("8a9cc4"))
 			x += sep_w + gap
+
+
+## 乘区上方那条「这一拍谁播了」的红带。没有就整条不画(不占位)。
+func _draw_consumable_strip(cx: float) -> void:
+	if pending_consumables.is_empty():
+		return
+	var f: Font = StageTheme.zh()
+	var parts: Array = []
+	for e in pending_consumables:
+		parts.append(String(e.get("name", "")))
+	var txt := "  ·  ".join(parts)
+	var fs := 17
+	var w := f.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+	var pad := 16.0
+	var disc_r := 8.0
+	var box_w := w + pad * 2.0 + disc_r * 2.0 + 8.0
+	var y := PANEL_Y - 52.0
+	var r := Rect2(cx - box_w * 0.5, y, box_w, 30.0)
+	var red := StageTheme.SUIT_RED
+	draw_style_box(StageTheme.box(Color(0.10, 0.03, 0.06, 0.94),
+		Color(red.r, red.g, red.b, 0.78), 1, 15,
+		Color(red.r, red.g, red.b, 0.30), 10), r)
+	# 碟形小片 —— 与唱片位排队时的样子同一个语言
+	var dc := Vector2(r.position.x + pad, r.position.y + 15.0)
+	draw_circle(dc, disc_r, Color(0.043, 0.055, 0.125))
+	draw_arc(dc, disc_r, 0, TAU, 24, Color(red.r, red.g, red.b, 0.85), 1.4)
+	draw_circle(dc, disc_r * 0.38, Color(red.r * 0.7, red.g * 0.25, red.b * 0.4))
+	draw_string(f, Vector2(dc.x + disc_r + 8.0, r.position.y + 21.0), txt,
+		HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(1, 1, 1, 0.94))
 
 
 func _draw_shards() -> void:

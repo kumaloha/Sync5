@@ -233,26 +233,16 @@ static func _build_wave_zone(host: Control, out: Dictionary, margin: float) -> v
 	out["blind_card"].mouse_filter = Control.MOUSE_FILTER_IGNORE
 	host.add_child(out["blind_card"])
 
-	# ⚠⚠ **唱片(VinylDeck)已退役**(2026-08-31 用户拍板三连):
-	#   ① 「提前结束」整个机制不要了 ⇒ 它的键没有用途;
-	#   ② 消耗品栏「放光碟那」⇒ 它的位置让出来;
-	#   ③ 牌堆剩余张数「干脆不显示」⇒ 它最后一个职责也没了。
-	# ⚑ 代价说清楚:排版铁律写着「盲注卡 + 音浪 + 唱片(左中右)」, 右边那个配重
-	# 现在换成了**两张红卡** —— 构图仍是三段, 只是右段从"转的唱片"变成"我的消耗牌"。
-	# 消耗牌是**红的**(`SUIT_RED`, 卡牌的红), 与小丑牌的档位色分开 ——
-	# 颜色本身承担了标签的功能:红 = 一次性, 不用再写「消 耗 品」四个字。
-	var cw := 62.0
-	var ch := 104.0
-	var cx := 720.0 - margin - (cw * 2.0 + 8.0)
-	var cy := 426.0 + (216.0 - ch) * 0.5
-	out["cslots"] = []
-	for i in range(2):
-		var cs := Widgets.ConsumableSlot.new()
-		cs.idx = i
-		cs.size = Vector2(cw, ch)
-		cs.position = Vector2(cx + i * (cw + 8.0), cy)
-		host.add_child(cs)
-		out["cslots"].append(cs)
+	# ⚑⚑ **唱片回位(2026-09-01 用户拍板)** —— 消耗牌改成全部自动触发之后,
+	# 「消耗品栏」这个概念本身没了, 位置空出来还给光碟。用户:「光碟的位置还原成光碟」
+	# +「币变成碟就可以了, 最多应该是 3 个」。
+	# ⚠ 几何照 2026-08-31 退役前**逐字还原**:132×132, 右缘距边 margin, 竖向中心对齐盲注卡。
+	# ⚑ 它现在的职责是**待播队列**(空着就是转盘), 见 `view/vinyl_deck.gd` 的文件头。
+	# ⚠ 排版铁律那句「盲注卡 + 音浪 + 唱片(左中右)」因此回到字面意思。
+	out["vinyl"] = VinylDeck.new()
+	out["vinyl"].size = Vector2(132, 132)
+	out["vinyl"].position = Vector2(720.0 - margin - 132.0, 426.0 + (216.0 - 132.0) * 0.5)
+	host.add_child(out["vinyl"])
 
 
 static func _build_orbit(host: Control, hand_top: float) -> OrbitZone:

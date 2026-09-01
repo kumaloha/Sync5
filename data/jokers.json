@@ -34,7 +34,7 @@
    "kind": "target",
    "rarity": "rare",
    "proof": "score",
-   "fx": "Straights and straight flushes: ×4.3",
+   "fx": "Straights and straight flushes: ×4.8",
    "effects": [
     {
      "when": {
@@ -64,7 +64,7 @@
    "kind": "target",
    "rarity": "rare",
    "proof": "score",
-   "fx": "Flushes and straight flushes: ×5",
+   "fx": "Flushes and straight flushes: ×5.6",
    "effects": [
     {
      "when": {
@@ -94,7 +94,7 @@
    "kind": "target",
    "rarity": "rare",
    "proof": "score",
-   "fx": "Trips, full house, quads: ×3.6",
+   "fx": "Trips, full house, quads: ×2",
    "effects": [
     {
      "when": {
@@ -152,7 +152,7 @@
    "rarity": "common",
    "curve": "burst",
    "proof": "score",
-   "fx": "Same hand as last phrase: +328",
+   "fx": "Same hand as last phrase: +78% target",
    "effects": [
     {
      "when": {
@@ -172,7 +172,7 @@
    "rarity": "common",
    "curve": "burst",
    "proof": "score",
-   "fx": "Act in final 2 seconds: +101",
+   "fx": "Act in final 2 seconds: +24% target",
    "effects": [
     {
      "when": {
@@ -192,7 +192,7 @@
    "rarity": "common",
    "curve": "burst",
    "proof": "score",
-   "fx": "+92 per discard this phrase",
+   "fx": "+22% target per discard this phrase",
    "effects": [
     {
      "when": {
@@ -253,7 +253,7 @@
    "rarity": "common",
    "curve": "fixed",
    "proof": "score",
-   "fx": "+46",
+   "fx": "Every phrase: +11% of target",
    "effects": [
     {
      "do": {
@@ -479,7 +479,7 @@
    "rarity": "common",
    "curve": "burst",
    "proof": "score",
-   "fx": "Different hand than last phrase: +118",
+   "fx": "Different hand than last phrase: +28% target",
    "effects": [
     {
      "when": {
@@ -597,7 +597,7 @@
    "rarity": "common",
    "curve": "burst",
    "proof": "score",
-   "fx": "All four suits in hand: +164",
+   "fx": "All four suits in hand: +39% target",
    "effects": [
     {
      "when": {
@@ -617,7 +617,7 @@
    "rarity": "common",
    "curve": "burst",
    "proof": "score",
-   "fx": "No pair in hand: +273",
+   "fx": "No pair in hand: +65% target",
    "effects": [
     {
      "when": {
@@ -780,7 +780,7 @@
    "rarity": "common",
    "curve": "burst",
    "proof": "score",
-   "fx": "Trips or better: +25 chips",
+   "fx": "Trips or better: +30 chips",
    "effects": [
     {
      "when": {
@@ -804,7 +804,7 @@
    "rarity": "uncommon",
    "curve": "burst",
    "proof": "score",
-   "fx": "Trips or better: +60%",
+   "fx": "Trips or better: +45%",
    "effects": [
     {
      "when": {
@@ -914,7 +914,7 @@
    "rarity": "common",
    "curve": "burst",
    "proof": "score",
-   "fx": "Zero swaps this phrase: +134",
+   "fx": "Zero swaps this phrase: +32% target",
    "effects": [
     {
      "when": {
@@ -934,7 +934,7 @@
    "rarity": "common",
    "curve": "burst",
    "proof": "score",
-   "fx": "Swapped cards that score: +55 each",
+   "fx": "Each swapped card that scores: +13% target",
    "effects": [
     {
      "do": {
@@ -952,7 +952,7 @@
    "rarity": "common",
    "curve": "burst",
    "proof": "score",
-   "fx": "Each face card discarded: +42",
+   "fx": "Each face card discarded: +10% target",
    "effects": [
     {
      "do": {
@@ -987,7 +987,7 @@
    "rarity": "rare",
    "curve": "fixed",
    "proof": "score",
-   "fx": "Coins cap at five; hands x1.3",
+   "fx": "Coins cap at five; hands x1.6",
    "hold": {
     "coin_cap": 12
    },
@@ -1045,7 +1045,7 @@
    "rarity": "common",
    "curve": "burst",
    "proof": "score",
-   "fx": "All discards in first 6 seconds: +176",
+   "fx": "All discards in first 6s: +42% target",
    "effects": [
     {
      "when": {

@@ -37,7 +37,7 @@ const _RUN_KEYS := ["phrases_per_section", "phrases_per_shop", "sections_per_gig
 	"s1_face_min_run", "s1_easy_chance"]
 const _ECO_KEYS := ["starting_coins", "discard_cost", "section_clear_reward",
 	"draft_rarity_weights", "joker_prices", "joker_price_overrides",
-	"reroll", "reshuffle_cost", "kind_coins"]
+	"reroll", "kind_coins"]
 const _TAPE_KEYS := ["enabled", "to_file", "dir", "max_events", "mute"]   # upload 是可选节, 另查
 
 
@@ -1088,7 +1088,6 @@ static func _validate_effects(effects: Array, owner: String, counters: Dictionar
 ## 额外守两条**只属于消耗牌**的契约:
 ##   ① `when` 只能是 phrase/shop/any —— 写错等于这张牌永远点不亮, 且不报错。
 ##   ② `action` 与 `boost` **至少有一个**, 否则它是一张用了什么也不发生的牌。
-const _CONSUMABLE_WHEN := ["phrase", "shop", "any"]
 ## ⚑ 消耗牌的立即动作 —— **加新键时三处齐落**:这里 · `view/phrase.gd::_apply_shop_action`
 ## · `tools/bot.gd::_apply_bot_action`。`tools/parity.py` 会机械核对后两处。
 const _CONSUMABLE_ACTIONS := ["wilds", "trim_low", "deck_rule", "shelf_slots",
@@ -1104,7 +1103,7 @@ static func validate_consumables(d: Dictionary) -> String:
 	var ids := {}
 	for e in d["consumables"]:
 		for k in e:
-			if not ["id", "name", "cn", "price", "when", "fx", "action", "boost",
+			if not ["id", "name", "cn", "price", "fire", "fx", "action", "boost",
 					"proof"].has(k) \
 					and not String(k).begins_with("_"):
 				return "consumable unknown key '%s' (%s)" % [k, e.get("id", "?")]
@@ -1114,9 +1113,20 @@ static func validate_consumables(d: Dictionary) -> String:
 		if ids.has(cid):
 			return "duplicate consumable id '%s'" % cid
 		ids[cid] = true
-		if not _CONSUMABLE_WHEN.has(String(e.get("when", ""))):
-			return "consumable '%s' 的 when '%s' 不认识, 只能是 %s" \
-				% [cid, e.get("when", ""), str(_CONSUMABLE_WHEN)]
+		# ⚑ `fire` = 什么时候自己打(2026-09-01 消耗牌全部自动触发, 取代旧的 `when`):
+		# "buy"(买下即触发)· "next"(下一拍)· 1..6(遇到的第一个第 N 拍)。
+		# ⚠ 拍号必须落在 1..PHRASES_PER_SECTION —— 写了个 7 的话它**永远等不到**,
+		# 而那会是一张静默的废卡(「不报错的错」是这个项目最贵的一类)。
+		var fv = e.get("fire", null)
+		if typeof(fv) == TYPE_STRING:
+			if not ["buy", "next"].has(String(fv)):
+				return "consumable '%s' 的 fire '%s' 不认识, 字符串只能是 buy / next" % [cid, fv]
+		elif typeof(fv) == TYPE_FLOAT or typeof(fv) == TYPE_INT:
+			if int(fv) < 1 or int(fv) > GameConfig.PHRASES_PER_SECTION:
+				return "consumable '%s' 的 fire 拍号 %d 越界(1..%d)—— 它会永远等不到" \
+					% [cid, int(fv), GameConfig.PHRASES_PER_SECTION]
+		else:
+			return "consumable '%s' 缺 fire(什么时候自己打)" % cid
 		if e.get("action", {}).is_empty() and e.get("boost", {}).is_empty():
 			return "consumable '%s' 既没有 action 也没有 boost —— 用了什么都不会发生" % cid
 		# ⚠ action 键必须在白名单里 —— **拼错一个字母 = 两侧都不执行, 且不报错**

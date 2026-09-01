@@ -1393,19 +1393,35 @@ class BlindBoard:
 ## 否则玩家不会记得自己还能拿牌(与缓存区恒满 3 格同一条理由)。
 class ConsumableSlot:
 	extends Button
+	## 货架上的一张消耗牌 —— **碟形**(2026-09-01 用户:「消耗卡 UI 改成圆形的,硬币一样」
+	## →「币变成碟就可以了」)。⚑ 形状本身在做分类:**卡牌留在槽里, 碟是花掉的**,
+	## 而消耗牌 100% 一次性。比靠颜色区分强 —— 色弱也读得出来。
+	## ⚑ 与唱片位排队时的碟是**同一样东西**:商店里你买的是这张碟, 买完它排进歌单。
+	## ⚠ 局内的两格栏位已随「全部自动触发」退役, 所以这个类现在**只有商店用**。
 	signal used(idx: int)
 	var idx := 0
 	var accent := Color.WHITE
 	var label := ""          # 卡的短名(cn/en 走 Lingo.pick, 由调用方填)
+	var art_id := "":
+		set(v):
+			if v == art_id:
+				return
+			art_id = v
+			_art = null
+			_art_src = Rect2()
+			if not v.is_empty():
+				var a: Array = JokerSlotView.load_art(v)
+				if a.size() == 2:
+					_art = a[0]
+					_art_src = a[1]
+			queue_redraw()
+	var _art: Texture2D = null
+	var _art_src := Rect2()
+	var stamp := ""          # 碟标上刻的那个字:拍号, 或 ▸(下一拍), 或空(买入即触发)
 	var filled := false
-	var armed := true        # 当前语境能不能点(phrase/shop 时机门)
-	## ⚠⚠ **视觉尺寸跟着 `size` 走, 不再写死** —— 2026-08-31 栏位从「手牌上沿的 88×88
-	## 小方块」搬到「唱片位的 62×104 卡形」, 而旧代码写死 `VIS = 60`, 搬完只会在
-	## 大框里画一个小方块。⇒ 内缩固定边距, 形状由调用方的 size 决定。
-	const INSET := 2.0
-	## 空格的底色 —— **暗玻璃, 不是透明**。透明底意味着这一格只剩 2px 描边可看,
-	## 而它画在纯黑上(局内 BG0 = #000000), 那正是上一版看不见的原因。
-	const EMPTY_BG := Color(10.0 / 255, 14.0 / 255, 22.0 / 255, 0.55)
+	var armed := true        # 买得起 **且** 买了有用
+	var _shake_t := 0.0
+
 	func _init() -> void:
 		set_process(false)
 		flat = true
@@ -1417,11 +1433,7 @@ class ConsumableSlot:
 				used.emit(idx)
 			else:
 				shake())   # ⚠ 点不动也要有反馈 —— 被拒绝的点击不许无声(DJKey 同款)
-	var _shake_t := 0.0
-	## 与 `DJKey.shake` 同一条纪律:按不动时抖一下, 否则玩家不知道是「没反应」
-	## 还是「点歪了」。⚠ 2026-08-30 code review 抓到:`phrase.gd` 与 `shop.gd`
-	## 早就写了 `x.shake() if x.has_method("shake") else null`, 而这个类**根本没有
-	## shake 方法** ⇒ 那两行是**永远不执行的死代码**, 而点击静默无反馈。
+
 	func shake() -> void:
 		_shake_t = 0.35
 		set_process(true)
@@ -1432,51 +1444,46 @@ class ConsumableSlot:
 		if _shake_t <= 0.0:
 			set_process(false)
 		queue_redraw()
-	## ⚠ 画法跟全屏统一:**暗玻璃底 + 主色描边 + 外发光**(CLAUDE.md 美术方向)。
-	## 第一版画的是硬边方框, 渲染出来跟周围的圆角发光件格格不入 —— 「改了视觉
-	## 就渲染出来自己看」这条纪律当场兑现。
+
 	func _draw() -> void:
-		var c := Vector2(size.x, size.y) * 0.5
+		if not filled:
+			return                     # 货架空位不画(没有「等你放东西」的语义了)
+		var c := size * 0.5
 		if _shake_t > 0.0:
 			c.x += sin(_shake_t * 60.0) * _shake_t * 12.0
-		var vis := size - Vector2(INSET, INSET) * 2.0
-		var r := Rect2(c - vis * 0.5, vis)
-		var rad := 10.0
-		if not filled:
-			# 空格:「这里有个位置、你可以拿牌」要**一眼看得见**, 但不能抢手牌的注意力。
-			# ⚠⚠ 2026-08-31 用户试玩报「没看到消耗牌在哪」—— 上一版是**透明底 + alpha 0.10
-			# 的 2px 描边画在纯黑上**, 按感知亮度算约 **18/255**, 等于没画。
-			# 注释当时就写着「要看得见」, **意图对了、数值没兑现** —— 与 08-28 那次
-			# 「键控衰减到 57/255, 比卡面自己画的网格线还淡」同一族(LESSONS:亮度基准要用 luma)。
-			# ⇒ 方向 A(Claude Design 出稿, 用户 08-31 选定):**浅暗玻璃底 + 描边提到 .34
-			# + 中央一个加号**。底是暗的所以不抢戏, 加号给出「可以放东西」的语义 ——
-			# 只靠描边提亮会和旁边发光的手牌打架。
-			draw_style_box(StageTheme.box(EMPTY_BG,
-				Color(accent.r, accent.g, accent.b, 0.34), 2, int(rad)), r.grow(-1.0))
-			var pc := Color(accent.r, accent.g, accent.b, 0.52)
-			var half := minf(vis.x, vis.y) * 0.15   # 加号跟着框缩放(设计稿 60 框里 ±5 ≈ 0.17)
-			draw_line(c - Vector2(half, 0.0), c + Vector2(half, 0.0), pc, 1.6, true)
-			draw_line(c - Vector2(0.0, half), c + Vector2(0.0, half), pc, 1.6, true)
-			return
-		var a := 1.0 if armed else 0.32     # 时机不对压暗, 但仍可见(不是隐藏)
-		# ⚠ **不走 `draw_card`** —— 它会贴 glass 素材, 而九宫格在这种小板尺寸下必坏
-		# (CLAUDE.md 明写)。这里用程序化圆角 `StageTheme.box`, 与顶栏/商店板同一条路。
-		for i in range(3):                                   # 外发光:三层递减
-			var g := 1.0 - float(i) / 3.0
-			draw_style_box(StageTheme.box(Color(0, 0, 0, 0),
-				Color(accent.r, accent.g, accent.b, 0.11 * g * a), 2, int(rad + i * 2)),
-				r.grow(float(i) * 2.0))
-		draw_style_box(StageTheme.box(Color(0.02, 0.02, 0.05, 0.82 * a),
-			Color(accent.r, accent.g, accent.b, 0.85 * a), 2, int(rad)), r)
-		var f: Font = StageTheme.zh()
-		var fs := 12
-		var w := f.get_string_size(label, HORIZONTAL_ALIGNMENT_CENTER, -1, fs).x
-		while w > vis.x - 10.0 and fs > 9:
-			fs -= 1
-			w = f.get_string_size(label, HORIZONTAL_ALIGNMENT_CENTER, -1, fs).x
-		draw_string(f, r.position + Vector2((vis.x - w) * 0.5, vis.y * 0.5 + fs * 0.36),
-			label, HORIZONTAL_ALIGNMENT_LEFT, -1, fs,
-			Color(1, 1, 1, a) if armed else Color(accent.r, accent.g, accent.b, a))
+		var r := minf(size.x, size.y) * 0.5 - 2.0
+		var a := 1.0 if armed else 0.34
+		# 外发光三层 + 盘 + 描边
+		for i in range(3):
+			draw_circle(c, r + 2.0 + float(i) * 2.0,
+				Color(accent.r, accent.g, accent.b, 0.10 * (1.0 - float(i) / 3.0) * a))
+		draw_circle(c, r, Color(0.02, 0.02, 0.05, 0.97 * a))
+		draw_arc(c, r, 0, TAU, 48, Color(accent.r, accent.g, accent.b, 0.85 * a), 2.0)
+		draw_arc(c, r * 0.86, 0, TAU, 40, Color(accent.r, accent.g, accent.b, 0.22 * a), 1.0)
+		# 齿纹 —— 「硬币」的暗示;没有它容易被读成又一个圆按钮
+		for i in range(12):
+			var ang := TAU * float(i) / 12.0
+			var d := Vector2(cos(ang), sin(ang))
+			draw_line(c + d * (r - 1.0), c + d * (r - r * 0.09),
+				Color(accent.r, accent.g, accent.b, 0.42 * a), 1.4, true)
+		# 插画:走小丑牌那条唯一加载路径(别抄第二份), 按内容包围盒 contain 进内圈
+		if _art != null and _art_src.size.x > 0.0:
+			var box := Rect2(c - Vector2(r, r) * 0.62, Vector2(r, r) * 1.24)
+			var k := minf(box.size.x / _art_src.size.x, box.size.y / _art_src.size.y)
+			var dst := Rect2(box.position + (box.size - _art_src.size * k) * 0.5,
+				_art_src.size * k)
+			draw_texture_rect_region(_art, dst, _art_src, Color(1, 1, 1, a))
+		# 拍号刻印:右下角一枚小圆 —— 「它在第几拍自己打」写在脸上
+		if stamp != "":
+			var sc := c + Vector2(r * 0.62, r * 0.62)
+			var sr := r * 0.30
+			draw_circle(sc, sr, Color(0.02, 0.02, 0.05, 0.95 * a))
+			draw_arc(sc, sr, 0, TAU, 24, Color(accent.r, accent.g, accent.b, 0.9 * a), 1.5)
+			var f: Font = StageTheme.num("Bold")
+			var fs := int(sr * 1.25)
+			var w := f.get_string_size(stamp, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+			draw_string(f, sc + Vector2(-w * 0.5, fs * 0.36), stamp,
+				HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(1, 1, 1, a))
 
 
 class DJKey:
@@ -1484,8 +1491,8 @@ class DJKey:
 	signal dropped(data: Dictionary)
 	var accent := Color.WHITE
 	var zh_label := ""
-	var kind := "sort"      # "sort" | "discard" | "reshuffle"(洗牌走热键画法, 图标同 shuffle)
-	var radius := 46.0      # 洗牌键是 72×72 的紧凑款, 圆环半径跟着尺寸走(2026-08-26)
+	var kind := "sort"      # "sort" | "discard"(洗牌 2026-09-01 退役)
+	var radius := 46.0      # 圆环半径跟着尺寸走
 	var fee := 0
 	var active := true
 	var accept_drop := false
@@ -1566,15 +1573,6 @@ class DJKey:
 			# ⇅ : up arrow on the left, down arrow on the right
 			_arrow(Vector2(cx - 8, cy + 13), Vector2(cx - 8, cy - 13), ic)
 			_arrow(Vector2(cx + 8, cy - 13), Vector2(cx + 8, cy + 13), ic)
-		elif kind == "reshuffle":
-			# 循环箭头(↻)—— 「弃牌堆洗回重发」;不复用弃牌键的交叉箭头:
-			# 两个圆键同图标时只剩颜色在做区分, 色弱读不出来。
-			var rr := r * 0.38
-			draw_arc(c, rr, PI * 0.2, PI * 1.8, 28, ic, 2.4, true)
-			var ea := PI * 1.8
-			var tip := c + Vector2(cos(ea), sin(ea)) * rr
-			var tangent := Vector2(-sin(ea), cos(ea))
-			_arrow(tip - tangent * 6.0, tip + tangent * 4.0, ic)
 		else:
 			# shuffle: two paths that enter flat from the left, cross in the
 			# middle and exit right — both heads point the same way. (Two

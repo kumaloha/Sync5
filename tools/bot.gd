@@ -223,7 +223,7 @@ func _card_ev_formula(id: String, st: Dictionary, slots: Array, phrases_left: in
 			return float(p["base"]) * score_mean
 		"superwild":
 			# 超级百搭(2026-08-26)与百搭同键形:base + 对位 Target 加成;
-			# 差异(4 张注入 + 洗牌钓卡)已折进 ev.cards 的 base 先验(0.2 vs 0.1)。
+			# 差异(4 张注入)已折进 ev.cards 的 base 先验(0.2 vs 0.1)。
 			var tb: Array = p["target_bonus"]
 			var bonus: float = float(tb[1]) if tid in tb[0] else 0.0
 			return (float(p["base"]) + bonus) * score_mean
@@ -796,47 +796,28 @@ func _consumables_in_shop(run, coins: int, slots: Array) -> int:
 	# 有了它才答得了「消耗牌这一层值多少」—— 与 `baseline(no jokers)` 之于小丑牌同理。
 	if bool(_cfg_no_cons):
 		return coins
-	# ① 先用掉手上能在商店用的(用完腾位, 才谈买)
-	for i in range(run.consumables.size()):
-		var c = run.consumables[i]
-		if c == null or not c.usable_in("shop"):
-			continue
-		if c.action.has("copy_one_destroy_rest"):
-			var n := 0
-			for j in slots:
-				if j != null:
-					n += 1
-			if n < 2:
-				continue                      # 砧座:≤1 张时用了等于白烧
-		var used: Dictionary = run.use_consumable(i, "shop")
-		if not used.is_empty():
-			_apply_bot_action(run, slots, used)
-			# ⚑ 预支:借款要改**本地的 coins**, 而 `_apply_bot_action` 拿不到它 ⇒ 在这里结。
-			# ⚠ 与游戏侧 `_apply_shop_action` 的 `loan` 分支同一份语义(grant 收口 + 记债)。
-			var ln: Dictionary = (used.get("action", {}) as Dictionary).get("loan", {})
-			if not ln.is_empty():
-				coins = Economy.grant(coins, int(ln.get("borrow", 0)), slots)
-				run.debt += int(ln.get("repay", 0))
-			_rep.consumables_used += 1
+	# ⚑⚑ **「先用掉手上的」整段已删(2026-09-01)** —— 消耗牌全部自动触发之后,
+	# 离店那一刻手上**不可能有商店类的卡**(`fire: "buy"` 买下即执行, 根本不进队列)。
+	# 队列里只剩时机卡, 而它们等的是拍号, 不是商店。
 	# ② 帕奇欧:离店时复制一张消耗牌 —— **与游戏侧 `_perkeo_on_exit` 对齐**。
 	# ⚠ 2026-08-30 补:开轴当天只接了游戏侧, bot 侧漏了 ⇒ sim 里帕奇欧是**纯废卡**
 	# (rare, 占一个槽, 什么也不做), bot 算出价值 0、永不购买, 这张牌永远进不了读数。
 	# 「规则在游戏里、不在模型里」的**第七次**。
-	if Joker.slots_copy_consumable(slots) and run.consumable_room():
-		var src: Array = []
-		for c in run.consumables:
-			if c != null:
-				src.append(c)
+	# ⚠ 队列没有上限了 ⇒ 摘掉 `consumable_room()` 这道门。
+	# ⚑ 射程同时变窄:能被复制的只剩时机卡(与游戏侧 `_perkeo_on_exit` 同一句注释)。
+	if Joker.slots_copy_consumable(slots):
+		var src: Array = run.consumables.duplicate()
 		if not src.is_empty():
 			var pk = src[_rng.randi_range(0, src.size() - 1)]   # bot 侧用自己的 rng(探针复现)
 			for e in DB.consumables():
 				if String(e["id"]) == pk.id:
-					run.take_consumable(Consumable.new(e))
+					var used2: Dictionary = run.take_consumable(Consumable.new(e))
+					if not used2.is_empty():
+						_apply_bot_action(run, slots, used2)
 					_rep.cov_install(String(e["id"]))
+					_rep.perkeo_copies += 1    # 零基线证物:没有帕奇欧时恒 0(kit SHOP_WITNESS)
 					break
 	# ③ 再买 —— 一店最多一张(与游戏侧「货架只出一张」同构)
-	if not run.consumable_room():
-		return coins
 	# ⚑ 货架 **2 格**(2026-08-31, 与游戏侧 `_roll_consumables` 同一份语义):
 	# 掷两张互不重复的, **最多成交一张**(「2 选 1」, 供给不变、选择变多)。
 	# ⚠ bot 的挑法刻意简单:买得起的里面挑**贵的那张**(价格是我们唯一的强度代理,
@@ -881,7 +862,16 @@ func _consumables_in_shop(run, coins: int, slots: Array) -> int:
 	if best == null:
 		return coins
 	coins -= best.price
-	run.take_consumable(best)
+	# ⚑ 买下即触发(2026-09-01):`fire: "buy"` 的直接返回它的 action, 就地执行;
+	# 时机卡返回空字典 = 它排队去了。⚠ 预支的借款要改**本地 coins**, 所以在这里结算。
+	var bought: Dictionary = run.take_consumable(best)
+	if not bought.is_empty():
+		_apply_bot_action(run, slots, bought)
+		var ln2: Dictionary = (bought.get("action", {}) as Dictionary).get("loan", {})
+		if not ln2.is_empty():
+			coins = Economy.grant(coins, int(ln2.get("borrow", 0)), slots)
+			run.debt += int(ln2.get("repay", 0))
+		_rep.consumables_used += 1
 	_rep.cov_install(String(best.id))
 	_rep.eco_add("spend_buy", best.price)
 	_rep.consumables_bought += 1
@@ -889,25 +879,19 @@ func _consumables_in_shop(run, coins: int, slots: Array) -> int:
 	return coins
 
 
-## ⚑ 拍内烧消耗牌。策略:**攒到段末再用** —— 段目标是硬生死线, 而消耗牌是
-## 一次性的, 早烧等于把它花在一个「本来也能过」的拍上。
-## ⚠ 这是个**保守而非最优**的启发式:真人会看着手牌决定(比如凑到大牌型才烧),
-## bot 看不到那么远。它的作用是**让这一层在读数里存在**, 不是替玩家找最优解。
+## ⚑⚑ **不再是决策, 是到点自动打**(2026-09-01 用户拍板:消耗牌全部自动触发)。
+## 原来这里有一条「只在段末两拍考虑、差得越多越该烧」的启发式 —— 那条臂**整个删了**,
+## 因为「烧在哪一拍」这个决策本身没有了。⇒ 模型侧因此比游戏侧更简单, 而且两侧
+## **共用同一份判据**(`Run.age_consumables` + `due_consumables`), 不再各写一套。
+## ⚠ 顺序与游戏侧一致:先推进年龄, 再取到期的 —— 反了「下一拍」就永远等不到。
 func _consumable_in_beat(run, p, section: int, pidx: int) -> void:
 	if run == null or _cfg_no_cons:
 		return
-	# 只在段末两拍考虑(差得越多越该烧)
-	if pidx < GameConfig.PHRASES_PER_SECTION - 2:
-		return
-	for i in range(run.consumables.size()):
-		var c = run.consumables[i]
-		if c == null or not c.usable_in("phrase"):
-			continue
-		var used: Dictionary = run.use_consumable(i, "phrase")
-		if not used.is_empty():
-			_apply_bot_action(run, run.joker_slots, used)
-			_rep.consumables_used += 1
-			return                     # 一拍只烧一张(与玩家的手速预算同构)
+	run.age_consumables()
+	for used in run.due_consumables(pidx + 1):
+		_apply_bot_action(run, run.joker_slots, used)
+		_rep.consumables_used += 1
+
 
 
 ## 消耗牌的立即动作在 bot 侧的执行。⚠ 只做**模型看得见**的那几种:
@@ -1205,22 +1189,8 @@ func _play_adaptive(p: Phrase, slots: Array, target_id: String, section: int, mo
 			if bool(vow_plan.get("keep_all", false)):
 				return
 			break
-	# 洗牌(2026-08-26 超级百搭配套):**只在注入过 JOKER 时**(wild_extra 非空)考虑,
-	# 绑注入(wild_extra)—— 万能牌唯一来源 = superwild(08-26 取代百搭后大小王通道已退役)。
-	# 动机 = 钓 JOKER:手里没万能、手牌还烂(plan 不是 keep_all)、钱付得起还留得下
-	# 购买力(cost + 6)才洗;每拍至多一次 —— 连洗是在赌, 不是玩家会做的事。
-	if not p.deck.wild_extra.is_empty() and p.can_reshuffle() \
-			and p.coins >= Economy.reshuffle_cost() + 6:
-		var has_wild := false
-		for hc in p.hand:
-			if hc != null and hc.is_wild():
-				has_wild = true
-		if not has_wild:
-			var rs_plan: Dictionary = _best_plan(p.hand, target_id, 3, p.deck.rules)
-			if not bool(rs_plan.get("keep_all", false)):
-				p.reshuffle()
-				if _rep != null:   # 经济账本:洗牌支出(外层已验过 can_reshuffle)
-					_rep.eco_add("spend_reshuffle", Economy.reshuffle_cost())
+	# ⚠ 洗牌臂已随机制退役删除(2026-09-01)—— 万能牌改为「弃牌补牌时自然循环出来」,
+	# 而那条路径 bot 走的是普通弃牌决策, 不需要单独一条臂。
 	# free swaps: any trial swap that raises the best plan's EV sticks
 	var rules: Dictionary = p.deck.rules
 	for ci in range(p.cache.size()):
