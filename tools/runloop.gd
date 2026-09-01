@@ -179,10 +179,18 @@ static func play(o: Opts, bot: Bot) -> Dictionary:
 		# 预支还款:工资入账后判 —— 付不起 = run 死(含 S4, 卡面写着 "or die")。
 		# ⚠ 读的是 `run.debt`(消耗牌记下的待还), 不再是持仓里的循环贷。
 		if run.debt > 0:
-			if coins < run.debt:
+			# ⚠⚠ **必须受 `o.mortal` 管**(2026-09-01 修)。这一段有两个 `break`,
+			# 只有上面那个判生死的看 `o.mortal`, 这个不看 ⇒ **不死局也会在这里断掉**,
+			# `sec_scores` 短于 4 段, 而 `curve.gd::_report` 按 `row[s]` 逐段取分位数
+			# ⇒ `Invalid access of index '2'`。⚑ 更贵的是**它不改退出码** ——
+			# SceneTree 脚本的运行时错误不终止进程, 于是 `curve` 崩在 S3 却报 rc=0,
+			# 一次「假绿」。(CLAUDE.md 早写着「跑完必须确认退出码」, 而这次退出码在说谎。)
+			# ⇒ 不死局的记账约定:**还得上就还, 还不上就清账继续**, 与「段末工资照发
+			# (假定通过)」同一条线。偏差方向记明:用过预支又还不上的局, 分数略偏高。
+			if o.mortal and coins < run.debt:
 				died_at = section
 				break
-			coins -= run.debt
+			coins = maxi(0, coins - run.debt)
 			run.debt = 0
 		# ⚠⚠ **末段没有段末商店** —— 游戏里 `view/phrase.gd` 在 `finale` 那一支直接
 		# 走结算成功屏并 return, 根本不开商店。这里原本无条件开, 于是**模型比游戏多一次

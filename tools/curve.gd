@@ -118,6 +118,15 @@ func _report(label: String, rows: Array) -> void:
 			break
 		var col: Array = []
 		for row in alive:
+			# ⚑ **短行要当场喊, 不要等它崩**(2026-09-01):不死局的契约是「每局四段
+			# 都有分」, 而 08-30 加的预支还款在 `runloop` 里带了个不看 `o.mortal` 的
+			# `break`, 于是这里拿到 2 段长的行, `row[s]` 直接崩 —— 而 SceneTree 脚本
+			# 的运行时错误**不改退出码**, 整趟报 rc=0。⇒ 用显式退出码换那次假绿。
+			if s >= row.size():
+				push_error("curve: 不死局出现短行(%d 段, 应有 %d)—— 读数作废"
+					% [row.size(), GameConfig.SECTIONS_PER_RUN])
+				quit(70)
+				return
 			col.append(float(row[s]))
 		col.sort()
 		var d: float = float(DEATH_SPEC[mini(s, DEATH_SPEC.size() - 1)])
