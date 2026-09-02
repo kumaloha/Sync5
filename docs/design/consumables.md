@@ -106,7 +106,7 @@
 **一张买不起的卡等于不存在**。⇒ 定价的两个旋钮(价格 / 效果)要看**玩家的钱包**选哪个拧。
 
 ⚠⚠ **商店类那 6 张的现价(8◆)仍待重定**。它们的 action 键
-(`shelf_slots` / `buy_limit` / `price_delta` / `rule_guaranteed` / `free_reroll` / `min_rank`)
+(`shelf_slots` / `extra_buys` / `price_delta` / `rule_guaranteed` / `free_reroll` / `min_rank`)
 在 2026-08-30 之前**只有游戏侧实现**, bot 会买、会「用掉」但**什么都不发生** ——
 而 8◆ 正是用那份读数定的。bot 侧已补齐(`tools/parity.py` 现在机械核对 9/9),
 但**价格还没跟着重来**。

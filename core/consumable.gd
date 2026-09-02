@@ -22,9 +22,19 @@ var name: String          # EN display name
 var cn_name: String
 var fx_text: String       # 卡面英文, ≤7 词(与小丑牌同一条门)
 var price: int
-var when: String          # "phrase" | "shop" | "any"
+## ⚑⚑ **触发时机(2026-09-01 用户拍板:消耗牌全部自动触发)**。原来的
+## `when: phrase|shop|any` 是「玩家现在能不能点」, 而**点这个动作整个没了** ——
+## 用户原话:「现在玩起来有点怪, 比如那个塞 4 张万能卡, 还要自己点一下才生效,
+## 完全不用点」。⇒ 判据换成「**它什么时候自己打**」:
+##   `"buy"`  —— 买下即触发(13 张 action:改牌堆或改这次商店的, 没有「哪一拍」可选)
+##   `"next"` —— 买下后的下一拍(快闪:名字就是「突然」)
+##   1..6     —— 买下后遇到的**第一个第 N 拍**(开场① · 副歌④ · 彩头⑥)
+## ⚑ 四张时机卡因此收成**一条规则**而不是四条特例, 而且这个数**刻在碟面上**,
+## 规则自解释(不用记、不用查、不用点)。
+var fire                  # "buy" | "next" | int 1..6
 var action: Dictionary    # 立即动作(可空)
 var boost: Dictionary     # 当拍加成(可空)
+var queued_beats := 0     # 排队至今经过了几拍(`"next"` 判这个)
 
 
 func _init(e: Dictionary) -> void:
@@ -33,7 +43,7 @@ func _init(e: Dictionary) -> void:
 	cn_name = String(e.get("cn", ""))
 	fx_text = String(e.get("fx", ""))
 	price = int(e.get("price", 3))
-	when = String(e.get("when", "any"))
+	fire = e.get("fire", "buy")
 	# ⚠ **必须 duplicate** —— `e` 来自 `DB.consumables()` 的缓存, 直接引用等于
 	# 所有实例共享同一个字典:任何一处改了实例的 action/boost, **会污染全局数据表**,
 	# 而且是静默的(下一局、下一张同名卡都跟着变)。
@@ -42,9 +52,26 @@ func _init(e: Dictionary) -> void:
 	boost = (e.get("boost", {}) as Dictionary).duplicate(true)
 
 
-## 这张牌**现在**能不能点。`ctx` = "phrase" | "shop"。
-func usable_in(ctx: String) -> bool:
-	return when == "any" or when == ctx
+## 买下的那一刻就该生效吗(牌堆手术 / 商店改造 —— 没有「哪一拍」可选)。
+func is_instant() -> bool:
+	return typeof(fire) == TYPE_STRING and String(fire) == "buy"
+
+
+## 这一拍轮到它了吗。`beat` = 段内拍号(**1 起**), `queued_beats` = 排队至今经过的拍数。
+## ⚠ `"next"` 用「排过一拍」判而不是拍号 —— 它的语义是「下一拍」, 与段内位置无关。
+func due_on(beat: int, queued_beats: int) -> bool:
+	if is_instant():
+		return false
+	if typeof(fire) == TYPE_STRING:
+		return String(fire) == "next" and queued_beats >= 1
+	return int(fire) == beat
+
+
+## 碟面上刻的那个字 —— 拍号, 或「下一拍」的 ▸。
+func fire_label() -> String:
+	if typeof(fire) == TYPE_STRING:
+		return "▸"
+	return str(int(fire))
 
 
 ## 规则牌 = 带 `deck_rule` 的消耗牌(2026-08-30 二批转生:近道/四指/黑调/红调)。

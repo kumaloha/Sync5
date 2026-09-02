@@ -83,6 +83,7 @@ var discount_coins := 0
 var free_rerolls := 0     # 加急:免费刷新真的被用掉几次
 var rich_shelves := 0     # 挑高:首发货架 0 张普通卡的店数
 var anvil_copies := 0     # 砧座:复制成功几次
+var perkeo_copies := 0    # 帕奇欧:离店时白得一张消耗牌几次(零基线证物)
 
 # ── 经济 v2 收支账本(2026-08-27;对照 docs/design/levels.md 经济 v2「怎么调」四条健康带)──
 # **旁路记账, 只记事实**:钱真的动了 / 拒绝真的发生了。不消耗 RNG、不碰任何决策。
@@ -184,6 +185,7 @@ func reset() -> void:
 	free_rerolls = 0
 	rich_shelves = 0
 	anvil_copies = 0
+	perkeo_copies = 0
 	eco = {}
 	eco_runs = []
 	last_eco = {}
@@ -393,9 +395,8 @@ func _print_economy() -> void:
 		% [end_ms[0], end_ms[1], eco_median(end_vals), eco_median(clear_end), clear_end.size()])
 	print("    弃牌支出 %.1f±%.1f(%.2f 张/拍)· 零弃牌拍 %.1f%%"
 		% [disc_ms[0], disc_ms[1], cards / bdiv, 100.0 * zerod / bdiv])
-	var rsh_ms := eco_mean_se(_eco_vals("spend_reshuffle"))
-	print("    买卡净支出 %.1f±%.1f · 付费刷新 %.2f±%.2f · 洗牌 %.2f±%.2f"
-		% [buy_ms[0], buy_ms[1], rr_ms[0], rr_ms[1], rsh_ms[0], rsh_ms[1]])
+	print("    买卡净支出 %.1f±%.1f · 付费刷新 %.2f±%.2f"
+		% [buy_ms[0], buy_ms[1], rr_ms[0], rr_ms[1]])
 	print("    牌型金币收入 %.1f±%.1f(%.2f◆/拍, 只看牌型不含小丑加成)"
 		% [inc_ms[0], inc_ms[1], inc / bdiv])
 	print("    金币不足拒弃 %.2f±%.2f 次/局(%.2f%% 拍)· κ 门槛砍弃 %.2f±%.2f 张/局"

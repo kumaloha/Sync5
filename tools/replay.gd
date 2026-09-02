@@ -16,6 +16,9 @@ extends Probe
 
 var _fail: Array = []
 var _checked := 0
+## 状态推不出来因而**跳过**的拍数(旧 Tape 的 `rsfl` 没记洗后局面)。
+## ⚑ 单独计数而不是当成通过 —— 「一道只验了 3 张却看起来像全量绿的门, 比慢半小时危险得多」。
+var _skipped := 0
 
 
 func _initialize() -> void:
@@ -28,7 +31,8 @@ func _initialize() -> void:
 	var inject := Probe.flag("SYNC5_REPLAY_INJECT")
 	for f in files:
 		_replay_one(f, inject)
-	print("=== L2 决策重放:%d 个决策点,%d 处违规 ===" % [_checked, _fail.size()])
+	print("=== L2 决策重放:%d 个决策点,%d 处违规%s ===" % [_checked, _fail.size(),
+		("" if _skipped == 0 else ",%d 拍状态不可知已跳过(旧 Tape 的洗牌没记局面)" % _skipped)])
 	for m in _fail:
 		print("  x ", m)
 	quit(1 if _fail.size() > 0 else 0)
@@ -93,6 +97,13 @@ func _replay_one(path: String, inject: bool) -> void:
 	var have_beat := false
 	var n_line := 0
 	var injected := false      # A/B:每局只篡改一次
+	# ⚑ **装备中的小丑牌**(2026-09-01 加)。此前状态模型完全不读它, 而**有的卡会改
+	# 「哪些牌参与计分」** —— 合奏 `hold.cache_scoring` 让缓存一起进池子(八选五)。
+	# 真人 Tape run_20260831T203232_01 的 3 处违规就是它:n=128 换上合奏, 130/135/140
+	# 三拍的计分牌里各有 1~2 张来自缓存, 而重放坚持「必须等于手牌那 5 张」。
+	# ⚠ 打点没缺 —— `buy` 有 `id`, `repl` 有 `in`/`out`/`slot`, **是这边没读**。
+	# (与 2026-08-10 聚光那次同形:「打点一直带着 spotlight 字段, 是状态模型没读它」。)
+	var held: Dictionary = {}   # slot -> joker id;槽位不明的 buy 用负数占位
 	while not fh.eof_reached():
 		var line := fh.get_line()
 		if line.strip_edges() == "":
@@ -120,6 +131,35 @@ func _replay_one(path: String, inject: bool) -> void:
 				if cache.is_empty() or cache.size() > GameConfig.CACHE_CAP:
 					_fail.append("%s beat#%d 缓存 %d 张, 越界"
 						% [path, int(d.get("i", -1)), cache.size()])
+			"rsfl":
+				# 洗牌 = **整手重掷 + 弃牌堆洗回**(2026-08-26 随超级百搭加)。它把手牌和
+				# 缓存全换掉, 是状态模型必须认识的一条转移 —— 而重放此前完全不认识它
+				# (与合奏那次同族:规则在游戏里, 不在模型里, 第 N 次)。
+				# ⚠ **旧 Tape 没记新局面**(那时 `rsfl` 只有 cost/at), 重放**推不出来**。
+				# 那种情况下**不许假装还知道状态** —— 把 `have_beat` 落下, 让这一拍剩下的
+				# 检查全部跳过, 并计一笔 `_skipped`(no silent caps:跳过多少要印出来)。
+				if not have_beat:
+					continue
+				if d.has("hand"):
+					hand = _arr(d.get("hand", []))
+					cache = _arr(d.get("cache", []))
+					_checked += 1
+				else:
+					have_beat = false
+					_skipped += 1
+			"buy":
+				# 槽位不明(买入事件不记装到哪个槽), 用递减的负键占位 —— 我们只需要
+				# 「持有集合」这一个事实, 不需要知道它在第几格。
+				held[-held.size() - 1] = String(d.get("id", ""))
+			"repl":
+				var sl := int(d.get("slot", -1))
+				# 换下来的那张要真的走掉:先按 id 删一个占位键, 再把新卡写进槽位。
+				var gone := String(d.get("out", ""))
+				for k2 in held.keys():
+					if String(held[k2]) == gone:
+						held.erase(k2)
+						break
+				held[sl] = String(d.get("in", ""))
 			"disc":
 				if not have_beat:
 					continue
@@ -179,9 +219,22 @@ func _replay_one(path: String, inject: bool) -> void:
 					hand[h] = cache[c2]
 					cache[c2] = t
 			"sort":
-				# 理牌 = 确定性重排, 不改集合。重放不跟踪顺序, 但它必须不改变**集合**,
-				# 所以这里只计一个决策点 —— 真正的检查在下一条 settle 上。
+				# ⚠⚠ **必须真的排**(2026-09-01 修)。这里原本什么都不做, 注释写着
+				# 「理牌不改集合, 所以只计一个决策点」—— **那句话对集合成立, 对下标不成立**:
+				# `swap` 事件记的是 `hand[h] ↔ cache[c]` 的**下标**, 理牌一重排,
+				# 之后每一次对调在重放里都换错了牌 ⇒ 手牌集合当场分叉。
+				# 真人 Tape run_20260831T203232_01 的 3 处违规全是这个形状(那一局有 2 次
+				# 理牌、36 次对调)。⇑ 比较器走 `Card.sort_desc`, 与 `Phrase.sort_hand` 同一份。
+				if not have_beat:
+					continue
 				_checked += 1
+				var cs: Array = []
+				for lb in hand:
+					cs.append(Card.from_label(String(lb)))
+				cs.sort_custom(Card.sort_desc)
+				hand.clear()
+				for c3 in cs:
+					hand.append(c3.label() if c3.rank >= 0 else "")
 			"settle":
 				if not have_beat:
 					continue
@@ -190,7 +243,30 @@ func _replay_one(path: String, inject: bool) -> void:
 				# 必须和实际计分的 5 张**逐张相同**(集合意义)。
 				# 对不上 = 形式化漏了一条会改手牌的转移。
 				var played := _arr(d.get("cards", []))
-				if spot == "":
+				# 合奏在场 ⇒ 计分池扩到 hand ∪ cache(卡面:best five of eight)。
+				# 与聚光那支同一条纪律:**重放不重推「最佳」**(那依赖规则牌), 只断言
+				# 打出的五张是池子的合法子多重集 —— L2 管转移合法, 选得对不对归单测。
+				var pool_extra: Array = []
+				for jd in DB.jokers():
+					if not held.values().has(String(jd.get("id", ""))):
+						continue
+					if int((jd.get("hold", {}) as Dictionary).get("cache_scoring", 0)) > 0:
+						pool_extra = cache.duplicate()
+						break
+				if spot == "" and not pool_extra.is_empty():
+					var pool3: Array = hand.duplicate()
+					pool3.append_array(pool_extra)
+					var miss3 := 0
+					for c4 in played:
+						var at4: int = pool3.find(c4)
+						if at4 >= 0:
+							pool3.remove_at(at4)
+						else:
+							miss3 += 1
+					if played.size() != GameConfig.HAND_SIZE or miss3 > 0:
+						_fail.append("%s settle(合奏) 打的 %s 不是 hand+cache(%s + %s) 的合法五张"
+							% [path, str(played), str(hand), str(cache)])
+				elif spot == "":
 					if not _same_multiset(played, hand):
 						_fail.append("%s settle 打的是 %s, 而重放推出的手牌是 %s —— 状态模型漏了一条转移"
 							% [path, str(played), str(hand)])
@@ -230,8 +306,25 @@ func _arr(v) -> Array:
 func _same_multiset(a: Array, b: Array) -> bool:
 	if a.size() != b.size():
 		return false
-	var x := a.duplicate()
-	var y := b.duplicate()
-	x.sort()
-	y.sort()
-	return x == y
+	# ⚠⚠ **万能牌是替身, 不能逐张比**(2026-09-01 修)。超级百搭往牌堆注 4 张万能牌
+	# (★/☆), 而 Tape 的 `settle.cards` 记的是**计分的五张** —— 万能牌在那里已经被顶成
+	# 了具体的牌(实测 ☆H → AC 凑一对 A, ☆S → 9C 凑三条 9)。重放拿原始手牌逐张比,
+	# 于是每次万能牌进计分五张都报一次假违规。
+	# ⇒ 先消掉能精确对上的, 剩下的由手里的万能牌一张顶一张 —— 这仍然是 L2 的判据
+	# 「**转移合法**」, 「顶成哪张才最优」由 Pattern 的单测守(重放不重推最佳)。
+	var pool := b.duplicate()
+	var wilds := 0
+	for i in range(pool.size() - 1, -1, -1):
+		var lb := String(pool[i])
+		if lb.begins_with("★") or lb.begins_with("☆"):
+			wilds += 1
+			pool.remove_at(i)
+	var unmatched := 0
+	for c in a:
+		var at: int = pool.find(c)
+		if at >= 0:
+			pool.remove_at(at)
+		else:
+			unmatched += 1
+	# 剩下没对上的必须正好由万能牌顶掉, 且不许有手牌落单。
+	return unmatched == wilds and pool.is_empty()

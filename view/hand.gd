@@ -11,7 +11,6 @@ extends Control
 ## on success" is equivalent to clearing before the request.
 
 signal sort_pressed()
-signal reshuffle_pressed()
 signal discard_pressed(sel_h: Array, sel_c: Array)
 signal single_discard(zone: String, idx: int)
 signal swap_requested(hand_i: int, cache_i: int)
@@ -58,7 +57,6 @@ var hand_cards: Array = []
 var cache_holder: Control
 var sort_key: Widgets.DJKey
 var discard_key: Widgets.DJKey
-var reshuffle_key: Widgets.DJKey
 
 
 func _ready() -> void:
@@ -132,22 +130,6 @@ func _ready() -> void:
 	discard_key.dropped.connect(func(data: Dictionary) -> void:
 		single_discard.emit(String(data.get("zone", "")), int(data.get("index", -1))))
 	add_child(discard_key)
-
-	# 洗牌键(2026-08-26 超级百搭配套):72×72 紧凑款, 弃牌键正上方的行间空隙里。
-	# 缺省隐藏 —— 编排器在牌堆里有万能(装了百搭/超级百搭)时才亮它;
-	# 金币价从 economy 读, 画成 fee 徽章。付费重掷对无万能的局是纯坑, 所以不常驻。
-	reshuffle_key = Widgets.DJKey.new()
-	reshuffle_key.accent = StageTheme.GOLD
-	reshuffle_key.zh_label = String(_cfg.get("reshuffle_label", ""))
-	reshuffle_key.kind = "reshuffle"
-	reshuffle_key.radius = 30.0
-	var rsz: float = float(_cfg.get("reshuffle_sz", 72))
-	reshuffle_key.size = Vector2(rsz, rsz)
-	reshuffle_key.position = Vector2(discard_key.position.x + (kw - rsz) * 0.5,
-		CACHE_Y - float(_cfg.get("reshuffle_dy", 84)))
-	reshuffle_key.visible = false
-	reshuffle_key.pressed.connect(func() -> void: reshuffle_pressed.emit())
-	add_child(reshuffle_key)
 
 	cache_holder = Control.new()
 	var cw := CARD_W * GameConfig.CACHE_CAP + GAP * (GameConfig.CACHE_CAP - 1)

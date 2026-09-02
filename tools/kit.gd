@@ -134,7 +134,10 @@ const WEAK_MAGNITUDE := {
 	# ⚑ **这条豁免是把债写明白, 不是把门糊绿**:待办在 TODO「和弦/排练单独处理」,
 	# 两条出路都是设计判断(**改条件放宽** 或 **删**), 归用户拍。
 	# ⚠ 定了之后**必须回来删掉这一行** —— 下面那段反查会在它变强后主动喊。
-	"chord": "触发 4.0% 太窄, 数额救不了(要 300%/拍才够格) —— 待改条件或删, 见 TODO",
+	# ~~chord~~ **2026-09-01 删**:门反查到「声明了豁免却其实量到了」——
+	# 实测 触发 **21%**(声明时是 4.0%)· z=17.11 · 量级 6.4% ⇒ 已经过门。
+	# 变强的原因是 2026-08-26 那次「改条件放宽」(和弦/和声 → 全同色)真的生效了,
+	# 而这行豁免留着就是**过期的债**。⚑ 这正是反查存在的意义, 与 stageexit 同一形状。
 	# ~~stageexit~~ 2026-08-16 已移除:换成 `bonus_target_pct` 后它变强了(S4 +30 → +67),
 	# 门反查到「声明了豁免却其实量到了」。⚑ 这正是反查存在的意义 —— **豁免表不许留过期条目**。
 }
@@ -207,6 +210,11 @@ const SHOP_WITNESS := {
 	"encorecall": "free_reroll",   # 免费刷新真的被用掉几次(无加急恒 0)
 	"highroller": "rich_shelf",    # 首发货架 0 张普通卡的店数(无挑高近 0)
 	"anvil": "anvil_copy",         # 复制成功几次(无砧座恒 0)
+	# ⚑ 2026-09-01 补:全量门报「perkeo: shop 通路缺 SHOP_WITNESS 声明」。它的机制
+	# (离店白得一张消耗牌)在 bot 侧 2026-08-30 就接上了, 缺的只是**证物**。
+	# ⚠ 不许借 `anvil_copy` —— 那是「复制一张 SUPPORT」, 形状不同;借键正是
+	# 上面那段注释警告过的错(注释写了什么不算数, 键映射到哪才算数)。
+	"perkeo": "perkeo_copy",       # 离店白得消耗牌几次(无帕奇欧恒 0)
 	# ⚠ doublebill / sponsor / jukebox **本来就在表里**(它们转生前是小丑牌),
 	# 键不用重加 —— 证物形状没变, 变的只是承载它的东西。
 }
@@ -471,7 +479,7 @@ func _run_shop(cfg: Dictionary, ids: Array, n: int) -> void:
 	print("\n  ---- ④ shop 通路(规则 bot, **开商店**)—— 货架结构卡, 证物按卡声明 ----")
 	print("    硬判据(全部零基线机械读数, 见 SHOP_WITNESS 注):")
 	print("    multi_shops=双购店数↑ · discount=实收折扣◆↑ · rule_offer=含规则牌店率↑")
-	print("    free_reroll=免费刷新数↑ · rich_shelf=零普通卡货架数↑ · anvil_copy=复制成功数↑")
+	print("    free_reroll=免费刷新数↑ · rich_shelf=零普通卡货架数↑ · anvil_copy=复制成功数↑ · perkeo_copy=白得消耗牌数↑")
 	var base := _play(cfg, [], true, false, n)
 	print("    基准:每局成交 %.2f 张 · 双购店 %.2f · 折扣 %.1f◆ · 含规则牌店率 %.0f%%"
 		% [Stat.mean(_rec_series(base, "buys")), Stat.mean(_rec_series(base, "multi_shops")),
@@ -507,6 +515,12 @@ func _run_shop(cfg: Dictionary, ids: Array, n: int) -> void:
 				_judge("%s: 零普通卡货架数" % jid, _rec_series(jbase, "rich_shelf"),
 					_rec_series(arm, "rich_shelf"), Stat.mean(_rec_series(jbase, "rich_shelf")),
 					"货架证物=首发无普通卡(基准≈0)", true, true)
+			"perkeo_copy":
+				_judge("%s: 白得消耗牌次数" % jid, _rec_series(jbase, "perkeo_copy"),
+					_rec_series(arm, "perkeo_copy"), Stat.mean(_rec_series(jbase, "perkeo_copy")),
+					"构筑证物=离店复制(基准恒0)", true, true)
+				_judge("%s: 总分(参考)" % jid, jbase["score"], arm["score"],
+					Stat.mean(jbase["score"]), "", false)
 			"anvil_copy":
 				_judge("%s: 复制成功次数" % jid, _rec_series(jbase, "anvil_copy"),
 					_rec_series(arm, "anvil_copy"), Stat.mean(_rec_series(jbase, "anvil_copy")),
@@ -826,12 +840,16 @@ func _play(cfg: Dictionary, install: Array, shop: bool, perfect: bool, n: int) -
 		o.on_begin = func(run: Run, _p: Phrase) -> void:
 			# 消耗牌:每拍把栏位补满 —— 用完即弃, 不补就只生效一次,
 			# 而实验臂要量的是「一直持有它」与「从没有它」的差。
+			# ⚠ 2026-09-01:队列没有上限了 ⇒ 摘掉 `consumable_room()` 这道门;
+			# 而 `take_consumable` 现在会**就地返回 buy 类的 action**(买下即触发),
+			# 所以钉卡臂也要执行它, 否则牌堆类/商店类的消耗牌在 kit 里是纯废卡。
 			for cid in pinned_cons:
-				if run.consumable_room():
-					for ce in DB.consumables():
-						if String(ce["id"]) == cid:
-							run.take_consumable(Consumable.new(ce))
-							break
+				for ce in DB.consumables():
+					if String(ce["id"]) == cid:
+						var kused: Dictionary = run.take_consumable(Consumable.new(ce))
+						if not kused.is_empty():
+							bot._apply_bot_action(run, run.joker_slots, kused)
+						break
 			for slot in pinned:
 				if run.joker_slots[slot] != pinned[slot]:
 					run.joker_slots[slot] = pinned[slot]
@@ -865,6 +883,7 @@ func _play(cfg: Dictionary, install: Array, shop: bool, perfect: bool, n: int) -
 		var fr0 := rep.free_rerolls
 		var rs0 := rep.rich_shelves
 		var ac0 := rep.anvil_copies
+		var pc0 := rep.perkeo_copies
 		var res_run := RunLoop.play(o, bot)
 		rec["buys"] = float(rep.buys_total - b0)
 		rec["shops"] = float(rep.shops_n - s0)
@@ -874,6 +893,7 @@ func _play(cfg: Dictionary, install: Array, shop: bool, perfect: bool, n: int) -
 		rec["free_reroll"] = float(rep.free_rerolls - fr0)
 		rec["rich_shelf"] = float(rep.rich_shelves - rs0)
 		rec["anvil_copy"] = float(rep.anvil_copies - ac0)
+		rec["perkeo_copy"] = float(rep.perkeo_copies - pc0)
 		# 被钉的那张卡的计数器终值(商店成长族的证物)。⚠ 取**这一局那个实例**的 state:
 		# `pinned` 每局新建, 所以它就是「这一局涨到多少」;基准臂没有这张卡 → 恒 0。
 		var cend := 0.0

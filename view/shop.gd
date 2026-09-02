@@ -13,7 +13,6 @@ signal skipped()                      # orchestrator pays the skip reward
 signal reroll_paid(cost: int)         # orchestrator deducts, then calls redeal()
 signal denied(why: String)            # 想买/想刷但钱不够 — 编排器打点(购买力压力)
 signal consumable_bought(c, price: int)   # 买下货架上那张消耗牌 — 编排器扣钱并收进栏位
-signal consumable_used(idx: int)          # 商店里点了栏位里的消耗牌(ctx = "shop")
 var _cfg: Dictionary = DB.ui()["shop"]
 var _layer: Control
 var _views: Array = []
@@ -55,13 +54,14 @@ func set_shelf_rarity_mult(m: Dictionary) -> void:
 var _slots: Array = []
 var _cshelf: Array = []         # 货架上的消耗牌按钮 ×2(2026-08-31:1 → 2)
 var _cshelf_price: Array = []
-var _cslots: Array = []         # 商店里的消耗品栏 ×2
+var _cshelf_name: Array = []
+var _cshelf_desc: Array = []
 var _coffer: Array = []         # 当前货架上的 Consumable ×2(可含 null)
 # ---- 消耗牌授予的一次性商店改动(2026-08-29)。⚠ 全部**用完即清**:
 # 「这次商店」类在 close() 清, 「下次货架」类在 _deal() 消费后清 —— 忘了清
 # 就等于把一次性效果做成了永久 buff, 而那正是这些牌当初该被挪出小丑牌的理由。
 var _grant_shelf := 0           # 联票:本店货架张数(0 = 无授予)
-var _grant_buy_limit := 0       # 联票:本店可成交张数
+var _grant_extra_buys := 0      # 联票:本店**额外**成交张数(叠在基础名额之上)
 var _grant_price := 0           # 赞助:本店全场价格增量(负数 = 便宜)
 var _grant_free_reroll := 0     # 加急:免费刷新次数
 var _grant_min_rarity := ""       # 挑高:下次货架的最低稀有度("" = 无授予)
@@ -147,10 +147,10 @@ func _layout(count: int) -> void:
 		_skip_btn.pressed.connect(_on_skip)
 		_layer.add_child(_skip_btn)
 	# ⚠ **只建一次** —— `_layout()` 每次 `_render` 都会跑, 不守就会每刷一次货架
-	# 就多出一对格子叠在原处(实测第二次开店时 _cslots 变成 4 个, 而
+	# 就多出一对格子叠在原处(实测第二次开店时货架格变成 4 个, 而
 	# `set_consumables` 只更新前两个 ⇒ 屏幕上是新旧混着的错乱)。
 	if _cshelf.is_empty():
-		_build_consumable_row(by + 96.0)
+		_build_consumable_row()
 	_reroll_btn.position = Vector2(360.0 - 220.0 - 12.0, by)
 	_skip_btn.position = Vector2(360.0 + 12.0, by)
 
@@ -165,7 +165,7 @@ func _v2(a: Array) -> Vector2:
 ## ⚠ **货架位独立, 不参与三选一** —— 让消耗牌混进小丑牌的三选一, 等于用它换掉
 ## 小丑牌的多样性;而且那正是 2026-08-29 修过的形状:**奖励某件事的东西不能和
 ## 那件事抢同一个资源**(转型 vs 换旗抢购买名额)。
-func _build_consumable_row(y: float) -> void:
+func _build_consumable_row() -> void:
 	# ⚑ 货架 **1 → 2 格**(2026-08-31 用户:「每次出 3 小丑 2 消耗给用户选」)。
 	# ⚠⚠ **5 选 1**(2026-08-31 用户拍板):这两张与三张小丑牌是**同一个池子**,
 	# 一次进店只成交 1 张 —— 消耗牌**不再有专属名额**, 它和小丑牌抢同一次购买。
@@ -173,35 +173,71 @@ func _build_consumable_row(y: float) -> void:
 	# ⚑ 这是**收紧**:此前消耗牌每店白送一格, 而这一层实测值 **+18.8pt 通关率**。
 	# ⚑ 联票(本店 4 选 2)因此变成「买完还能再挑」——用户:「点完那个 4 选 2, 可以直接再选 2 张」。
 	# ⚠ 卡形与局内一致(62×104 的红卡), 不再是 88×88 的方块。
+	# ⚑ **描述只在商店给**(2026-09-01 用户:「在商店里显示的消耗牌, 我们应该在牌的下面
+	# 加入描述, 关卡内就不用描述了」)。分工与小丑牌一致:**商店是决策点**(要读懂再买),
+	# **局内是执行点**(已经买过了, 认插画就够)—— 而 62×104 的卡本来也塞不下三段。
+	# 版式跟着小丑牌三选一:卡 → 描述 → 价格, **价格永远是最后一行**。
+	# ⚑⚑ **2026-09-02 放大 + 右移**(用户:「消耗卡在商店页面的位置应该靠右一点,
+	# 也应该大一点, 跟光碟一样大 …… 右边总体页面现在压的比较紧, 最右侧一大块是空的」)。
+	# 病根是**一条过期的约束**:原注释写「右边 x>470 是栏位」—— 而**栏位 2026-09-01
+	# 随「消耗牌全部自动触发」整块退役了**, 那块地已经空出来, 版式却还躲着它。
+	# ⇒ 碟径 84 → **132(= 局内唱片 `VinylDeck` 的尺寸)**, 两列在
+	#   「盲注卡右缘 → 右边距」这段里**居中**, 而不是贴着左边挤成一堆。
+	# ⚠ 坐标全部搬进 `data/ui.json` 的 shop 节(cons_*)—— 改布局 = 改 JSON。
+	var cy: float = float(_cfg.get("cons_y", 912))
+	var dd: float = float(_cfg.get("cons_disc", 132))
+	var cw: float = float(_cfg.get("cons_col_w", 190))
+	var cg: float = float(_cfg.get("cons_gap", 24))
+	var lx: float = float(_cfg.get("cons_left", 190))
+	var rx: float = float(_cfg.get("cons_right", 692))
+	var x0: float = lx + ((rx - lx) - (cw * 2.0 + cg)) * 0.5
 	for i in range(2):
+		var col := x0 + float(i) * (cw + cg)
 		var sh := Widgets.ConsumableSlot.new()
-		sh.idx = -1 - i                   # -1/-2 = 货架位(买), 0/1 = 栏位(用)
-		sh.size = Vector2(62, 104)
-		# ⚠ x 从 220 起而不是靠左 —— 商店里盲注卡停靠在 (28, 940), 会盖掉左下角。
-		sh.position = Vector2(220 + i * 70, y)
+		sh.idx = -1 - i                   # -1/-2 = 货架位(买;栏位那两格已退役)
+		sh.size = Vector2(dd, dd)
+		sh.position = Vector2(col + (cw - dd) * 0.5, cy)
 		sh.pressed.connect(_on_cshelf_pressed.bind(i))
 		_layer.add_child(sh)
 		_cshelf.append(sh)
+		# 碟上不写名字(84px 的圆里放了插画就没地方了), 名字单独一行 ——
+		# ⚑ 名字是玩家**记得住、说得出**的把手, 描述是「它干什么」, 两者都要。
+		var nl := Label.new()
+		nl.position = Vector2(col, cy + dd + 12.0)
+		nl.size = Vector2(cw, 20)
+		nl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		nl.add_theme_font_override("font", StageTheme.zh())
+		nl.add_theme_font_size_override("font_size", 15)
+		nl.add_theme_color_override("font_color", Color(1, 1, 1, 0.94))
+		_layer.add_child(nl)
+		_cshelf_name.append(nl)
+		var dl := Label.new()
+		dl.position = Vector2(col, cy + dd + 36.0)
+		dl.size = Vector2(cw, 36)
+		dl.custom_minimum_size = Vector2(cw, 36)
+		dl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		dl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		dl.add_theme_font_override("font", StageTheme.zh())
+		dl.add_theme_font_size_override("font_size", 12)
+		dl.add_theme_color_override("font_color", Color(0.81, 0.84, 0.90, 0.88))
+		_layer.add_child(dl)
+		_cshelf_desc.append(dl)
 		var pl := Label.new()
-		pl.position = Vector2(220 + i * 70, y + 106)
+		pl.position = Vector2(col, cy + dd + 76.0)
+		pl.size = Vector2(cw, 22)
+		pl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		pl.add_theme_font_override("font", StageTheme.num("SemiBold"))
-		pl.add_theme_font_size_override("font_size", 15)
+		pl.add_theme_font_size_override("font_size", 17)
 		_layer.add_child(pl)
 		_cshelf_price.append(pl)
-	for i in range(2):
-		var cs := Widgets.ConsumableSlot.new()
-		cs.idx = i
-		cs.size = Vector2(88, 88)
-		cs.position = Vector2(720.0 - 60.0 - 88.0 * float(2 - i) - 8.0 * float(1 - i), y)
-		cs.used.connect(func(k: int) -> void: consumable_used.emit(k))
-		_layer.add_child(cs)
-		_cslots.append(cs)
 
 
 ## ---- 消耗牌的授予口(编排器调用, 见 phrase.gd::_apply_shop_action) ----
-func grant_shelf(n: int, buy_limit: int) -> void:
-	_grant_shelf = n
-	_grant_buy_limit = buy_limit
+func grant_shelf(n: int, extra_buys: int) -> void:
+	# ⚠ 货架取大、名额**累加** —— 一次进店买到第二张联票时, 它该再给一次成交,
+	# 而不是把上一张的授予覆盖掉。bot 侧 `_g_extra_buys` 同款(parity)。
+	_grant_shelf = maxi(_grant_shelf, n)
+	_grant_extra_buys += extra_buys
 	_deal()
 	_render(true)
 
@@ -227,9 +263,30 @@ func grant_min_rarity(r: String) -> void:
 
 
 ## 本店还剩几次免费刷新(编排器算刷新价时读)。
-## 联票授予的本店成交上限(0 = 无授予)。编排器读它, 与小丑牌的 buy_limit 取大。
-func granted_buy_limit() -> int:
-	return _grant_buy_limit
+## 续买态的剩余次数 —— **消耗牌路径专用**。
+##
+## ⚠ 联票自己是从**消耗牌货架**买走的, 那条路径不经过 `sold()`, 而 `_buys_left`
+## 只在 `sold()` 里写过 ⇒ 买完联票副标题还念着「SUPPORT · ◆ N」, **玩家看不到
+## 「还能再选 2 张」**。配额对了但没人告诉他, 等于没做(2026-09-02)。
+func set_buys_left(left: int, coins: int) -> void:
+	_buys_left = left
+	_coins = coins
+	_refresh_kind_line()
+
+
+## 联票授予的本店**额外**成交张数(0 = 无授予)。编排器把它**加**在基础名额上。
+##
+## ⚑⚑ **2026-09-02 用户拍板改口径**:此前它是「本店成交上限」, 与基础名额**取大** ——
+## 于是买联票花掉的正是它要给你的那次成交, 净得 0 张、净亏 3◆。用户原话:
+## 「相当于 4 选 2 那张卡本身也算一张, 那用户不如不选这张;实际我的设想应该是
+## 选了那张卡后, 剩余卡可以选两张」。
+## ⇒ 改成**加法**:基础 1 + 联票 2 = 本店 3 次成交, 联票自己占掉第 1 次 ⇒ **还能再选 2 张**,
+##   与卡面「本店:四选二」逐字对上。⚠ 联票**照常占一张名额**, 不开特例 ——
+##   「不占名额」是第二套计数规则, 而加法只是把 `maxi` 换成 `+`。
+## ⚠ 这正是 LESSONS「奖励某件事的东西不能和那件事抢同一个资源」的**第三次**
+##   (前两次:转型 vs 换旗抢购买名额 · 消耗牌专属名额)。
+func granted_extra_buys() -> int:
+	return _grant_extra_buys
 
 
 func free_rerolls_left() -> int:
@@ -254,28 +311,31 @@ func _on_cshelf_pressed(i: int = 0) -> void:
 	consumable_bought.emit(_c, _c.price)
 
 
-## 编排器在开店/买卖后调这个刷新整块区域。`held` = run.consumables。
-## `offer` 现在是**数组**(两张货架牌, 可含 null)。
-func set_consumables(offer: Array, held: Array, coins: int, effective: Array = []) -> void:
+## 编排器在开店/买卖后调这个刷新货架。
+## ⚑ 2026-09-01:**没有「栏位」参数了** —— 消耗牌全部自动触发, 商店里不再有我的两格。
+## `effective` = 「买了有没有用」(砧座在 support ≤1 时买了等于白花钱), 门从
+## 「点得动吗」搬到了「买得动吗」。
+func set_consumables(offer: Array, coins: int, effective: Array = []) -> void:
 	_coffer = offer
 	_coins = coins
 	for i in range(_cshelf.size()):
 		var o = offer[i] if i < offer.size() else null
 		_cshelf[i].filled = o != null
 		_cshelf[i].label = o.display_name() if o != null else ""
-		_cshelf[i].armed = o != null and coins >= o.price
+		_cshelf[i].art_id = String(o.id) if o != null else ""
+		# 碟标上刻的字 = 它在第几拍自己打;`buy` 类不刻(它买下就打完了)。
+		_cshelf[i].stamp = "" if o == null or o.is_instant() else o.fire_label()
+		var ok: bool = true if i >= effective.size() else bool(effective[i])
+		_cshelf[i].armed = o != null and coins >= o.price and ok
 		# ⚑ 货架位用**金**(它是"待售"), 栏位用**卡牌红**(它是"我的") —— 两者要分得开。
 		_cshelf[i].accent = StageTheme.GOLD
 		_cshelf[i].queue_redraw()
 		_cshelf_price[i].text = ("◆ %d" % o.price) if o != null else ""
-	for i in range(_cslots.size()):
-		var c = held[i] if i < held.size() else null
-		_cslots[i].filled = c != null
-		_cslots[i].label = c.display_name() if c != null else ""
-		var ok: bool = true if i >= effective.size() else bool(effective[i])
-		_cslots[i].armed = c != null and c.usable_in("shop") and ok
-		_cslots[i].accent = StageTheme.SUIT_RED
-		_cslots[i].queue_redraw()
+		# 文案优先 ui.json consumablecard(游戏文案归游戏数据, 与小丑牌 jokercard 同一条路),
+		# 缺了退卡面英文 fx_text。⚠ 不许在这里写中文字面量(`t_lingo` 会红)。
+		_cshelf_name[i].text = o.display_name() if o != null else ""
+		_cshelf_desc[i].text = (String(DB.ui().get("consumablecard", {})
+			.get(String(o.id), {}).get("trigger", o.fx_text)) if o != null else "")
 
 
 func _button(text: String) -> Button:
@@ -374,7 +434,7 @@ func _draw_refill():
 func close() -> void:
 	# ⚠ 「这次商店」类的授予随离店清零 —— 一次性就是一次性。
 	_grant_shelf = 0
-	_grant_buy_limit = 0
+	_grant_extra_buys = 0
 	_grant_price = 0
 	_grant_free_reroll = 0
 	_layer.visible = false

@@ -413,27 +413,16 @@ func run(t) -> void:
 		"a swap-and-revert leaves no phantom credit —— 试探不算换入")
 
 
-	# 洗牌(2026-08-26 超级百搭配套):付费整手重掷 + 弃牌堆洗回。
+	# ⚠ 洗牌那一节已随机制退役删除(2026-09-01 用户拍板:「万能牌只需要在弃牌的时候
+	# 有几率洗出来就行, 不用专门一个洗牌按钮」)。⚑ **牌堆自己的「抽干了洗回弃牌堆」没退役**
+	# —— 那正是万能牌循环出来所依赖的机制, 它的契约在 tests/t_deck.gd。
+	# 这里补一条替代契约:注入的万能牌必须真的能被抽到。
 	var rd := Deck.new(88)
-	var rcache: Array = []
-	var rp := Phrase.new(rd, rcache, 10)
-	rp.start()
-	t.check(not rp.can_reshuffle(), "无万能的牌堆不开放洗牌(付费重掷对它是纯坑)")
 	rd.add_wilds("superwild", 4)
-	t.check(rp.can_reshuffle(), "注入 JOKER 后开放")
-	t.check(rp.discard_selected([0, 1]), "先弃两张造出弃牌堆")
-	var coins0 := rp.coins
-	var disc0 := rd.discard_pile.size()
-	t.check(disc0 >= 2, "弃牌堆非空")
-	rp.reshuffle()
-	t.eq(rp.coins, coins0 - Economy.reshuffle_cost(), "洗牌扣配置价")
-	t.eq(rp.hand.size(), 5, "洗后手牌仍 5 张")
-	t.eq(rd.discard_pile.size(), 0, "弃牌堆整体洗回抽牌堆(钓 JOKER 的实体)")
-	var poor := Phrase.new(Deck.new(89), [], 0)
-	poor.start()
-	poor.deck.add_wilds("superwild", 4)
-	var ph0: Array = poor.hand.duplicate()
-	poor.reshuffle()
-	t.check(not poor.can_reshuffle(), "0 金币付不起")
-	for i in range(5):
-		t.check(poor.hand[i] == ph0[i], "付不起时 reshuffle 是无操作(第 %d 张没动)" % i)
+	var seen_wild := false
+	for _i in range(60):
+		var c3 := rd.draw()
+		if c3 != null and c3.is_wild():
+			seen_wild = true
+			break
+	t.check(seen_wild, "注入的万能牌能在正常抽牌里出现(弃牌补牌就是这条路径)")

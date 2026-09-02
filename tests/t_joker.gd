@@ -288,13 +288,13 @@ func run(t) -> void:
 		{"discards": 0})["coins"],
 		int(round(pat_coins * rf)) + int(t._do_amount("tipjar", "coins")),
 		"分成**不放大**别的卡给的 coins_bonus")
-	# 打包:段分已达目标两倍才给(悲观口径 —— 本拍自己的分还没落地)
-	t.eq(Settle.run(flush_res, [null, Joker.by_id("doggybag"), null, null],
-		{"section_score": 2000, "section_target": 1000})["coins"],
-		pat_coins + int(t._do_amount("doggybag", "coins")), "doggy bag pays past double target")
-	t.eq(Settle.run(flush_res, [null, Joker.by_id("doggybag"), null, null],
-		{"section_score": 1999, "section_target": 1000})["coins"],
-		pat_coins, "doggy bag silent just below double")
+	# ⚑⚑ **打包(doggybag)的两条断言 2026-09-02 删除** —— 那张卡 `data/jokers.json` 与
+	# `data/consumables.json` **两张表里都没有**(早已退役), 于是:
+	#   `Joker.by_id("doggybag")` → null(槽等于空)· `_do_amount(...)` 的防御性
+	#   `return 0.0` → 期望值塌成 `pat_coins` ⇒ **两条断言都是 `pat_coins == pat_coins`**,
+	#   一句同义反复冒充覆盖, 而且一直绿着。
+	# ⚠ 不补替代断言 —— 这张卡是真的没了, 给不存在的东西补测试就是把债换个地方记。
+	# 机械守卫见 `tools/parity.py` 第 ⑦ 层(它就是这么抓到这条的)。
 	# 穷开心:常驻倍率 + 金币上限(上限本身在 Economy 收口, 见 t_economy)
 	var spct: float = t._do_amount("skint", "mult_add")
 	t.eq(Settle.run(flush_res, [null, Joker.by_id("skint"), null, null], {})["score"],
@@ -410,5 +410,9 @@ func _t_loan(t) -> void:
 	t.eq(int(ln.get("repay", 0)), 12, "还 12(利息 2 = 一段的 tempo 价)")
 	t.check(int(ln["repay"]) > int(ln["borrow"]),
 		"还 > 借 —— 这卡是贷款不是印钞机(数值再调也不许倒挂)")
-	t.eq(String(adv.get("when", "")), "shop",
-		"预支只在商店点 —— 借钱是为了买卡, 拍内借了没有出口")
+	# ⚑ 2026-09-01:`when: "shop"` 换成 `fire: "buy"`(消耗牌全部自动触发)。
+	# **契约的意图一字未变** —— 借钱是为了买卡, 所以借款必须发生在商店里、且必须在
+	# 这次购买之前到账。`fire: "buy"` = 买下那一刻就借, 比「进栏位等玩家点」更强地
+	# 保证了这一点(玩家不可能借完忘了花)。
+	t.eq(String(adv.get("fire", "")), "buy",
+		"预支买下即借 —— 借钱是为了买卡, 拍内借了没有出口")

@@ -93,7 +93,6 @@ static func discard_batch(duration: float, section_idx: int) -> int:
 # --- Economy ---
 static var STARTING_COINS: int = int(_eco["starting_coins"])
 static var DISCARD_COST: int = int(_eco["discard_cost"])
-static var RESHUFFLE_COST: int = int(_eco.get("reshuffle_cost", 3))
 ## ⚠ `CASHOUT_PER_PHRASE`(落袋单价)已随「达标即收工」一起退役(2026-08-31)。
 static var SECTION_CLEAR_REWARD: int = int(_eco["section_clear_reward"])
 static var DRAFT_RARITY_WEIGHTS: Dictionary = _eco["draft_rarity_weights"]

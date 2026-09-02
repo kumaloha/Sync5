@@ -1,6 +1,8 @@
 extends SceneTree
 
-## 一次性:消耗品栏位四态 + 真实语境(纯黑 + 手牌上沿), 1:1 与 2×。
+## 一次性:**商店货架上那枚碟**的四态(2026-09-01 起它只有商店在用 ——
+## 局内的两格栏位随「消耗牌全部自动触发」退役, 待播队列改由 `VinylDeck` 画,
+## 那边的表在 `tools/_vinyl_sheet.gd`)。
 ##   godot --path . --script res://tools/_cslot_sheet.gd
 var _n := 0
 
@@ -8,8 +10,8 @@ func _initialize() -> void:
 	# ⚠ 底色**必须是纯黑** —— 局内 BG0 = #000000。用别的底看不出「空格看不看得见」。
 	Shot.canvas(self, 760, 460, Color(0, 0, 0))
 	var CS = Widgets.ConsumableSlot
-	var accent := Widgets.StageCard.accent_for(0)     # S1 蓝 #23cdff
-	var specs := [["", false, true], ["超级百搭", true, true], ["修剪", true, false]]
+	var accent := StageTheme.GOLD                    # 货架 = 待售用金(栏位/队列用红, 两者要分得开)
+	var specs := [["", "", false, true], ["超级百搭", "superwild", true, true], ["修剪", "trim", true, false], ["砧座", "anvil", true, true]]
 
 	# 1:1 一行(左)+ 2× 一行(下), 都在纯黑上
 	for scale_i in range(2):
@@ -20,11 +22,13 @@ func _initialize() -> void:
 			holder.scale = Vector2(sc, sc)
 			get_root().add_child(holder)
 			var s = CS.new()
-			s.size = Vector2(88, 88)
+			s.size = Vector2(84, 84)           # 碟形:商店货架的实际尺寸
 			s.accent = accent
 			s.label = String(specs[i][0])
-			s.filled = bool(specs[i][1])
-			s.armed = bool(specs[i][2])
+			s.art_id = String(specs[i][1])
+			s.stamp = "" if i < 2 else "6"
+			s.filled = bool(specs[i][2])
+			s.armed = bool(specs[i][3])
 			holder.add_child(s)
 
 	# 真实语境:两格空 + 五张手牌的上沿(对比用)

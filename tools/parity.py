@@ -24,7 +24,7 @@ ENTRIES = [
     "slots_shelf_size", "slots_buy_limit",
     # ⚠ `slots_loan` 已移出:2026-08-30 预支转生为消耗牌之后它没有真值来源,
     # 两侧都只剩定义 —— 留着会让「0 vs 0」被读成「对齐」(同 slots_rule_guaranteed)。
-    "slots_coin_cap", "slots_odds_mult", "use_consumable",
+    "slots_coin_cap", "slots_odds_mult", "due_consumables",
     "take_consumable", "add_wilds", "trim_low_ranks",
 ]
 # 这些只属于一侧, 有充分理由 —— 写清理由, 否则就是给例外开后门
@@ -110,6 +110,11 @@ def card_face():
         if not nums:
             continue
         vals = []
+        # ⚑ `fire` 也是真值来源(2026-09-01 消耗牌全部自动触发):卡面写「第 4 拍」,
+        # 那个 4 来自 `fire`, 不在 boost/action 里 —— 不加它, 尺子会把**正确的卡面**报成错。
+        fv = c.get("fire", None)
+        if isinstance(fv, (int, float)) and not isinstance(fv, bool):
+            vals.append(float(fv))
         for k, v in list(c.get("boost", {}).items()) + list(c.get("action", {}).items()):
             if isinstance(v, bool) or not isinstance(v, (int, float)):
                 continue
@@ -122,6 +127,61 @@ def card_face():
                 bad.append("%s: 卡面「%s」里的 %g 在数据里找不到 %s"
                            % (c["id"], face, n, {**c.get("boost", {}), **c.get("action", {})}))
                 break
+    return bad
+
+
+## ⚑⚑ 定性描述的显式豁免(与 `kit.gd` 的 WEAK_MAGNITUDE 同一条哲学:**把债写明白**)。
+## 这三张的卡面用的是词不是数(「半倍率」「两倍」「计入基础分」), 机械比对必然误报。
+## ⚠ 名单**只许因为「卡面确实没写数」而进**, 不许因为「这张对不上但我不想改」而进。
+FACE_QUALITATIVE = {
+    "mirror": "「半倍率再乘 / copy half」—— 0.5 写成了词",
+    "bench": "「缓存最高点数计入基础分」—— 数据里的 1 是开关不是数额",
+    "recycle": "「按点数两倍」—— 2 写成了「两倍」",
+}
+
+
+def joker_face():
+    """第 ⑥ 层:**小丑牌卡面(中 + 英)上的数字与 `effects.do` 的值对不上**。
+
+    ⚑ 2026-09-01 用户让查「所有倍率和描述是否有差异」, 一扫 **22 张有出入**, 而且分布有规律:
+      · **英文成片停留在「固定加分」时代** —— 11 张 `bonus_target_pct` 卡, 2026-08-16 加分族
+        A 案把它们从固定分换成**跟着目标分走**, 中文跟着改了、**英文一张都没改**
+        (`encore` 英文还写着 `+328`, 而真值是「每拍目标 × 78%」, S1 是 +55、S4 是 +730);
+      · 4 张纯数字漂了(`triplet` 卡面 ×3.6 / 真值 ×2, 差 1.8 倍);
+      · `triad` **三方三个数**:数据 30 / 中文 14 / 英文 25。
+    ⚠⚠ **它一直没被任何门抓到**:`t_joker` 只查卡面 ≤7 词, `t_lingo` 只查在不在对照表里,
+    第 ④ 层只覆盖**消耗牌**且只看中文。⇒ **没有一道门核过卡面写的数是不是真的。**
+
+    做法与第 ④ 层同源, 但两侧语言都查。宁可漏报不可误报:
+    只在「这张卡有数值型 `do`」时才查, 定性卡走 `FACE_QUALITATIVE` 显式豁免。
+    """
+    import json, re
+    jok = json.loads((ROOT / "data/jokers.json").read_text(encoding="utf-8"))["jokers"]
+    ui = json.loads((ROOT / "data/ui.json").read_text(encoding="utf-8")).get("jokercard", {})
+    bad = []
+    for j in jok:
+        jid = j["id"]
+        if jid in FACE_QUALITATIVE:
+            continue
+        vals = []
+        for e in j.get("effects", []):
+            for k, v in (e.get("do", {}) or {}).items():
+                if isinstance(v, bool) or not isinstance(v, (int, float)):
+                    continue
+                # 原值 / 百分比 / 「+0.6 即 ×1.6」的乘区口径
+                vals += [float(v), float(v) * 100.0, float(v) + 1.0]
+        if not vals:
+            continue
+        for lang, face in (("en", str(j.get("fx", ""))),
+                           ("cn", str(ui.get(jid, {}).get("trigger", "")))):
+            nums = [float(x) for x in re.findall(r"(\d+(?:\.\d+)?)", face)]
+            if not nums:
+                continue
+            # ⚠ 只要**有一个**数对得上就算过 —— 卡面里还会出现条件里的数(「最后 2 秒」「前 6 秒」),
+            # 那些不在 `do` 里。要求「每个数都对上」会把整族误报掉。
+            if not any(any(abs(n - v) < 0.006 for v in vals) for n in nums):
+                bad.append("%s(%s): 卡面「%s」里的数在 effects 里都找不到 —— 真值 %s"
+                           % (jid, lang, face, sorted(set(vals[::3]))))
     return bad
 
 
@@ -155,6 +215,60 @@ def amount_channels():
     return len(used), bad
 
 
+def dead_ids():
+    """第 ⑦ 层:**按 id 取东西的调用, 传的字面量还在不在那张表里**。
+
+    ⚑ 2026-09-02:08-30 把五张卡从 `data/jokers.json` 转生进 `data/consumables.json`,
+       而 `tools/draft_sheet.gd` 里 `Joker.by_id("doublebill")` 这类调用一句没改 ——
+       取回 `null`, **不报错**, 于是两张验收截图**验的东西整个消失了**, 持续三天:
+       `_shot_draft_four` 标题写着「4 位货架」实际一直拍 **3 位**;
+       `_shot_draft_replace` 标题写着「满槽换卡」实际拍到的是**局内画面**(槽没满)。
+    ⚠ 这一层与上面几层的方向相反:前面查「两侧齐不齐」, 这一层查「**引用的东西还在不在**」。
+      图还在、还好看、还每次重新生成 —— 它只是不再包含它声称的那个东西。
+
+    做法:扫源码里的 `X.by_id("字面量")`, 到对应的表里查这个 id。
+    ⚠ 两类放行:
+      · 空串 —— 探针用 `by_id("")` 空出一格, 是故意的 null;
+      · **负向断言** —— `t.check(Joker.by_id("popup") == null, "已转生为消耗牌")` 这种,
+        「这个 id 不在了」正是它要证明的事。判据看**代码形状**(`== null` / `!= null` /
+        `is Joker`), **不看断言文案** —— 文案会改, 形状不会。
+    ⚠⚠ 立这一层当天它就多抓到一条**真的**:`t_joker.gd` 有两条 `doggybag` 断言,
+      而那张卡 jokers/consumables **两张表里都没有** ⇒ `_do_amount` 的防御性 `return 0.0`
+      让断言塌成 `pat_coins == pat_coins`, **一句同义反复冒充覆盖**, 而它一直是绿的。
+    """
+    import json, re
+    tables = {
+        "Joker": ("data/jokers.json", "jokers"),
+        "SectionMod": ("data/faces.json", "faces"),
+        "BlindBoon": ("data/boons.json", "boons"),
+    }
+    ids = {}
+    for cls, (f, key) in tables.items():
+        p = ROOT / f
+        if not p.exists():
+            continue
+        raw = json.loads(p.read_text(encoding="utf-8"))
+        rows = raw[key] if isinstance(raw, dict) and key in raw else raw
+        ids[cls] = {str(r["id"]) for r in rows if isinstance(r, dict) and "id" in r}
+    bad = []
+    for sub_dir in ("tools", "view", "tests", "core"):
+        for f in sorted((ROOT / sub_dir).rglob("*.gd")):
+            txt = f.read_text(encoding="utf-8", errors="ignore")
+            for line in txt.splitlines():
+                if line.lstrip().startswith("#"):
+                    continue          # 注释里提到死 id 是**在解释它为什么死**, 不是引用
+                if any(s in line for s in ("== null", "!= null", "is Joker",
+                                           "is SectionMod", "is BlindBoon")):
+                    continue          # 负向断言:它要证的就是「这个 id 不在了」
+                for cls, lit in re.findall(
+                        r'\b(Joker|SectionMod|BlindBoon)\.by_id\("([^"]*)"\)', line):
+                    if lit == "" or cls not in ids or lit in ids[cls]:
+                        continue
+                    bad.append("%s:%s.by_id(\"%s\") —— 这个 id 已经不在表里了(取回 null, 不报错)"
+                               % (f.relative_to(ROOT), cls, lit))
+    return bad
+
+
 def main():
     quiet = "--check" in sys.argv
     bad = []
@@ -176,6 +290,16 @@ def main():
         print("✗ %d 张卡的**卡面与数据对不上**(玩家会按错的规则做决策):" % len(fbad))
         for b in fbad:
             print("   " + b)
+    jbad = joker_face()
+    if jbad:
+        print("✗ %d 处**小丑牌卡面与数据对不上**(玩家会按错的规则做决策):" % len(jbad))
+        for b in jbad:
+            print("   " + b)
+    dbad = dead_ids()
+    if dbad:
+        print("✗ %d 处 `by_id(\"字面量\")` 指向**已经不存在的 id**(取回 null 且不报错):" % len(dbad))
+        for b in dbad:
+            print("   " + b)
     wbad = write_only()
     if wbad:
         print("✗ %d 个授予变量**写了但没人读**(那张卡在游戏里是空白的):%s" % (len(wbad), " ".join(wbad)))
@@ -193,7 +317,7 @@ def main():
     if abad:
         print("✗ %d 个 action 键两侧不齐:%s" % (len(abad), " ".join(abad)))
         print("  ⚠ 后果不止低估 —— 用这种读数定的价**无效**(见 LESSONS 同名条)")
-    if bad or abad or wbad or fbad or chbad:
+    if bad or abad or wbad or fbad or jbad or chbad or dbad:
         if bad:
             print("✗ %d 个入口两侧不对齐:%s" % (len(bad), " ".join(bad)))
         return 1

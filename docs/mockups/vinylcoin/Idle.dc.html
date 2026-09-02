@@ -1,0 +1,29 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&display=swap">
+  <style>
+    body { margin: 0; background: #000; font-family: "PingFang SC", "Hiragino Sans GB", sans-serif; }
+    a { color: #ff6aa9; } a:hover { color: #ff328d; }
+    .n { font-family: Rajdhani, system-ui, sans-serif; font-weight: 700; }
+    .cap { color: #cfd6e6; font-size: 13px; }
+    .cost { color: #7b88ab; font-size: 11px; line-height: 1.6; }
+  </style>
+</helmet>
+<div style="width:720px;height:352px;background:#000;position:relative;">
+  <img src="bg.jpg" style="position:absolute;left:0;top:0;width:720px;height:260px;">
+  <div style="position:absolute;left:562px;top:68px;width:132px;height:132px;border-radius:50%;background:#0b0e20;border:2px solid rgba(161,181,255,.35);box-shadow:0 0 14px rgba(30,255,236,.20);"><div style="position:absolute;left:50%;top:50%;width:58px;height:58px;margin:-29px 0 0 -29px;border-radius:50%;border:1px solid rgba(161,181,255,.10);"></div><div style="position:absolute;left:50%;top:50%;width:68px;height:68px;margin:-34px 0 0 -34px;border-radius:50%;border:1px solid rgba(161,181,255,.10);"></div><div style="position:absolute;left:50%;top:50%;width:78px;height:78px;margin:-39px 0 0 -39px;border-radius:50%;border:1px solid rgba(161,181,255,.10);"></div><div style="position:absolute;left:50%;top:50%;width:88px;height:88px;margin:-44px 0 0 -44px;border-radius:50%;border:1px solid rgba(161,181,255,.10);"></div><div style="position:absolute;left:50%;top:50%;width:98px;height:98px;margin:-49px 0 0 -49px;border-radius:50%;border:1px solid rgba(161,181,255,.10);"></div><div style="position:absolute;left:50%;top:50%;width:108px;height:108px;margin:-54px 0 0 -54px;border-radius:50%;border:1px solid rgba(161,181,255,.10);"></div><div style="position:absolute;left:50%;top:50%;width:118px;height:118px;margin:-59px 0 0 -59px;border-radius:50%;border:1px solid rgba(161,181,255,.10);"></div><div style="position:absolute;left:50%;top:50%;width:45px;height:45px;margin:-22px 0 0 -22px;border-radius:50%;background:#2ab5aa;display:flex;align-items:center;justify-content:center;"><div style="width:40px;height:40px;border-radius:50%;background:#7cf3e8;display:flex;align-items:center;justify-content:center;"><div style="width:5px;height:5px;border-radius:50%;background:#0b0e20;"></div></div></div></div>
+  <div style="position:absolute;left:420px;top:206px;width:300px;text-align:center;color:#cfd6e6;font-size:11px;">没有排队时 = 一张转着的唱片(青绿标签)</div>
+  <div style="position:absolute;left:26px;top:274px;width:668px;display:flex;flex-direction:column;gap:5px;">
+    <div class="cap">空态 —— 还原成光碟</div><div class="cost">照 git 里退役前的 `view/vinyl_deck.gd` 逐字还原:132×132 · 盘 #0b0e20 · 纹槽 4.5px · 青绿标签 #2ab5aa/#7cf3e8 · 旋转高光。⚠ 金色角标(牌堆剩余)与金环(提前收工)**不还原** —— 那两个机制已退役, 画回来等于把删掉的东西又画上。⚑ 空碟是青绿标签、排队碟是红标签, **颜色仍在做分类**。</div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

@@ -1,0 +1,31 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&display=swap">
+  <style>
+    body { margin: 0; background: #000; font-family: "PingFang SC", "Hiragino Sans GB", sans-serif; }
+    a { color: #ff6aa9; } a:hover { color: #ff328d; }
+    .n { font-family: Rajdhani, system-ui, sans-serif; font-weight: 600; letter-spacing: .06em; }
+    .cap { color: #cfd6e6; font-size: 13px; }
+    .cost { color: #7b88ab; font-size: 11px; line-height: 1.6; }
+    .tag { font-size: 10px; letter-spacing: .16em; color: #5b667f; text-transform: uppercase; }
+  </style>
+</helmet>
+<div style="width: 720px; height: 760px; background: #000; position: relative;">
+  <img src="shopnow.jpg" style="position:absolute;left:0;top:0;width:720px;height:650px;">
+  <div style="position:absolute;left:436px;top:16px;width:264px;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,155,43,.55);background:rgba(20,12,2,.88);color:#ffc98a;font-size:11px;line-height:1.6;">① 小丑牌 3 张在这儿</div>
+  <div style="position:absolute;left:436px;top:392px;width:264px;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,155,43,.55);background:rgba(20,12,2,.88);color:#ffc98a;font-size:11px;line-height:1.6;">② 消耗牌 2 张在这儿 —— 中间隔着刷新/继续两个按钮</div>
+  <div style="position: absolute; left: 26px; bottom: 14px; width: 668px; display: flex; flex-direction: column; gap: 5px;">
+    <div class="cap">现状 · 真机渲染</div>
+    <div class="cost">① 和 ② 抢的是**同一次购买**(5 选 1), 但界面把它们画成两个互不相干的区域, 中间还隔着按钮 —— 玩家没有任何线索知道「买了消耗牌就买不了小丑牌」。 · 消耗牌卡只有 62×104, 与小丑牌 200×220 的视觉重量差 7 倍, 读起来像赠品而不是对手。 · 右边两个栏位没有任何说明。</div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

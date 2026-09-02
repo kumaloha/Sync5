@@ -8,7 +8,28 @@ func run(t) -> void:
 	# no jokers: passthrough
 	var plain := Settle.run(flush_res, [null, null, null, null], {})
 	t.eq(plain["score"], base, "no jokers -> base score")
-	t.eq(plain["coins"], 3, "no jokers -> pattern coins(FLUSH 3;2026-08-30 收入重构:用户「钱宽松的本质是现在获取太容易」——判据换成「一局能买几张卡」(原作 2~3 张, 我们改前 25 张))")
+	# ⚠⚠ **这个数不许手抄**(2026-09-02 抓到):这条断言原本写死 `3`, 而
+	# `data/economy.json` 的 `kind_coins.FLUSH` 在 09-01「经济收口」那批改成了 **4** ——
+	# 断言没跟着动 ⇒ **单测从那次提交起一直是红的**, 而交接账本写着「快探针全绿」。
+	# 手抄的数字就是「第二个家」, 而这个项目里第二个家从来只有一种结局。
+	# ⇒ 数值从唯一真相 `Pattern.BASE_COINS`(← data/economy.json)取, 这里只验**接线**。
+	#(收入重构的来龙去脉:2026-08-30 用户「钱宽松的本质是现在获取太容易」, 判据换成
+	# 「一局能买几张卡」—— 原作 2~3 张, 我们改前 25 张。)
+	# ⚠ `BASE_COINS` 的键是 **`Kind` 枚举值**不是字符串(首版写 `["FLUSH"]`, 当场
+	#   `SCRIPT ERROR: Invalid access to property or key 'FLUSH'` —— 而 `0 failed`,
+	#   是 `unittest.sh` 的 SCRIPT ERROR 判据把它拦下来的。**PASS ≠ 透明。**)
+	t.eq(plain["coins"], int(Pattern.BASE_COINS[Pattern.Kind.FLUSH]),
+		"no jokers -> 牌型金币直通 kind_coins(验接线, 数值不手抄)")
+	# ⚑ 只验接线是**同义反复**(两边读同一张表), 拦不住把表本身改坏 ⇒ 再验**形状**:
+	#   尺是 −log₂P, 越稀有给得越多 ⇒ 这条阶梯必须单调不减。改数值时它会替我数一遍。
+	# ⚠ 遍历 `Kind` 枚举本身 —— **它的声明顺序就是稀有度顺序**, 所以不手写清单,
+	#   将来加了新牌型自动进门(手写清单会漏掉新的那个, 而漏了不报错)。
+	var kind_names: Array = Pattern.Kind.keys()
+	for li in range(1, kind_names.size()):
+		var hi := int(Pattern.BASE_COINS[Pattern.Kind[kind_names[li]]])
+		var lo := int(Pattern.BASE_COINS[Pattern.Kind[kind_names[li - 1]]])
+		t.check(hi >= lo, "牌型金币阶梯单调不减:%s(%d) ≥ %s(%d)" \
+			% [kind_names[li], hi, kind_names[li - 1], lo])
 
 	# mono target: flush x4
 	var mono := Joker.by_id("mono")

@@ -32,3 +32,13 @@ _shot_*.png.import
 *.pck
 *.zip
 .probe.lock
+
+# Claude Design 画布的**产物**(seed 出来的那个大 html, 单个 ~2MB, 内含整个编辑器)。
+# ⚑ 设计**源**要进仓库:`docs/mockups/*/**.dc.html` + `canvas.json` + 稿子引用的底图。
+# 先例:2026-08-31 收 cslot 画布时就是这么分的 —— 「只收 .dc.html 与 canvas.json」。
+# ⚠ 它不加进来的话, 每次出稿都在 `git status` 里留四行未跟踪噪声, 而某次 `git add -A`
+# 就会把 4 万行产物一起提交(2026-09-01 差点)。
+docs/mockups/*/consumable-coin.html
+docs/mockups/*/consumable-slot-empty-state.html
+docs/mockups/*/shop-consumable-layout.html
+docs/mockups/*/vinyl-queued-coin.html

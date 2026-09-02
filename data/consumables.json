@@ -8,8 +8,8 @@
    "cn": "开场",
    "name": "Opener",
    "price": 3,
-   "when": "phrase",
-   "fx": "This phrase: +57% bonus",
+   "fire": 1,
+   "fx": "Beat 1: +57% bonus",
    "boost": {
     "bonus_pct": 0.57
    },
@@ -20,8 +20,8 @@
    "cn": "副歌",
    "name": "Chorus",
    "price": 3,
-   "when": "phrase",
-   "fx": "This phrase: +200 bonus score",
+   "fire": 4,
+   "fx": "Beat 4: +200 bonus score",
    "boost": {
     "bonus": 200
    },
@@ -32,8 +32,8 @@
    "cn": "快闪",
    "name": "Pop-Up",
    "price": 3,
-   "when": "phrase",
-   "fx": "This phrase: +9.5% of target",
+   "fire": "next",
+   "fx": "Next beat: +9.5% of target",
    "boost": {
     "bonus_target_pct": 0.095
    },
@@ -44,8 +44,8 @@
    "cn": "彩头",
    "name": "Jackpot",
    "price": 3,
-   "when": "phrase",
-   "fx": "This phrase: half chance x2.1",
+   "fire": 6,
+   "fx": "Beat 6: half chance x2.1",
    "boost": {
     "mult": 2.1,
     "chance": 0.5
@@ -57,7 +57,7 @@
    "cn": "超级百搭",
    "name": "Super Wild",
    "price": 4,
-   "when": "any",
+   "fire": "buy",
    "fx": "Four jokers join your deck",
    "action": {
     "wilds": 4
@@ -69,7 +69,7 @@
    "cn": "修剪",
    "name": "Trim",
    "price": 3,
-   "when": "any",
+   "fire": "buy",
    "fx": "Twos and threes leave deck",
    "action": {
     "trim_low": true
@@ -81,11 +81,11 @@
    "cn": "联票",
    "name": "Double Bill",
    "price": 3,
-   "when": "shop",
-   "fx": "This shop: four cards, buy two",
+   "fire": "buy",
+   "fx": "This shop: shelf four, buy two more",
    "action": {
     "shelf_slots": 4,
-    "buy_limit": 2
+    "extra_buys": 2
    },
    "proof": "shop"
   },
@@ -94,7 +94,7 @@
    "cn": "赞助",
    "name": "Sponsor",
    "price": 3,
-   "when": "shop",
+   "fire": "buy",
    "fx": "This shop: everything two less",
    "action": {
     "price_delta": -2
@@ -106,7 +106,7 @@
    "cn": "点唱机",
    "name": "Jukebox",
    "price": 3,
-   "when": "shop",
+   "fire": "buy",
    "fx": "Next shelf holds a rule card",
    "action": {
     "rule_guaranteed": true
@@ -118,7 +118,7 @@
    "cn": "砧座",
    "name": "Anvil",
    "price": 4,
-   "when": "shop",
+   "fire": "buy",
    "fx": "Copy one support, destroy others",
    "action": {
     "copy_one_destroy_rest": true
@@ -130,7 +130,7 @@
    "cn": "加急",
    "name": "Encore Call",
    "price": 3,
-   "when": "shop",
+   "fire": "buy",
    "fx": "One free reroll",
    "action": {
     "free_reroll": 1
@@ -142,7 +142,7 @@
    "cn": "挑高",
    "name": "High Roller",
    "price": 4,
-   "when": "shop",
+   "fire": "buy",
    "fx": "This shop drops no commons",
    "action": {
     "min_rarity": "uncommon"
@@ -154,7 +154,7 @@
    "cn": "近道",
    "name": "Shortcut",
    "price": 3,
-   "when": "any",
+   "fire": "buy",
    "fx": "Straights may skip one rank",
    "action": {
     "deck_rule": "shortcut"
@@ -166,7 +166,7 @@
    "cn": "四指",
    "name": "Four Fingers",
    "price": 3,
-   "when": "any",
+   "fire": "buy",
    "fx": "Four cards make straights and flushes",
    "action": {
     "deck_rule": "fourfingers"
@@ -178,7 +178,7 @@
    "cn": "黑调",
    "name": "Black Tone",
    "price": 4,
-   "when": "any",
+   "fire": "buy",
    "fx": "Black suits count as one",
    "action": {
     "deck_rule": "blacktone"
@@ -190,7 +190,7 @@
    "cn": "红调",
    "name": "Red Tone",
    "price": 4,
-   "when": "any",
+   "fire": "buy",
    "fx": "Red suits count as one",
    "action": {
     "deck_rule": "redtone"
@@ -202,7 +202,7 @@
    "cn": "预支",
    "name": "Advance",
    "price": 3,
-   "when": "shop",
+   "fire": "buy",
    "fx": "Borrow ten, repay twelve or die",
    "action": {
     "loan": {
