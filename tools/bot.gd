@@ -621,6 +621,18 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 	# ⚑ 5 选 1:消耗牌与小丑牌**共用成交名额**(见 `_cons_bought` 的注释)。
 	var buys := 1 if _cons_bought else 0
 	for attempt in range(2):
+		# ⚑⚑ **名额要在挑之前查, 不是买完之后**(2026-09-03)。
+		#
+		# 下面那处 `if buys >= 上限: return` 在 `buys += 1` **之后** —— 没有联票时
+		# 上限是 1, 而买过消耗牌的店 `buys` 从 1 起步 ⇒ bot **照样再买一张小丑牌**,
+		# 然后才发现超额。**游戏给 1 次成交, 模型给自己 2 次。**
+		# 「5 选 1」是 2026-08-31 用户拍的板, 游戏侧 `view/phrase.gd::_on_consumable_bought`
+		# 是**买之前**判的(`if _shop_buys < buy_limit` 才继续), 两侧从那天起就对不上。
+		# ⚠ 后果不是少算一点:bot 的构筑系统性地比真人厚, 而**目标分正是拿它标的**。
+		# ⚑ 照出它的是 kit 的一行基准 ——「双购店 1.92/局」, 而那条证物的注释写着
+		#   「无联票在手时物理不可能, 基准≈0」。**注释和读数打架时, 读数赢。**
+		if buys >= Joker.slots_buy_limit(slots) + _g_extra_buys:
+			return coins
 		# 规则在 `Joker.first_free_support`(唯一真相, 2026-08-16 收口)。
 		# ⚑ bot 这一份**本来就是对的**(只看 1..3), 错的是 `view/shop.gd`——
 		# 这次是「规则在模型里、不在游戏里」, 与此前五次方向相反。
