@@ -1091,7 +1091,7 @@ static func _validate_effects(effects: Array, owner: String, counters: Dictionar
 ## ⚑ 消耗牌的立即动作 —— **加新键时三处齐落**:这里 · `view/phrase.gd::_apply_shop_action`
 ## · `tools/bot.gd::_apply_bot_action`。`tools/parity.py` 会机械核对后两处。
 const _CONSUMABLE_ACTIONS := ["wilds", "trim_low", "deck_rule", "shelf_slots",
-	"buy_limit", "price_delta", "rule_guaranteed", "free_reroll", "min_rarity",
+	"extra_buys", "price_delta", "rule_guaranteed", "free_reroll", "min_rarity",
 	"copy_one_destroy_rest", "loan"]
 ## 当拍加成的通道 —— 与 `core/settle.gd` 里 phrase_boosts 那段消费的键一一对应。
 const _CONSUMABLE_BOOSTS := ["bonus_pct", "mult", "bonus", "bonus_target_pct",

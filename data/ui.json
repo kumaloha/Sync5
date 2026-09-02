@@ -546,7 +546,14 @@
    28,
    940
   ],
-  "_comment_blindcard_pos": "商店期间局内盲注卡的停靠位(2026-08-27 用户:「选牌时展示盲注没错, 但压住小丑牌很奇怪, 可以放下面」)——开店挪到货架/按钮之下, 关店(下一拍 _start_phrase)还原 layout 初始位。"
+  "_comment_blindcard_pos": "商店期间局内盲注卡的停靠位(2026-08-27 用户:「选牌时展示盲注没错, 但压住小丑牌很奇怪, 可以放下面」)——开店挪到货架/按钮之下, 关店(下一拍 _start_phrase)还原 layout 初始位。",
+  "_comment_cons": "商店的消耗牌区(2 张)。碟径 132 = 局内唱片 VinylDeck 同尺寸(2026-09-02 用户:「跟光碟一样大」)。两列在 [cons_left, cons_right] 这段里**居中** —— 左界是盲注卡停靠位(blindcard_pos 28 + 卡宽 145)的右侧, 右界 = 720 − margin。⚠ cons_y 是**绝对** y, 不再跟着 btn_y 走(两个数都在这张表里, 一起看得见)。名字/描述/价格三行跟着碟底排, 间距 12/36/76。",
+  "cons_y": 912,
+  "cons_disc": 132,
+  "cons_col_w": 190,
+  "cons_gap": 24,
+  "cons_left": 190,
+  "cons_right": 692
  },
  "hand": {
   "deny": {
@@ -627,7 +634,7 @@
    "trigger": "牌堆移除所有 2 和 3"
   },
   "doublebill": {
-   "trigger": "本店:四选二"
+   "trigger": "本店:货架 4 张,可再买 2 张"
   },
   "sponsor": {
    "trigger": "本店:全场 −2◆"

@@ -991,7 +991,7 @@ func _on_consumable_bought(c, price: int) -> void:
 	# 这里要的恰恰是**让它们抢**)。
 	_shop_buys += 1
 	_coffer_used = true
-	var buy_limit := maxi(Joker.slots_buy_limit(run.joker_slots), shop.granted_buy_limit())
+	var buy_limit := Joker.slots_buy_limit(run.joker_slots) + shop.granted_extra_buys()
 	if _shop_buys < buy_limit:
 		# 联票:还有配额 ⇒ 货架不清, 可以接着从五张里再挑(用户:「点完那个 4 选 2,
 		# 可以直接再选 2 张」)。⚠ 买走的那张要从货架上摘掉, 不重掷(重掷 = 免费刷新)。
@@ -1000,6 +1000,9 @@ func _on_consumable_bought(c, price: int) -> void:
 			if _coffer[i] != null and String(_coffer[i].id) == String(c.id):
 				_coffer[i] = null
 		_refresh_shop_consumables()
+		# ⚠ 这条路径不经过 `shop.sold()` ⇒ 副标题得由编排器直接喂
+		#(配额对了但玩家看不见, 等于没做 —— 见 `Shop.set_buys_left`)。
+		shop.set_buys_left(buy_limit - _shop_buys, phrase.coins)
 		return
 	_refresh_shop_consumables()
 	_perkeo_on_exit()
@@ -1011,7 +1014,10 @@ func _on_consumable_bought(c, price: int) -> void:
 ## 六种动作各自改一个商店参数, 由 shop 在下一次 _deal/_render 时消费。
 func _apply_shop_action(id: String, act: Dictionary) -> void:
 	if act.has("shelf_slots"):               # 联票:这次商店 4 选 2
-		shop.grant_shelf(int(act["shelf_slots"]), int(act.get("buy_limit", 1)))
+		# ⚑⚑ **名额是加法, 不是取大**(2026-09-02 用户报的问题, 完整口径见
+		# `view/shop.gd::granted_extra_buys`):取大时联票买掉的正是它要给的那次成交,
+		# 净得 0 张。加法之后 = 基础 1 + 联票 2 ⇒ 买完它**还能再选 2 张**。
+		shop.grant_shelf(int(act["shelf_slots"]), int(act.get("extra_buys", 0)))
 	if act.has("price_delta"):               # 赞助:这次商店全场降价
 		shop.grant_price_delta(int(act["price_delta"]))
 	if act.has("rule_guaranteed"):           # 点唱机:下次商店的**消耗牌位**必出规则牌
@@ -1716,7 +1722,8 @@ func _shop_route() -> Array:
 	return out
 
 
-## 一次进店已成交几张(联票 buy_limit 的计数;每次 _open_draft 归零)。
+## 一次进店已成交几张(联票 extra_buys 的计数;每次 _open_draft 归零)。
+## ⚠ **联票自己也算一张** —— 它给的是「额外 2 次」, 不是豁免自己(2026-09-02)。
 var _shop_buys := 0
 
 
@@ -1801,8 +1808,9 @@ func _on_shop_bought(j, price: int) -> void:
 	if not (j.kind == "target" and _swapped_target):
 		_shop_buys += 1
 	# ⚑ 联票(消耗牌)的本店限额叠在小丑牌的之上(2026-08-30 code review 补:
-	# `_grant_buy_limit` 此前**只被写入和清零, 从没被读过** —— 那张卡在游戏里是空白的)。
-	var buy_limit := maxi(Joker.slots_buy_limit(run.joker_slots), shop.granted_buy_limit())
+	# `_grant_extra_buys`(当时叫 `_grant_buy_limit`)此前**只被写入和清零, 从没被读过**
+	# —— 那张卡在游戏里是空白的)。
+	var buy_limit := Joker.slots_buy_limit(run.joker_slots) + shop.granted_extra_buys()
 	if _shop_buys < buy_limit:
 		# 剩余配额由**这里**算并传下去 —— 视图不自己数(经济动作只发生在编排器),
 		# 它只拿这个数去写副标题的「还能再选 N 张」。

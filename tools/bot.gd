@@ -409,7 +409,7 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 	# ⚠ 「本店」类授予每店清零 —— 忘了清就把一次性效果做成了永久 buff,
 	# 而那正是这些牌当初该被挪出小丑牌的理由(见 view/shop.gd::close 同款)。
 	_g_shelf = 0
-	_g_buy_limit = 0
+	_g_extra_buys = 0
 	_g_price = 0
 	_g_free_reroll = 0
 	_cfg_no_cons = bool(cfg.get("no_consumables", false))
@@ -588,7 +588,10 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 			# 名额该留给买卡。⇒ 换完继续走下面的买卡循环。
 			break
 		break
-	# 联票:一次进店最多成交 buy_limit 张(限额随槽位实时读 —— 买到联票当店多一次)。
+	# 联票:一次进店最多成交 `基础名额 + 联票给的额外张数`(限额随槽位实时读)。
+	# ⚑⚑ **2026-09-02 由取大改成加法**(与游戏侧同改, 完整口径见
+	# `view/shop.gd::granted_extra_buys`):取大时联票买掉的正是它要给的那次成交 ⇒
+	# 净得 0 张、净亏 3◆。加法之后 = 1 + 2 = 3 次, 联票占第 1 次 ⇒ 还能再买 2 张。
 	# 两轮尝试的语义不变:第一轮什么都没买才允许一次付费刷新。
 	# ⚑ 5 选 1:消耗牌与小丑牌**共用成交名额**(见 `_cons_bought` 的注释)。
 	var buys := 1 if _cons_bought else 0
@@ -707,7 +710,7 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 				Economy.joker_price(best) - _price_now(best, slots))
 			# 联票:限额未满 → 同一货架摘掉已购的那张继续挑(与 view/phrase.gd 的
 			# sold 流程同构;不重掷 —— 重掷就成了免费刷新)。
-			if buys >= maxi(Joker.slots_buy_limit(slots), _g_buy_limit):
+			if buys >= Joker.slots_buy_limit(slots) + _g_extra_buys:
 				return coins
 			offer.erase(best)
 			continue
@@ -777,7 +780,7 @@ func _price_now(j, slots: Array) -> int:
 ## 但用了什么都不发生 ⇒ 我用那份读数给它们定的 8◆ 是**在「它们是空白卡」的世界里量的**。
 ## ⚠ 每店开头清零 —— 「本店」类就是一次性。
 var _g_shelf := 0
-var _g_buy_limit := 0
+var _g_extra_buys := 0
 var _g_price := 0
 var _cfg_no_cons := false      # cfg.no_consumables 的缓存(拍内烧牌也要读)
 var _g_rule := false
@@ -903,8 +906,9 @@ func _apply_bot_action(run, slots: Array, used: Dictionary) -> void:
 	# ---- 商店类六键(2026-08-30 补齐;此前只在游戏侧实现)----
 	if act.has("shelf_slots"):
 		_g_shelf = maxi(_g_shelf, int(act["shelf_slots"]))
-	if act.has("buy_limit"):
-		_g_buy_limit = maxi(_g_buy_limit, int(act["buy_limit"]))
+	if act.has("extra_buys"):
+		# ⚠ **累加**, 与游戏侧 `Shop.grant_shelf` 同款 —— 一店买到第二张联票要再给一次。
+		_g_extra_buys += int(act["extra_buys"])
 	if act.has("price_delta"):
 		_g_price += int(act["price_delta"])
 	if act.has("rule_guaranteed"):

@@ -82,10 +82,10 @@
    "name": "Double Bill",
    "price": 3,
    "fire": "buy",
-   "fx": "This shop: four cards, buy two",
+   "fx": "This shop: shelf four, buy two more",
    "action": {
     "shelf_slots": 4,
-    "buy_limit": 2
+    "extra_buys": 2
    },
    "proof": "shop"
   },

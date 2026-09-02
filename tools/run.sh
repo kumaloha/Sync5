@@ -24,7 +24,10 @@ cd "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)" || exit 1
 # 是「构造一次它应该报警的情形」才照出来的(见 LESSONS「一把有盲区的尺」)。
 # ⇒ 锁放系统临时目录, 按仓库路径取唯一名。
 LOCK="${TMPDIR:-/tmp}/sync5-probe-$(echo "$PWD" | shasum | cut -c1-8).lock"
-WATCH=(core view tools data)
+# ⚠ 2026-09-02 补 `tests`:首版监视 `core view tools data`, 而**单测读的正是 tests/** ——
+# 跑着单测时改测试文件, 锁一声不吭。同款盲区这已经是第三处(前两处:`.py`/`.sh` 没进
+# 后缀名单 · `$0` 让 WATCH 指向空目录)。**一把有盲区的尺比没有尺更危险。**
+WATCH=(core view tools data tests)
 
 # ⚠ 2026-08-30 补 `.py`/`.sh`:首版只监视 `*.gd`/`*.json`, 而我在门跑着时改的正是
 # `tools/*.py` 与 `gate.sh` —— **锁没报警**。一把有盲区的尺比没有尺更危险,
