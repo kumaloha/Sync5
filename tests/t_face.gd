@@ -9,6 +9,7 @@ func _face_param(fid: String, key: String) -> float:
 
 # --- Boss-face section modifiers ---
 func run(t) -> void:
+	_t_roll_stream(t)
 	for m in SectionMod.roster():
 		t.check(m.fx_text.split(" ").size() <= 7, "%s text within 7 words" % m.id)
 	for idx in GameConfig.WALL_SECTIONS:
@@ -456,3 +457,53 @@ func run(t) -> void:
 	# locked onto a high card is exactly the punishment this face is made of.
 	t.eq(Settle.run(hc_res, [null, null, null, null], {"mod": "setlist", "first_kind": Pattern.Kind.FLUSH})["score"],
 		int(int(hc_res["score"]) / 2.0), "setlist taxes an off-lock high card too")
+
+
+## ⚑⚑ **掷类脸不许扰动牌堆的随机流**(2026-09-02 立)。
+##
+## 病根:`ensure_mod_roll()` 原本走 `deck.pick_index()` —— 基准臂(无脸)一次都不抽,
+## 脸臂抽 1~2 次 ⇒ 从段首起两条臂**发的牌就不是同一副**, 公共随机数(CRN)失效。
+## 实证:09-02 全量门 score 通路里带 `roll_*` 的 4 张脸 ±SE 落在 285~301,
+## 不带的 9 张落在 23~212, **零重叠**;`colorlight` 因此被自己的噪声判成「不显著」。
+##
+## ⚠ 这条断言守的是**流的对齐**, 不是「掷骰结果对不对」——
+## 后者由各自的行为断言守。**验行为才会红**(LESSONS 三 判据 2)。
+func _t_roll_stream(t) -> void:
+	var rolled := ""
+	for e in DB.faces().get("faces", []):
+		var pr: Dictionary = e.get("params", {})
+		if pr.has("roll_suit") or pr.has("roll_kind") or pr.has("roll_chance"):
+			rolled = String(e["id"])
+			break
+	t.check(rolled != "", "池里至少有一张掷类脸(没有的话这条断言就是空转)")
+	if rolled == "":
+		return
+
+	# 同一个牌堆种子:一边挂掷类脸, 一边不挂。掷完之后牌堆流必须逐位相同。
+	var with_face := Run.new()
+	with_face.deck = Deck.new(20260902)
+	with_face.run_faces = {0: rolled}
+	var bare := Run.new()
+	bare.deck = Deck.new(20260902)
+
+	with_face.ensure_mod_roll()
+	bare.ensure_mod_roll()
+	t.check(with_face.mod_roll.size() > 1, "%s 确实掷了(否则这条断言证不了什么)" % rolled)
+
+	var sa: Array = []
+	var sb: Array = []
+	for i in range(12):
+		sa.append(with_face.deck.pick_index(1000))
+		sb.append(bare.deck.pick_index(1000))
+	t.eq(sa, sb, "掷类脸(%s)掷完之后**牌堆流逐位不变** —— 掷骰走 _roll_rng, 不许碰 deck" % rolled)
+
+	# 同一局同一段的掷骰是**确定的**(段首重播种 ⇒ 与之前抽过几次无关)。
+	var again := Run.new()
+	again.deck = Deck.new(20260902)
+	again.run_faces = {0: rolled}
+	again._roll_seed = with_face._roll_seed
+	for i in range(5):
+		again.deck.pick_index(1000)       # 先扰动牌堆流
+	again.ensure_mod_roll()
+	t.eq(again.mod_roll, with_face.mod_roll,
+		"同段的掷骰结果与「本段之前抽过几次」无关(段首重播种)")

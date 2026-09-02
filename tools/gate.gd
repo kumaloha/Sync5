@@ -32,6 +32,12 @@ const MAG_MIN := 0.05      # 量级:效应占基准的比例, 低于它就是"�
 var _rng := RandomNumberGenerator.new()
 var _only := ""
 var _fail: Array = []
+## 本条臂内的读数(label → {d, z, sig, big})。**每条臂开头清空** —— 变体只跟
+## **同一条臂**里的基础脸比, 跨臂比是拿两把尺量同一个东西。
+var _measured: Dictionary = {}
+## 本条臂里 `_judge` 追加的那条红(label → 原字符串), 供变体和解时**精确摘除**
+## (按前缀删会误伤另一条臂里同名的那条)。
+var _fail_of: Dictionary = {}
 var _warn: Array = []
 
 
@@ -112,11 +118,13 @@ func _initialize() -> void:
 ## --- ① score 通路:规则 bot + 开着商店。分数/经济两条线都在这条臂里。 ---
 func _run_score(cfg: Dictionary, ids: Array, n: int) -> void:
 	print("\n  ---- ① score 通路(规则 bot, 带商店) ----")
+	_measured.clear(); _fail_of.clear()
 	var base := _play_score(cfg, "", n)
 	print("    基准总分 %.0f" % Stat.mean(base))
 	for fid in ids:
 		var arm := _play_score(cfg, fid, n)
 		_judge(fid, base, arm, Stat.mean(base), _weak_declared(fid))
+	_reconcile_variants()
 
 
 ## --- ①b solver 通路:攻击**跨拍养牌**或**时间预算**的脸, 必须拿完美玩家当尺子。 ---
@@ -131,11 +139,13 @@ func _run_score(cfg: Dictionary, ids: Array, n: int) -> void:
 ## **教训:「模型看得见这张脸吗」这个问题, 答案取决于你拿哪个模型去看。**
 func _run_solver(cfg: Dictionary, ids: Array, n: int) -> void:
 	print("\n  ---- ①b solver 通路(完美玩家, 无商店) ----")
+	_measured.clear(); _fail_of.clear()
 	var base := _play_perfect(cfg, "", false, n)
 	print("    基准总分 %.0f" % Stat.mean(base))
 	for fid in ids:
 		var arm := _play_perfect(cfg, fid, false, n)
 		_judge(fid, base, arm, Stat.mean(base), _weak_declared(fid))
+	_reconcile_variants()
 
 
 ## --- ② belief 通路:必须用完美玩家 —— 规则 bot 全程上帝视角, 量这一族恒等于 0。 ---
@@ -401,6 +411,61 @@ func _run_sentinel(_cfg: Dictionary, n: int) -> void:
 ##
 ## ⚑ **反向保护**:声明了豁免、实测却两条都过 → **报警**。
 ## 否则豁免会变成一块永久的遮羞布, 而机制/数值改动之后它早就不成立了。
+## 这张脸在 `faces.json` 里**字面写了** `base` 吗(档位变体)。
+## ⚠ 不走 `SectionMod.base_of()` —— 那个口对**复合脸**会回落到第一成分, 而复合脸的
+## 量级不该由它的某一个成分来背书(复合的卖点恰恰是「合起来才难」)。
+func _variant_base(fid: String) -> String:
+	for e in DB.faces().get("faces", []):
+		if String(e["id"]) == fid:
+			return String(e.get("base", ""))
+	return ""
+
+
+## ⚑⚑ **档位变体的和解**(2026-09-02 立)。
+##
+## 病根:`MAG_MIN = 5%` 这条地板问的是「这个效应值不值得管」, 而**档位变体被设计出来
+## 就是要比它的基础脸轻或重**。`norepeat`(`repeat_factor 0.5`, 砍一半)量到 **6.8%**,
+## 它的轻档 `norepeat75`(`0.75`, 砍四分之一)量到 **3.2%** —— 比值 0.47 ≈ 参数比 0.50,
+## **模型把这个参数看得清清楚楚**(z = −13.26, 全表最显著的几条之一), 却因为撞上一条
+## 为基础脸设的地板被判红。⇒ 拿它去写 `weak_upper_bound` 是把仪器问题记成内容债。
+##
+## 判据(**没有魔法数**):变体只要 ① 显著(|z| ≥ Z_MIN)· ② 与基础脸**同号**
+## · ③ **基础脸自己完整通过**(显著且量级够)—— 三条齐了, 量级由基础脸承担。
+## ⚠ ③ 是防止这条变成后门的那一条:基础脸自己弱 ⇒ **整族红**, 变体不许借它的光。
+##
+## ⚑ 这一层**同时是新增的红**:变体与基础脸**符号相反**过去无人过问, 现在直接判红 ——
+##   那意味着参数轴坏了(加大剂量反而变好), 比「量级小」严重得多。
+## ⚠ 只在**同一条臂内**比较(`_measured` 每条臂开头清空)——
+##   拿 score 臂的基础脸给 solver 臂的变体背书, 是拿两把尺量同一个东西。
+func _reconcile_variants() -> void:
+	for label in _measured.keys():
+		var m: Dictionary = _measured[label]
+		if not bool(m["sig"]):
+			continue
+		var b := _variant_base(String(label))
+		if b == "" or b == label or not _measured.has(b):
+			continue
+		var mb: Dictionary = _measured[b]
+		if signf(float(m["d"])) != signf(float(mb["d"])) and absf(float(mb["d"])) > 0.0:
+			var bad := "%s: 与基础脸 %s **符号相反**(%+.1f vs %+.1f)—— 参数轴坏了, 加大剂量反而变好" \
+				% [label, b, float(m["d"]), float(mb["d"])]
+			print("    \u001b[31m✗ %s\u001b[0m" % bad)
+			if not _fail.has(bad):
+				_fail.append(bad)
+			continue
+		if bool(m["big"]):
+			continue                     # 自己就过了, 不需要和解
+		if not (bool(mb["sig"]) and bool(mb["big"])):
+			continue                     # 基础脸自己没过 ⇒ 整族红, 不许借光
+		if _fail_of.has(label):
+			_fail.erase(_fail_of[label])
+			_fail_of.erase(label)
+		var note := "%s: 量级 %.1f%% < %.0f%%, 但它是 %s 的档位变体(同号 · z=%+.2f · 基础脸 %.1f%% 已过)—— 量级由基础脸承担" \
+			% [label, float(m["mag"]) * 100.0, MAG_MIN * 100.0, b, float(m["z"]), float(mb["mag"]) * 100.0]
+		print("    \u001b[36m↳ 变体和解:%s\u001b[0m" % note)
+		_warn.append(note)
+
+
 func _judge(label: String, a: Array, b: Array, base: float = 0.0,
 		weak_declared: bool = false) -> float:
 	var p := Stat.paired(a, b)
@@ -417,6 +482,7 @@ func _judge(label: String, a: Array, b: Array, base: float = 0.0,
 		verdict = "❌ 效应太小"
 	else:
 		verdict = "❌ 不稳(量级够但不显著)"
+	_measured[label] = {"d": p["d"], "z": z, "sig": sig, "big": big, "mag": mag}
 	var mag_txt := "" if base == 0.0 else "  %.1f%%" % (mag * 100.0)
 	print("    %-28s %+9.1f  ±%.1f   z = %+.2f%s   %s"
 		% [label, p["d"], p["se"], z, mag_txt, verdict])
@@ -429,8 +495,10 @@ func _judge(label: String, a: Array, b: Array, base: float = 0.0,
 		_warn.append("%s: 分差 %.1f (%.1f%% < %.0f%%) —— 上界效应小, 已声明豁免。**真人待定**"
 			% [label, p["d"], mag * 100.0, MAG_MIN * 100.0])
 	elif not big:
-		_fail.append("%s: 分差 %.1f ±%.1f (z=%.2f) 只占基准 %.1f%% < %.0f%% —— 效应太小。若确认「对完美玩家真的小」, 写进 faces.json 的 weak_upper_bound(必须显式声明)"
-			% [label, p["d"], p["se"], z, mag * 100.0, MAG_MIN * 100.0])
+		var msg := "%s: 分差 %.1f ±%.1f (z=%.2f) 只占基准 %.1f%% < %.0f%% —— 效应太小。若确认「对完美玩家真的小」, 写进 faces.json 的 weak_upper_bound(必须显式声明)" \
+			% [label, p["d"], p["se"], z, mag * 100.0, MAG_MIN * 100.0]
+		_fail.append(msg)
+		_fail_of[label] = msg
 	else:
 		_fail.append("%s: 分差 %.1f ±%.1f (z=%.2f) 量级够(%.1f%%)但不显著 —— 样本不足或效应不稳, 这条要查"
 			% [label, p["d"], p["se"], z, mag * 100.0])

@@ -59,6 +59,21 @@ var cache_meta: Dictionary = {"ages": {}, "next": 0}
 var previous_raw_score := 0
 var request_last := ""
 var _blind_rng := RandomNumberGenerator.new()
+## ⚑⚑ **掷类脸的专用随机流(2026-09-02)** —— 它**不许碰牌堆的流**。
+##
+## 病根:`ensure_mod_roll()` 原本走 `deck.pick_index()`(注释写着「共享流, 探针同序」),
+## 而共享流对**配对对照**恰好是毁灭性的:基准臂没有脸 ⇒ 一次都不抽;脸臂抽 1~2 次
+## ⇒ 从段首起两条臂发的牌就**不是同一副**, 公共随机数(CRN)当场失效。
+## 实证(09-02 全量门 score 通路的 ±SE):带 `roll_*` 参数的 4 张脸落在 **±285~301**,
+## 不带的 9 张落在 **±23~212** —— **零重叠**。`callout` 效应够大(18%/32%)扛得住,
+## `colorlight`(5.5%/8.9%)被噪声淹掉, 于是两条都判了「量级够但不显著」。
+## ⇒ 掷骰移到这条独立流, 牌堆流两臂保持逐位对齐。
+## ⚠ 段首**重新播种**(而不是顺着抽), 所以结果与「这一段之前抽过几次」无关 ——
+##   免得下一个新掷类脸又把顺序打乱一遍。
+## ⚠⚠ **这会让所有既有读数换基线**(牌堆流的消耗变了), 与 bot_targets 换表同性质:
+##   09-02 之前的门/sim 数字与之后**不可比**。
+var _roll_rng := RandomNumberGenerator.new()
+var _roll_seed: int = 0
 ## Coins carried across phrases. The Phrase owns them during a phrase (that is
 ## where tolls and discards are charged); this is the carry between phrases, so
 ## that a probe does not have to invent its own coin variable — inventing one is
@@ -105,8 +120,11 @@ func reset(face_seed: int = -1) -> void:
 func roll_faces(face_seed: int = -1, run_index: int = -1) -> void:
 	if face_seed >= 0:
 		_blind_rng.seed = face_seed
+		_roll_seed = face_seed
 	else:
 		_blind_rng.randomize()
+		_roll_rng.randomize()
+		_roll_seed = int(_roll_rng.randi())
 	# ⚑ **教学关不掷 Boss 脸** —— 起承転結 的「起」按定义是「安全的地方、**无惩罚**地
 	# 理解机制」(docs/design/research_pacing_retention.md §5.5), 挂一张 Boss 规则直接违背它。
 	# ⚠ 所以调用方必须**先设 `tutorial` 再调这里**;顺序反了教学关第一拍就带着一张脸。
@@ -333,25 +351,29 @@ func target() -> int:
 ## 弃牌免费之后时间是唯一的闸门, 所以这一处比它看上去更重要。
 ## 掷类脸的开局明掷(轮盘掷严重度 / 变色灯掷花色)。懒掷:段首第一次 Beat.begin
 ## 调它 —— 开局/重开/转正三条入口都必经那里, 不给「第二条入口漏步骤」留缝。
-## 掷一次记段号, 同段重复调是无操作;RNG 走 deck.pick_index(共享流, 探针同序)。
+## 掷一次记段号, 同段重复调是无操作。
+## ⚠ RNG 走 `_roll_rng`(**专用流**, 段首重播种), **不是** `deck.pick_index` ——
+## 走牌堆流会让基准臂与脸臂发的牌不同, 配对对照当场失效(理由全文见 `_roll_rng` 声明处)。
 func ensure_mod_roll() -> void:
 	if int(mod_roll.get("sec", -1)) == section_idx:
 		return
 	mod_roll = {"sec": section_idx}
+	# 段首重播种:同一局同一段恒定, 且与本段之前抽过几次无关。
+	_roll_rng.seed = _roll_seed + section_idx * 7919
 	var m := face()
 	if m == "":
 		return
 	var ch := SectionMod.roll_chance(m)
 	if ch > 0.0:
-		mod_roll["worse"] = deck.pick_index(100) < int(round(ch * 100.0))
+		mod_roll["worse"] = _roll_rng.randi_range(0, 99) < int(round(ch * 100.0))
 	if SectionMod.rolls_suit(m):
-		mod_roll["suit"] = deck.pick_index(4)
+		mod_roll["suit"] = _roll_rng.randi_range(0, 3)
 	if SectionMod.rolls_kind(m):
 		# 点名的指定牌型池:构筑相关成本的四个中档型(对子太贱 = 单拍白嫖,
 		# 葫芦以上太贵 = 变成硬吃;两对~同花对不同构筑贵贱不一, 正是「解还是忍」)。
 		var kind_pool: Array = [Pattern.Kind.TWO_PAIR, Pattern.Kind.THREE_KIND,
 			Pattern.Kind.STRAIGHT, Pattern.Kind.FLUSH]
-		mod_roll["kind"] = int(kind_pool[deck.pick_index(kind_pool.size())])
+		mod_roll["kind"] = int(kind_pool[_roll_rng.randi_range(0, kind_pool.size() - 1)])
 		mod_roll["solved"] = false
 
 
