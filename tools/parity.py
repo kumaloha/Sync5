@@ -44,6 +44,32 @@ def sides(name):
         return n
     return count("view"), count("tools"), count("core")
 
+def _fn_body(path, fn):
+    """抽出 GDScript 里某个函数的函数体(到下一个顶格 `func`/`static func` 为止)。
+
+    ⚠ 靠缩进定边界 —— GDScript 顶层函数一律顶格, 函数体一律缩进, 这条足够。
+    ⚠ 找不到该函数时返回空串 ⇒ 调用方会把**所有键**报成缺失, 那是**响的**失败,
+      不是静默的。(今天的教训:查不到不许翻译成一个看起来正常的值。)
+    """
+    txt = path.read_text(encoding="utf-8", errors="ignore")
+    out, inside = [], False
+    for line in txt.splitlines():
+        if re.match(r"^(static\s+)?func\s+" + re.escape(fn) + r"\b", line):
+            inside = True
+            continue
+        if inside:
+            if re.match(r"^(static\s+)?func\s", line):
+                break
+            # ⚠⚠ **必须剥注释**(2026-09-03, 自验时当场照出来的):
+            # 我在 `_apply_bot_action` 里写了一段解释 `loan` 的注释, 于是即便把真正的
+            # `act.has("loan")` 分支删掉, 这道检查**仍然找得到 "loan" 而放行**。
+            # ⚑ 这个缺陷**原来那一层也有**(它扫整个文件, 含注释)——
+            #   也就是说一句「TODO: 支持 loan」的注释就能让检查变绿。
+            # ⇒ **尺子不许被文字骗**:只看代码。
+            out.append(line.split("#", 1)[0])
+    return "\n".join(out)
+
+
 def action_keys():
     """数据驱动的第二层:消耗牌 `action` 的每个键, 两侧是否都实现。
 
@@ -57,8 +83,15 @@ def action_keys():
     acts = set()
     for c in json.loads((ROOT / "data/consumables.json").read_text(encoding="utf-8"))["consumables"]:
         acts |= set(c.get("action", {}))
-    game = "".join((ROOT / f).read_text(encoding="utf-8") for f in ("view/phrase.gd", "view/shop.gd"))
-    bot = (ROOT / "tools/bot.gd").read_text(encoding="utf-8")
+    # ⚑⚑ **只看共用执行口的函数体, 不看整个文件**(2026-09-03)。
+    # 起因:`loan` 在 bot 侧确实出现过 —— 但它在 `_consumables_in_shop` 的成交分支里,
+    # 而不在共用口 `_apply_bot_action` 里 ⇒ 凡走共用口的路径(kit 钉卡 / 拍内到点队列 /
+    # 帕奇欧复制)借款**静默不发生**, `advance` 在 kit 里恒 `0.0 ±0.0`。
+    # 这一层当时是绿的, 因为它扫的是整个文件。
+    # ⇒ **静态尺查得到「有没有」, 查不到「在不在对的地方」** —— 除非把范围收到那个地方。
+    game = _fn_body(ROOT / "view/phrase.gd", "_apply_shop_action") \
+        + _fn_body(ROOT / "view/phrase.gd", "_apply_consumable")
+    bot = _fn_body(ROOT / "tools/bot.gd", "_apply_bot_action")
     bad = []
     for a in sorted(acts):
         g, b = ('"%s"' % a) in game, ('"%s"' % a) in bot
