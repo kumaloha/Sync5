@@ -823,6 +823,12 @@ func _play(cfg: Dictionary, install: Array, shop: bool, perfect: bool, n: int) -
 				pinned_cons.append(String(pair[1]))
 			else:
 				pinned[int(pair[0])] = Joker.by_id(String(pair[1]))
+		# ⚑⚑ **商店类消耗牌要让 bot 在进店 reset 之后自己补一次**(2026-09-03)。
+		# 拍首注入的「本店」类授予会被 `bot._draft` 的每店清零擦掉 ⇒ 五张商店类
+		# (doublebill/sponsor/encorecall/highroller/advance)在 kit 里恒 `0.0 ±0.0`,
+		# 而红的措辞是「方向反了」—— 一个时序问题伪装成了五张卡没效果。
+		# ⚠ 基准臂必须**也清空**, 否则上一条臂的钉卡会漏进来(配对当场失效)。
+		bot._pinned_cons = pinned_cons
 		var once := {"done": false}
 		# ⚠ **GDScript 的 lambda 按值捕获局部变量** —— int 计数器在闭包里 `+=` 传不出来,
 		# 而 Dictionary 是引用类型所以正常。一半状态正常、一半静默丢失, 输出仍是合理的数字。

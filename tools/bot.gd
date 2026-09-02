@@ -417,6 +417,31 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 	# 本次进店用掉它才重新点亮(`_apply_bot_action`)。与游戏侧 `Shop.open()` 同刻。
 	_g_min_rarity = ""
 	_cons_bought = false
+	# ⚑⚑ **钉卡臂的商店类消耗牌要在 reset 之后补**(2026-09-03)。
+	#
+	# 病根:`kit.gd` 在 `on_begin`(**每拍开头**)注入钉住的消耗牌并就地执行 action,
+	# 而「本店」类授予在**进店这一刻**被上面那几行清零 ⇒ 时序是
+	# 「拍首给 → 打完这拍 → 进店擦掉 → 商店没有授予地跑」。
+	# ⇒ **商店类消耗牌在 kit 里永远不可能生效**, 五张全部报 `0.0 ±0.0`
+	#   (doublebill / sponsor / encorecall / highroller / advance),
+	#   而 anvil(改构筑, 立即生效)与 perkeo(离店触发)不走这条路, 所以它们是好的。
+	# ⚠ 上面那段 reset **是对的** —— 真实对局里授予产生于**店内**, 在 reset 之后。
+	#   错的是注入时机, 所以修在这里(补一次), 不是把 reset 删掉。
+	# ⚠ 只补**本店类**的六个键 —— 牌堆类(wilds/trim)与构筑类(anvil)已在拍首生效过,
+	#   在这里再执行一遍等于每店复利一次。**「每拍补满」是钉卡臂的语义, 不是叠加。**
+	for cid in _pinned_cons:
+		for e in DB.consumables():
+			if String(e["id"]) != String(cid):
+				continue
+			var act: Dictionary = e.get("action", {})
+			var shop_act := {}
+			for k in ["shelf_slots", "extra_buys", "price_delta",
+					"rule_guaranteed", "free_reroll", "min_rarity"]:
+				if act.has(k):
+					shop_act[k] = act[k]
+			if not shop_act.is_empty():
+				_apply_bot_action(run, slots, {"id": String(cid), "action": shop_act})
+			break
 	coins = _consumables_in_shop(run, coins, slots)
 	var want := "target" if slots[0] == null else "support"
 	var owned: Array = []
@@ -781,6 +806,9 @@ func _price_now(j, slots: Array) -> int:
 ## ⚠ 每店开头清零 —— 「本店」类就是一次性。
 var _g_shelf := 0
 var _g_extra_buys := 0
+## ⚑ 钉卡臂(kit)钉住的消耗牌 id —— **只给探针用**, 正常对局恒空。
+## 商店类的授予要在进店 reset **之后**补一次, 理由见 `_draft` 里那段注释。
+var _pinned_cons: Array = []
 var _g_price := 0
 var _cfg_no_cons := false      # cfg.no_consumables 的缓存(拍内烧牌也要读)
 var _g_rule := false
