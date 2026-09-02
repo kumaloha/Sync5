@@ -858,7 +858,7 @@ func _play(cfg: Dictionary, install: Array, shop: bool, perfect: bool, n: int) -
 		o.mortal = false
 		o.st = st
 		o.tally_mult_kinds = false
-		o.on_begin = func(run: Run, _p: Phrase) -> void:
+		o.on_begin = func(run: Run, p: Phrase) -> void:
 			# 消耗牌:每拍把栏位补满 —— 用完即弃, 不补就只生效一次,
 			# 而实验臂要量的是「一直持有它」与「从没有它」的差。
 			# ⚠ 2026-09-01:队列没有上限了 ⇒ 摘掉 `consumable_room()` 这道门;
@@ -870,6 +870,8 @@ func _play(cfg: Dictionary, install: Array, shop: bool, perfect: bool, n: int) -
 						var kused: Dictionary = run.take_consumable(Consumable.new(ce))
 						if not kused.is_empty():
 							bot._apply_bot_action(run, run.joker_slots, kused)
+							# ⚠ 借款要就近兑现, 否则 `advance` 借了钱但钱没到(恒 0)。
+							p.coins = bot._take_borrow(p.coins, run.joker_slots)
 						break
 			for slot in pinned:
 				if run.joker_slots[slot] != pinned[slot]:

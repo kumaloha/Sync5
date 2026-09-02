@@ -821,6 +821,18 @@ var _g_extra_buys := 0
 ## ⚑ 钉卡臂(kit)钉住的消耗牌 id —— **只给探针用**, 正常对局恒空。
 ## 商店类的授予要在进店 reset **之后**补一次, 理由见 `_draft` 里那段注释。
 var _pinned_cons: Array = []
+## 待领的预支借款 —— `_apply_bot_action` 记账, 调用点用 `_take_borrow()` 就近兑现。
+## ⚠ 必须**每个**调用点都兑现, 漏一个就是「借了但钱没到」, 而那不报错。
+var _pending_borrow := 0
+
+
+## 领走待领借款并清零。⚠ 走 `Economy.grant` 收口(要吃穷开心的 coin_cap, 同游戏侧)。
+func _take_borrow(coins: int, slots: Array) -> int:
+	if _pending_borrow == 0:
+		return coins
+	var got := _pending_borrow
+	_pending_borrow = 0
+	return Economy.grant(coins, got, slots)
 var _g_price := 0
 var _cfg_no_cons := false      # cfg.no_consumables 的缓存(拍内烧牌也要读)
 var _g_rule := false
@@ -857,6 +869,7 @@ func _consumables_in_shop(run, coins: int, slots: Array) -> int:
 					var used2: Dictionary = run.take_consumable(Consumable.new(e))
 					if not used2.is_empty():
 						_apply_bot_action(run, slots, used2)
+						coins = _take_borrow(coins, slots)   # 帕奇欧复制到预支时
 					_rep.cov_install(String(e["id"]))
 					_rep.perkeo_copies += 1    # 零基线证物:没有帕奇欧时恒 0(kit SHOP_WITNESS)
 					break
@@ -910,10 +923,9 @@ func _consumables_in_shop(run, coins: int, slots: Array) -> int:
 	var bought: Dictionary = run.take_consumable(best)
 	if not bought.is_empty():
 		_apply_bot_action(run, slots, bought)
-		var ln2: Dictionary = (bought.get("action", {}) as Dictionary).get("loan", {})
-		if not ln2.is_empty():
-			coins = Economy.grant(coins, int(ln2.get("borrow", 0)), slots)
-			run.debt += int(ln2.get("repay", 0))
+		# ⚑ 预支已收口进 `_apply_bot_action`(上面那次调用就记了账), 这里只兑现 ——
+		# **同一件事不许有第二套机制**, 而这里原本就是那第二套。
+		coins = _take_borrow(coins, slots)
 		_rep.consumables_used += 1
 	_rep.cov_install(String(best.id))
 	_rep.eco_add("spend_buy", best.price)
@@ -933,6 +945,8 @@ func _consumable_in_beat(run, p, section: int, pidx: int) -> void:
 	run.age_consumables()
 	for used in run.due_consumables(pidx + 1):
 		_apply_bot_action(run, run.joker_slots, used)
+		# 拍内的金币容器是 `p.coins`(与 core/beat.gd 同一份)。
+		p.coins = _take_borrow(p.coins, run.joker_slots)
 		_rep.consumables_used += 1
 
 
@@ -943,6 +957,19 @@ func _consumable_in_beat(run, p, section: int, pidx: int) -> void:
 ## **这是已知的保真缺口, 写在这里而不是假装它生效了**(与 reroll 不重放补丁同款处理)。
 func _apply_bot_action(run, slots: Array, used: Dictionary) -> void:
 	var act: Dictionary = used.get("action", {})
+	# ⚑⚑ **预支(loan)此前只在购买路径里实现, 不在这个共用口里**(2026-09-03 修)。
+	# 游戏侧是在共用的 `_apply_shop_action` 里处理的(view/phrase.gd::「预支:当场借」),
+	# 而 bot 侧写在 `_consumables_in_shop` 的成交分支里 ⇒ **凡是走这个共用口的路径**
+	# (kit 的钉卡注入 / 拍内到点队列 / 帕奇欧复制)**借款静默不发生**。
+	# 实测:`advance` 在 kit 里恒 `0.0 ±0.0`, 而同批的另外四张商店类卡修好之后都活了。
+	# ⚠⚠ `parity.py` 第 ② 层**放过了它** —— 它查「"loan" 这个字符串两侧都出现过吗」,
+	#   而 bot 侧确实出现过, 只是在错的地方。**静态尺查得到「有没有」, 查不到「在不在对的地方」。**
+	# ⚠ 这里改不了调用方的局部 `coins`(bot 的金币是一路传下去的局部变量, `run.coins` 没人用),
+	#   所以只记**待领额**, 由各调用点就近兑现(`_take_borrow`)。repay 直接进 run.debt。
+	if act.has("loan"):
+		var ln: Dictionary = act["loan"]
+		_pending_borrow += int(ln.get("borrow", 0))
+		run.debt += int(ln.get("repay", 0))
 	# ---- 商店类六键(2026-08-30 补齐;此前只在游戏侧实现)----
 	if act.has("shelf_slots"):
 		_g_shelf = maxi(_g_shelf, int(act["shelf_slots"]))
