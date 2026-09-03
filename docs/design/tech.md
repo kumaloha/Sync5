@@ -254,6 +254,10 @@ apply sites (`Settle.run`, `view/phrase.gd`) read accessors on `SectionMod`.
  "chase": {"gain": 2.2, "cap": 0.92, "floor": 0.02}}
 ```
 
+> ⚑ 2026-09-04:上面这张 `ev.cards` 示例已过时 —— 效果卡(39 张)改走反事实重放(`_card_ev_replay`),
+> **不读 `ev.cards`**, 它们的条目已删, 且 `db.gd` 反向锁着「重放卡不许有条目」(没人读的先验会被下一个人调)。
+> 表里只剩手写臂那 17 张(成长/衰减/持有/概率/货架, `DB.replay_valued` 判)。
+
 **Derived, not stored**: `_target_mult` (bot's model of target payouts) is
 computed from `jokers.json` effects (kind→mult tiers) — the drift hazard
 this upgrade exists to kill. Card amounts already in `jokers.json`
