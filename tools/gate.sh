@@ -158,14 +158,37 @@ else
 		# 串行纯属历史 —— 并行后全量 wall-clock ≈ max(两门)。各自写日志, 完成后按序
 		# 原样回放保持可读;判据照旧直读各自退出码(不隔管道)。
 		# ⚠ 并行的两进程只**读**工作树 —— 门跑着仍然不许改代码/数据(另开 worktree 开发)。
-		printf '\n\033[1m── 覆盖自证 + 单调性 + 哨兵 ∥ 小丑牌覆盖自证(并行)\033[0m\n'
+		printf '\n\033[1m── 覆盖自证 + 单调性 + 哨兵(×%s 分片) ∥ 小丑牌覆盖自证(并行)\033[0m\n' "${SYNC5_GATE_SHARDS:-4}"
 		TPAR=$SECONDS
-		godot --headless --path . --script res://tools/gate.gd > "$LOGDIR/gate_faces.log" 2>&1 &
-		PID_FACES=$!
+		# ⚑⚑ **脸门分片**(2026-09-03):实测 脸 5h+ / 卡 48min ⇒ wall-clock 全被脸门吃掉,
+		# 而它的 28 张 solver 脸互相独立。用户 08-26:「门拖了一周工期」。
+		# ⚠ 分片按**族**(gate.gd::_shard_of)—— 按脸切会让 norepeat 和 norepeat75
+		#   落到不同进程, 而变体和解是**臂内**比较, 会当场失效且不报错。
+		# ⚠ 每片各付一份基线臂(4 片 ≈ +11% 总局数), 换 4 倍 wall-clock。
+		# ⚠ 单调性/哨兵是全局的, gate.gd 只在 0 号片跑。
+		SHARDS="${SYNC5_GATE_SHARDS:-4}"
+		FACE_PIDS=()
+		for ((s = 0; s < SHARDS; s++)); do
+			env SYNC5_GATE_SHARD="$s/$SHARDS" \
+				godot --headless --path . --script res://tools/gate.gd \
+				> "$LOGDIR/gate_faces_$s.log" 2>&1 &
+			FACE_PIDS+=("$!")
+		done
 		godot --headless --path . --script res://tools/kit.gd > "$LOGDIR/gate_cards.log" 2>&1 &
 		PID_CARDS=$!
-		wait "$PID_FACES"; R_FACES=$?
+		# ⚠ 逐个 wait 并**直读**各自退出码(不隔管道);任何一片红 ⇒ 整个脸门红。
+		R_FACES=0
+		for p in "${FACE_PIDS[@]}"; do
+			wait "$p" || R_FACES=1
+		done
 		wait "$PID_CARDS"; R_CARDS=$?
+		# 按片序拼回一份完整日志(每片各带一段「=== 判据 ===」, 不合并 ——
+		# 合并要在 shell 里重新解析日志, 而「解析自己的日志再下结论」是本项目栽过的形状)。
+		: > "$LOGDIR/gate_faces.log"
+		for ((s = 0; s < SHARDS; s++)); do
+			printf '\n────────── 分片 %d/%d ──────────\n' "$s" "$SHARDS" >> "$LOGDIR/gate_faces.log"
+			cat "$LOGDIR/gate_faces_$s.log" >> "$LOGDIR/gate_faces.log"
+		done
 		cat "$LOGDIR/gate_faces.log"
 		if [[ $R_FACES -eq 0 ]]; then
 			printf '   \033[32m✓ 覆盖自证 + 单调性 + 哨兵\033[0m\n'

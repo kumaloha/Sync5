@@ -47,6 +47,19 @@ func _initialize() -> void:
 	var n_score := Probe.env_int("SYNC5_GATE_N", N_SCORE)
 	var n_solver := Probe.env_int("SYNC5_GATE_N", N_SOLVER)
 	var n_belief := Probe.env_int("SYNC5_GATE_N", N_BELIEF)
+	# ⚑⚑ **分片**(2026-09-03):`SYNC5_GATE_SHARD="i/n"` —— 只跑第 i 片(0 起)。
+	# 起因:09-03 全量门 6h+,而 `gate.sh` 写的预算是 ≤10 分钟。wall-clock =
+	# max(脸门, 卡门) = max(5h+, 48min) ⇒ **脸门是唯一的瓶颈**,而 28 张 solver 脸
+	# 互相独立。用户 08-26:「门拖了一周工期」。
+	# ⚠ 分片只切**按脸**的四条通路;单调性/哨兵是**全局**的, 只在 0 号片跑(见下)。
+	var shard := Probe.env_str("SYNC5_GATE_SHARD")
+	var shard_i := 0
+	var shard_n := 1
+	if shard != "":
+		var sp: PackedStringArray = shard.split("/")
+		if sp.size() == 2:
+			shard_i = int(sp[0])
+			shard_n = maxi(1, int(sp[1]))
 
 	var cfg := _cohort()
 	var ids := SectionMod.pooled_ids()
@@ -88,17 +101,29 @@ func _initialize() -> void:
 			continue
 		by_channel[ch].append(fid)
 
+	if shard_n > 1:
+		for ch2 in by_channel.keys():
+			by_channel[ch2] = _shard_of(by_channel[ch2], shard_i, shard_n)
+		print("  [分片 %d/%d] 本片负责:score %d · solver %d · belief %d · target %d 张"
+			% [shard_i, shard_n, by_channel["score"].size(), by_channel["solver"].size(),
+				by_channel["belief"].size(), by_channel["target"].size()])
+
 	if not by_channel["score"].is_empty():
-		_run_score(cfg, by_channel["score"], n_score)
+		_timed("① score", func() -> void: _run_score(cfg, by_channel["score"], n_score),
+			by_channel["score"].size(), n_score)
 	if not by_channel["solver"].is_empty():
-		_run_solver(cfg, by_channel["solver"], n_solver)
+		_timed("①b solver", func() -> void: _run_solver(cfg, by_channel["solver"], n_solver),
+			by_channel["solver"].size(), n_solver)
 	if not by_channel["belief"].is_empty():
-		_run_belief(cfg, by_channel["belief"], n_belief)
+		_timed("② belief", func() -> void: _run_belief(cfg, by_channel["belief"], n_belief),
+			by_channel["belief"].size(), n_belief)
 	if not by_channel["target"].is_empty():
-		_run_target(cfg, by_channel["target"], n_score)
-	if _only == "":
-		_run_monotonic(cfg, n_score)
-		_run_sentinel(cfg, n_score)
+		_timed("③ target", func() -> void: _run_target(cfg, by_channel["target"], n_score),
+			by_channel["target"].size(), n_score)
+	# ⚠ 单调性/哨兵是**全局**的(不按脸), 只在 0 号片跑一次 —— 每片都跑等于白付 N 倍。
+	if _only == "" and shard_i == 0:
+		_timed("④ 单调性", func() -> void: _run_monotonic(cfg, n_score), 5, n_score)
+		_timed("⑤ 哨兵", func() -> void: _run_sentinel(cfg, n_score), 1, n_score)
 
 	print("\n=== 判据 ===")
 	for w in _warn:
@@ -411,6 +436,43 @@ func _run_sentinel(_cfg: Dictionary, n: int) -> void:
 ##
 ## ⚑ **反向保护**:声明了豁免、实测却两条都过 → **报警**。
 ## 否则豁免会变成一块永久的遮羞布, 而机制/数值改动之后它早就不成立了。
+## ⚑⚑ **按「族」分片, 不是按脸**(2026-09-03)。
+##
+## ⚠⚠ 这是写这个功能时差点踩进去的坑:`_reconcile_variants()` 是**臂内**比较 ——
+## `norepeat` 和 `norepeat75` 一旦落到不同进程, 基础脸就不在 `_measured` 里,
+## 和解当场失效, 变体重新变红。**并行化把一个刚修好的东西又弄坏, 而且不报错。**
+## ⇒ 族 = `base` 字段(没有就是自己), 整族一起分给同一片。
+## ⚠ 族大小不均 ⇒ 分片负载不均, 但正确性优先于均衡 —— 而且最大的族也只有 4 张。
+func _shard_of(ids: Array, shard_i: int, shard_n: int) -> Array:
+	var fams: Array = []             # 保持池序, 不用 Dictionary 的键序
+	var by_fam := {}
+	for fid in ids:
+		var b := _variant_base(String(fid))
+		var fam: String = String(fid) if b == "" else b
+		if not by_fam.has(fam):
+			by_fam[fam] = []
+			fams.append(fam)
+		by_fam[fam].append(fid)
+	var out: Array = []
+	for i in range(fams.size()):
+		if i % shard_n == shard_i:
+			out.append_array(by_fam[fams[i]])
+	return out
+
+
+## ⚑ 逐臂计时(2026-09-03)。
+## 起因:门跑 6 小时, 而**它连「哪条臂吃掉了 4 小时」都答不出来** —— 我只能拿
+## 文档里的「~0.37 秒/局」去推, 而那个标注偏了约 6 倍(CLAUDE.md 早写着别信它)。
+## **这个项目的规矩是不猜去量, 而这道门自己从没被量过。**
+func _timed(label: String, body: Callable, faces_n: int, runs: int) -> void:
+	var t := Time.get_ticks_msec()
+	body.call()
+	var secs := float(Time.get_ticks_msec() - t) / 1000.0
+	var total := faces_n * runs
+	print("    \u001b[90m[计时] %s  %.0fs  (%d 单位 × %d 局 = %d 局, %.1f 局/秒)\u001b[0m"
+		% [label, secs, faces_n, runs, total, float(total) / maxf(0.001, secs)])
+
+
 ## 这张脸在 `faces.json` 里**字面写了** `base` 吗(档位变体)。
 ## ⚠ 不走 `SectionMod.base_of()` —— 那个口对**复合脸**会回落到第一成分, 而复合脸的
 ## 量级不该由它的某一个成分来背书(复合的卖点恰恰是「合起来才难」)。
