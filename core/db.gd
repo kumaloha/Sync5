@@ -1009,7 +1009,11 @@ const _COUNTER_KEYS := ["init", "decay_per_phrase", "floor", "on_discard",
 	"on_early_finish", "pulse_on_early_finish",
 	# 商店事件(子波 3):`Fx.on_shop_event` 的 kind 加前缀 `on_` —— 三者必须与
 	# `Joker.notify_shop` 的调用方一致, 拼错会让成长**静默不涨**。
-	"on_reroll", "on_buy", "on_target_swap"]
+	# ⚑ `on_enter` = **进店**(2026-09-03):每 3 拍一次、一局 7 次、必然发生。
+	# 加它是因为 `on_reroll` 实测 **0.013 次/局(≈75 局一次)** —— 挂在它上面的成长卡
+	# 在机械意义上是白卡(sim 经济账本「付费刷新」典型 0.04◆/局 ÷ 刷新价 3◆)。
+	# ⚠ `on_reroll` 保留:事件本身仍然发生, 只是现在没有卡挂在它上面。
+	"on_reroll", "on_buy", "on_target_swap", "on_enter"]
 
 ## 持有期恒生效的经济/规则参数(穷开心 skint 的 coin_cap)。
 ## 与 shelf(货架影响)、acquire(一次性)三分天下, 键都要锁。

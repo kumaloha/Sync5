@@ -333,7 +333,11 @@ func run(t) -> void:
 		base, "early purge silent on an untouched phrase (no discards is not 'early')")
 
 	# ---- 2026-08-13 子波 3:商店成长族(第七个钩子 on_shop_event)----
-	# 三张都挂**付费动作**(A4✓):刷新付钱 / 买卡付钱 / 换旗丢掉旧旗。
+	# ⚑⚑ **淘碟/打碟 2026-09-03 从「刷新」改挂「进店」**:刷新实测 **0.013 次/局
+	# (≈75 局一次)** —— 挂在它上面的成长卡在机械意义上是白卡, 门那两条红是对的。
+	# 进店每 3 拍一次、一局 7 次、必然发生。⚠ 数额(+12)**没动**, 归数值场按 SOP 重推。
+	# ⚠ 原注释写「三张都挂**付费动作**(A4✓)」—— 进店不付钱, 那条性质对淘碟不再成立;
+	#   收藏家(买卡)与转型(换旗)仍然是付费动作。
 	var dig := Joker.by_id("digger")
 	var col := Joker.by_id("collector")
 	var reb := Joker.by_id("rebrand")
@@ -342,16 +346,21 @@ func run(t) -> void:
 	# 事件要**认门别**:刷新只喂淘碟, 买只喂收藏家 —— 串了就是「一个动作喂两张卡」
 	dig.on_shop_event("buy")
 	t.eq(Settle.run(flush_res, [null, dig, null, null], {})["score"], base,
-		"a purchase does not feed the reroll counter")
+		"a purchase does not feed the shop-visit counter")
+	# ⚠ 旧挂点也要**证明它不再喂** —— 换挂点时最容易漏的就是「新的接上了, 旧的还连着」,
+	#   那会变成一个动作喂两次。
 	dig.on_shop_event("reroll")
-	dig.on_shop_event("reroll")
+	t.eq(Settle.run(flush_res, [null, dig, null, null], {})["score"], base,
+		"刷新**不再**喂淘碟(挂点已换成进店, 旧线必须断干净)")
+	dig.on_shop_event("enter")
+	dig.on_shop_event("enter")
 	var dgrow: int = 2 * int(t._do_amount("digger", "additive"))
 	t.eq(Settle.run(flush_res, [null, dig, null, null], {})["score"],
 		(int(flush_res["chips"]) + dgrow) * int(Pattern.BASE_MULT[Pattern.Kind.FLUSH]),
-		"two rerolls grow the digger, and it rides the mult (additive channel)")
-	col.on_shop_event("reroll")
+		"两次进店长出淘碟, 且吃牌型倍率(additive 通道)")
+	col.on_shop_event("enter")
 	t.eq(Settle.run(flush_res, [null, col, null, null], {})["score"], base,
-		"a reroll does not feed the buy counter")
+		"进店不喂收藏家(它认的是买卡)")
 	col.on_shop_event("buy")
 	t.eq(Settle.run(flush_res, [null, col, null, null], {})["score"],
 		(int(flush_res["chips"]) + int(t._do_amount("collector", "additive")))
@@ -362,7 +371,7 @@ func run(t) -> void:
 		"reinvention grows per target change (pct channel)")
 	# 静态口:一次调用喂满整排槽位 —— 两侧编排器都只写这一行
 	var shelf_slots: Array = [null, Joker.by_id("digger"), Joker.by_id("collector"), null]
-	Joker.notify_shop(shelf_slots, "reroll")
+	Joker.notify_shop(shelf_slots, "enter")
 	t.check(float(shelf_slots[1].state.get("n", 0.0)) == 1.0
 		and float(shelf_slots[2].state.get("n", 0.0)) == 0.0,
 		"notify_shop feeds every slot but only the matching counters")

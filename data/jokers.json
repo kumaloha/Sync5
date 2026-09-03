@@ -1065,10 +1065,10 @@
    "rarity": "uncommon",
    "curve": "growth",
    "proof": "shop",
-   "fx": "Each shop reroll: +12 forever",
+   "fx": "Each shop visit: +12 forever",
    "counters": {
     "n": {
-     "on_reroll": 1
+     "on_enter": 1
     }
    },
    "effects": [
@@ -1216,10 +1216,10 @@
    "rarity": "rare",
    "curve": "growth",
    "proof": "shop",
-   "fx": "Each shop reroll: ×0.05 forever",
+   "fx": "Each shop visit: ×0.05 forever",
    "counters": {
     "n": {
-     "on_reroll": 1
+     "on_enter": 1
     }
    },
    "effects": [

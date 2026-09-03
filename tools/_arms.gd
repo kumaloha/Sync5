@@ -33,6 +33,7 @@ func _initialize() -> void:
 	print("[arms] n=%d/臂  段数=%d" % [N, GameConfig.SECTIONS_PER_RUN])
 	_baseline_stats()
 	_countdown_2x2()
+	_countdown_channel()
 	quit()
 
 
@@ -84,6 +85,46 @@ func _countdown_2x2() -> void:
 				absf(p["d"]) / maxf(1.0, absf(m)) * 100.0])
 	print("    判据:coin_delta=0 为正、+100 翻负 ⇒ 正号是金币约束造的, countdown 的 proof 通路选错了。")
 	print("         两边同号 ⇒ 假设被推翻, 另找原因(别改内容)。")
+
+
+## ⚑ countdown 的**通路二选一**(2026-09-03)。
+##
+## 2×2 已经证明:金币宽裕后 countdown 对**完美玩家**是 z=1.02(什么都没量到)。
+## 把它对上 ① 的数 —— 完美玩家每段弃 14.15 张 ÷ 6 拍 ≈ **2.4 张/拍**, 而 countdown
+## 压到最狠仍留 **4 张/拍** ⇒ **闸门够不着它**。
+## 于是只剩两种可能, 含义完全不同:
+##   A. **通路选错** —— 规则 bot 手牌 5 张、单批可弃满 5, countdown 压到 4 就咬住了
+##      ⇒ 改 `proof: score` 即可, **一行配置**;
+##   B. **杠杆没有行程** —— 规则 bot 也用不到 4 张/拍 ⇒ 两条臂都够不着,
+##      这张脸对模型近乎空气, 和 trilogy 同类, **是内容问题不是仪器问题**。
+## ⇒ 区分它俩只要一个数:**规则 bot 每拍实际弃几张**。
+## ⚠ 规则 bot 的队列 = 门 score 通路用的那条(`_cohort()` 取第一条非 random 非 no_jokers,
+##   实为 `adaptive:twin`), 且**开商店** —— 口径必须与它要服务的那条臂一致。
+func _countdown_channel() -> void:
+	print("\n---- ④ countdown 的通路:规则 bot 每拍弃几张? ----")
+	var per_beat: Array = []
+	var rep := Report.new(N, GameConfig.SECTIONS_PER_RUN)
+	rep.reset()
+	var bot := Bot.new(_rng, rep)
+	for r in range(N):
+		_rng.seed = 620000 + r
+		var o := RunLoop.Opts.new()
+		o.rng = _rng
+		o.deck_seed = r * 17 + 5
+		o.faces = {}
+		o.player = "adaptive"
+		o.cfg = {"bot": "adaptive", "target": "twin"}   # = 门 score 通路的队列
+		o.shop = true                                   # score 通路开商店
+		o.mortal = false
+		o.on_beat = func(_run, p, _outcome, _ctx) -> void:
+			per_beat.append(float(p.discards_used))
+		RunLoop.play(o, bot)
+	var floor_cards := int(GameConfig.discard_batch(4.0, 0))   # countdown 末两拍的单批上限
+	print("    规则 bot 每拍弃牌张数:")
+	_dump(per_beat, floor_cards)
+	print("    对照:完美玩家 ≈ 2.4 张/拍 · countdown 压到最狠仍留 %d 张/拍" % floor_cards)
+	print("    判据:达到/超过 %d 的比例**高** ⇒ A 通路选错(改 proof: score);" % floor_cards)
+	print("         比例**接近 0** ⇒ B 杠杆没行程(内容问题, 别改通路)。")
 
 
 func _arm(mod: String, coin_delta: int) -> Array:

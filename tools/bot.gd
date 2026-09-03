@@ -417,6 +417,9 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 	# 本次进店用掉它才重新点亮(`_apply_bot_action`)。与游戏侧 `Shop.open()` 同刻。
 	_g_min_rarity = ""
 	_cons_bought = false
+	# ⚑⚑ **进店事件**(2026-09-03)——与游戏侧 `view/phrase.gd::_open_draft` **成对**。
+	# ⚠ 发在任何购买之前, 两侧同刻;漏一侧 = 「规则在游戏里、不在模型里」第八次。
+	Joker.notify_shop(slots, "enter")
 	# ⚑⚑ **钉卡臂的商店类消耗牌要在 reset 之后补**(2026-09-03)。
 	#
 	# 病根:`kit.gd` 在 `on_begin`(**每拍开头**)注入钉住的消耗牌并就地执行 action,
