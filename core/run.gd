@@ -34,6 +34,21 @@ var consumables: Array = []
 ## ⚠ 必须进存档:2026-08-30 code review 抓到过「存档没存消耗牌 ⇒ 续玩后凭空消失」,
 ## 债务比卡更要命 —— 丢了等于白拿 10◆。
 var debt := 0
+
+
+## 段末还预支 —— **只此一份**(2026-09-04 三侧复核收口)。工资入账之后调。
+## 付得起 ⇒ 扣款并**清账**;付不起 ⇒ ok=false, 账不动, 由调用方判死(游戏侧 fail 屏 / RunLoop 的 mortal)。
+## ⚠ 此前游戏侧扣了款**没清账**(`view/phrase.gd` 少一行 `run.debt = 0`), 一张预支在之后
+## **每个**段边界都再扣一次 12◆;RunLoop 那份是清的 —— 两侧不一致, 而且 sim 量出来的
+## 「advance 净负 −22.6%」还是**偏松**的那一侧。规则在 core 一份, 两边只许调它。
+func repay_debt(coins_now: int) -> Dictionary:
+	if debt <= 0:
+		return {"ok": true, "coins": coins_now, "paid": 0, "owed": 0}
+	if coins_now < debt:
+		return {"ok": false, "coins": coins_now, "paid": 0, "owed": debt}
+	var paid := debt
+	debt = 0
+	return {"ok": true, "coins": coins_now - paid, "paid": paid, "owed": 0}
 ## 本拍已使用的消耗牌的加成 —— 结算时并进乘法链, 拍末清空。
 ## 放 Run 而不是 Phrase:它由**编排器**在玩家点击时写入(经济/装槽动作只发生在编排器),
 ## 而 Phrase 每拍重建, 存不住「这一拍我烧过一张牌」这件事。

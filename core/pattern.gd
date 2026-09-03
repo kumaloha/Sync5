@@ -211,14 +211,70 @@ static func score_five(five: Array, rules: Dictionary = {}) -> int:
 	if five.size() != 5:
 		var r: Dictionary = evaluate_best(five, rules)
 		return 0 if r.is_empty() else int(r["score"])
+	# ⚑ 分数记忆(2026-09-04)。求解器一拍里同一个 5 张组合被反复打分 —— 弃牌枚举 × 补牌采样 ×
+	# 8 选 5 的 56 个子集, 留下的牌大量重叠。超级百搭上市后一手里常有 1~2 张万能牌, 万能解析
+	# 一次 ~50 µs(实牌 ~10 µs), 完美玩家一拍从 112 ms 涨到 2000+ ms(tools/_pricetime 实测:
+	# price 单局 50 s ⇒ 全表 200 小时, 「单局成本不正常」的根因就是它)。
+	# 键 = 5 张牌编码排序后拼 30 位 + 规则 4 位;**逐位精确**(同输入同输出), 上限到了整表清空
+	# (单线程;命中率只在同一拍内才重要)。⚠ 规则字典里出现未知键时**不进记忆**, 直接算。
+	var rk: int = 0 if rules.is_empty() else _rules_key(rules)
+	var key: int = -1
+	if rk >= 0:
+		key = _key5(five) | (rk << 30)
+		var hit: int = _memo.get(key, -1)
+		if hit >= 0:
+			return hit
+	var s: int = -1
 	for c in five:
 		if c.is_wild():
-			return int(_score_five(five, rules)["score"])
-	var kind: int = _classify(five, rules)
-	var rsum := 0
-	for c in five:
-		rsum += c.rank
-	return (int(BASE_CHIPS[kind]) + rsum) * int(BASE_MULT[kind])
+			s = int(_score_five(five, rules)["score"])
+			break
+	if s < 0:
+		var kind: int = _classify(five, rules)
+		var rsum := 0
+		for c in five:
+			rsum += c.rank
+		s = (int(BASE_CHIPS[kind]) + rsum) * int(BASE_MULT[kind])
+	if key >= 0:
+		if _memo.size() >= MEMO_CAP:
+			_memo.clear()
+		_memo[key] = s
+	return s
+
+
+static var _memo: Dictionary = {}
+const MEMO_CAP := 65536
+const RULE_BITS := {"shortcut": 1, "fourfingers": 2, "redtone": 4, "blacktone": 8}
+
+## 规则字典 → 4 位;含未知键返回 −1(不进记忆)。
+static func _rules_key(rules: Dictionary) -> int:
+	var rk := 0
+	for k in rules:
+		if not RULE_BITS.has(k):
+			return -1
+		if rules[k]:
+			rk |= int(RULE_BITS[k])
+	return rk
+
+
+## 5 张牌的顺序无关键:编码(rank×4+suit, 6 位)用 9 次比较交换排序后拼成 30 位。
+static func _key5(five: Array) -> int:
+	var a: int = five[0].rank * 4 + five[0].suit
+	var b: int = five[1].rank * 4 + five[1].suit
+	var c: int = five[2].rank * 4 + five[2].suit
+	var d: int = five[3].rank * 4 + five[3].suit
+	var e: int = five[4].rank * 4 + five[4].suit
+	var t: int
+	if a > b: t = a; a = b; b = t
+	if d > e: t = d; d = e; e = t
+	if c > e: t = c; c = e; e = t
+	if c > d: t = c; c = d; d = t
+	if b > e: t = b; b = e; e = t
+	if a > d: t = a; a = d; d = t
+	if a > c: t = a; a = c; c = t
+	if b > d: t = b; b = d; d = t
+	if b > c: t = b; b = c; c = t
+	return a | (b << 6) | (c << 12) | (d << 18) | (e << 24)
 
 
 ## 8 选 5 的最高分, **一个数组都不新建**。
@@ -365,15 +421,30 @@ static func _score_many_wilds(five: Array, rules: Dictionary) -> Dictionary:
 		for i in range(k):
 			cand.append(Card.new(14, s))
 		cands.append(cand)
-	# 全部候选交给 _pack, 判型与算分照旧 —— 这里只负责"猜得全", 不负责"判得对"。
-	var best := {}
+	# 全部候选交给同一份判型算分 —— 这里只负责"猜得全", 不负责"判得对"。
+	# ⚑ 2026-09-04:候选先用 `score_five` 比分(候选已无万能牌 ⇒ 直算/走分数记忆, 不建字典),
+	# 只给赢家 `_pack`。此前每个候选都 `_pack`(9 键字典 + resolved 复制), 一手 ~20 个候选
+	# 就是 20 份白工 —— 求解器带小丑牌时每拍走这里 ~2 万次(price 单局 50 s 的一半在此)。
+	# 严格大于才换 ⇒ 平分时仍取第一个候选, 与旧实现逐位相同(tests/t_pattern 对拍锁着)。
+	# ⚠ 候选**不进分数记忆**:候选是临时造的牌, 一手 ~20 个键会把记忆表冲满
+	# (实测 65536 上限下 8 选 5 含万能从 95 µs 退到 1580 µs —— 记忆被候选挤爆后全是未命中)。
+	var best_cand: Array = []
 	var best_score := -1
 	for cand in cands:
-		var res: Dictionary = _pack(five, cand, rules)
-		if int(res["score"]) > best_score:
-			best_score = int(res["score"])
-			best = res
-	return best
+		var sc: int = _score_plain5(cand, rules)
+		if sc > best_score:
+			best_score = sc
+			best_cand = cand
+	return _pack(five, best_cand, rules)
+
+
+## 5 张**实牌**的分数, 不建字典、不进记忆(万能候选的比分用)。与 `_pack(...)["score"]` 逐位相同。
+static func _score_plain5(five: Array, rules: Dictionary) -> int:
+	var kind: int = _classify(five, rules)
+	var rsum := 0
+	for c in five:
+		rsum += c.rank
+	return (int(BASE_CHIPS[kind]) + rsum) * int(BASE_MULT[kind])
 
 
 ## 顺子候选的 rank 集合表, 按 (近道, 四指) 规则组合缓存(内容只依赖规则, 不依赖手牌)。

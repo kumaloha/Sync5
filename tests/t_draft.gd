@@ -152,6 +152,97 @@ func run(t) -> void:
 		else:
 			t.check(false,
 				"'%s' 已经不在这个仪器的管辖内(proof 改了 or 卡撤了), 把它从 SOLVER_BLIND 删掉" % bid)
+	_t_replay(t)
+
+
+## ---- 反事实重放估值(2026-09-04)—— 效果卡在**本局已打过的拍**上重放 Settle, 不再手写臂 ----
+## 一拍的历史条目:与 `RunLoop._tally` 记进 `st.hist` 的形状一致(res + 结算 ctx)。
+func _hist_beat(t, cards: Array, over: Dictionary = {}) -> Dictionary:
+	var res := Pattern.evaluate_best(cards)
+	res["hidden_scoring"] = 0
+	var ctx := {
+		"prev_kind": -99, "prev_target_hit": false, "rolled_suit": -1,
+		"callout_unsolved": false, "luck_rolls": [], "odds_mult": 1.0,
+		"cache_rank_sum": 0, "acted_late": false, "discards": 2, "coins": 5,
+		"phrase_idx": 2, "cache_cards": [], "early_finish": false,
+		"seconds_left": 0.0, "acted_final": false, "early_discards": false,
+		"section_idx": 1, "swaps": 0, "discard_batch_max": 2, "faces_discarded": 0,
+		"swapped_scoring": 0, "section_score": 0, "section_target": 600,
+		"mod": "", "first_kind": -99, "request_met": true, "patch_restored": false,
+		"phrase_boosts": [],
+	}
+	for k in over:
+		ctx[k] = over[k]
+	return {"res": res, "ctx": ctx}
+
+
+func _st_with(hist: Array) -> Dictionary:
+	var st := RunLoop._fresh_st()
+	for h in hist:
+		st["n"] += 1.0
+		st["hist"].append(h)
+	return st
+
+
+func _t_replay(t) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 11
+	var bot := Bot.new(rng, Report.new(1, GameConfig.SECTIONS_PER_RUN))
+	var pair := [t._c(10, 3), t._c(10, 2), t._c(3, 0), t._c(7, 1), t._c(13, 3)]
+	var straight := [t._c(5, 3), t._c(6, 2), t._c(7, 0), t._c(8, 1), t._c(9, 3)]
+	var empty: Array = [null, null, null, null]
+	var only_pairs: Array = []
+	var mixed: Array = []
+	for i in range(24):
+		only_pairs.append(_hist_beat(t, pair))
+		mixed.append(_hist_beat(t, straight if i % 4 == 0 else pair))
+	# ① 条件均值:全员(五张牌型 ×1.2)在「有顺子」的历史里必须比「全是对子」的历史里值钱。
+	#    这正是 2026-09-04 定位到的 3 倍低估:手写臂用全局均分, 而它只在大牌上触发。
+	var ev_pairs: float = bot._card_ev("fullcast", _st_with(only_pairs), empty, 12)
+	var ev_mixed: float = bot._card_ev("fullcast", _st_with(mixed), empty, 12)
+	t.check(ev_mixed > ev_pairs + 1.0,
+		"全员:历史里有顺子时估值必须高于全是对子(%.1f vs %.1f)" % [ev_mixed, ev_pairs])
+	# ② 逐位契约:重放 EV = (Σ 装/不装差值 + blend_w × 先验) / (n + blend_w)。
+	var fc := Joker.by_id("fullcast")
+	var sum := 0.0
+	for h in mixed:
+		sum += float(Settle.run(h["res"], [null, fc, null, null], h["ctx"])["score"]) \
+			- float(Settle.run(h["res"], empty, h["ctx"])["score"])
+	var bw := float(DB.sim()["ev"]["blend_w"])
+	var want: float = (sum + bw * bot._prior_ev("fullcast")) / (24.0 + bw)
+	t.check(absf(ev_mixed - want) < 1e-6,
+		"重放 EV 的收缩公式逐位(got %.4f want %.4f)" % [ev_mixed, want])
+	# ③ 扁平奖励不吃倍率链:灯牌(目标分百分比, 乘法链**之后**落地)装不装 Target 估值不变。
+	#    手写臂曾把它乘了一遍均倍率 —— 全池对照实测整族高估 3.5 倍(evcmp 2026-09-04)。
+	var twin := Joker.by_id("twin")
+	var neon0: float = bot._card_ev("neonsign", _st_with(mixed), empty, 12)
+	var neon1: float = bot._card_ev("neonsign", _st_with(mixed), [twin, null, null, null], 12)
+	t.check(absf(neon0 - neon1) < 1e-6, "灯牌是乘法链之后的扁平奖励, 装不装 Target 估值不变")
+	# ④ 乘法卡吃真实构筑:全员装在顺子 Target 旁边比空构筑值钱(条件拍上链更长)。
+	var stair := Joker.by_id("stair")
+	var fc_stair: float = bot._card_ev("fullcast", _st_with(mixed), [stair, null, null, null], 12)
+	t.check(fc_stair > ev_mixed + 1.0, "全员装在顺子 Target 旁边必须比空构筑值钱")
+	# ⑤ 纯函数:重放不许碰历史与槽位状态(与 Draft.card_value 的「推演不碰真实局」同一条契约)。
+	var st5 := _st_with(mixed)
+	var snap: String = JSON.stringify(st5["hist"][0]["ctx"]) + JSON.stringify(stair.state) + str(st5["n"])
+	bot._card_ev("fullcast", st5, [stair, null, null, null], 12)
+	t.eq(JSON.stringify(st5["hist"][0]["ctx"]) + JSON.stringify(stair.state) + str(st5["n"]), snap,
+		"重放不碰历史与槽位状态")
+	# ⑥ 无历史 = 先验(首店之前的估值全靠它)。
+	t.check(absf(bot._card_ev("fullcast", _st_with([]), empty, 12) - bot._prior_ev("fullcast")) < 1e-6,
+		"无历史时估值 = 先验")
+	# ⑦ 账本:RunLoop 一局记满 24 拍历史, 每拍带结算时的 section_target(bonus_target_pct 按段算)。
+	var st7 := RunLoop._fresh_st()
+	var o := RunLoop.Opts.new()
+	o.rng = rng
+	o.deck_seed = 3
+	o.player = "none"
+	o.st = st7
+	RunLoop.play(o, bot)
+	t.eq(st7["hist"].size(), GameConfig.SECTIONS_PER_RUN * GameConfig.PHRASES_PER_SECTION,
+		"RunLoop 每拍往 st.hist 记一条")
+	t.check(st7["hist"].size() > 0 and int(st7["hist"][0]["ctx"].get("section_target", 0)) > 0,
+		"历史条目带着结算时的 section_target")
 
 
 ## 一局的全部可变状态压成一个字符串 —— 用来断言"没被碰过"。

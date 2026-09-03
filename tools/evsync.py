@@ -24,8 +24,15 @@ def measured():
     ev = {}
     for line in book.read_text(encoding="utf-8").splitlines():
         m = re.match(r"^\| *(\w+) *\|[^|]*\| *(\w+) *\| *([\d.-]+) *\|[^|]*\| *\*\*([\d.-]+)\*\*", line)
-        if m and float(m.group(4)) > 0:
-            ev[m.group(1)] = round(float(m.group(4)), 1)
+        if not m or float(m.group(4)) <= 0:
+            continue
+        # ⚠ 备注列说「本尺不适用 / 读数无效」的行**不进地板**(2026-09-04):穷开心(hold, 金币上限
+        # 的代价不在结算链里)曾以 112.4 进了 ev.measured ⇒ 地板 56 盖过它手写臂的负 EV ⇒
+        # bot 装机率 43% 而 lift 实测 −13pt。cf.gd 已经在备注里说了「不适用」, 这里没听。
+        note = line.rstrip().rstrip("|").rsplit("|", 1)[-1]
+        if "不适用" in note or "无效" in note:
+            continue
+        ev[m.group(1)] = round(float(m.group(4)), 1)
     pool = {j["id"] for j in json.loads((ROOT / "data/jokers.json").read_text(encoding="utf-8"))["jokers"]}
     return {k: v for k, v in ev.items() if k in pool}
 

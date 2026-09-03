@@ -1,6 +1,7 @@
 extends RefCounted
 
 func run(t) -> void:
+	_t_debt(t)
 	_t_cashout(t)
 	_t_probe_runs_full(t)
 	_test_run_structure(t)
@@ -451,3 +452,16 @@ func _t_cashout(t) -> void:
 	t.check(GameConfig.EARLY_FINISH_LEFT > 0.0, "早收判据 B 的门槛为正")
 	t.check(GameConfig.EARLY_FINISH_LEFT < GameConfig.phrase_duration(0),
 		"门槛必须小于拍长 —— 否则这个条件永远不成立")
+
+
+## ---- 预支还款只此一份(2026-09-04 三侧复核):付得起扣款清账, 付不起账不动 ----
+func _t_debt(t) -> void:
+	var r := Run.new()
+	r.debt = 12
+	var no := r.repay_debt(5)
+	t.check(not bool(no["ok"]) and int(no["owed"]) == 12 and r.debt == 12, "付不起:ok=false, 账不动")
+	var ok := r.repay_debt(20)
+	t.check(bool(ok["ok"]) and int(ok["coins"]) == 8 and int(ok["paid"]) == 12, "付得起:扣 12 剩 8")
+	t.eq(r.debt, 0, "还完必须清账 —— 游戏侧曾漏这一行, 之后每段再扣一次")
+	var again := r.repay_debt(8)
+	t.check(bool(again["ok"]) and int(again["coins"]) == 8 and int(again["paid"]) == 0, "无债时不扣")

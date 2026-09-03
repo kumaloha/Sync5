@@ -7,7 +7,7 @@ extends Probe
 ## ## 扫什么
 ##
 ## `bot.gd` 的 `lam` = 「bot 心里一枚金币值多少分」。旧算法
-## `lam = coin_score_ratio × 本局均分` **随本局均分上涨、不随剩余机会衰减**,
+## `lam = coin_cost_ratio × 本局均分` **随本局均分上涨、不随剩余机会衰减**,
 ## 而收益边是 `ev × horizon`, 随 `phrases_left` 收缩 —— 两边同时朝「别买」走,
 ## 后半程购买完全停止(`tools/wallet.gd` 实测:满槽后整局只再买 0.27 次,
 ## 78% 不愿换, 局末余额 34.7◆ 一分终局价值没有)。
@@ -54,7 +54,7 @@ func _initialize() -> void:
 	print("\n=== coin_decay 扫描 · 金币影子价的衰减 ===")
 	print("  队列 %s   不死局(24 拍, 恒 8 次商店)   %d 局/点, 配对同种子(seed0=%d)"
 		% [cfg.get("name", "?"), n, seed0])
-	print("  lam = coin_score_ratio × 本局均分 × (horizon/%.0f)^coin_decay"
+	print("  lam = coin_cost_ratio × 本局均分 × (horizon/%.0f)^coin_decay"
 		% Bot.DRAFT_HORIZON)
 	print("  ⚠ 目标分 = %s(sim.json bot_targets, **本次实验的固定量, 未改**)" % [TARGETS])
 

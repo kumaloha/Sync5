@@ -55,7 +55,7 @@ func _rate(st: Dictionary, key: String, prior: float) -> float:
 ## ⚑ 存在的意义是给 `tools/parity.py` 第 ⑤ 层对账:**jokers.json 里出现的每个 `do` 键,
 ## 要么在 `_amt` 的白名单里, 要么在这张表里** —— 加了新操作码却忘了教 `_amt`,
 ## 当场红, 而不是等某张卡的 EV 悄悄变成 0 或负数。
-const NON_AMOUNT_KEYS := ["per", "cap", "step", "card_filter", "mult",
+const NON_AMOUNT_KEYS := ["per", "cap", "step", "card_filter",
 	"additive_cache_top", "additive_face_value"]
 
 
@@ -83,6 +83,12 @@ func _amt(id: String) -> float:
 				if fx.get("do", {}).has("coins_factor"):
 					var cf = fx["do"]["coins_factor"]
 					return 0.0 if cf is Dictionary else float(cf)
+				# ⚠ `mult` 同样返回**倍数**(全员 ×1.2 → 1.2):2026-09-04 前它在 NON_AMOUNT_KEYS 里,
+				# `_amt("fullcast")` 落到 0 ⇒ 臂恒 0, 装机率全靠地板撑 —— 与版税同病。
+				# 现在全员走重放估值, 这一条是给**任何**还走手写臂的 mult 卡兜底:臂按 `(_amt − 1)` 写。
+				if fx.get("do", {}).has("mult"):
+					var mf = fx["do"]["mult"]
+					return 0.0 if mf is Dictionary else float(mf)
 				for ch in ["mult_add", "additive", "bonus", "bonus_pct", "coins",
 						"chips_per_card", "additive_low_value"]:
 					if fx.get("do", {}).has(ch):
@@ -146,6 +152,8 @@ const CONTEXT_ZERO_OK := ["loadeddice", "mirror"]
 ## ⚠ **只当地板不当替代** —— evbook 量的是「装着一整局」的均值, 答不了
 ## 「现在买值不值」(剩余拍数 / 当前构筑 / 替换谁), 那些仍归公式。
 func _card_ev(id: String, st: Dictionary, slots: Array, phrases_left: int) -> float:
+	if _is_replayable(id):
+		return _card_ev_replay(id, st, slots)
 	var _floor: float = float(EV.get("measured", {}).get(id, 0.0)) * MEASURED_W
 	var v := maxf(_floor, _card_ev_formula(id, st, slots, phrases_left))
 	# ⚑ **EV ≤ 0 的支援卡 = 永远不会被买**(`best_gain` 从 0.0 起比)。
@@ -167,33 +175,109 @@ func _card_ev(id: String, st: Dictionary, slots: Array, phrases_left: int) -> fl
 const MEASURED_W := 0.5
 
 
+## ⚑⚑ 反事实重放估值(2026-09-04)。效果卡的 EV **不再手写臂**:在本局已经打过的每一拍上
+## 跑两次 `Settle.run`, 只差「装不装这张卡」, 差值的均值就是它在**我这一局**里的边际
+## (分/拍;金币通道按 coin_val 折分)。这是 `tools/cf.gd` 在真人 Tape 上用了一个月的
+## 同一把尺, 搬进 bot 自己的局。
+##
+## 它一次修掉手写臂的三类**结构**错(2026-09-04 `_evcmp` 全池对照, 真人 Tape 24 局 332 拍):
+##   · **条件均值** —— 全员/三和弦/三重只在大牌上触发, 臂用全局均分 ⇒ 低估 3 倍;
+##   · **通道载体** —— 灯牌/回响/彩虹/静物…是乘法链**之后**的扁平奖励, 臂又乘了一遍均倍率
+##     ⇒ 整族高估 3.5 倍(排练 41 倍, 早弃 30 倍);
+##   · **过期先验** —— 静场放宽后 `fixed_rate` 还是 0.12, 账本里零弃率实测 0.51。
+## 重放没有这些参数:判定走 core/fx.gd(一行不重写), 载体由 core/settle.gd 的公式自己决定,
+## 触发率与条件分从本局历史里直接读出, 真实构筑(装在当前槽位旁边)自动成立,
+## 新操作码**自动**被正确估值 —— 「加了新操作码却忘了教 bot」这一整类事故对效果卡不再存在。
+##
+## ⚠ **不走重放、保留手写臂的几类**(`DB.replay_valued` 按数据判, 不按 id 列表):
+##   成长/衰减/计数器/持有 —— state 跨拍, 单拍差值读 0 或读初值(cf.gd 同一条豁免);
+##   概率卡 —— `luck_rolls` 按槽序预掷, 多一张卡整列错位(2026-08-30 code review 那条);
+##   货架/入场类(shelf/acquire)与 proof=shop —— 价值不在结算链里。
+## 先验:无历史时 = `ev.measured`(真人 Tape 的实测 EV);没量过的卡取已量卡的**中位数**
+## —— 不引入新的手写数。收缩权重复用 `blend_w`:首店只打过 3 拍, 先验占 2/3;局末 0.2。
+## ⚠ 已知边界:时机卡(尾声/谢幕/早弃…)的触发在历史里按 bot **未持卡**时的打法计,
+## 持卡后它会刻意压哨(`_timing_flags`), 这份适应重放看不见 ⇒ 这一族偏低。
+## 手写臂原本也只用基础率(finale prior 0.25), 没有更差;真要修得让打法先验进估值, 归数值批。
+var _replay_ok: Dictionary = {}
+var _prior_median := -1.0
+
+func _is_replayable(id: String) -> bool:
+	if _replay_ok.has(id):
+		return bool(_replay_ok[id])
+	var ok := false
+	for e in DB.jokers():
+		if String(e["id"]) == id:
+			ok = DB.replay_valued(e)      # 判据只此一份(core/db.gd), validate_sim 用的同一个
+			break
+	_replay_ok[id] = ok
+	return ok
+
+
+func _prior_ev(id: String) -> float:
+	var m: Dictionary = EV.get("measured", {})
+	if m.has(id):
+		return float(m[id])
+	if _prior_median < 0.0:
+		var vals: Array = m.values()
+		vals.sort()
+		_prior_median = 0.0 if vals.is_empty() else float(vals[vals.size() / 2])
+	return _prior_median
+
+
+func _card_ev_replay(id: String, st: Dictionary, slots: Array) -> float:
+	var prior := _prior_ev(id)
+	var hist: Array = st.get("hist", [])
+	if hist.is_empty():
+		return prior
+	# 已持有 ⇒ 边际 = 拿掉它少多少;候选 ⇒ 装进第一个空支援槽, 满槽时**追加**一格 ——
+	# 量的是「多一张它」的边际, 换掉谁归 `_draft` 的比价(它减 weak_ev)。
+	var with_slots: Array = slots.duplicate()
+	var without: Array = slots.duplicate()
+	var held := -1
+	for i in range(1, slots.size()):
+		if slots[i] != null and String(slots[i].id) == id:
+			held = i
+	if held >= 0:
+		without[held] = null
+	else:
+		var cand := Joker.by_id(id)
+		if cand == null:
+			return prior
+		var k := Joker.first_free_support(with_slots)
+		if k >= 0:
+			with_slots[k] = cand
+		else:
+			with_slots.append(cand)
+	var bw: float = float(EV["blend_w"])
+	var n: float = maxf(1.0, float(st["n"]))
+	var score_mean: float = (float(st["score"]) + float(EV["score_prior"]) * bw) / (n + bw)
+	var coin_val: float = float(EV["coin_score_ratio"]) * score_mean
+	var sum := 0.0
+	for h in hist:
+		var a: Dictionary = Settle.run(h["res"], with_slots, h["ctx"])
+		var b: Dictionary = Settle.run(h["res"], without, h["ctx"])
+		sum += float(a["score"]) - float(b["score"]) \
+			+ (float(a["coins"]) - float(b["coins"])) * coin_val
+	return (sum + bw * prior) / (float(hist.size()) + bw)
+
+
 func _card_ev_formula(id: String, st: Dictionary, slots: Array, phrases_left: int) -> float:
 	var bw: float = float(EV["blend_w"])
 	var n: float = maxf(1.0, float(st["n"]))
 	var mult_mean: float = (float(st["mult"]) + float(EV["mult_prior"]) * bw) / (n + bw)
 	var score_mean: float = (float(st["score"]) + float(EV["score_prior"]) * bw) / (n + bw)
 	var coin_val: float = float(EV["coin_score_ratio"]) * score_mean
-	var tid := "" if slots[0] == null else String(slots[0].id)
 	var future := float(phrases_left)
 	var gh: float = float(EV["growth_horizon"])
 	var p: Dictionary = EV["cards"].get(id, {})
+	# ⚑ 2026-09-04 起这里只剩**重放量不到**的卡(成长/衰减/计数器/持有/概率/货架);
+	# 效果卡全部走 `_card_ev_replay`。16 条早已转生/删除的卡的死臂同日清掉
+	# (advance/chorus/opener/popup/superwild/trim/…)。
 	match id:
-		"encore", "finale", "turnover", "chord":
-			return _rate(st, String(p["rate"]), float(p["prior"])) * _amt(id) * mult_mean
-		"tipjar":
-			return _rate(st, String(p["rate"]), float(p["prior"])) * _amt(id) * coin_val
-		"neonsign":
-			return _amt(id) * mult_mean
 		"vinyl":   # low prior: growth must be earned by measured discards
 			return _rate(st, String(p["rate"]), float(p["prior"])) * _amt(id) * (future * gh) * mult_mean
-		"chorus":
-			return float(p["fixed_rate"]) * _amt(id) * score_mean
-		"interest":
-			return float(p["coin_mult"]) * coin_val
 		"momentum":
 			return _rate(st, String(p["rate"]), float(p["prior"])) * _amt(id) * (future * gh) * score_mean
-		"vip":
-			return _rate(st, String(p["rate"]), float(p["prior"])) * float(p["boost"]) * mult_mean
 		"glowstick":
 			return _glow_avg() * score_mean * minf(future, float(EV["glowstick_horizon"])) \
 				/ float(EV["glowstick_horizon"])
@@ -205,54 +289,6 @@ func _card_ev_formula(id: String, st: Dictionary, slots: Array, phrases_left: in
 				if String(e["id"]) == id:
 					bl_step = float(e["effects"][0]["do"].get("step", bl_step))
 			return _amt(id) * (_rate(st, String(p["rate"]), float(p["prior"])) * future * gh / bl_step) * score_mean
-		"mirror":
-			# 2026-08-21 评审:此前读 sim.json 的 target_tf —— Target 倍率**过期的第二份**
-			# (twin 3.5 vs 真值 6, 且 wrecker 缺失 ⇒ 镜面在 bot 眼里一文不值)。改从 jokers.json 推导。
-			var tf: float = _target_peak(tid)
-			# 2026-08-25 改造:连续两拍达成才生效 —— streak 折扣先验(ev.cards)。
-			return _rate(st, String(p["rate"]), float(p["prior"])) * float(p.get("streak", 1.0)) \
-				* (tf - 1.0) * _mirror_power() * score_mean
-		"shortcut", "fourfingers", "redtone", "blacktone", "trim":
-			var ot: Array = p["on_target"]
-			var bm: float = score_mean / maxf(1.0, mult_mean)
-			return (float(ot[1]) * float(ot[2]) * bm) if tid == String(ot[0]) \
-				else float(p["off_target"]) * score_mean
-		"advance":
-			# tempo 卡:借款的价值 = 前期加速买卡, 已由 draft 环路自然消化;
-			# base 是「持有它值多少」的方向锚(利息 −2/段 vs 提前成型), ⑥ 精扫。
-			return float(p["base"]) * score_mean
-		"superwild":
-			# 超级百搭(2026-08-26)与百搭同键形:base + 对位 Target 加成;
-			# 差异(4 张注入)已折进 ev.cards 的 base 先验(0.2 vs 0.1)。
-			var tb: Array = p["target_bonus"]
-			var bonus: float = float(tb[1]) if tid in tb[0] else 0.0
-			return (float(p["base"]) + bonus) * score_mean
-		# ---- 2026-08-10 批 3。缺这些臂时兜底 0.0 = bot 永远不买新卡 →
-		# 货架 2/3 死货 → 金币边际价值塌平, gate 单调性哨兵当场红(起始金币 −3→0 无差)。
-		# 数额照旧 _amt 从 json 推导, 行为先验(fixed_rate/hits/pairs)在 ev.cards。 ----
-		"variation":
-			return (1.0 - _rate(st, String(p["rate"]), float(p["prior"]))) * _amt(id) * mult_mean
-		"reprise":
-			return _rate(st, String(p["rate"]), float(p["prior"])) * _amt(id) * score_mean
-		"opener":
-			return float(p["fixed_rate"]) * _amt(id) * score_mean
-		"rainbow", "nopair", "rehearsal", "fullcast", "popup":
-			return float(p["fixed_rate"]) * _amt(id) * mult_mean
-		# ---- 2026-08-12 流派批(docs/design/archetypes.md)。族内件/缓存件/经济件,
-		# 数额照旧 _amt 推导;行为先验(fixed_rate/coin_steps/avg_top/avg_faces)在 ev.cards。----
-		"duo", "triad":     # 族内 chips 件:含对/含三条 × 数额 × 倍率链(additive 吃全倍率)
-			return float(p["fixed_rate"]) * _amt(id) * mult_mean
-		"duet", "triplebill":   # 族内 pct 件:比例 × 均分
-			return float(p["fixed_rate"]) * _amt(id) * score_mean
-		"backer":           # +1 chip / 2◆:持币档数 × 倍率链
-			return _amt(id) * float(p["coin_steps"]) * mult_mean
-		"bench":            # 缓存最高点数计 chips:先验点数 × 倍率链
-			return float(p["avg_top"]) * mult_mean
-		"boxseats":         # 缓存人头 ×1.2/张:边际倍率 × 均分
-			return _amt(id) * float(p["avg_faces"]) * score_mean
-		# ---- 2026-08-13 引擎波次·子波1(docs/design/jokers_atlas.md §2.9/2.12/2.13/2.15)----
-		# ---- 2026-08-13 子波 2:计时族。触发率来自 `ev.timing` 的同一张偏置表 ——
-		# **打法先验与估值先验必须同源**, 否则 bot 会买一张它自己不会去打的卡。----
 		# ---- 2026-08-13 子波 3:商店成长族。成长挂**付费动作**(A4✓), 所以价值
 		# = 一局预期发生几次 × 每次数额 × 到那时还剩多少拍(growth 的老口径)。----
 		"digger", "collector":
@@ -266,17 +302,10 @@ func _card_ev_formula(id: String, st: Dictionary, slots: Array, phrases_left: in
 			# 注释里就写着「快闪就这么隐身了一周」, **同一个坑又踩一次**。
 			# ⇒ 每局 7 次商店 × 栏位有空的概率(约半数)× 一张消耗牌的单次价值(≈200 分)
 			return float(p["events"]) * float(p["value"]) * gh
-		"curtain":          # 压哨 pct:比例 × 均分
+		"freeze":
+			# 早锁脉冲(计数器, 装卡当拍未武装):先验触发率 × 比例 × 均分。
+			# ⚠ 触发率是 bot 打法的先验, 不是真人 —— 定价锚仍是 Tape。
 			return float(p["fixed_rate"]) * _amt(id) * score_mean
-		"stopwatch":        # 每剩 1 秒 pct:期望秒数 × 每秒比例 × 均分
-			return float(p["avg_seconds"]) * _amt(id) * score_mean
-		"earlyout":         # 早弃 bonus:比例 × 数额 × 倍率链
-			return float(p["fixed_rate"]) * _amt(id) * mult_mean
-		"stilllife", "declutter", "stageexit", "segue", "freeze":
-			# 五张都是「行为触发 × 数额」:先验触发率 × 数额 × 量纲(bonus 吃倍率链,
-			# pct 吃均分)。⚠ 触发率是 bot 打法的先验, 不是真人 —— 定价锚仍是 Tape。
-			var pct: bool = id in ["declutter", "freeze"]
-			return float(p["fixed_rate"]) * _amt(id) * (score_mean if pct else mult_mean)
 		"skint":
 			# 常驻 ×1.3 **减去金币上限的代价**。
 			# ⚠⚠ 第一版只写了上面那半句(`_amt(id) * score_mean`), 于是 bot **100% 买它**,
@@ -285,6 +314,8 @@ func _card_ev_formula(id: String, st: Dictionary, slots: Array, phrases_left: in
 			# 代价的口径:上限没收的是**购买力** —— 本局本来会攒到的持币(实测局末
 			# 34.7◆, S9)减去 cap, 按 bot 自己的金币折分率计价, 再按「还剩多少局面花它」
 			# 折现(与 `lam` 的 horizon 折现同一个道理:钱的价值在于还能买到多少分)。
+			# ⚠ 2026-09-04:它的 evbook 读数(112.4)曾被 evsync 当地板导入, 盖过这条负 EV
+			# ⇒ 装机率 43% 而 lift −13pt。cf 备注早写着「hold 卡本尺不适用」, evsync 现在听了。
 			var cap := 0.0
 			for e in DB.jokers():
 				if String(e["id"]) == id:
@@ -293,42 +324,15 @@ func _card_ev_formula(id: String, st: Dictionary, slots: Array, phrases_left: in
 				* GameConfig.PHRASES_PER_SECTION)
 			var forgone: float = maxf(0.0, float(p["hoard"]) - cap) * (future / maxf(1.0, span))
 			return _amt(id) * score_mean - forgone * coin_val
-		"royalty":          # 牌型金币翻倍:一拍多出的◆ ≈ 均金币 × (factor−1)
-			return float(p["coins_per_beat"]) * (_amt(id) - 1.0) * coin_val
-		"doggybag":         # 超标两倍才给:低频事件 × 3◆
-			return float(p["fixed_rate"]) * _amt(id) * coin_val
-		# ---- 货架结构卡(shop 通路, 2026-08-12 流派批二波):不产分, 价值全在商店侧,
-		# 折成◆当量再乘 coin_val —— 先验粗, 覆盖由 kit 商店臂证, 强弱等真人 Tape。----
-		"sponsor":          # 未来购买每张省 1◆
-			return float(p["saves"]) * coin_val
-		"doublebill":       # 每店多一次成交的期权
-			return float(p["option_ev"]) * coin_val
-		"jukebox":          # 定向搜索:追牌型流派(顺/同花)才值钱
-			return float(p["search_ev"]) * coin_val * (2.0 if tid in ["stair", "mono"] else 1.0)
-		"superfan":
-			return _amt(id) * float(p["pairs"]) * score_mean
-		"warmtone", "cooltone", "undertone":
-			return _amt(id) * float(p["hits"]) * mult_mean
-		"bassclef":
-			return (_amt(id) - float(p["avg_low_rank"])) * float(p["hits"]) * mult_mean
-		# ---- 2026-08-25 对抗批·波2(docs/design/versus.md):五张乘法出口。
-		# 数额照旧 _amt 从 json 推导;行为先验在 ev.cards, kit/price 重跑后归仪器。----
+		# ---- 2026-08-25 对抗批·波2(docs/design/versus.md):乘法出口里的成长两张。----
 		"fastforward":      # 每次提前收工 ×+0.1 永久:早收率 × 成长视野
 			return _rate(st, String(p["rate"]), float(p["prior"])) * _amt(id) * (future * gh) * score_mean
-		"deejay":           # 每次刷新 ×+0.05 永久:预期刷新次数 × 成长视野
+		"deejay":           # 每次进店 ×+0.05 永久:预期进店次数 × 成长视野
 			return _amt(id) * float(p["events"]) * (future * gh) * score_mean
-		"goldenvoice":      # 每持 6◆ ×+0.1:持币档数 × 均分
-			return _amt(id) * float(p["coin_steps"]) * score_mean
-		"hush":             # 零弃零换拍 ×+0.4:先验触发率 × 均分
-			return float(p["fixed_rate"]) * _amt(id) * score_mean
-		"harmony":          # 缓存同花 ×+0.3:同 chord 的触发率口径
-			return _rate(st, String(p["rate"]), float(p["prior"])) * _amt(id) * score_mean
-		# ---- 2026-08-25 波3:合奏/赌具组/回收。先验为设计估值, kit/price 后归仪器。----
+		# ---- 2026-08-25 波3:合奏/赌具组。先验为设计估值, kit/price 后归仪器。----
 		"ensemble":         # 八选五的期望增益, 平摊成均分比例
 			return float(p["gain"]) * score_mean
 		"allin":            # EV=×1.25, 方差是产品
-			return float(p["gain"]) * score_mean
-		"jackpot":          # 1/6 末拍 × 1/2 × (+200%)
 			return float(p["gain"]) * score_mean
 		"loadeddice":       # 概率放大器:强度 = 场上赌卡数
 			var gambles := 0
@@ -336,12 +340,8 @@ func _card_ev_formula(id: String, st: Dictionary, slots: Array, phrases_left: in
 				if j2 != null and j2.chance_rolls_needed() > 0:
 					gambles += 1
 			return float(p["gain_per_gamble"]) * float(gambles) * score_mean
-		"recycle":          # 每拍预期献祭点数 × 每点奖励分
-			return _amt(id) * float(p["ranks_per_beat"])
 		"gueststar":        # 租赁:超额数值 × 只活一段的折价
 			return _amt(id) * score_mean * float(p["rental"])
-		"blindplay":        # 盲奏:预期盖牌上台张数 × 每张 chips × 倍率链
-			return _amt(id) * float(p["hidden_per_beat"]) * mult_mean
 		"matador":          # 斗牛士:被咬率 × 每口的◆(数额从 hold 读, 不手抄)
 			var mt_coins := 0.0
 			for e in DB.jokers():
@@ -355,7 +355,6 @@ func _card_ev_formula(id: String, st: Dictionary, slots: Array, phrases_left: in
 		_no_arm_warned[id] = true
 		push_warning("[bot] _card_ev 缺臂: '%s' 估值恒 0, 这张卡在尺子里永远不会被买" % id)
 	return 0.0
-
 
 ## Free-choice target pick: read the run's own pattern distribution and take
 ## the target whose tiers pay best against it (lonewolf discounted for its
@@ -505,7 +504,9 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 	# ⚠ 归一化必须用 `DRAFT_HORIZON` 本身:首店的 horizon 恰好被 cap 到它,
 	# 所以**任何 decay 下第一次商店都不变**, 参数因此单调可读。
 	# ⚠ 扫描见 `tools/decay.gd` —— 和跨拍那个 lam 一样, **不许拍脑袋**。
-	var lam: float = float(EV["coin_score_ratio"]) * score_mean \
+	# ⚑ 2026-09-04 起系数是 **coin_cost_ratio**(成本侧), 与产币卡估值用的 coin_score_ratio
+	# (价值侧)分开 —— 同一个数用两处的后果见 sim.json `_comment_coin_cost_ratio`。
+	var lam: float = float(EV["coin_cost_ratio"]) * score_mean \
 		* pow(horizon / DRAFT_HORIZON, float(EV["coin_decay"]))
 	# 货架位数与两个「必定出」补丁 —— **与 view/shop.gd::_deal 同一套规则**(shelf API 收口)。
 	var _shelf_n: int = maxi(Joker.slots_shelf_size(slots), _g_shelf)
@@ -657,6 +658,18 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 					best_gain = 1e9      # 压过一切正常比价
 					best_cost = _price_now(j, slots)
 					break
+		# 满槽时「换掉谁」只算一次:槽位在候选循环里不变, 逐候选重算是白跑三张卡的估值
+		# (重放估值下 = 3 张 × 24 拍 × 2 次结算, 2026-09-04)。
+		var weak_k := 1
+		var weak_ev := 1.0e18
+		var refund := 0
+		if empty_slot < 0:
+			for k2 in range(1, slots.size()):
+				var oe := _card_ev(slots[k2].id, st, slots, phrases_left)
+				if oe < weak_ev:
+					weak_ev = oe
+					weak_k = k2
+			refund = Economy.sell_value(slots[weak_k])
 		for j in offer:
 			# Target 回池后货架里可能混着 Target, 它走上面那段换旗路径(顶掉槽 0),
 			# 不参与 support 的装槽/替换比价。⚠ 不显式跳过的话,
@@ -664,6 +677,15 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 			if j.kind == "target":
 				continue
 			var price := _price_now(j, slots)
+			# 预支风控:欠债时买入预算扣掉段末还款储备 —— runloop 段末自动扣款,
+			# bot 把还款钱花掉 = 自己判自己死。
+			# ⚠ 2026-08-30 三批转生:读的是 `run.debt`(消耗牌记下的待还), 不再是持仓。
+			# 买不起的候选**先跳过再估值**(估值有成本;判据不变, 它们本来也进不了比价)。
+			var reserve := 0 if run == null else int(run.debt)
+			if empty_slot >= 0 and price > coins - reserve:
+				continue
+			if empty_slot < 0 and price > coins + refund:
+				continue
 			# ⚑ 求解买牌(docs/design/solving.md 第三部分):不查手写表, 直接**在已知的脸序列下算边际价值**。
 			# 前提是「四段的脸开局全可见」(docs/design/solving.md §2.2)—— 用户 2026-08-08:
 			# 「没有脸信息就没有选牌策略」。
@@ -671,7 +693,7 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 			# 所以要除以 M。除错了不会报错, 只会让买牌整体变贵或变便宜。
 			var ev: float
 			if solve_draft and run != null:
-				var k_rep: int = -1 if empty_slot >= 0 else _weakest_slot(slots)
+				var k_rep: int = -1 if empty_slot >= 0 else _weakest_slot(slots, st)
 				# ⚠⚠ **同一次商店里全部候选共用同一个 sim_seed** —— 否则比较候选 A 和 B 时
 				# 它们拿到不同的补牌, 噪声会吃掉真实差异。这和 λ 扫描那次是同一个坑
 				# (独立采样让「λ 越大分越低」, 差点判定用户的设计不成立)。
@@ -682,12 +704,6 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 			else:
 				ev = _card_ev(j.id, st, slots, phrases_left)
 			if empty_slot >= 0:
-				# 预支风控:欠债时买入预算扣掉段末还款储备 —— runloop 段末自动扣款,
-				# bot 把还款钱花掉 = 自己判自己死。
-				# ⚠ 2026-08-30 三批转生:读的是 `run.debt`(消耗牌记下的待还), 不再是持仓。
-				var reserve := 0 if run == null else int(run.debt)
-				if price > coins - reserve:
-					continue
 				var gain := ev * horizon - lam * float(price)
 				if gain > best_gain:
 					best_gain = gain
@@ -695,16 +711,6 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 					best_cost = price
 			else:
 				# replace: candidate must beat the weakest owned card by enough
-				var weak_k := 1
-				var weak_ev := 1.0e18
-				for k2 in range(1, slots.size()):
-					var oe := _card_ev(slots[k2].id, st, slots, phrases_left)
-					if oe < weak_ev:
-						weak_ev = oe
-						weak_k = k2
-				var refund := Economy.sell_value(slots[weak_k])
-				if price > coins + refund:
-					continue
 				# ⚠ 求解版的 `ev` **已经是「换掉最弱那张」的净边际值**(card_value 传了 k_rep),
 				# 再减一次 weak_ev 就是把替换成本算两遍。手写版的 ev 是绝对值, 才需要减。
 				var gain2 := (ev * horizon if solve_draft else (ev - weak_ev) * horizon) \
@@ -725,13 +731,7 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 				_rep.support_drafted[best.id] = int(_rep.support_drafted.get(best.id, 0)) + 1
 				_rep.cov_install(String(best.id))
 			else:
-				var weak_k := 1
-				var weak_ev := 1.0e18
-				for k2 in range(1, slots.size()):
-					var oe := _card_ev(slots[k2].id, st, slots, phrases_left)
-					if oe < weak_ev:
-						weak_ev = oe
-						weak_k = k2
+				# 换掉的就是比价时那张最弱的(候选循环外算好的 weak_k, 槽位中途没变)。
 				coins = Economy.grant(coins, Economy.sell_value(slots[weak_k]), slots) \
 					- _price_now(best, slots)
 				Joker.notify_shop(slots, "buy")            # 替换也是一次购买(同编排器)
@@ -1594,15 +1594,13 @@ func _target_mult(target_id: String, kind: int) -> float:
 
 
 ## 槽里最弱的那张(槽 0 是 Target, 不参与 support 的替换)。求解买牌用它定「换掉谁」。
-func _weakest_slot(slots: Array) -> int:
+func _weakest_slot(slots: Array, st: Dictionary) -> int:
 	var weak_k := 1
 	var weak_ev := 1.0e18
 	for k in range(1, slots.size()):
 		if slots[k] == null:
 			continue
-		var oe := _card_ev(String(slots[k].id), {"n": 1.0, "score": 0.0, "mult": 0.0,
-			"disc": 0.0, "rep": 0.0, "late": 0.0, "early": 0.0, "zerod": 0.0,
-			"faces": 0.0, "chord": 0.0, "tgt": 0.0, "kinds": {}}, slots, 1)
+		var oe := _card_ev(String(slots[k].id), st, slots, 1)
 		if oe < weak_ev:
 			weak_ev = oe
 			weak_k = k

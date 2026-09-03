@@ -108,12 +108,15 @@ static func settle(run: Run, p: Phrase, flags: Dictionary = {}) -> Dictionary:
 			run.shelf_bonus += 1
 		else:
 			callout_unsolved = true
-	var outcome := Settle.run(res, run.joker_slots, {
+	# ⚑ ctx 是**事实**(docs/design/telemetry.md 的口径), 结算完随 outcome 一起返回:
+	# 探针的买牌估值在它上面做反事实重放(tools/bot.gd::_card_ev_replay, 2026-09-04)。
+	# 缓存与本拍消耗牌**拷贝一份** —— 前者跨拍会变、后者结算完就清, 引用会让历史条目静默变脏。
+	var ctx := {
 		"prev_kind": run.prev_kind,
 		"prev_target_hit": run.prev_target_hit,
 		# ⚑ 本拍烧掉的消耗牌(2026-08-29)。接在**共用的那一拍转移**里,
 		# 所以游戏与探针自动同步 —— 「规则在游戏里、不在模型里」这个形状本项目栽过 6 次。
-		"phrase_boosts": run.phrase_boosts,
+		"phrase_boosts": run.phrase_boosts.duplicate(),
 		"rolled_suit": int(run.mod_roll.get("suit", -1)),
 		"callout_unsolved": callout_unsolved,
 		"luck_rolls": luck_rolls,
@@ -123,7 +126,7 @@ static func settle(run: Run, p: Phrase, flags: Dictionary = {}) -> Dictionary:
 		"discards": p.discards_used,
 		"coins": p.coins,
 		"phrase_idx": run.phrase_in_section,
-		"cache_cards": run.cache,
+		"cache_cards": run.cache.duplicate(),
 		"early_finish": bool(flags.get("early", false)),
 		# ---- 2026-08-13 子波 2:时钟观测(谢幕/秒表/早弃)。**全部由调用方传** ——
 		# core/ 不含时钟, 这里只是把 view/探针给的读数放进 ctx(late/early 的同款处理)。
@@ -143,7 +146,8 @@ static func settle(run: Run, p: Phrase, flags: Dictionary = {}) -> Dictionary:
 		"request_met": p.request_met,
 		"patch_restored": SectionMod.restores_with_initial_cache(run.face()) \
 			and p.has_initial_cache_in_hand(),
-	})
+	}
+	var outcome := Settle.run(res, run.joker_slots, ctx)
 	var raw_score := int(outcome["score"])
 	var boon_bonus := 0
 	var replay_factor := BlindBoon.score_replay_factor(run.boon())
@@ -170,6 +174,7 @@ static func settle(run: Run, p: Phrase, flags: Dictionary = {}) -> Dictionary:
 	run.section_score += int(outcome["score"])
 	run.stage = Run.Stage.SETTLED
 	outcome["res"] = res
+	outcome["ctx"] = ctx
 	return outcome
 
 

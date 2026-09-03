@@ -30,7 +30,12 @@ var _pass := 0
 var _fail := 0
 
 func _initialize() -> void:
+	# SYNC5_TEST_DOMAINS=t_draft,t_shop 只跑这几个域(TDD 迭代用;全量仍走 unittest.sh)。
+	# ⚠ 顺序敏感的域(runner 顶部的注释)单独跑时读数可能不同 —— 提交前仍要过全量。
+	var only := OS.get_environment("SYNC5_TEST_DOMAINS")
 	for d in DOMAINS:
+		if only != "" and not only.split(",").has(d):
+			continue
 		load("res://tests/%s.gd" % d).new().run(self)
 	print("\n=== RESULT: %d passed, %d failed ===" % [_pass, _fail])
 	quit(1 if _fail > 0 else 0)

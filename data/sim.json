@@ -1,7 +1,12 @@
 {
  "_comment": "机器人信念表(docs/design/tech.md)。牌面数额不在这里——_card_ev/_target_mult 直接读 jokers.json,消灭双写。",
  "_comment_targets": "机器人尺度**影子表**, 只给 sim 判生死用 —— **不是**真人面对的表(那张在 run.json)。由 `tools/curve.gd` 生成(`BOT := \"adaptive\"`): 规则机器人打满 24 拍不判生死, 按设计谱 [10%,30%,45%,60%] 逐段在幸存者里取分位数。2026-08-07 重算: 旧值 [215,540,895,1345] 是 2026-08-06 定的, 之后经历公式改 chips×mult、节奏改 4×6、**弃牌免费**、牌型倍率两轮重定、Target 全面重定价, **一次都没重算** —— 失效到 `random` 队列通关 **95.3%**(乱打都能过), 尺子彻底没有区分度。⚠ **表长必须 == 段数**(短了会被静默截断成放水盘, 测试锁着)。⚠ 改任何规则或数值后都要重算它, 否则 sim 的绝对通关率不可读, 只能看相对排名。",
- "bot_targets": [369, 768, 2106, 5147],
+ "bot_targets": [
+  369,
+  768,
+  2106,
+  5147
+ ],
  "runs": 1000,
  "cohorts": [
   {
@@ -154,142 +159,31 @@
   "score_prior": 180.0,
   "_comment_coin_score_ratio": "⚠⚠ **2026-08-30 试过 0.38, 当场把尺子跑坏了, 已回滚**。`tools/coin.gd` 实测 κ = 102.2 分/◆(z=11.34), 而 bot 心里 ≈ 0.1×本局均分 ≈ 27 —— 看着该抬 3.8 倍。抬上去之后:random 队列 3.7% → **6.3% > 5% 哨兵线**(尺子失效)· 局末余额中位 9 → **14◆**(离开个位数健康带)· 弃牌 0.60 → 0.85 张/拍。\n⚑ **根因不是数不对, 是一个数被用在两处**:`coin_score_ratio` 同时当①产币卡的**价值**换算(挣到一枚金币值多少分)和②买卡的**成本**换算(`lam`, 花掉一枚金币放弃多少分)。实测的 102 是**边际产出**(多给一枚金币, 这一局多拿多少分), 它回答的是①;直接拿去当②, bot 就觉得买什么都贵 ⇒ 囤钱、少弃牌, 而囤着的钱本作**零终局价值**。\n⚠ 而且 κ 是**内生**的:它在旧策略下测出, 策略一变定点就移 ⇒ **不能一次替换, 要和 bot_targets 一起迭代**。\n⇒ 下一步是**拆成两个参数**(价值侧 / 成本侧), 不是继续调这一个。",
   "coin_score_ratio": 0.1,
+  "_comment_coin_cost_ratio": "⚑ κ 拆两半(2026-09-04, TODO「κ 不能一个数用两处」):coin_score_ratio 是**价值侧**(产币卡挣到一枚◆值多少分 —— tools/coin.gd 实测边际产出 102 分/◆), coin_cost_ratio 是**成本侧**(买卡花掉一枚◆放弃多少分 = lam 的系数, 与 coin_decay 同组)。08-31 把一个数抬到 0.38 时 random 队列 3.7%→6.3% 破 5% 哨兵、局末余额 9→14◆:成本侧被一起抬 ⇒ bot 觉得买什么都贵 ⇒ 囤钱。现在两把旋钮分开;**缺省相等 = 读数一个不动**, 价值侧的重标随 bot_targets 一起迭代(κ 内生)。",
+  "coin_cost_ratio": 0.1,
   "_comment_coin_decay": "金币影子价的衰减指数(2026-08-09)。lam = coin_score_ratio × 本局均分 × (horizon/20)^coin_decay,horizon = min(剩余拍数, 20)。金币在本作**零终局价值**,它唯一的价值是「还能买到多少分」——而一次购买付 ev × horizon,所以 horizon 收缩时影子价必须同比往下走。0 = pow(x,0)=1 = **精确复现 2026-08-09 之前的行为**;1 = 严格正比于 horizon(此时 horizon 从买/不买的判据里整个约掉);更大 = 一离开满 horizon 就几乎归零。⚠ **由 tools/decay.gd 扫出来,不许拍脑袋**(和 solver.lam 同一条纪律)。⚠ 改这个数会让所有以 bot 为尺子的既有读数失效(bot_targets / curve.gd / gate.sh / price.gd / addit.gd / kit.gd),要重算。",
   "coin_decay": 1.0,
   "growth_horizon": 0.5,
   "glowstick_horizon": 10.0,
   "cards": {
-   "variation": {
-    "rate": "rep",
-    "prior": 0.3
-   },
-   "reprise": {
-    "rate": "rep",
-    "prior": 0.3
-   },
-   "rainbow": {
-    "fixed_rate": 0.25
-   },
-   "nopair": {
-    "fixed_rate": 0.45
-   },
-   "rehearsal": {
-    "fixed_rate": 0.3
-   },
-   "fullcast": {
-    "fixed_rate": 0.12
-   },
-   "superfan": {
-    "pairs": 3.0
-   },
-   "warmtone": {
-    "hits": 2.5
-   },
-   "cooltone": {
-    "hits": 2.5
-   },
-   "undertone": {
-    "hits": 1.4
-   },
-   "bassclef": {
-    "avg_low_rank": 3.5,
-    "hits": 1.4
-   },
-   "encore": {
-    "rate": "rep",
-    "prior": 0.3
-   },
-   "finale": {
-    "rate": "late",
-    "prior": 0.25
-   },
-   "turnover": {
-    "rate": "disc",
-    "prior": 1.0
-   },
-   "tipjar": {
-    "rate": "zerod",
-    "prior": 0.3
-   },
-   "chord": {
-    "rate": "chord",
-    "prior": 0.08
-   },
-   "neonsign": {},
    "vinyl": {
     "rate": "disc",
     "prior": 0.2
    },
-   "interest": {
-    "coin_mult": 1.2
-   },
    "momentum": {
     "rate": "early",
     "prior": 0.25
-   },
-   "vip": {
-    "rate": "faces",
-    "prior": 0.7,
-    "boost": 3.0
    },
    "glowstick": {},
    "bassline": {
     "rate": "disc",
     "prior": 0.2
    },
-   "mirror": {
-    "rate": "tgt",
-    "prior": 0.3,
-    "streak": 0.75,
-    "_comment": "2026-08-25 镜面改造:连续两拍达成才生效, streak = 连击折扣先验(仪器重跑后接管)"
-   },
-   "duo": {
-    "fixed_rate": 0.7
-   },
-   "duet": {
-    "fixed_rate": 0.7
-   },
-   "triad": {
-    "fixed_rate": 0.11
-   },
-   "triplebill": {
-    "fixed_rate": 0.11
-   },
-   "backer": {
-    "coin_steps": 8.0
-   },
-   "bench": {
-    "avg_top": 9.6
-   },
-   "boxseats": {
-    "avg_faces": 0.7
-   },
-   "stilllife": {
-    "fixed_rate": 0.35
-   },
-   "stageexit": {
-    "fixed_rate": 0.45
-   },
-   "segue": {
-    "fixed_rate": 0.8
-   },
    "freeze": {
     "fixed_rate": 0.7
    },
    "skint": {
     "hoard": 34.7
-   },
-   "royalty": {
-    "coins_per_beat": 2.2
-   },
-   "curtain": {
-    "fixed_rate": 0.44
-   },
-   "stopwatch": {
-    "avg_seconds": 2.1
-   },
-   "earlyout": {
-    "fixed_rate": 0.7
    },
    "digger": {
     "events": 0.6
@@ -308,16 +202,6 @@
    "deejay": {
     "events": 0.6
    },
-   "goldenvoice": {
-    "coin_steps": 1.5
-   },
-   "hush": {
-    "fixed_rate": 0.12
-   },
-   "harmony": {
-    "rate": "chord",
-    "prior": 0.08
-   },
    "ensemble": {
     "gain": 0.3
    },
@@ -327,14 +211,8 @@
    "loadeddice": {
     "gain_per_gamble": 0.2
    },
-   "recycle": {
-    "ranks_per_beat": 8.0
-   },
    "gueststar": {
     "rental": 0.6
-   },
-   "blindplay": {
-    "hidden_per_beat": 0.6
    },
    "matador": {
     "bites_per_beat": 0.5
@@ -404,14 +282,11 @@
    "duo": 38.7,
    "cooltone": 30.7,
    "triad": 25.3,
-   "glowstick": 215.9,
    "triplebill": 67.9,
    "duet": 66.9,
    "curtain": 55.0,
    "superfan": 54.3,
    "reprise": 48.1,
-   "gueststar": 187.4,
-   "skint": 112.4,
    "boxseats": 96.5,
    "goldenvoice": 81.2,
    "hush": 54.1,

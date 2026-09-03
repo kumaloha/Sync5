@@ -90,7 +90,7 @@ class SpyBot extends Bot:
 		var bw: float = float(EV["blend_w"])
 		var score_mean: float = (float(st["score"]) + float(EV["score_prior"]) * bw) \
 			/ (maxf(1.0, float(st["n"])) + bw)
-		var lam: float = float(EV["coin_score_ratio"]) * score_mean
+		var lam: float = float(EV["coin_cost_ratio"]) * score_mean
 		var rerolls: int = maxi(0, _offers.size() - 1)
 		var empty: int = 0
 		for k in range(1, before.size()):
@@ -326,7 +326,7 @@ func _report_arm(title: String, arm: Dictionary) -> void:
 	var lm := Stat.mean(lams)
 	print("  ⚠ 金币有**两把互相矛盾的尺子**:规则 bot 买牌时把 1◆ 记成 %.0f 分"
 		% lm)
-	print("     (lam = ev.coin_score_ratio × 本局均分), 而求解器 `Draft.COIN_TO_SCORE`"
+	print("     (lam = ev.coin_cost_ratio × 本局均分), 而求解器 `Draft.COIN_TO_SCORE`"
 		+ " 按 coin.gd 实测取 %.1f 分/◆ —— 差 %.0f 倍。"
 		% [Draft.COIN_TO_SCORE, lm / maxf(0.001, Draft.COIN_TO_SCORE)])
 	print("\n  Q2 刷新:每局 %.2f 次, 花 %.1f◆  (刷新是金币的另一个出口)"
@@ -408,7 +408,7 @@ func _report_cats(title: String, shops: Array) -> void:
 func _report_by_index(shops: Array, runs: int) -> void:
 	print("\n  按第几次商店拆(0-based;段中/段末交替)")
 	print("  门槛 = 一张 4◆ 普通卡要多少「每拍 ev」才划算 = lam×4 / 剩余拍;")
-	print("  lam = bot 心里 1 金币值多少分(= coin_score_ratio × 本局均分, **不随剩余拍数衰减**)")
+	print("  lam = bot 心里 1 金币值多少分(= coin_cost_ratio × 本局均分, **不随剩余拍数衰减**)")
 	print("  ③ 那两列:换一张 4◆ 换 4◆ 需要的 ev 差 = lam×(4−2)/剩余拍, 对比实际的 ev 差。")
 	print("    %3s %4s %8s %6s %7s %7s %9s %8s %8s %7s %9s" % ["#", "段", "进店余额◆",
 		"剩余拍", "lam分/◆", "门槛ev", "货架最好ev", "③实际差", "③门槛差", "买了", "不愿换/不值"])

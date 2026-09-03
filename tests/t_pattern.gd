@@ -2,6 +2,7 @@ extends RefCounted
 
 # --- Pattern ---
 func run(t) -> void:
+	_t_memo(t)
 	# Royal flush
 	var royal := [t._c(10, 3), t._c(11, 3), t._c(12, 3), t._c(13, 3), t._c(14, 3)]
 	var r := Pattern.evaluate_best(royal)
@@ -155,3 +156,39 @@ func run(t) -> void:
 	var upr: Dictionary = Pattern._score_five(up, {})
 	t.eq(upr["kind"], Pattern.Kind.THREE_KIND, "1 wild + 5,5,9,K = 三条 5")
 	t.eq(int(upr["score"]), int(Pattern._score_five_brute(up, {})["score"]), "点数提升 = 全域暴力")
+
+
+## ---- score_five 的分数记忆(2026-09-04):逐位精确 + 规则进键 + 满了清空 ----
+func _t_memo(t) -> void:
+	var w := Card.new(Card.JOKER_RANK, Card.JOKER_BIG)
+	# 四指:4 连 + 万能 —— 有无规则分数不同, 记忆必须按规则分开(同一手牌先无规则再有规则)。
+	var h4 := [t._c(4, 0), t._c(5, 1), t._c(6, 2), t._c(11, 3), w]
+	var plain := Pattern.score_five(h4, {})
+	var four := Pattern.score_five(h4, {"fourfingers": true})
+	t.eq(plain, int(Pattern._score_five(h4, {})["score"]), "记忆命中 = 直算(无规则)")
+	t.eq(four, int(Pattern._score_five(h4, {"fourfingers": true})["score"]), "记忆命中 = 直算(四指)")
+	t.check(Pattern._rules_key({"fourfingers": true, "shortcut": false}) == 2, "规则键只计打开的规则")
+	t.check(Pattern._rules_key({"unknown": true}) == -1, "未知规则键不进记忆")
+	# 顺序无关:同 5 张任意排列同一个键。
+	var perm := [w, t._c(11, 3), t._c(6, 2), t._c(4, 0), t._c(5, 1)]
+	t.eq(Pattern._key5(perm), Pattern._key5(h4), "5 张牌的键与顺序无关")
+	# 两遍相同, 且与不走记忆的 _score_five 逐位相同(含万能牌手)。
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 77
+	var hands: Array = []
+	for i in range(60):
+		var d := Deck.new(500 + i)
+		var h: Array = [d.draw(), d.draw(), d.draw(), d.draw()]
+		h.append(w if i % 2 == 0 else d.draw())
+		hands.append(h)
+	var first: Array = []
+	for h in hands:
+		first.append(Pattern.score_five(h))
+	var same := true
+	for i in range(hands.size()):
+		if Pattern.score_five(hands[i]) != first[i] \
+				or first[i] != int(Pattern._score_five(hands[i], {})["score"]):
+			same = false
+	t.check(same, "记忆第二遍 = 第一遍 = 直算(60 手, 半数含万能)")
+	Pattern._memo.clear()
+	t.eq(Pattern.score_five(h4, {"fourfingers": true}), four, "清空后重算不变")

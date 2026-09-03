@@ -1320,9 +1320,12 @@ func _advance() -> void:
 		# 预支还款(2026-08-26 金融组):工资入账后判 —— 付不起 = run 失败,
 		# **含 S4**(通关那一刻也得先还钱, 卡面写明 "or die")。死因记 Tape;
 		# fail 屏的死因行归 UI 批(现屏只念分数, 分数达标却失败的困惑由卡面契约兜)。
+		# ⚑ 还款规则只有 `Run.repay_debt` 一份(2026-09-04):此前这里扣了款**没清账**,
+		# 一张预支在之后每个段边界都再扣一次 12◆ —— RunLoop 那份是清的, 两侧不一致。
 		var loan_out := {"repay": run.debt}
 		if int(loan_out.repay) > 0:
-			if phrase.coins < int(loan_out.repay):
+			var rp: Dictionary = run.repay_debt(phrase.coins)
+			if not bool(rp["ok"]):
 				Tape.close({"ok": false, "sec": run.section_idx,
 					"score": run.section_score, "target": run.target(),
 					"beats": run.phrase_index, "why": "loan"})
@@ -1339,9 +1342,9 @@ func _advance() -> void:
 				run_end.show_fail(run.section_score, run.target(),
 					String(DB.ui().get("banner", {}).get("fail_loan", "%d◆")) % int(loan_out.repay))
 				return
-			phrase.coins -= int(loan_out.repay)
+			phrase.coins = int(rp["coins"])
 			run.coins = phrase.coins
-			Tape.on("loan", {"pay": int(loan_out.repay), "coins": phrase.coins})
+			Tape.on("loan", {"pay": int(rp["paid"]), "coins": phrase.coins})
 			# 逐段抽走(fx_advance ②):一枚金币被红色拽出钱包
 			if not run.tutorial:
 				burst.loan_repay(_purse_anchor(), int(loan_out.repay))

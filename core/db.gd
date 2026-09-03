@@ -1255,16 +1255,42 @@ static func validate_sim(d: Dictionary) -> String:
 	for cid in d["ev"].get("cards", {}):
 		if not jids.has(cid):
 			return "ev card '%s' not in jokers" % cid
-	# 反向:score/solver 通路的 support 必须有 ev.cards 条目 —— bot 的 _card_ev 缺臂 = 估值 0 =
+	# 反向:还走**手写臂**的 support 必须有 ev.cards 条目 —— bot 的 _card_ev 缺臂 = 估值 0 =
 	# 永远不买 = 这张卡在尺子里不存在(2026-08-21 评审:popup 就这么静默隐身)。
-	# 白名单 = 不靠 ev.cards 估值的臂(求解器直算 / 无参数臂)。
-	var no_prior := ["neonsign"]
+	# ⚑ 2026-09-04 起效果卡走反事实重放(`replay_valued`), **不读 ev.cards** —— 它们的条目
+	# 反过来不许留(留着就是一份没人读的先验, 下一个人会去调它)。
 	for e in jokers():
+		if String(e.get("kind", "")) != "support":
+			continue
 		var proof := String(e.get("proof", ""))
-		if String(e.get("kind", "")) == "support" and proof in ["score", "solver"] \
-				and not d["ev"]["cards"].has(e["id"]) and not no_prior.has(String(e["id"])):
+		if replay_valued(e):
+			if d["ev"]["cards"].has(e["id"]):
+				return "support '%s' 走重放估值, ev.cards 里的条目没人读 —— 删掉它" % e["id"]
+		elif proof in ["score", "solver"] and not d["ev"]["cards"].has(e["id"]):
 			return "support '%s'(proof=%s)在 ev.cards 里没有条目 —— bot 估值恒 0, 永远不买" % [e["id"], proof]
 	return ""
+
+
+## ⚑ 这张卡的 bot 估值走不走**反事实重放**(tools/bot.gd::_card_ev_replay, 2026-09-04)。
+## 判据全按数据形状, 不按 id 列表:效果卡(一拍内由 res+ctx 决定的)走重放;
+## 成长/衰减/计数器/持有(state 跨拍)· 概率(luck_rolls 按槽序预掷)· 货架/入场(shelf/acquire)·
+## proof=shop 的, 价值不在单拍结算链里, 留手写臂。**只此一份** —— bot 与 validate_sim 都调它。
+static func replay_valued(e: Dictionary) -> bool:
+	if String(e.get("kind", "")) != "support":
+		return false
+	var fxs: Array = e.get("effects", [])
+	if fxs.is_empty():
+		return false
+	if String(e.get("curve", "")) in ["growth", "decay"]:
+		return false
+	if e.has("counters") or e.has("hold") or e.has("shelf") or e.has("acquire"):
+		return false
+	if String(e.get("proof", "")) == "shop":
+		return false
+	for fx in fxs:
+		if fx.get("when", {}).has("chance") or fx.get("do", {}).has("chance"):
+			return false
+	return true
 
 
 static func validate_ui(d: Dictionary) -> String:

@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """data/ranking.json 生成器(Director 的脸难度排序, 2026-08-18)。
 
-    python3 tools/rankgen.py <price.log 路径>
+    python3 tools/rankgen.py <price.log 路径> [更多分片日志…]
+    (⚑ 2026-09-04:price 支持 `SYNC5_PRICE_SHARD=i/n` 分片, 各片各自印一行 JSON;
+     传多份日志时按键合并 —— 同一个放置出现两次以后者为准。)
 
 从 tools/price.gd 的输出日志里取那行 JSON(键 = 脸@段号, 0 起), 每段按「由易到难」排序
 (sec 口径:0 附近 = 温和, 越负越狠), 写 data/ranking.json。**手改无效, 重跑本脚本刷新。**
@@ -14,16 +16,18 @@
 import json, re, sys, pathlib
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-log = pathlib.Path(sys.argv[1]).read_text(encoding='utf-8', errors='replace')
+log = "\n".join(pathlib.Path(a).read_text(encoding='utf-8', errors='replace') for a in sys.argv[1:])
 
 m = None
 for line in log.splitlines():
     line = line.strip()
     if line.startswith('{') and '@' in line:
         try:
-            m = json.loads(line)
+            piece = json.loads(line)
         except Exception:
-            pass
+            continue
+        m = {} if m is None else m
+        m.update(piece)
 if m is None:
     # 退路(2026-08-19):price.gd 全表在 S10 税下要 10h 级, 第一版排序改吃
     # **全量门的脸覆盖读数**(同一把完美玩家尺子, 每脸一行分差)。

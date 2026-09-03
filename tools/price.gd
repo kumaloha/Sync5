@@ -79,6 +79,21 @@ func _initialize() -> void:
 	var only_env := Probe.env_str("SYNC5_PRICE_ONLY")
 	if only_env != "":
 		only = only_env.split(",")
+	# ⚑ 分片(2026-09-04):`SYNC5_PRICE_SHARD="i/n"` 只跑第 i 片(0 起)的放置, 各片各自
+	# 跑基准臂(配对的种子相同, 基准逐位一致)。**为什么现在才分片**:09-04 先查明了单局贵在哪 ——
+	# 完美玩家装了任何小丑牌后, `best_score` 对每个 8 选 5 组合各跑一次 `Settle.run`
+	# (弃牌枚举 × 采样 ≈ 1.8 万次/拍), 每拍 ~1.1 s;万能牌再翻一倍。那是求解器**精确枚举 × 完整结算**
+	# 的固有成本, 不是 bug(tools/pace.gd 逐拍计时)。⇒ 单机 10 核并行是唯一的量级手段:
+	#   for i in 0..9: SYNC5_PRICE_SHARD=$i/10 godot … > price_$i.log &
+	#   python3 tools/rankgen.py price_*.log      # rankgen 会把各片的 JSON 合并
+	var shard_i := 0
+	var shard_n := 1
+	var shard := Probe.env_str("SYNC5_PRICE_SHARD")
+	if shard != "":
+		var parts := shard.split("/")
+		if parts.size() == 2 and int(parts[1]) > 0:
+			shard_i = int(parts[0])
+			shard_n = int(parts[1])
 
 	# 合法放置 = 池子里真有的 (段, 脸)。不测池子外的组合 —— 那是游戏里不存在的局面。
 	var placements: Array = []
@@ -89,6 +104,13 @@ func _initialize() -> void:
 			if not only.is_empty() and not only.has("%s@%d" % [fid, s]):
 				continue
 			placements.append({"s": s, "f": String(fid)})
+	if shard_n > 1:
+		var mine: Array = []
+		for i in range(placements.size()):
+			if i % shard_n == shard_i:
+				mine.append(placements[i])
+		print("[price] 分片 %d/%d:本片 %d / %d 个放置" % [shard_i, shard_n, mine.size(), placements.size()])
+		placements = mine
 
 	print("\n=== 脸的定价 · 每个放置一个数 (%d 局/臂, 队列 %s) ===" % [n, cfg.get("name", "?")])
 	print("  尺子 = **完美玩家 + 开着商店**(唯一能看见全部四类脸的那把)")

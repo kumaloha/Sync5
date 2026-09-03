@@ -187,11 +187,16 @@ static func play(o: Opts, bot: Bot) -> Dictionary:
 			# 一次「假绿」。(CLAUDE.md 早写着「跑完必须确认退出码」, 而这次退出码在说谎。)
 			# ⇒ 不死局的记账约定:**还得上就还, 还不上就清账继续**, 与「段末工资照发
 			# (假定通过)」同一条线。偏差方向记明:用过预支又还不上的局, 分数略偏高。
-			if o.mortal and coins < run.debt:
+			# ⚑ 还款规则只有 `Run.repay_debt` 一份(2026-09-04), 游戏侧调的是同一个。
+			var rp: Dictionary = run.repay_debt(coins)
+			if bool(rp["ok"]):
+				coins = int(rp["coins"])
+			elif o.mortal:
 				died_at = section
 				break
-			coins = maxi(0, coins - run.debt)
-			run.debt = 0
+			else:
+				coins = 0
+				run.debt = 0
 		# ⚠⚠ **末段没有段末商店** —— 游戏里 `view/phrase.gd` 在 `finale` 那一支直接
 		# 走结算成功屏并 return, 根本不开商店。这里原本无条件开, 于是**模型比游戏多一次
 		# 商店**(8 vs 7)。2026-08-09 用 Tape 的 `shop` 事件实测:**37/37 完整局都是
@@ -230,12 +235,19 @@ static func _left(section: int, done: int) -> int:
 static func _fresh_st() -> Dictionary:
 	return {"n": 0.0, "disc": 0.0, "rep": 0.0, "late": 0.0, "early": 0.0,
 		"zerod": 0.0, "faces": 0.0, "chord": 0.0, "tgt": 0.0,
-		"score": 0.0, "mult": 0.0, "kinds": {}}
+		"score": 0.0, "mult": 0.0, "kinds": {}, "hist": []}
 
 
+## ⚑ `hist` = 本局每一拍的 {res, ctx}(2026-09-04):买牌估值在它上面做反事实重放
+## (`Bot._card_ev_replay`)。⚠ 探针自己拼的 st 字面量没有这一键时这里补上 —— 五份字面量
+## 散在 sim/price/addit/coin/… 里, 漏一处就是「这个探针的 bot 没有历史、只看先验」且不报错。
 static func _tally(st: Dictionary, outcome: Dictionary, tally_score: bool = true,
 		tally_mult_kinds: bool = true) -> void:
 	st["n"] += 1.0
+	if outcome.has("ctx"):
+		if not st.has("hist"):
+			st["hist"] = []
+		st["hist"].append({"res": outcome["res"], "ctx": outcome["ctx"]})
 	if tally_score:
 		st["score"] += float(outcome["score"])
 	if tally_mult_kinds:
