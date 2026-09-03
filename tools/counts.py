@@ -29,7 +29,12 @@ def main():
                 # 判据:同一行里出现日期、「口径」、「冻结」、「当时」这类词 ⇒ 是历史。
                 if re.search(r"20\d\d-\d\d-\d\d|口径|冻结|当时|历史|曾", line):
                     continue
-                for m in re.finditer(name + r"[^\n]{0,24}?\*{0,2}(\d{2,3})\*{0,2}\s*张", line):
+                # ⚠ `(?<![\d.])` —— **小数点后面那截不是卡数**(2026-09-03):
+                # 「小丑牌成交 3.36 → 1.48 张/局」里的 `1.48` 被读成「48 张」而报红。
+                # 修检查器而不是绕着写文档 —— 否则以后每个人都得为了迁就它改措辞,
+                # 而**一把爱喊狼来了的尺会被无视**(与 parity 第 ④ 层同一条哲学)。
+                for m in re.finditer(
+                        name + r"[^\n]{0,24}?\*{0,2}(?<![\d.])(\d{2,3})\*{0,2}\s*张", line):
                     got = int(m.group(1))
                     if got != n and got not in (4,):     # 4 槽位那种无关数字
                         bad.append((md.relative_to(ROOT), ln, name, got, n, line.strip()[:70]))
