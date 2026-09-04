@@ -1126,6 +1126,14 @@ func _play_perfect(p: Phrase, slots: Array, mod: String = "",
 		"prev_kind": -99, "acted_late": false, "discards": p.discards_used,
 		"coins": p.coins, "phrase_idx": 0, "mod": mod,
 	}
+	# ⚑ 结算记忆(tools/solver.gd 文件头):这一拍的槽位与上下文定死, 同一组合只结算一次。
+	Solver.memo_begin(slots, extra)
+	_play_perfect_body(p, slots, mod, lam, lam_samples, section, eps, extra)
+	Solver.memo_end()
+
+
+func _play_perfect_body(p: Phrase, slots: Array, mod: String, lam: float, lam_samples: int,
+		section: int, eps: float, extra: Dictionary) -> void:
 	# ① 弃牌(2026-08-06 起**免费**, 只受手速预算限制 —— 金币影子价 κ 因此整个消失,
 	#    求解器少一个要扫的参数)。弃的是「这拍用不上的那 3 张」, 计分的 5 张不动。
 	# 不完全信息(盖牌脸):求解器只能按信念挑, 记账仍按真值。`blind` 是本拍

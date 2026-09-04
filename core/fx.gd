@@ -8,6 +8,44 @@ extends RefCounted
 
 
 ## (升级系统的放大参数 2026-08-26 随路线 ③ 整体删除。)
+## ⚑ 结算记忆的词汇表(2026-09-04, tools/solver.gd::best_score)。求解器一拍里对同一个 5 张组合
+## 反复结算, 结果只在**「这一次尝试才会变的量」**(弃了几张 / 缓存里是什么 / 换了几次 / 弃了几张人头)
+## 上有差别。一张卡的 when / per / do 只要不碰这些量, 它对同一组合的结算就是同一个数, 可以记住。
+## ⚠ 三张表必须**覆盖 jokers.json 里出现的每个键**(tests/t_solver 锁着):新操作码没归类 = 红,
+## 不许默认「安全」—— 默认安全就是静默算错。
+const TRIAL_WHEN := ["discards_eq", "discards_gte", "discard_batch_gte", "cache_mono_color",
+	"cache_mono_suit", "cache_run", "cache_trio", "cache_all_faces", "swaps_eq"]
+const TRIAL_PER := ["discard", "cache_face", "face_discard", "swapped_scoring"]
+const TRIAL_DO := ["additive_cache_top"]
+const SAFE_WHEN := ["kind", "kind_in", "same_as_prev", "diff_from_prev", "acted_late", "acted_final",
+	"coins_gte", "base_gte", "last_phrase", "first_phrase", "section_eq", "section_doubled",
+	"counter_gte", "chance", "target_streak", "all_suits", "no_pair", "early_discards",
+	"early_finish", "top_rank_gte"]
+const SAFE_PER := ["second_left", "cache_rank_sum", "hidden_scoring"]   # 另有 counter:* / coins:* 前缀
+const SAFE_DO := ["mult", "mult_add", "additive", "bonus", "bonus_pct", "bonus_target_pct", "coins",
+	"coins_factor", "mult_from_target_factor", "additive_face_value", "additive_low_value",
+	"chips_per_card", "card_filter", "per", "cap", "step"]
+
+
+## 这组效果只读**拍内常量**吗(见上表)。未归类的键一律按「不安全」处理(宁可慢, 不许错)。
+static func trial_free(effects: Array) -> bool:
+	for e in effects:
+		for k in e.get("when", {}):
+			if TRIAL_WHEN.has(String(k)) or not SAFE_WHEN.has(String(k)):
+				return false
+		var d: Dictionary = e.get("do", {})
+		for k in d:
+			if TRIAL_DO.has(String(k)) or not SAFE_DO.has(String(k)):
+				return false
+		if d.has("per"):
+			var per := String(d["per"])
+			if TRIAL_PER.has(per):
+				return false
+			if not SAFE_PER.has(per) and not per.begins_with("counter:") and not per.begins_with("coins:"):
+				return false
+	return true
+
+
 static func apply_effects(effects: Array, state: Dictionary, ctx: Dictionary) -> String:
 	var popup := ""
 	for e in effects:

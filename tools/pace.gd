@@ -59,9 +59,10 @@ func _initialize() -> void:
 			for c in run.deck.discard_pile:
 				if c != null and c.is_wild():
 					wilds += 1
-			print("  S%d p%d  %5d ms  score=%6d  disc=%d  slots=%s  wilds=%d" % [
+			var ms: Array = Solver.memo_stats()
+			print("  S%d p%d  %5d ms  score=%6d  disc=%d  slots=%s  wilds=%d  memo %d/%d" % [
 				run.section_idx, run.phrase_in_section, now - t_last[0],
-				int(outcome.get("score", 0)), p.discards_used, str(ids), wilds])
+				int(outcome.get("score", 0)), p.discards_used, str(ids), wilds, int(ms[0]), int(ms[1])])
 			t_last[0] = now
 		var res := RunLoop.play(o, bot)
 		print("[pricetime] run %d total=%d  %d ms  shop=%s" % [r, int(res["total"]), Time.get_ticks_msec() - t_run, str(shop)])

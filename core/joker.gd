@@ -321,6 +321,15 @@ func has_effects() -> bool:
 	return not _effects.is_empty()
 
 
+## 这张卡在求解器一拍的枚举里, 对同一个 5 张组合是否恒给同一个结算(Fx.trial_free 的词汇表)。
+## `hold` 卡(合奏的缓存上台 / 穷开心的上限…)不进结算链, 不影响这条判断。
+var _trial_free_cached: int = -1
+func trial_free() -> bool:
+	if _trial_free_cached < 0:
+		_trial_free_cached = 1 if Fx.trial_free(_effects) else 0
+	return _trial_free_cached == 1
+
+
 static func by_id(p_id: String) -> Joker:
 	for j in pool():
 		if j.id == p_id:

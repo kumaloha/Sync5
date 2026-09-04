@@ -4,6 +4,7 @@ extends RefCounted
 ## 它是**一致性测试的一半** —— 数学侧和模拟器共用它, 它错了两边会一起错、
 ## 而且 agree.gd 会一致地不报警(共模误差探针抓不到)。
 func run(t) -> void:
+	_t_memo(t)
 	var slots: Array = [null, null, null, null]
 	var extra := {
 		"prev_kind": -99, "acted_late": false, "discards": 0, "coins": 99,
@@ -240,3 +241,70 @@ func run(t) -> void:
 		"freshsheet 的 cache_evict 仍是 3 (这条测试的前提)")
 	t.eq(int(SectionMod.cache_evict("lostpage")), 1,
 		"lostpage 的 cache_evict 仍是 1 (这条测试的前提)")
+
+
+## ---- 结算记忆(2026-09-04):词汇表要全覆盖;记忆开 = 记忆关 逐位相同 ----
+func _t_memo(t) -> void:
+	# ① jokers.json 里出现的每个 when / per / do 键都得归了类(安全 or 每次尝试会变)。
+	for e in DB.jokers():
+		for fx in e.get("effects", []):
+			for k in fx.get("when", {}):
+				t.check(Fx.SAFE_WHEN.has(String(k)) or Fx.TRIAL_WHEN.has(String(k)),
+					"when 键 '%s'(%s)没在 Fx.SAFE_WHEN / TRIAL_WHEN 里归类 —— 新操作码不许默认安全" % [k, e["id"]])
+			var d: Dictionary = fx.get("do", {})
+			for k in d:
+				t.check(Fx.SAFE_DO.has(String(k)) or Fx.TRIAL_DO.has(String(k)),
+					"do 键 '%s'(%s)没在 Fx.SAFE_DO / TRIAL_DO 里归类" % [k, e["id"]])
+			if d.has("per"):
+				var per := String(d["per"])
+				t.check(Fx.SAFE_PER.has(per) or Fx.TRIAL_PER.has(per)
+					or per.begins_with("counter:") or per.begins_with("coins:"),
+					"per '%s'(%s)没归类" % [per, e["id"]])
+	# 抽查判据:读弃牌数 / 缓存的卡不安全, 只看牌型的安全。
+	t.check(not Joker.by_id("hush").trial_free(), "静场读 discards_eq ⇒ 不安全")
+	t.check(not Joker.by_id("boxseats").trial_free(), "包厢按缓存人头计 ⇒ 不安全")
+	t.check(Joker.by_id("fullcast").trial_free(), "全员只看牌型 ⇒ 安全")
+	t.check(Joker.by_id("twin").trial_free(), "twin 只看牌型 ⇒ 安全")
+	# ② 对拍:同一拍(同槽位同 extra)随机手牌, 记忆开 vs 关 逐位相同;含不安全卡与带脸的拍。
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 9091
+	var safe_slots: Array = [Joker.by_id("twin"), Joker.by_id("fullcast"), Joker.by_id("neonsign"), null]
+	var mixed_slots: Array = [Joker.by_id("stair"), Joker.by_id("hush"), Joker.by_id("boxseats"), null]
+	var cases := [[safe_slots, {"mod": "", "discards": 0, "coins": 5, "prev_kind": -99, "section_target": 600}],
+		[mixed_slots, {"mod": "", "discards": 2, "coins": 5, "prev_kind": 1, "section_target": 600}],
+		[safe_slots, {"mod": "unplugged", "discards": 0, "coins": 5, "prev_kind": -99, "section_target": 600}]]
+	var bad := 0
+	var hits_safe := 0
+	for cs in cases:
+		var slots: Array = cs[0]
+		var extra: Dictionary = cs[1]
+		Solver.memo_stats()
+		for i in range(60):
+			var d := Deck.new(3000 + i)
+			var vis: Array = []
+			for j in range(8):
+				vis.append(d.draw())
+			# 关:老路
+			Solver.memo_end()
+			var off := Solver.best_score(vis, slots, extra)
+			# 开:同一拍连算两次(第二次全命中)
+			Solver.memo_begin(slots, extra)
+			var on1 := Solver.best_score(vis, slots, extra)
+			var on2 := Solver.best_score(vis, slots, extra)
+			# 缓存里换一批牌(cache_cards 变)—— 不安全卡的槽位必然不开记忆, 安全卡的结果与缓存无关
+			var vis2: Array = vis.duplicate()
+			vis2[6] = d.draw()
+			var off2 := Solver.best_score(vis2, slots, extra)
+			Solver.memo_end()
+			if off != on1 or off != on2 or absf(off2 - off2) > 0.0:
+				bad += 1
+		var st: Array = Solver.memo_stats()
+		if slots == safe_slots and String(extra["mod"]) == "":
+			hits_safe += int(st[0])
+	t.eq(bad, 0, "结算记忆 开/关 逐位相同(3 组 × 60 手)")
+	t.check(hits_safe > 0, "安全槽位下记忆确实命中过(不是形同虚设)")
+	Solver.memo_begin(mixed_slots, {"mod": ""})
+	t.check(not Solver._memo_on, "槽里有不安全卡 ⇒ 记忆不开")
+	Solver.memo_begin(safe_slots, {"mod": "unplugged"})
+	t.check(not Solver._memo_on, "脸会进结算 ⇒ 记忆不开")
+	Solver.memo_end()

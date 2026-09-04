@@ -306,6 +306,42 @@ static func _settle_identity(slots: Array, extra: Dictionary) -> bool:
 ##
 ## ⚠ **必须与 `best_split(...).score` 逐位相同**, `tests/runner.gd` 里有随机对拍锁着。
 ## **优化改结果是最坏的一种 bug** —— 它不报错, 只让所有读数悄悄偏掉。
+## ⚑⚑ 结算记忆(2026-09-04)—— 「price 单局 45 秒」的正解。
+## 装了小丑牌时 `best_score` 对每个 8 选 5 组合各跑一次完整 `Settle.run`, `best_discard` 一拍枚举
+## 162 个弃牌子集 × 2 组补牌 ⇒ **1.8 万次结算/拍**;而一拍只涉及 ≤16 张牌, 不同的 5 张组合远少于此,
+## 同一组合被算了几十遍。**同一拍、同一槽位、同一组合 ⇒ 同一个分**, 除非槽里有卡读「这一次尝试
+## 才会变的量」(弃了几张 / 缓存 / 换了几次 —— 词汇表在 core/fx.gd `TRIAL_*`)或脸在结算里读它们。
+## 用法:`Bot._play_perfect` 每拍开头 `memo_begin(slots, extra)`, 结尾 `memo_end()`;
+## 没 begin 过就走老路(测试直接调 best_score 时不会撞到陈旧的表)。
+## ⚠ 逐位精确:tests/t_solver 对拍「记忆开 = 记忆关」(随机手牌 × 含不安全卡的槽位 × 换脸)。
+static var _memo: Dictionary = {}
+static var _memo_on := false
+static var _memo_hits := 0
+static var _memo_calls := 0
+
+static func memo_begin(slots: Array, extra: Dictionary) -> void:
+	_memo.clear()
+	_memo_on = false
+	var mod := String(extra.get("mod", ""))
+	if mod != "" and SectionMod.affects_settle(mod):
+		return          # 脸在结算里可能读弃牌数(settle.gd 的 zf), 这一拍不记
+	for j in slots:
+		if j != null and not j.trial_free():
+			return
+	_memo_on = true
+
+static func memo_end() -> void:
+	_memo_on = false
+	_memo.clear()
+
+## 命中统计(pace.gd 打印用);读完清零。
+static func memo_stats() -> Array:
+	var out := [_memo_hits, _memo_calls]
+	_memo_hits = 0
+	_memo_calls = 0
+	return out
+
+
 static func best_score(visible: Array, slots: Array, extra: Dictionary,
 		rules: Dictionary = {}) -> float:
 	var n: int = visible.size()
@@ -319,25 +355,43 @@ static func best_score(visible: Array, slots: Array, extra: Dictionary,
 		return float(Pattern.best_score_of(visible, rules))
 	var ctx: Dictionary = extra.duplicate()
 	var best := -1.0
+	var hold: Array = [null, null, null, null, null]
 	for combo in _combos(n, k):
-		var hold: Array = []
-		for i in combo:
-			hold.append(visible[i])
-		var res: Dictionary = Pattern.evaluate_best(hold, rules)
-		if res.is_empty():
-			continue
-		var taken := {}
-		for i in combo:
-			taken[i] = true
-		var keep: Array = []
-		for i in range(n):
-			if not taken.has(i):
-				keep.append(visible[i])
-		ctx["cache_cards"] = keep
-		var sc := float(Settle.run(res, slots, ctx)["score"])
+		for j in range(k):
+			hold[j] = visible[combo[j]]
+		var sc: float
+		if _memo_on:
+			_memo_calls += 1
+			var key: int = Pattern._key5(hold)
+			var hit = _memo.get(key)
+			if hit != null:
+				_memo_hits += 1
+				sc = float(hit)
+			else:
+				sc = _settle_combo(hold, visible, combo, slots, ctx, rules)
+				_memo[key] = sc
+		else:
+			sc = _settle_combo(hold, visible, combo, slots, ctx, rules)
 		if sc > best:
 			best = sc
 	return maxf(0.0, best)
+
+
+## 一个组合的完整结算(记忆未命中 / 记忆关时的原路)。
+static func _settle_combo(hold: Array, visible: Array, combo: Array, slots: Array,
+		ctx: Dictionary, rules: Dictionary) -> float:
+	var res: Dictionary = Pattern.evaluate_best(hold, rules)
+	if res.is_empty():
+		return -1.0
+	var taken := {}
+	for i in combo:
+		taken[i] = true
+	var keep: Array = []
+	for i in range(visible.size()):
+		if not taken.has(i):
+			keep.append(visible[i])
+	ctx["cache_cards"] = keep
+	return float(Settle.run(res, slots, ctx)["score"])
 
 
 ## 缓存潜力 = **E[留下这 3 张, 下一拍最好能打多少分]**。
