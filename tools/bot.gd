@@ -159,8 +159,10 @@ func _card_ev(id: String, st: Dictionary, slots: Array, phrases_left: int) -> fl
 		return _card_ev_replay(id, st, slots)
 	# 地板取两把尺子的较大者:cf(真人 Tape, 效果卡)/ kit(钉卡打满 24 拍, 成长/持有/概率卡的到达值)。
 	# 2026-09-04 lift:「低用高值」剩下的全是手写臂的卡(ensemble +42.9pt 却装机 3%), 病在先验, 不在臂形。
-	var _floor: float = maxf(float(EV.get("measured", {}).get(id, 0.0)),
-		float(EV.get("measured_kit", {}).get(id, 0.0))) * MEASURED_W
+	# ⚠ 两把尺子的权重不同:evbook 是**事后**均值(真人已把构筑配好)⇒ 打 0.5;kit 是把卡钉进**规则 bot 自己的世界**
+	# 打满 24 拍的读数, 没有事前/事后的口径差 ⇒ 全额。0.5 那版实测(sim_r3):ensemble 装机率仍 3%, lift 却说它 +42.9pt。
+	var _floor: float = maxf(float(EV.get("measured", {}).get(id, 0.0)) * MEASURED_W,
+		float(EV.get("measured_kit", {}).get(id, 0.0)) * KIT_W)
 	var v := maxf(_floor, _card_ev_formula(id, st, slots, phrases_left))
 	# ⚑ **EV ≤ 0 的支援卡 = 永远不会被买**(`best_gain` 从 0.0 起比)。
 	# 这与「缺臂」是同一类失败, 只是更隐蔽:臂在、公式跑了、结果是 0 或负数。
@@ -179,6 +181,8 @@ func _card_ev(id: String, st: Dictionary, slots: Array, phrases_left: int) -> fl
 ## `horizon` 在调用点外乘(`ev * horizon - lam * price`)。公式里那些 `* future`
 ## 是成长牌**自身的累积特性**(每拍涨一点), 不是量纲转换 —— 两者可以直接 maxf。
 const MEASURED_W := 0.5
+## kit 到达值地板的权重(2026-09-04):见 `_card_ev` 里的注释 —— 它量的就是 bot 自己的世界, 不打折。
+const KIT_W := 1.0
 
 
 ## ⚑⚑ 反事实重放估值(2026-09-04)。效果卡的 EV **不再手写臂**:在本局已经打过的每一拍上

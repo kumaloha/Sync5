@@ -1255,6 +1255,10 @@ static func validate_sim(d: Dictionary) -> String:
 	for cid in d["ev"].get("cards", {}):
 		if not jids.has(cid):
 			return "ev card '%s' not in jokers" % cid
+	for tbl in ["measured", "measured_kit"]:
+		for mid in d["ev"].get(tbl, {}):
+			if not jids.has(mid):
+				return "ev.%s 里的 '%s' 不是牌(退役了没清?)" % [tbl, mid]
 	# 反向:还走**手写臂**的 support 必须有 ev.cards 条目 —— bot 的 _card_ev 缺臂 = 估值 0 =
 	# 永远不买 = 这张卡在尺子里不存在(2026-08-21 评审:popup 就这么静默隐身)。
 	# ⚑ 2026-09-04 起效果卡走反事实重放(`replay_valued`), **不读 ev.cards** —— 它们的条目
