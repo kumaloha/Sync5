@@ -189,7 +189,7 @@
 | 新档 | 基于 | 参数 | 方向 |
 |---|---|---|---|
 | **加码族(纯分数墙,呼吸位)** | raisedbar ×1.5 | ×1.25(轻)· ×1.75(重)· ×2.0(终盘候补) | 三档铺满四轮 |
-| 配给 · 紧 | ration 12 | `section_discard_budget: 8` | 重 |
+| 配给 · 紧 | ration ~~12~~ **10**(2026-09-04:12 只咬 19% 真人段 / 完美玩家 4%) | `section_discard_budget: 8` | 重 |
 | 限流 · 松 | throttle 4 | `action_cards_max: 6` | 轻(早段可用) |
 | 一口气 · 极 | onetake 2 | `discard_cards_max: 1` | 重 |
 | 定调 · 重 | setlist 0.5 | `lock_first: 0.25` | 重 |
@@ -200,7 +200,7 @@
 | 暗场 · 重 | dimstage 2 | `hide_random: 3` | 重 |
 | 墨迹 · 重 | wetink 1 拍 | `cache_lock_phrases: 2` | 重 |
 | 收线 · 长 | lastcall 2s | `discard_lock_last: 4.0` | 重(偶数秒 ✓) |
-| 曲目 · 四 | trilogy 3 种 | `required_kinds: 4` | 重 |
+| 曲目 · 四 | trilogy ~~3 种~~ **4 种**(2026-09-04:3 种真人 81% 自然达标, 脸是空气) | `required_kinds: 4` + **`variety_penalty: 0.5`**(重档改成税重, 门槛同基础脸) | 重 |
 | 渐强 · 缓 | crescendo 0.5/1.5 | `phase_factors: [0.7,0.7,0.7,1.3,1.3,1.3]` | 轻 |
 
 **不出档的**:布尔型(蒙面/暗补/岔轨/封条族——开关无刻度);时间族 −1s 违反

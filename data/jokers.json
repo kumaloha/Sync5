@@ -429,14 +429,14 @@
    "rarity": "rare",
    "curve": "floating",
    "proof": "score",
-   "fx": "Two Target hands running: copy half",
+   "fx": "Two Target hands running: copy it",
    "effects": [
     {
      "when": {
       "target_streak": true
      },
      "do": {
-      "mult_from_target_factor": 0.5
+      "mult_from_target_factor": 1.0
      }
     }
    ]
@@ -952,11 +952,11 @@
    "rarity": "common",
    "curve": "burst",
    "proof": "score",
-   "fx": "Each face card discarded: +10% target",
+   "fx": "Each face card discarded: +30% target",
    "effects": [
     {
      "do": {
-      "bonus_target_pct": 0.1,
+      "bonus_target_pct": 0.3,
       "per": "face_discard"
      }
     }
@@ -1065,7 +1065,7 @@
    "rarity": "uncommon",
    "curve": "growth",
    "proof": "shop",
-   "fx": "Each shop visit: +12 forever",
+   "fx": "Each shop visit: +5 forever",
    "counters": {
     "n": {
      "on_enter": 1
@@ -1080,7 +1080,7 @@
       ]
      },
      "do": {
-      "additive": 12,
+      "additive": 5,
       "per": "counter:n"
      }
     }
@@ -1288,14 +1288,14 @@
    "rarity": "rare",
    "curve": "burst",
    "proof": "score",
-   "fx": "Cache all one color: x1.12",
+   "fx": "Cache all one color: x1.75",
    "effects": [
     {
      "when": {
       "cache_mono_color": true
      },
      "do": {
-      "mult_add": 0.12
+      "mult_add": 0.75
      }
     }
    ]
@@ -1359,11 +1359,11 @@
    "rarity": "uncommon",
    "curve": "floating",
    "proof": "score",
-   "fx": "Cache discards pay double their rank",
+   "fx": "Cache discards pay 10x their rank",
    "effects": [
     {
      "do": {
-      "bonus": 2,
+      "bonus": 10,
       "per": "cache_rank_sum"
      }
     }

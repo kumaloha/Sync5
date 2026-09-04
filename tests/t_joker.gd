@@ -193,8 +193,9 @@ func run(t) -> void:
 	var mirror := Joker.by_id("mirror")
 	var streak := {"prev_target_hit": true}
 	t.eq(Settle.run(flush_res, [Joker.by_id("mono"), mirror, null, null], streak)["score"],
-		int(round(float(base) * t._tmult("mono", "FLUSH") * (1.0 + (t._tmult("mono", "FLUSH") - 1.0) * 0.5))),
-		"mirror copies the target at half power on a streak")
+		int(round(float(base) * t._tmult("mono", "FLUSH")
+			* (1.0 + (t._tmult("mono", "FLUSH") - 1.0) * t._do_amount("mirror", "mult_from_target_factor")))),
+		"mirror copies the target on a streak (power from data; 2026-09-04 0.5 → 1.0)")
 	t.eq(Settle.run(flush_res, [Joker.by_id("mono"), mirror, null, null], {})["score"],
 		int(round(float(base) * t._tmult("mono", "FLUSH"))),
 		"mirror silent on the first hit — the streak needs two")

@@ -74,8 +74,8 @@
    "signal": "TARGET +50%"
   },
   "trilogy": {
-   "command": "打满 3 种牌型,每缺一种目标分+25%",
-   "signal": "VARIETY 3"
+   "command": "打满 4 种牌型,每缺一种目标分+25%",
+   "signal": "VARIETY 4"
   },
   "blackout": {
    "command": "人头牌和补牌全部盖面",
@@ -90,8 +90,8 @@
    "signal": "POWER ×50%"
   },
   "ration": {
-   "command": "整段只有 12 次弃牌额度",
-   "signal": "DISCARD 12"
+   "command": "整段只有 10 次弃牌额度",
+   "signal": "DISCARD 10"
   },
   "switchtrack": {
    "command": "首个动作二选一:弃牌或交换,另一种关闭",
@@ -222,7 +222,7 @@
    "signal": "LOCK 4s"
   },
   "trilogy4": {
-   "command": "打满 4 种牌型,每缺一种目标分+25%",
+   "command": "打满 4 种牌型,每缺一种目标分+50%",
    "signal": "KINDS 4"
   },
   "crescendo07": {
@@ -272,7 +272,7 @@
    "trigger": "本拍不弃牌:倍率 +0.4"
   },
   "harmony": {
-   "trigger": "缓存三张同花色:倍率 ×1.12"
+   "trigger": "缓存三张同花色:倍率 ×1.75"
   },
   "ensemble": {
    "trigger": "缓存也上台:8 张里挑最好的 5 张"
@@ -284,7 +284,7 @@
    "trigger": "你所有的概率翻倍"
   },
   "recycle": {
-   "trigger": "直弃缓存牌:按点数两倍给奖励分"
+   "trigger": "直弃缓存牌:按点数十倍给奖励分"
   },
   "gueststar": {
    "trigger": "倍率 +0.5;下个段末谢幕离场"
@@ -332,7 +332,7 @@
    "trigger": "每累计弃 8 张:倍率+0.25,永久"
   },
   "mirror": {
-   "trigger": "连续两拍达成 Target:半倍率再乘"
+   "trigger": "连续两拍达成 Target:再乘一次"
   },
   "variation": {
    "trigger": "成牌与上拍不同:+目标分 28%"
@@ -407,13 +407,13 @@
    "trigger": "整拍零交换:+目标分 32%"
   },
   "stageexit": {
-   "trigger": "每弃 1 张人头牌:+目标分 10%"
+   "trigger": "每弃 1 张人头牌:+目标分 30%"
   },
   "royalty": {
    "trigger": "牌型金币 ×1.5"
   },
   "digger": {
-   "trigger": "每进一次商店:基础分+12,永久"
+   "trigger": "每进一次商店:基础分+5,永久"
   },
   "collector": {
    "trigger": "每买一张卡:基础分+15(上限+30)"

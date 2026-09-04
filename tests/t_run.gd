@@ -217,14 +217,16 @@ func _test_run_machine(t) -> void:
 	ration_run.reset(714)
 	ration_run.run_faces[0] = "ration"
 	var ration_p1 := Beat.begin(ration_run)
-	t.eq(ration_p1.discard_budget, 12, "ration starts with twelve cards")
+	# 2026-09-04:预算从数据读(12 → 10, 真人 12 只咬 19% 的段), 断言不手抄数。
+	var ration_budget := SectionMod.section_discard_budget("ration")
+	t.eq(ration_p1.discard_budget, ration_budget, "ration starts with the section budget from data")
 	t.check(ration_p1.discard_selected([0, 1, 2, 3, 4], [0, 1, 2]), "ration can spend eight cards")
 	Beat.settle(ration_run, ration_p1)
 	t.eq(ration_run.section_discards_used, 8, "the run records spent ration cards")
 	Beat.phrase_end(ration_run, ration_p1)
 	ration_run.phrase_in_section = 1
 	var ration_p2 := Beat.begin(ration_run)
-	t.eq(ration_p2.discard_budget, 4, "the next phrase receives only the remaining ration")
+	t.eq(ration_p2.discard_budget, ration_budget - 8, "the next phrase receives only the remaining ration")
 	t.check(not ration_p2.discard_selected([0, 1, 2, 3, 4]), "ration rejects five when four remain")
 
 	# Trilogy(裁决 #8, 2026-08-13):种数配额是**税**不是硬门 —— 缺一种目标升一档
@@ -235,25 +237,33 @@ func _test_run_machine(t) -> void:
 	trilogy_run.section_idx = 2
 	var tri_pen := SectionMod.variety_penalty("trilogy")
 	t.check(tri_pen > 0.0, "trilogy declares a variety penalty")
-	trilogy_run.section_kinds = {Pattern.Kind.PAIR: true, Pattern.Kind.FLUSH: true,
-		Pattern.Kind.STRAIGHT: true}
+	# 2026-09-04:要求的种数从数据读(3 → 4);基准 = 恰好凑满, 少一种加一档税, 空段欠全额。
+	var tri_need := SectionMod.required_kinds("trilogy")
+	var all_kinds: Array = [Pattern.Kind.PAIR, Pattern.Kind.FLUSH, Pattern.Kind.STRAIGHT,
+		Pattern.Kind.TWO_PAIR, Pattern.Kind.THREE_KIND]
+	var full := {}
+	for i in range(tri_need):
+		full[all_kinds[i]] = true
+	trilogy_run.section_kinds = full
 	var tri_base := trilogy_run.target()
-	trilogy_run.section_kinds = {Pattern.Kind.PAIR: true, Pattern.Kind.FLUSH: true}
+	var one_short := full.duplicate()
+	one_short.erase(all_kinds[tri_need - 1])
+	trilogy_run.section_kinds = one_short
 	t.eq(trilogy_run.target(), int(round(float(tri_base) * (1.0 + tri_pen))),
 		"one missing Trilogy type raises the target one step")
 	trilogy_run.section_kinds = {}
-	t.eq(trilogy_run.target(), int(round(float(tri_base) * (1.0 + tri_pen * 3.0))),
+	t.eq(trilogy_run.target(), int(round(float(tri_base) * (1.0 + tri_pen * float(tri_need)))),
 		"an untouched section owes the full variety tax (pessimistic-live)")
-	# 判生死:分数够基准、缺一种 → 税后目标没够 = 不过;补上第三种 → 目标回落 = 过
-	trilogy_run.section_kinds = {Pattern.Kind.PAIR: true, Pattern.Kind.FLUSH: true}
+	# 判生死:分数够基准、缺一种 → 税后目标没够 = 不过;补上最后一种 → 目标回落 = 过
+	trilogy_run.section_kinds = one_short.duplicate()
 	trilogy_run.section_score = tri_base + 1
 	trilogy_run.phrase_in_section = GameConfig.PHRASES_PER_SECTION - 1
 	t.check(not bool(trilogy_run.advance()["cleared"]),
 		"base-target score cannot clear while one type is missing")
-	trilogy_run.section_kinds[Pattern.Kind.STRAIGHT] = true
+	trilogy_run.section_kinds[all_kinds[tri_need - 1]] = true
 	trilogy_run.phrase_in_section = GameConfig.PHRASES_PER_SECTION - 1
 	t.check(bool(trilogy_run.advance()["cleared"]),
-		"covering the third type drops the bar back and clears")
+		"covering the last required type drops the bar back and clears")
 
 	# Double Set adds one score-only replay after the normal settlement.
 	var double_run := Run.new()

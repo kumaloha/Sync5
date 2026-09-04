@@ -374,9 +374,11 @@ func run(t) -> void:
 	t.eq(SectionMod.cache_lock_phrases("wetink"), 1, "wetink locks new cache cards for this phrase")
 	t.check(SectionMod.seals_random_start("handseal"), "handseal freezes one random opening card (2026-08-25 随机封)")
 	t.check(SectionMod.seals_random_cache("doubleseal"), "doubleseal freezes one random cache card")
-	t.eq(SectionMod.required_kinds("trilogy"), 3, "trilogy requires three hand types")
+	# 2026-09-04:3 种真人 81% 的段自然达标(完美玩家 94%), 脸是空气 ⇒ 抬到 4(真人 40%)。
+	t.eq(SectionMod.required_kinds("trilogy"), 4, "trilogy requires four hand types")
 	t.check(SectionMod.restores_with_initial_cache("patchin"), "patchin has a recoverable full-power condition")
-	t.eq(SectionMod.section_discard_budget("ration"), 12, "ration shares twelve discarded cards")
+	# 2026-09-04:12 只咬 19% 的真人段、完美玩家 4% 分差 ⇒ 10(真人 26%);ration8 仍是重档。
+	t.eq(SectionMod.section_discard_budget("ration"), 10, "ration shares ten discarded cards")
 	t.check(SectionMod.exclusive_action_tracks("switchtrack"), "switchtrack closes the unchosen route")
 	t.eq(SectionMod.request_factor("request"), 0.9, "a missed request keeps ninety percent")
 	t.eq(SectionMod.joker_power("patchin"), 0.5, "patchin defaults settlement Jokers to half power")
@@ -418,7 +420,7 @@ func run(t) -> void:
 		int(round(float(base) * weak)), "unplugged halves the target's power")
 	t.eq(Settle.run(flush_res, [mono, Joker.by_id("mirror"), null, null],
 		{"mod": "unplugged", "prev_target_hit": true})["score"],
-		int(round(float(base) * weak * (1.0 + (weak - 1.0) * 0.5))),
+		int(round(float(base) * weak * (1.0 + (weak - 1.0) * t._do_amount("mirror", "mult_from_target_factor")))),
 		"the mirror copies the weakened factor")
 	# static: flat bonuses are eaten
 	t.eq(Settle.run(flush_res, [null, Joker.by_id("neonsign"), null, null], {"mod": "static"})["score"],

@@ -260,7 +260,7 @@
    "kind": "support",
    "rarity": "rare",
    "trigger_zh": "复制目标牌效果",
-   "amount": "×50%",
+   "amount": "×100%",
    "art_subject": "一面映出另一张牌的镜子"
   },
   {
@@ -510,7 +510,7 @@
    "kind": "support",
    "rarity": "common",
    "trigger_zh": "每张被弃的人头牌",
-   "amount": "10%/张",
+   "amount": "30%/张",
    "art_subject": "J、Q、K 鞠躬离开舞台"
   },
   {
@@ -540,7 +540,7 @@
    "kind": "support",
    "rarity": "uncommon",
    "trigger_zh": "每次刷新后永久",
-   "amount": "+12",
+   "amount": "+5",
    "art_subject": "一只手在黑胶唱片堆中淘碟"
   },
   {
@@ -750,7 +750,7 @@
    "kind": "support",
    "rarity": "rare",
    "trigger_zh": "缓存三张同花色",
-   "amount": "×+0.3",
+   "amount": "×1.75",
    "art_subject": "只许一枚花色穿过的扣环(素材库 single_suit_pact)"
   },
   {
@@ -800,7 +800,7 @@
    "kind": "support",
    "rarity": "uncommon",
    "trigger_zh": "直弃缓存牌",
-   "amount": "2×点数",
+   "amount": "10×点数",
    "art_subject": "切口旁压着归档签的牌叠(素材库 archive_cut)"
   },
   {

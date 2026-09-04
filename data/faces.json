@@ -374,9 +374,9 @@
    "id": "trilogy",
    "name": "Trilogy",
    "cn": "曲目",
-   "fx": "Three hand types, or target rises",
+   "fx": "Four hand types, or target rises",
    "params": {
-    "required_kinds": 3,
+    "required_kinds": 4,
     "variety_penalty": 0.25
    },
    "proof": "target",
@@ -422,9 +422,9 @@
    "id": "ration",
    "name": "Ration",
    "cn": "配给",
-   "fx": "Twelve discards shared across section",
+   "fx": "Ten discards shared across section",
    "params": {
-    "section_discard_budget": 12
+    "section_discard_budget": 10
    },
    "proof": "solver",
    "tier": 3
@@ -671,10 +671,10 @@
    "id": "trilogy4",
    "name": "Quadrilogy",
    "cn": "四曲目",
-   "fx": "Four hand types, or target rises",
+   "fx": "Four hand types, or target soars",
    "params": {
     "required_kinds": 4,
-    "variety_penalty": 0.25
+    "variety_penalty": 0.5
    },
    "proof": "target",
    "tier": 3,
@@ -733,6 +733,7 @@
   "crescendo07",
   "request80",
   "wetink2",
-  "lastcall4"
+  "lastcall4",
+  "countdown"
  ]
 }

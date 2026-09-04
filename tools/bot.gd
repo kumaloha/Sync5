@@ -142,7 +142,10 @@ var _zero_ev_warned: Dictionary = {}
 ## 「warning 一直在打印, 我一直没看」(帕奇欧)。**声明清楚, 让它保持安静。**
 ## ⚠ 顺带记一条设计事实:**组合卡在贪心 bot 眼里天然被低估** —— 它只看「现在装上值多少」,
 ## 看不见「先买 A 再买 B」。灌铅骰装机率 1% 就是这个形状, 不是它弱。
-const CONTEXT_ZERO_OK := ["loadeddice", "mirror"]
+## ⚑ 2026-09-04 加 `skint`:它的臂 = ×1.3 减去金币上限没收的购买力(影子价), 在现行经济下**常为负**
+## (−45 ~ −190), 而 lift 实测装了它通关率 −13pt —— bot 不买是对的。此前它靠 evsync 误导入的
+## evbook 读数(112.4, cf 标着「hold 卡本尺不适用」)当地板才被买到 43%;地板摘掉后这条警告就该安静。
+const CONTEXT_ZERO_OK := ["loadeddice", "mirror", "skint"]
 
 
 ## ⚑ 估值地板(2026-08-30):手写信念表**系统性低估** —— 实测 bot 从没买过的卡里
@@ -154,7 +157,10 @@ const CONTEXT_ZERO_OK := ["loadeddice", "mirror"]
 func _card_ev(id: String, st: Dictionary, slots: Array, phrases_left: int) -> float:
 	if _is_replayable(id):
 		return _card_ev_replay(id, st, slots)
-	var _floor: float = float(EV.get("measured", {}).get(id, 0.0)) * MEASURED_W
+	# 地板取两把尺子的较大者:cf(真人 Tape, 效果卡)/ kit(钉卡打满 24 拍, 成长/持有/概率卡的到达值)。
+	# 2026-09-04 lift:「低用高值」剩下的全是手写臂的卡(ensemble +42.9pt 却装机 3%), 病在先验, 不在臂形。
+	var _floor: float = maxf(float(EV.get("measured", {}).get(id, 0.0)),
+		float(EV.get("measured_kit", {}).get(id, 0.0))) * MEASURED_W
 	var v := maxf(_floor, _card_ev_formula(id, st, slots, phrases_left))
 	# ⚑ **EV ≤ 0 的支援卡 = 永远不会被买**(`best_gain` 从 0.0 起比)。
 	# 这与「缺臂」是同一类失败, 只是更隐蔽:臂在、公式跑了、结果是 0 或负数。
