@@ -209,7 +209,7 @@ All +N / % / × numbers are relative scales pending the simulation balance pass.
 
 | 卡 | 效果(玩家话) | 职能 / 引擎点 |
 |---|---|---|
-| 快进 fastforward | 每次提前收工, 倍率永久 +0.1 | 抢收链乘法出口(counter on_early_finish) |
+| 快进 fastforward | 每次最后 3 秒前打完, 倍率永久 +0.1 | 抢收链乘法出口(counter on_early_finish) |
 | 打碟 deejay | 每刷新一次商店, 倍率永久 +0.05 | 商店链乘法出口(on_reroll) |
 | 金嗓 goldenvoice | 每持 6◆, 倍率 +0.1 | 经济链乘法出口;金币成为构筑资源 |
 | 静场 hush | 本拍不弃不换, 倍率 +0.4 | 零动链出口(整族触发率**待验证**:用户「基本不会什么都不动」) |
@@ -220,7 +220,7 @@ All +N / % / × numbers are relative scales pending the simulation balance pass.
 | 灌铅骰 loadeddice | 所有概率翻倍 | 概率放大器(hold odds_mult);单卡无用合体质变 |
 | 回收 recycle | 直弃缓存牌按点数两倍给奖励分 | 献祭职能首张;弃牌×缓存桥件(per cache_rank_sum) |
 | 客串 gueststar | 倍率 +0.5, 下个段末谢幕离场 | 租赁正规军(hold section_life);换阵润滑剂 |
-| 斗牛士 matador | 脸的规则咬到你的拍 +2◆ | 盲注节拍件(结算 face_bit 事实口径;hold face_coins) |
+| 斗牛士 matador | 被 BOSS 规则扣分的拍 +2◆(卡面 09-05 去黑话:「咬」是 versus.md 的设计词, 玩家看不懂) | 盲注节拍件(结算 face_bit 事实口径;hold face_coins) |
 | 盲奏 blindplay | 每张盖着上台的得分牌基础分 +8 | 信息脸唯一顺应位;蒙色/蒙点下整手算盲 |
 | 镜面(改) | 连续两拍达成旗条件才生效 | target_streak 谓词;必买卡要玩出来, 首次怕禁回 |
 | 拆迁(改) | 弃满 6 张才 ×3.5 | 用户拍板;弃 6 事实绑定对子(自由牌数学) |
@@ -272,8 +272,11 @@ Built-in tensions: Turnover vs Tip Jar (discard or not), Finale vs Momentum
 (late or early), Vinyl vs Tip Jar (long discard investment vs cash flow),
 Lone Wolf vs the whole discard package (it teams with Tip Jar instead).
 Sleepers: Vinyl, Bassline, Chord. Unconditional treat: Neon Sign.
-"Early finish" = at least one action, and none after the 6s mark
-(`GameConfig.EARLY_FINISH_TIME`) — an untouched phrase never counts.
+"Early finish"(提前打完)= at least one action, and none once the 3·2·1 countdown is up —
+i.e. the last action leaves ≥ `early_finish_left` (= `warning_offset`, 3.0s) on the clock;
+an untouched phrase never counts. ⚑ 2026-09-05: the line **is** the countdown — the rule reads
+「倒数亮起前不再动手」and the four card faces say「最后 3 秒前打完」(t_run locks both the equality
+and the number on the faces). The old 4.5s-left line hit 2.7% of real phrases (dead band); this one 24%/19%.
 
 ## Boss faces (core/modifier.gd, implemented 2026-08)
 

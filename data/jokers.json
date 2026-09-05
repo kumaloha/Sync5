@@ -321,7 +321,7 @@
    "rarity": "uncommon",
    "curve": "growth",
    "proof": "score",
-   "fx": "Each early finish: +10% forever",
+   "fx": "Done before final 3s: +10% forever",
    "counters": {
     "stacks": {
      "on_early_finish": 1
@@ -566,7 +566,7 @@
    "kind": "target",
    "rarity": "rare",
    "proof": "score",
-   "fx": "Finish early with a hand: ×4",
+   "fx": "Done before final 3s, with hand: ×4",
    "effects": [
     {
      "when": {
@@ -886,7 +886,7 @@
    "rarity": "uncommon",
    "curve": "burst",
    "proof": "score",
-   "fx": "After early finish: next phrase +30%",
+   "fx": "Done before final 3s: next +30%",
    "counters": {
     "armed": {
      "pulse_on_early_finish": 1
@@ -1187,7 +1187,7 @@
    "rarity": "rare",
    "curve": "growth",
    "proof": "score",
-   "fx": "Each early finish: ×0.1 forever",
+   "fx": "Done before final 3s: ×0.1 forever",
    "counters": {
     "stacks": {
      "on_early_finish": 1
@@ -1397,7 +1397,7 @@
    "rarity": "uncommon",
    "curve": "floating",
    "proof": "coin",
-   "fx": "Face rules bite: +2 coins",
+   "fx": "Boss rule cut score: +2 coins",
    "hold": {
     "face_coins": 2
    }

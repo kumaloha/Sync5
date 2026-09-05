@@ -31,6 +31,10 @@ func run(t) -> void:
 	t.eq(Economy.sell_value(Joker.by_id("neonsign")), 1, "common sells for 1(经济 v2)")
 	t.eq(Economy.reroll_cost(0), 3, "first reroll costs 3")
 	t.eq(Economy.reroll_cost(2), 5, "third reroll costs 5")
+	# 赞助的本店降价含刷新(2026-09-05):3→1、4→2;折扣折不到 0(地板 1◆, 免费只属于加急)。
+	t.eq(Economy.reroll_cost(0, -2), 1, "赞助 −2:首刷 3 → 1")
+	t.eq(Economy.reroll_cost(1, -2), 2, "赞助 −2:二刷 4 → 2")
+	t.eq(Economy.reroll_cost(0, -9), 1, "折扣地板 1◆(与 shelf_price 同一条地板)")
 
 	# ---- 金币上限(穷开心 skint 的 hold.coin_cap;2026-08-13 引擎波次·子波1)----
 	# 上限收口在 Economy 的两个口:grant 卡住收入、cap_held 修剪存量。

@@ -462,6 +462,15 @@ func _t_cashout(t) -> void:
 	t.check(GameConfig.EARLY_FINISH_LEFT > 0.0, "早收判据 B 的门槛为正")
 	t.check(GameConfig.EARLY_FINISH_LEFT < GameConfig.phrase_duration(0),
 		"门槛必须小于拍长 —— 否则这个条件永远不成立")
+	# ⚑⚑ 早收线 = 倒数 3·2·1 亮起的那一刻(2026-09-05 用户:「没有规定提前结束的时间是不对的」)。
+	# 规则「倒数亮起前不再动手」之所以自解释, 是因为线就是屏幕上那个倒数 —— 两个数一分开,
+	# 规则就又回到看不见。要分开先给早收线画一条自己的可见线, 再改这条断言。
+	t.eq(GameConfig.EARLY_FINISH_LEFT, float(DB.run()["warning_offset"]),
+		"早收线与倒数起点是同一时刻(run.json early_finish_left == warning_offset)")
+	# 卡面写死了「最后 3 秒」(与尾声/谢幕同款纪律):数一动, 四张卡面要一起动。
+	for tid in ["shredder", "fastforward", "momentum", "freeze"]:
+		t.check(String(DB.ui()["jokercard"][tid]["trigger"]).contains("最后 %d 秒" % int(GameConfig.EARLY_FINISH_LEFT)),
+			"%s 卡面写的秒数 = early_finish_left" % tid)
 
 
 ## ---- 预支还款只此一份(2026-09-04 三侧复核):付得起扣款清账, 付不起账不动 ----

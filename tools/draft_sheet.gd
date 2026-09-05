@@ -70,7 +70,7 @@ func _process(_delta: float) -> bool:
 		# **2026-08-30 已经转生为消耗牌**, `Joker.by_id()` 拿回 null ⇒ 货架一直是 3 张,
 		# 这张「四位货架验收图」验的是**三位货架**, 而且它绿着。
 		# (「规则搬了家, 探针还站在旧地址」——本项目第 N 次, 见 LESSONS 假绿那一节。)
-		# ⇒ 改成走**真实成交口** `_on_consumable_bought`:它会执行 grant_shelf(4, 2)、
+		# ⇒ 改成走**真实成交口** `_on_consumable_bought`:它会执行 grant_shelf(4) + grant_extra_buys(2)、
 		#   记一次成交、算配额、喂副标题 —— 一张图同时验四件事。
 		_scene.replace.exit()
 		_scene.shop.close()

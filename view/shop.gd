@@ -233,13 +233,20 @@ func _build_consumable_row() -> void:
 
 
 ## ---- 消耗牌的授予口(编排器调用, 见 phrase.gd::_apply_shop_action) ----
-func grant_shelf(n: int, extra_buys: int) -> void:
-	# ⚠ 货架取大、名额**累加** —— 一次进店买到第二张联票时, 它该再给一次成交,
-	# 而不是把上一张的授予覆盖掉。bot 侧 `_g_extra_buys` 同款(parity)。
+func grant_shelf(n: int) -> void:
+	# ⚠ 货架取大(一店两张联票不叠成 5 张);名额走 `grant_extra_buys`(独立键, 独立累加)。
 	_grant_shelf = maxi(_grant_shelf, n)
-	_grant_extra_buys += extra_buys
 	_deal()
 	_render(true)
+
+
+## 本店额外成交名额 —— **独立的键、独立累加**(bot 侧 `_g_extra_buys +=` 同款, parity)。
+## ⚑⚑ 2026-09-05 从 `grant_shelf` 里拆出来:此前只有联票分支读 `extra_buys`, 于是
+## 加急/赞助/挑高这三张「本店」卡就算带上 `extra_buys: 1` 也没人读 —— 而它们在 5 选 1 下
+## 买下即占掉唯一一次成交 ⇒ 编排器当场 `close()` ⇒ 授予清零 ⇒ 买了什么都不发生
+## (data/consumables.json `_comment_own_quota`)。不重掷、不重画:给名额不该顺手送一次免费刷新。
+func grant_extra_buys(n: int) -> void:
+	_grant_extra_buys += n
 
 
 func grant_price_delta(d: int) -> void:
@@ -249,7 +256,7 @@ func grant_price_delta(d: int) -> void:
 
 func grant_free_reroll(n: int) -> void:
 	_grant_free_reroll += n
-	_draw_refill()
+	_render(false)   # 按钮当场换成「免费」(此前这里调的是 _draw_refill —— 抽一张扔掉, 什么都不画)
 
 
 ## 挑高:**当场重发一次**, 之后整次进店(含刷新)都保持过滤。
@@ -287,6 +294,14 @@ func set_buys_left(left: int, coins: int) -> void:
 ##   (前两次:转型 vs 换旗抢购买名额 · 消耗牌专属名额)。
 func granted_extra_buys() -> int:
 	return _grant_extra_buys
+
+
+## 货架上这张消耗牌的碟心(全局坐标)—— 买下时碟从这里飞去唱片位。不在架上(帕奇欧 / 探针直灌)返回 (-1, -1)。
+func cshelf_center(c) -> Vector2:
+	for sh in _cshelf:
+		if c != null and sh.art_id == String(c.id):
+			return sh.get_global_position() + sh.size * 0.5
+	return Vector2(-1, -1)
 
 
 func free_rerolls_left() -> int:
@@ -541,7 +556,8 @@ func _render(popin: bool) -> void:
 		else:
 			_views[i].visible = false
 			_price_labels[i].visible = false
-	_reroll_btn.text = String(_cfg["reroll_text"]) % Economy.reroll_cost(_reroll_count)
+	_reroll_btn.text = String(_cfg["free_text"]) if _grant_free_reroll > 0 \
+		else String(_cfg["reroll_text"]) % _reroll_cost_now()
 	_refresh_kind_line()
 	_layer.visible = true
 
@@ -677,6 +693,12 @@ func _on_pick(i: int) -> void:
 	bought.emit(j, _price(j))
 
 
+## 本店此刻的刷新价:阶梯价 + 赞助的本店降价(地板 1◆, 与 `_price` 同一条地板)。
+## 展示价(按钮)与成交价(`_on_reroll`)共用这一个函数, 不许分家 —— 同 `_price`。
+func _reroll_cost_now() -> int:
+	return Economy.reroll_cost(_reroll_count, _grant_price)
+
+
 ## 这张卡装得进去吗 —— 规则在 `Joker.has_room_for`(**唯一真相**),这里只是入口。
 func _has_slot_for(j) -> bool:
 	return Joker.has_room_for(_slots, String(j.kind))
@@ -691,7 +713,7 @@ func _on_reroll() -> void:
 		_reroll_count += 1
 		reroll_paid.emit(0)
 		return
-	var cost := Economy.reroll_cost(_reroll_count)
+	var cost := _reroll_cost_now()
 	if _coins < cost:
 		_float(String(_cfg["insufficient"]), _reroll_btn.get_global_position() + Vector2(84, 8))
 		denied.emit("reroll")

@@ -140,5 +140,8 @@ static func _boosted(j, target_mult: float, rarity_mult: Dictionary, boost: Dict
 	return maxi(1, int(round(float(w) * float(boost.get(String(j.id), 1.0)))))
 
 
-static func reroll_cost(n: int) -> int:
-	return GameConfig.DRAFT_REROLL_BASE + n * GameConfig.DRAFT_REROLL_STEP
+## 第 n 次刷新的价(阶梯);`delta` = 本店降价(赞助的 price_delta, 2026-09-05 起折扣含刷新),
+## 地板 1◆ 与 `shelf_price` 同一条 —— 折扣折不到 0, 免费只属于加急那种显式授予。
+## 游戏侧 `Shop._reroll_cost_now` 与 bot 侧刷新分支都走这里, 不许各算一份。
+static func reroll_cost(n: int, delta: int = 0) -> int:
+	return maxi(1, GameConfig.DRAFT_REROLL_BASE + n * GameConfig.DRAFT_REROLL_STEP + delta)

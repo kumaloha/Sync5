@@ -979,8 +979,20 @@ func _on_quit_run() -> void:
 func _on_consumable_bought(c, price: int) -> void:
 	phrase.coins -= price
 	run.coins = phrase.coins
+	var from := shop.cshelf_center(c)
 	var used: Dictionary = run.take_consumable(c)
 	Tape.on("cbuy", {"id": c.id, "price": price, "coins": phrase.coins})
+	# ⚑ 碟飞入唱片位(2026-09-05):到点的落进队列(落地才刷新, 碟在哪就是哪), 即生效的转一圈溶掉。
+	if from.x >= 0.0:
+		vinyl.fly_in(from, "" if not used.is_empty() else c.fire_label(), not used.is_empty(),
+			func() -> bool:
+				# 落地时它还在队列里 ⇒ 刷新队列, 碟收起;不在 ⇒ 开拍那一刻已经播了(下一拍就到期的卡), 转一圈溶掉
+				if run.consumables.has(c):
+					_refresh_queue()
+					return false
+				return true)
+	else:
+		_refresh_queue()
 	if not used.is_empty():
 		_apply_consumable(used, "buy")
 	# ⚑⚑ **5 选 1**(2026-08-31 用户拍板):3 张小丑 + 2 张消耗是**同一个池子**,
@@ -1013,12 +1025,18 @@ func _on_consumable_bought(c, price: int) -> void:
 ## ⚑ 商店类 action 的执行口 —— **只此一处**。
 ## 六种动作各自改一个商店参数, 由 shop 在下一次 _deal/_render 时消费。
 func _apply_shop_action(id: String, act: Dictionary) -> void:
-	if act.has("shelf_slots"):               # 联票:这次商店 4 选 2
+	if act.has("shelf_slots"):               # 联票:这次商店货架 4 张
+		shop.grant_shelf(int(act["shelf_slots"]))
+	if act.has("extra_buys"):                # 本店额外成交名额(联票 +2;本店类三张各 +1)
 		# ⚑⚑ **名额是加法, 不是取大**(2026-09-02 用户报的问题, 完整口径见
 		# `view/shop.gd::granted_extra_buys`):取大时联票买掉的正是它要给的那次成交,
 		# 净得 0 张。加法之后 = 基础 1 + 联票 2 ⇒ 买完它**还能再选 2 张**。
-		shop.grant_shelf(int(act["shelf_slots"]), int(act.get("extra_buys", 0)))
-	if act.has("price_delta"):               # 赞助:这次商店全场降价
+		# ⚑ 2026-09-05 拆成独立分支(用户:「加急卖 3◆ 和直接点刷新没区别」):加急/赞助/挑高
+		# 在 5 选 1 下买下即占掉唯一一次成交 ⇒ 下面的配额检查当场关店、`close()` 清零授予 ⇒
+		# 三张卡买了什么都不发生。它们各带 `extra_buys: 1`(data/consumables.json
+		# `_comment_own_quota`), 而此前这个键只在联票分支里被读 —— bot 侧一直是独立累加的。
+		shop.grant_extra_buys(int(act["extra_buys"]))
+	if act.has("price_delta"):               # 赞助:这次商店全场降价(含刷新, Shop._reroll_cost_now)
 		shop.grant_price_delta(int(act["price_delta"]))
 	if act.has("rule_guaranteed"):           # 点唱机:下次商店的**消耗牌位**必出规则牌
 		# ⚠⚠ 2026-08-30 二批转生后**目标换了** —— 规则牌全部搬到消耗牌一侧,
@@ -1187,14 +1205,22 @@ func _apply_consumable(used: Dictionary, why: String) -> void:
 	var act: Dictionary = used.get("action", {})
 	if act.has("wilds"):
 		run.deck.add_wilds(cid, int(act["wilds"]))
+		_fx_deck_note(Lingo.t("%d 张万能牌进了牌堆") % int(act["wilds"]))
 	if act.has("trim_low"):
 		run.deck.trim_low_ranks()
+		_fx_deck_note(Lingo.t("牌堆里的 2 和 3 已移除"))
 	if act.has("deck_rule"):
 		run.deck.rules[String(act["deck_rule"])] = true
 		_fx_rule_decree(cid)
 	_apply_shop_action(cid, act)
 	Tape.on("consumable", {"id": cid, "why": why,
 		"phrase": run.phrase_in_section})
+
+
+## 牌堆类消耗牌的短反馈(2026-09-05):它们改的是看不见的牌堆, 没有一句话玩家就不知道发生了什么。
+## 字浮在手牌区上方(牌堆的出口), z 盖过商店层 —— 买下时商店常常还开着。
+func _fx_deck_note(text: String) -> void:
+	fx.float_text(text, hand.card_pos(2) + Vector2(-60.0, -34.0), StageTheme.CYAN, 80)
 
 
 ## 这一拍轮到谁了 —— **每拍开始时调一次**(在 `Beat.begin` 之后, 决策之前)。

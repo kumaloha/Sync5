@@ -634,7 +634,9 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 	# 两轮尝试的语义不变:第一轮什么都没买才允许一次付费刷新。
 	# ⚑ 5 选 1:消耗牌与小丑牌**共用成交名额**(见 `_cons_bought` 的注释)。
 	var buys := 1 if _cons_bought else 0
-	for attempt in range(2):
+	# 轮次 = 2(挑一轮 + 付费刷新后再挑一轮)+ 加急给的免费刷新数 —— 免费的有几次用几次
+	#(2026-09-05 加急 1 → 3 次, 与游戏侧同改;没有加急时与旧行为逐位相同)。
+	for attempt in range(2 + _g_free_reroll):
 		# ⚑⚑ **名额要在挑之前查, 不是买完之后**(2026-09-03)。
 		#
 		# 下面那处 `if buys >= 上限: return` 在 `buys += 1` **之后** —— 没有联票时
@@ -767,14 +769,17 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 		# nothing worth buying: one paid reroll if rich, else just walk away
 		# (2026-08-06: leaving the shop pays nothing — the skip reward is gone)
 		var _rr_free: bool = _g_free_reroll > 0
-		if attempt == 0 and buys == 0 \
-				and (_rr_free or coins >= Economy.reroll_cost(0) + 6):
+		# 付费刷新只在第一轮、一张没买时试一次;免费刷新(加急)一张没买就一直用到用完。
+		if buys == 0 and (_rr_free or (attempt == 0 \
+				and coins >= Economy.reroll_cost(0, _g_price) + 6)):
 			if _rr_free:
-				_g_free_reroll -= 1          # 加急(消耗牌):免费刷新一次
+				_g_free_reroll -= 1          # 加急(消耗牌):免费刷新
 				_rep.free_rerolls += 1       # 零基线证物:没有加急时恒 0
 			else:
-				coins -= Economy.reroll_cost(0)
-				_rep.eco_add("spend_reroll", Economy.reroll_cost(0))   # 经济账本:付费刷新
+				# 赞助的本店降价含刷新(2026-09-05, 同 `Shop._reroll_cost_now`;地板在 Economy)
+				var rc := Economy.reroll_cost(0, _g_price)
+				coins -= rc
+				_rep.eco_add("spend_reroll", rc)   # 经济账本:付费刷新
 			Joker.notify_shop(slots, "reroll")             # 淘碟(同编排器)
 			# ⚠ 刷新后只重掷, 不重放「必定出 Target」那个补丁(既有保真缺口, 不扩大);
 			# ⚑ **但挑高要重放** —— 它的保证期是整次进店(含刷新), 不重放就等于
@@ -987,7 +992,7 @@ func _apply_bot_action(run, slots: Array, used: Dictionary) -> void:
 	if act.has("shelf_slots"):
 		_g_shelf = maxi(_g_shelf, int(act["shelf_slots"]))
 	if act.has("extra_buys"):
-		# ⚠ **累加**, 与游戏侧 `Shop.grant_shelf` 同款 —— 一店买到第二张联票要再给一次。
+		# ⚠ **累加**, 与游戏侧 `Shop.grant_extra_buys` 同款(独立键;09-05 起本店类三张各带 1)—— 一店买到第二张联票要再给一次。
 		_g_extra_buys += int(act["extra_buys"])
 	if act.has("price_delta"):
 		_g_price += int(act["price_delta"])

@@ -156,6 +156,29 @@ func run(t) -> void:
 	sh._grant_min_rarity = "uncommon"
 	t.eq(sh._grant_min_rarity, "uncommon", "挑高:授予落在稀有度门槛上(不是牌面点数)")
 
+	# ---- ④e 本店类卡自带名额(2026-09-05 用户:「加急卖 3◆ 和直接点刷新没区别」)----
+	# 5 选 1 下买它本身占掉本店唯一一次成交 ⇒ 编排器当场关店、`close()` 清零授予 ⇒ 卡是空白的
+	#(联票 09-02 修的是同一形状, 当时只修了它一张)。锁两层:
+	#   数据层 —— 凡 action 只改「本店」的卡必须带 extra_buys ≥ 1(名额是加法, 不开第二套计数);
+	#   读取层 —— `grant_extra_buys` 是独立入口且累加(此前只在联票的货架分支里读, 带了键也没人读)。
+	for c in DB.consumables():
+		var a: Dictionary = c.get("action", {})
+		if a.has("price_delta") or a.has("free_reroll") or a.has("min_rarity") or a.has("shelf_slots"):
+			t.check(int(a.get("extra_buys", 0)) >= 1,
+				"%s:本店类卡自带成交名额(extra_buys ≥ 1), 否则 5 选 1 下买了当场关店" % c["id"])
+	var sh2 := Shop.new()
+	sh2.grant_extra_buys(1)
+	sh2.grant_extra_buys(1)
+	t.eq(sh2.granted_extra_buys(), 2, "grant_extra_buys:独立入口, 累加(不经过联票的货架分支)")
+	t.eq(Joker.slots_buy_limit(empty4) + sh2.granted_extra_buys() - 2, 1,
+		"买两张本店类卡之后**仍剩 1 次成交** —— 它们只还回自己占掉的那次, 不多给")
+	# 加急 3 次(3+4+5 = 12◆ 的刷新换 3◆):有上限才是逐次决策, 不限次 = 翻遍池子没有决策发生。
+	var ec: Dictionary = {}
+	for c in DB.consumables():
+		if String(c["id"]) == "encorecall":
+			ec = c
+	t.eq(int(ec["action"]["free_reroll"]), 3, "加急:本店免费刷新 3 次(1 次 = 首刷价 3◆, 零价值)")
+
 	# ---- ⑤ 端到端:加成真的进乘法链 ----
 	var five := [t._c(10, 0), t._c(10, 1), t._c(5, 2), t._c(7, 3), t._c(9, 0)]
 	var res := Pattern.evaluate_best(five)

@@ -27,6 +27,54 @@ const PITCH := 40.0
 var queue: Array = []      # [{id, beat, name}] —— 先打的在前
 var _angle := 0.0
 
+## 一张正在飞的碟(2026-09-05 唱片位视觉批, 用户 09-04:「光碟没有变成消耗牌的样子」)。
+## 买下的那一刻它从货架飞到唱片位:**到点触发的**落进队列(落地时才刷新队列, 碟在哪就是哪);
+## **买下即生效的 13 张**飞到位后转一圈溶掉 —— 它播完了, 不进歌单。
+## z 高过商店层(60):买下时商店往往还开着(联票 / 本店类卡), 碟要从它上面飞过去。
+class FlyDisc extends Control:
+	var r := 66.0
+	var stamp := ""
+	var angle := 0.0
+	var spin := 0.5
+	var bright := 1.0
+	func _ready() -> void:
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		z_index = 80
+	func _process(delta: float) -> void:
+		angle += spin * delta
+		queue_redraw()
+	func _draw() -> void:
+		VinylDeck.paint(self, Vector2.ZERO, r, stamp, false, bright, angle)
+
+
+## 从 `from_global` 飞到唱片位。`instant` = 买下即生效(到位后转一圈溶掉);否则落地时回调
+## `on_landed` —— 它返回 **true = 这张碟其实已经播了**(下一拍就到期的卡, 买完开拍那一刻就被取走了,
+## 落地时队列里没有它), 于是同样转一圈溶掉;返回 false = 它排进了队列, 编排器已刷新, 碟收起。
+## 碟径从货架的 132 收到队列的 52。
+func fly_in(from_global: Vector2, stamp: String, instant: bool, on_landed: Callable) -> void:
+	var d := FlyDisc.new()
+	d.stamp = stamp
+	d.r = 66.0
+	get_parent().add_child(d)
+	d.global_position = from_global
+	var to := global_position + size * 0.5
+	var tw := d.create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(d, "global_position", to, 0.45).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+	tw.tween_property(d, "r", DISC_D * 0.5, 0.45).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+	tw.chain().tween_callback(func() -> void:
+		var played := instant
+		if not instant and on_landed.is_valid():
+			played = bool(on_landed.call())
+		if not played:
+			d.queue_free()
+			return
+		# 播一圈:转速拉到一圈 / 0.55s, 同时溶掉
+		var t2 := d.create_tween().set_parallel(true)
+		t2.tween_property(d, "spin", TAU / 0.55, 0.05)
+		t2.tween_property(d, "bright", 0.0, 0.55).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+		t2.chain().tween_callback(d.queue_free))
+
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE   # 它不可点:自动触发之后没有「点」这一步
 
@@ -60,37 +108,42 @@ func _draw() -> void:
 
 ## 一张唱片。`teal` = 空态的青绿标签(唱机本身);否则红标签 + 拍号(消耗牌)。
 func _draw_disc(c: Vector2, r: float, stamp: String, teal: bool, bright: float) -> void:
+	VinylDeck.paint(self, c, r, stamp, teal, bright, _angle)
+
+
+## 画一张碟到任意 CanvasItem 上 —— 唱片位与飞行中的碟共用这一份笔法(同一样东西一种画法)。
+static func paint(ci: CanvasItem, c: Vector2, r: float, stamp: String, teal: bool, bright: float, _angle: float) -> void:
 	var edge := Color(0.63, 0.71, 1.0, 0.35) if teal \
 		else Color(StageTheme.SUIT_RED.r, StageTheme.SUIT_RED.g, StageTheme.SUIT_RED.b, 0.62 * bright)
 	var halo := Color(StageTheme.CYAN.r, StageTheme.CYAN.g, StageTheme.CYAN.b, 0.20) if teal \
 		else Color(StageTheme.SUIT_RED.r, StageTheme.SUIT_RED.g, StageTheme.SUIT_RED.b, 0.24 * bright)
-	draw_circle(c, r + 4.0, halo)
-	draw_circle(c, r, Color(0.043, 0.055, 0.125, bright))
-	draw_arc(c, r, 0, TAU, 64, edge, 2.0)
+	ci.draw_circle(c, r + 4.0, halo)
+	ci.draw_circle(c, r, Color(0.043, 0.055, 0.125, bright))
+	ci.draw_arc(c, r, 0, TAU, 64, edge, 2.0)
 	# 纹槽 —— 4.5px 一圈, 与退役前逐字一致
 	var gr := r * 0.44
 	while gr < r - 2.5:
-		draw_arc(c, gr, 0, TAU, 48, Color(0.63, 0.71, 1.0, 0.10 * bright), 1.0)
+		ci.draw_arc(c, gr, 0, TAU, 48, Color(0.63, 0.71, 1.0, 0.10 * bright), 1.0)
 		gr += 4.5
 	# 旋转高光:「它在转」这件事只靠这两道弧说
-	draw_arc(c, r * 0.72, _angle, _angle + 0.9, 18, Color(1, 1, 1, 0.14 * bright), maxf(2.0, r * 0.08))
-	draw_arc(c, r * 0.60, _angle + PI, _angle + PI + 0.7, 14, Color(1, 1, 1, 0.09 * bright), maxf(1.6, r * 0.06))
+	ci.draw_arc(c, r * 0.72, _angle, _angle + 0.9, 18, Color(1, 1, 1, 0.14 * bright), maxf(2.0, r * 0.08))
+	ci.draw_arc(c, r * 0.60, _angle + PI, _angle + PI + 0.7, 14, Color(1, 1, 1, 0.09 * bright), maxf(1.6, r * 0.06))
 	if teal:
-		draw_circle(c, r * 0.34, Color("2ab5aa"))
-		draw_circle(c, r * 0.30, Color("7cf3e8"))
-		draw_circle(c, 2.5, Color("0b0e20"))
-		draw_circle(c + Vector2(cos(_angle), sin(_angle)) * r * 0.32, 2.0, Color("0b0e20"))
+		ci.draw_circle(c, r * 0.34, Color("2ab5aa"))
+		ci.draw_circle(c, r * 0.30, Color("7cf3e8"))
+		ci.draw_circle(c, 2.5, Color("0b0e20"))
+		ci.draw_circle(c + Vector2(cos(_angle), sin(_angle)) * r * 0.32, 2.0, Color("0b0e20"))
 		return
 	# 消耗牌的碟:红标签, 上面刻着它的拍号(或 ▸ = 下一拍)
-	draw_circle(c, r * 0.40, Color(StageTheme.SUIT_RED.r * 0.62, StageTheme.SUIT_RED.g * 0.22,
+	ci.draw_circle(c, r * 0.40, Color(StageTheme.SUIT_RED.r * 0.62, StageTheme.SUIT_RED.g * 0.22,
 		StageTheme.SUIT_RED.b * 0.36, bright))
-	draw_arc(c, r * 0.40, 0, TAU, 32,
+	ci.draw_arc(c, r * 0.40, 0, TAU, 32,
 		Color(StageTheme.SUIT_RED.r, StageTheme.SUIT_RED.g, StageTheme.SUIT_RED.b, 0.85 * bright), 1.5)
 	if stamp != "":
 		var f: Font = StageTheme.num("Bold")
 		var fs := int(r * 0.48)
 		var w := f.get_string_size(stamp, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
-		draw_string(f, c + Vector2(-w * 0.5, fs * 0.36), stamp,
+		ci.draw_string(f, c + Vector2(-w * 0.5, fs * 0.36), stamp,
 			HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(1, 1, 1, bright))
 
 

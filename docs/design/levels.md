@@ -92,7 +92,7 @@ with the full screen: a run ending is worth a stop, a run continuing is not.
 | 4 终演 | S4 | 8s | nasty | the squeeze; S4 = FINALE |
 
 2026-08-06 用户拍板: 单拍统一 **8s** (「5 秒我玩不了,要 8 秒」), the gig curve
-stays flat for now; `early_finish_time` = 3.5s. Budget: 4×6×(8+1) = 216s of
+stays flat for now; `early_finish_left` = 3.0s(= `warning_offset`:倒数亮起前打完, 2026-09-05). Budget: 4×6×(8+1) = 216s of
 play + 7 shops ≈ **4.9 min**, inside the 5-minute ceiling (docs/design/levels.md).
 The per-gig curve is gone for now but the `phrase_duration()` hook and the
 per-gig data shape stay, so re-introducing a curve is a JSON edit.
