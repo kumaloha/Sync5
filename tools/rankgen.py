@@ -28,6 +28,24 @@ for line in log.splitlines():
             continue
         m = {} if m is None else m
         m.update(piece)
+# ⚑ 09-05:price 分片被 timeout 杀在最后一个放置时, **JSON 行不会打印**, 但前面每个放置的表格行都在 ——
+# 一片 12 小时的读数不能因为最后 5 分钟丢掉。表格行的口径与 JSON 相同(sec / sec_se / run / run_se),
+# 只给 JSON 里没有的键补上。行形如:`  lostpage  S1 |  -16.0  115.8  -0.14 |  +1020.8  1283.0  ⚠ 量不到`
+row_pat = re.compile(r'^\s+(\w+)\s+S(\d)\s+\|\s+([+-]?\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)\s+[+-]?\d+(?:\.\d+)?\s+\|\s+([+-]?\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)')
+rows_added = []
+for line in log.splitlines():
+    mm = row_pat.match(line)
+    if not mm:
+        continue
+    key = '%s@%d' % (mm.group(1), int(mm.group(2)) - 1)
+    if m is None:
+        m = {}
+    if key not in m:
+        m[key] = {'sec': float(mm.group(3)), 'sec_se': float(mm.group(4)),
+                  'run': float(mm.group(5)), 'run_se': float(mm.group(6))}
+        rows_added.append(key)
+if rows_added:
+    print('  ⚑ %d 个放置从表格行补入(那一片没印 JSON —— 多半是被 timeout 杀在末尾):%s' % (len(rows_added), ' '.join(sorted(rows_added))))
 if m is None:
     # 退路(2026-08-19):price.gd 全表在 S10 税下要 10h 级, 第一版排序改吃
     # **全量门的脸覆盖读数**(同一把完美玩家尺子, 每脸一行分差)。
