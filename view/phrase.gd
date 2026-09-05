@@ -454,6 +454,7 @@ func _on_intro_done() -> void:
 
 
 func _start_phrase() -> void:
+	_pause_btn_visible(true)
 	blind_card.position = _bc_home   # 商店停靠位还原(_open_draft 挪的)
 	blind_card.z_index = 0
 	# 拍与拍之间的钱记在 run 上, 一拍之内归 Phrase 管(弃牌与入场费都在那里扣)。
@@ -777,13 +778,11 @@ func _settle() -> void:
 	# 否则「整拍不操作」会拿到满额剩余秒数, 秒表就成了「什么都不做最赚」的挂机卡(A4)。
 	var outcome := Beat.settle(run, phrase, {
 		"late": acted_late, "early": _acted_early(), "final": acted_final,
-		# ⚠⚠ **按「结算这一刻」算剩余, 不是按「最后动手那一刻」**(2026-08-13 修)。
-		# 子波 2 的第一版写的是 `cur_lock - last_action_time` —— 那算的是
-		# 「最后动手时还剩多少」, 于是「2 秒动完手然后干等到底」也能拿满额剩余,
-		# **秒表变成了奖励干等**。卡面写的是 "at settle", 结算时刻的剩余才是它。
-		# 主动锁定(点唱片)时 elapsed 就是锁定时刻 → 真实剩余;
-		# 自然走完时 elapsed >= cur_lock → 剩 0。一个式子同时对两条路径成立。
-		"secs_left": maxf(0.0, cur_lock - elapsed),
+		# ⚑⚑ **按「最后动手那一刻」算剩余**(2026-09-06 code review 修)。08-13 曾改成「结算这一刻」
+		# 以防「动完手干等」拿满额 —— 那时还有主动锁定, 干等是可选的;08-31 主动收工退役后每拍必走满,
+		# `cur_lock - elapsed` 在唯一的结算点上**恒为 0** ⇒ 秒表从那天起是一张死卡。
+		# 现在它与早收判据 B 同一把尺:奖励的是决策速度(与「最后 3 秒前打完」同一条线)。
+		"secs_left": maxf(0.0, cur_lock - last_action_time) if last_action_time >= 0.0 else 0.0,
 		"early_discards": last_discard_time >= 0.0 \
 			and last_discard_time <= GameConfig.EARLY_DISCARD_WINDOW,
 	})
@@ -873,6 +872,12 @@ func _on_settle_burst() -> void:
 ## 位置贴盲注卡下方(它讲「你在打什么」, 收工是对这一段的处置)。
 ## 暂停键 + 二级菜单(继续 / 退出本局)。键叠在 HUD 左上角;菜单是全屏层。
 ## 退出 = **放弃本局**:清快照、不记战绩(体力已在开局扣过, 成本已付), 回首页。
+## 暂停键只在对局态可见(商店 z 0 / 结算屏 z 0 盖不住 z 70 的它, 按了又没反应)。
+func _pause_btn_visible(v: bool) -> void:
+	if pause_btn != null:
+		pause_btn.visible = v
+
+
 func _ensure_pause_ui() -> void:
 	if pause_btn != null:
 		return
@@ -944,7 +949,8 @@ func _ensure_pause_ui() -> void:
 
 func _on_pause() -> void:
 	# 只在真正「在打」的时候可暂停:商店/结算屏/首页自带停顿, 再叠一层只会打架。
-	if _paused or not [St.DECISION, St.RESOLVE, St.INTRO].has(state):
+	# INTRO 不可暂停(2026-09-06):暂停只冻 _process, 盲注特写的 tween 照跑并会把 state 推成 DECISION。
+	if _paused or not [St.DECISION, St.RESOLVE].has(state):
 		return
 	_paused = true
 	pause_layer.visible = true
@@ -1119,29 +1125,12 @@ func _roll_consumables() -> Array:
 	for c in run.consumables:
 		if c != null:
 			held[c.id] = true
-	var pool: Array = []
-	for e in DB.consumables():
-		if not held.has(String(e["id"])):
-			pool.append(e)
+	# 规则只有 `Consumable.roll_shelf` 一份(与 bot 同);点唱机的「第一格必出规则牌」用掉即清。
+	var rule_first := _rule_next
+	_rule_next = false
 	var out: Array = []
-	for i in range(2):
-		if pool.is_empty():
-			out.append(null)
-			continue
-		var use := pool
-		# 点唱机:这一次的**第一格**只从规则牌里抽(抽不出就退回全池, 不空手)。
-		if i == 0 and _rule_next:
-			_rule_next = false
-			var rp: Array = []
-			for e in pool:
-				if Consumable.new(e).is_rule_card():
-					rp.append(e)
-			if not rp.is_empty():
-				use = rp
-		# ⚠ 同一条随机源纪律:走 `run.deck.pick_index`, 探针才复现得出同一张货架。
-		var pick = use[run.deck.pick_index(use.size())]
-		out.append(Consumable.new(pick))
-		pool.erase(pick)
+	for e in Consumable.roll_shelf(held, rule_first, 2, func(n: int) -> int: return run.deck.pick_index(n)):
+		out.append(null if e == null else Consumable.new(e))
 	return out
 
 
@@ -1149,6 +1138,9 @@ func _roll_consumables() -> Array:
 ## 主路径的步骤」是这个项目最贵的形状之一(CLAUDE.md 开局三步那条)。
 ## ⚠ 栏位满就不复制(静默跳过, 不是报错):那是玩家自己没腾位置。
 func _perkeo_on_exit() -> void:
+	if _perkeo_fired:
+		return
+	_perkeo_fired = true
 	if not Joker.slots_copy_consumable(run.joker_slots):
 		return
 	# ⚠ 队列没有上限了(2026-09-01), 所以「栏位满」这个跳过分支删掉。
@@ -1338,6 +1330,7 @@ func _advance() -> void:
 			SaveState.settle_run_meta(false, run.section_idx, _faces_encountered(),
 				String(run.boon()), _final_target_id())
 			music.play_jingle(false)
+			_pause_btn_visible(false)
 			run_end.show_fail(run.section_score, run.target())
 			return
 		# clear wage, shown as the panel chip(走 grant —— 金币上限的四个入账口之一)
@@ -1365,6 +1358,7 @@ func _advance() -> void:
 					burst.loan_default(_loan_anchor(), int(loan_out.repay))
 				# 死因行:分数达标却因预支违约死掉, 只念分数会让玩家困惑(文案在
 				# ui.json 的 banner 节, DB.ui() 已过语言层, %d = 还不上的还款额)
+				_pause_btn_visible(false)
 				run_end.show_fail(run.section_score, run.target(),
 					String(DB.ui().get("banner", {}).get("fail_loan", "%d◆")) % int(loan_out.repay))
 				return
@@ -1385,6 +1379,7 @@ func _advance() -> void:
 			SaveState.settle_run_meta(true, GameConfig.SECTIONS_PER_RUN,
 				_faces_encountered(), String(run.boon()), _final_target_id())
 			music.play_jingle(true)
+			_pause_btn_visible(false)
 			run_end.show_success(run.section_score, run.target(), GameConfig.SECTION_CLEAR_REWARD,
 				true, GameConfig.gig_of(run.section_idx) + 1)
 		else:
@@ -1515,6 +1510,7 @@ func _on_end_home() -> void:
 func _reset_run(_keep: bool) -> void:
 	phrase = null
 	run.reset()
+	_rule_next = false   # 点唱机的「下次货架必出规则牌」不跨局(2026-09-06)
 	if burst != null:
 		burst.clear()      # 换局 = 上一局没演完的仪式作废(同 SettleFx.dismiss 的口径)
 	for i in range(joker_views.size()):
@@ -1696,6 +1692,8 @@ func _open_draft() -> void:
 	blind_card.position = Vector2(float(bcp[0]), float(bcp[1]))
 	blind_card.z_index = 61   # 抬过商店内容层(shop 内浮字 60)—— 停靠是为了「看得见」
 	_shop_buys = 0        # 联票的续买配额按「一次进店」计
+	_pause_btn_visible(false)   # 商店 / 结算屏上暂停无效, 键不该悬在那(2026-09-06)
+	_perkeo_fired = false # 帕奇欧每次进店只复制一次(替换流可能中途藏板再回来, 离店点不止一个)
 	# a mid-section shop opens with the blind's counter part-way through; a
 	# section-end one opens at phrase 0 of the blind being entered
 	var mid: bool = run.phrase_in_section > 0 \
@@ -1761,6 +1759,7 @@ func _shop_route() -> Array:
 ## 一次进店已成交几张(联票 extra_buys 的计数;每次 _open_draft 归零)。
 ## ⚠ **联票自己也算一张** —— 它给的是「额外 2 次」, 不是豁免自己(2026-09-02)。
 var _shop_buys := 0
+var _perkeo_fired := false
 
 
 ## Shop signals — the board picked; money and slots change ONLY here.
@@ -1906,11 +1905,13 @@ func _on_shop_replace(j) -> void:
 	# 而只记成交和差钱, 分不出「换不起」还是「不值得换」。
 	Tape.on("repl_open", {"id": String(j.id), "price": Economy.shelf_price(j, run.joker_slots),
 		"coins": phrase.coins, "slots": Tape.slots(run.joker_slots)})
-	_perkeo_on_exit()
-	shop.close()
+	# ⚑ 只藏板子, 不 close(2026-09-06 code review):close() 会清零本店授予(联票名额 / 免费刷新 /
+	# 折扣), 而替换只是本次进店里的**一次成交** —— 名额没用完就得能回商店接着挑(联票卡面「可再买 2 张」)。
+	# 离店动作(帕奇欧 / close)统一在 `_on_slot_tapped` 成交后按名额判。
+	shop.hide_board()
 	# UI 那摊(提示条带价、新卡钉出来、四个槽开始接手势)在 view/replace.gd
 	# 价从编排器传进去 —— 赞助的折扣价要和成交价同源(replace.gd 不认识槽位)
-	replace.enter(j, Economy.shelf_price(j, run.joker_slots))
+	replace.enter(j, shop.price_of(j))   # 含赞助折扣(展示价与成交价同源)
 
 
 ## 「继续 ▸」= 不买就走。2026-08-06 起**没有奖励**(用户拿掉了跳过机制),
@@ -1958,7 +1959,7 @@ func _on_slot_tapped(k: int) -> void:
 		_on_replace_canceled()       # tapping the target cancels(与按钮同源)
 		return
 	var old = run.joker_slots[k]
-	var price := Economy.shelf_price(new_j, run.joker_slots)
+	var price := shop.price_of(new_j)   # 含赞助折扣(2026-09-06:此前替换流的价漏了本店折扣, 标 2◆ 收 3◆)
 	# (借展样品的零退款特判已随样品一起删 2026-08-24 —— 槽里的卡现在全是玩家自己拿的)
 	var refund := Economy.sell_value(old)
 	if phrase.coins + refund < price:
@@ -1982,6 +1983,16 @@ func _on_slot_tapped(k: int) -> void:
 	fx.pop(joker_views[k])
 	_fx_acquired(new_j, k)
 	replace.exit()
+	# 替换 = 一次成交, 与买入路径同一本账(5 选 1 / 联票加法)。名额没用完 ⇒ 回商店接着挑,
+	# 买走的那张从货架摘掉;用完 ⇒ 走离店(帕奇欧复制 + close 清授予)再开拍。
+	_shop_buys += 1
+	var buy_limit := Joker.slots_buy_limit(run.joker_slots) + shop.granted_extra_buys()
+	if _shop_buys < buy_limit:
+		shop.sold(new_j, run.joker_slots, phrase.coins, buy_limit - _shop_buys)
+		shop.show_board()
+		return
+	_perkeo_on_exit()
+	shop.close()
 	_start_phrase()
 
 
@@ -2165,6 +2176,9 @@ func _roll_note() -> String:
 ## 代码里只留兜底 —— 拒绝必须说清是哪张脸在拒。
 func _deny_discard_why(sel_h: Array, sel_c: Array) -> String:
 	var d: Dictionary = DB.ui().get("hand", {}).get("deny", {})
+	# 金币是 can_discard 的第一条(经济 v2 弃牌 1◆/张), 此前这里漏了它 ⇒ 没钱时兜底说「选中有被封的牌」。
+	if phrase.coins < Economy.discard_cost(sel_h.size() + sel_c.size()):
+		return String(d.get("coins", "◆ 不足"))
 	if not _discard_open():
 		return String(d.get("window", "弃牌已关闭"))
 	var lim := SectionMod.discard_action_limit(cur_modifier)
@@ -2219,8 +2233,9 @@ func _on_hand_discard(sel_h: Array, sel_c: Array) -> void:
 	if total == 0 or not _discard_open() or not selection_ok:
 		hand.reject_discard()    # nothing selected, or not enough coins
 		# 「想弃但弃不了」是挫败点, 也是弃牌定价的直接证据 —— 只记成交会漏掉它
-		var why := "empty" if total == 0 else ("blind_discard" if not _discard_open() \
-			or not selection_ok else "coins")
+		# 金币先判(2026-09-06):can_discard 第一条就是钱, 此前 "coins" 分支不可达, 全记成 blind_discard
+		var why := "empty" if total == 0 else ("coins" if phrase.coins < Economy.discard_cost(total) \
+			else "blind_discard")
 		Tape.on("deny", {"why": why,
 			"k": total, "at": elapsed})
 		# 2026-08-11 用户反馈「为什么经常不能弃牌」:键抖动只说「不行」不说「为什么」——
@@ -2262,7 +2277,9 @@ func _on_hand_single_discard(zone: String, idx: int) -> void:
 		return
 	if not _discard_open() or not phrase.can_discard_selected(hand_sel, cache_sel):
 		hand.reject_discard()
-		Tape.on("deny", {"why": "blind_discard",
+		fx.float_text(_deny_discard_why(hand_sel, cache_sel),
+			hand.discard_key_pos() + Vector2(34, -12), StageTheme.PINK)   # 拖到弃牌键被拒也要说原因(与多选同款)
+		Tape.on("deny", {"why": "coins" if phrase.coins < Economy.discard_cost(1) else "blind_discard",
 			"k": 1, "at": elapsed})
 		return
 	var succeeded := false

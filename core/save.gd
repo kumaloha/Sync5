@@ -398,20 +398,6 @@ static func clear_checkpoint() -> void:
 		_flush()
 
 
-## ⚠ 只给测试用:把内存态清掉并重读。**不删盘上的文件** ——
-## 测试误删玩家存档是一种很贵的意外。
-static func _reset_cache_for_tests() -> void:
-	_cache = {}
-	_loaded = false
-
-
-## ⚑ **`-- --fresh` = 这次启动当新玩家**(2026-08-16 用户要一条「按这个命令启动就去掉存档」)。
-##
-## ⚠ **用 `--` 之后的用户参数, 不是 `OS.get_cmdline_args()`** —— 后者混着 Godot 自己的
-## 参数, 塞个它不认识的进去要看引擎脸色;`--` 之后的部分引擎保证原样交给游戏。
-## ⚑ **删盘上的文件, 不是只清内存** —— 只清内存的话这一局结束照样写回去,
-## 下次启动又跳过教学关, 「去掉存档」就成了一句没兑现的话。
-## ⚠ 它**只在这里生效一次**(`_loaded` 守着), 所以同一次运行里后面的读写照常。
 static func _wants_fresh() -> bool:
 	return OS.get_cmdline_user_args().has("--fresh")
 

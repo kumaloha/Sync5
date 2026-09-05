@@ -63,7 +63,7 @@ Celebration is a scarce resource, saved for the gig boundary.
 ```text
 phrase 3 of 6        -> MID-SECTION shop (blind still running; board shows
                         还差 N 分 · 还剩 N 拍) -> back to phrase 4
-blind clear (S1..S3) -> light banner (target ✓, +3◆ wage), auto-slides away
+blind clear (S1..S3) -> light banner (target ✓, +1◆ wage), auto-slides away
                         ≤1s, no click -> shop -> next blind
 S4 clear (FINALE)    -> 演出成功 screen -> 谢幕
 any blind failed     -> 演出失败 screen -> 再来一次 (fresh run) | 返回主页
@@ -146,7 +146,7 @@ per-gig data shape stay, so re-introducing a curve is a JSON edit.
   execution-grade (>85%) only on the S4 finale. Difficulty基调 unchanged:
   most runs die. Numbers stay bot-pessimistic; final trim belongs to human
   playtests.
-- Economy: **4** wage points (`SECTION_CLEAR_REWARD` +3◆ per section clear) —
+- Economy: **4** wage points (`SECTION_CLEAR_REWARD` +1◆ per section clear, 08-29 起) —
   down from 12, so per-shop purchasing power falls even though the shop count
   held at **7**(⚠ 原文写 8;末段无段末商店, Tape 实测 37/37 局都是 7). Prices retuned only after the user's bot pass.
 
@@ -278,8 +278,8 @@ lightweight strip, not a run_end mode.
 总拍数始终是 24,所以两张表都按「旧曲线在同一累计拍位上的几何插值」重采样,形状不变:
 
 ```
-section_targets (人锚) = [850, 2400, 6900, 19300]   ← ⚠ 过期;现行 run.json = [420, 510, 960, 1680](亦待重定)
-sim.json bot_targets   = [215, 540, 895, 1345]      ← ⚠ 过期;现行 sim.json = [496, 995, 4270, 5678]
+section_targets (人锚) = [850, 2400, 6900, 19300]   ← ⚠ 过期;现行以 data/run.json 为准(09-06:420/510/960/1680, 亦待重定)
+sim.json bot_targets   = [215, 540, 895, 1345]      ← ⚠ 过期;现行以 data/sim.json 为准(09-06:369/768/2106/5147)
 ```
 
 **都只是起点。** 用户 2026-08-06 明确:「机器人模拟算法还比较蠢,不着急过。我们先把节奏定下来,
@@ -429,7 +429,7 @@ sim.json bot_targets   = [215, 540, 895, 1345]      ← ⚠ 过期;现行 sim.js
 >    **特例现有一张:超级百搭 4◆**(2026-08-26 用户:「超级卡就4金币」;说明情况 =
 >    kit 实测 +4420 分/+57% 全场最强 + 它是万能牌唯一来源[已取代百搭] ——
 >    平价 3◆ 会让「见到必买」零代价);
-> 2. **开局 10◆,弃牌 1◆/张** —— **推翻 08-06「弃牌免费」拍板**;
+> 2. **开局 10◆(08-30 收入重构后 8◆),弃牌 1◆/张** —— **推翻 08-06「弃牌免费」拍板**;
 > 3. **每拍按牌型加金币,只看牌型不看小丑加成**(皇家 10 / 对子 2 / 高牌 1,「数字我拍的,
 >    你可以优化」)—— 主收入从段工资挪到每拍成牌;
 > 4. 关卡 10 轮周期(归 [`difficulty.md`](difficulty.md) §B 轴 v2)。
@@ -465,7 +465,7 @@ sim.json bot_targets   = [215, 540, 895, 1345]      ← ⚠ 过期;现行 sim.js
 4. **技术溢价方向**:会玩的人应该更有钱(成大牌收入高)——收入/水平的斜率必须为正,
    但不许陡到富者恒富(考试关的数值墙自然回收)。
 
-**自由度只剩一个半**:开局 10◆、弃牌 1◆、卡价 3◆ 都是用户锚 —— 能动的是
+**自由度只剩一个半**:开局 10◆(现 8◆)、弃牌 1◆、卡价 3◆ 都是用户锚 —— 能动的是
 **牌型金币表**(主旋钮)+ 段工资去留(半个:删或留小额保底)。
 
 **表的形状用现成的尺**:牌型→分数的倍率已拍板按**组合概率**定价(不按实测),
@@ -485,13 +485,12 @@ sim.json bot_targets   = [215, 540, 895, 1345]      ← ⚠ 过期;现行 sim.js
 
 ## 经济与商店
 
-> ⚠⚠ **本节下面的表是 2026-08-06 之前的经济,已被推翻(2026-08-21 评审标注)。现行以 `data/economy.json` 为准**:
-> · **弃牌免费**(`discard_cost: 0`,08-06 拍板「唯一的闸门是 8 秒」);
+> ⚠⚠ **本节下面的表是 2026-08-06 之前的经济,已被推翻。现行以 `data/economy.json` 为准**(横幅 09-06 按现值重写, 08-21 那版自己也过期了):
+> · **弃牌 1◆/张**(经济 v2, 08-26 用户拍板;08-06 的「弃牌免费」又被推翻);开局 8◆;段工资 1◆;主收入 = `kind_coins` 每拍按牌型;
 > · **没有 skip 奖励**(08-06 删,按钮保留叫「继续 ▸」只作免费出口);
 > · **没有 `target_swap`**(Target 回到同一货架池按稀有度出现,首张 Target 免费三选一是唯一特例);
-> · **金币两个出口 = 买牌 + 洗牌**(升级系统 08-16 加、**08-26 用户拍板整体删除**;
->   洗牌 = 超级百搭配套的付费整手重掷,`reshuffle_cost`,只在牌堆有万能时开放);
-> · 稀有度权重 `35/30/25`(曝光轴 08-16 换原则,见 numbers.md §9.1),价格 4/6/9◆、镜面 11◆;
+> · **金币两个出口 = 弃牌 + 买牌**(升级系统 08-26 删;付费洗牌 09-01 退役);
+> · 稀有度权重 `35/30/25`(曝光轴 08-16 换原则,见 numbers.md §9.1),**价格一律 3◆**(特例只有合奏 10◆, `joker_price_overrides`);
 > · 数字**不在** `core/config.gd`/`economy.gd`,那两处只是 `data/*.json` 之上的门面。
 > 下面原文保留作历史对照。
 

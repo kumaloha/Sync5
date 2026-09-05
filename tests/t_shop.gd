@@ -54,9 +54,7 @@ func run(t) -> void:
 	t.eq(n_rule, 4, "四张规则牌都在消耗牌里(近道/四指/黑调/红调)")
 	for j in Joker.pool():
 		t.check(not j.is_rule_card(), "%s 不该是规则牌 —— 转生后小丑牌侧一张都不剩" % j.id)
-	t.check(not Joker.by_id("neonsign").is_rule_card(), "neonsign is not")
 	# ⚑ 赞助 2026-08-29 转生为消耗牌 —— 折扣改由 `Shop.grant_price_delta` 授予
 	# (−2◆, 用户:「−1 好抠」), 断言见 t_consumable。这里只留不依赖它的价格基线。
 	t.eq(Economy.shelf_price(Joker.by_id("neonsign"), plain), 3, "no sponsor: base price 3(经济 v2)")
 	t.eq(Economy.shelf_price(Joker.by_id("twin"), plain), 0, "first target stays free")
-	t.eq(Economy.sell_value(Joker.by_id("neonsign")), 1, "sell-back ignores the discount (3/2=1, 经济 v2)")

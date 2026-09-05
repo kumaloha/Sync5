@@ -19,11 +19,11 @@
 > 已知过期处,读到时按下面这张表改:
 > · `run.json` 示例写 12 段 / `blind_names` 小盲大盲 / 5 拍 / `gig_clocks 9.0` —— 现行 **4 段 × 6 拍 × 8s**,
 >   `section_targets`(⚠ 现行 `[420, 510, 960, 1680]`,以 `data/run.json` 为准),`blind_names` 只剩档位;
-> · `economy.json` 示例写 `discard_cost: 1`、权重 70/25/5、含 `target_swap` —— 现行 **弃牌免费、35/30/25、无 target_swap、
+> · `economy.json` 示例写权重 70/25/5、含 `target_swap` —— 现行 **弃牌 1◆/张(经济 v2)、35/30/25、无 target_swap、
 >   `joker_upgrade` 曾在 08-16~26 存在, 已随升级系统删除**;
 > · `tutorial.json` 示例写 6 步 × 12s、键只有 `seconds/unlock/command/signal` —— 现行 **4 步 × 8s**,键是
 >   `seconds/unlock/require/command/signal/focus`(**`require` 动作门与 `focus` 分区指向是现行核心键**,白名单在 `db.gd::validate_tutorial`);
-> · 文件表只列 7 个文件 —— `data/` 现有 **13 个**(2026-08-24 局外删除后 tickets/assets/characters 已退役):
+> · 文件表只列 7 个文件 —— `data/` 现有 **14 个**(含 `consumables`)(2026-08-24 局外删除后 tickets/assets/characters 已退役):
 >   另有 `director`(B 轴剧本 + `context` 四开关)/ `ranking`(仪器输出,`rankgen.py` 重刷)/
 >   `boons` / `ui`(含 blindcard·jokercard 交叉校验)/ `tape`(含 `upload` 回传节)/
 >   `lingo`(中→英对照表)/ `profile`(体力与经验容量)。
@@ -163,7 +163,7 @@ Adding a third opcode requires the same bar as a new hook (docs/design/jokers.md
 (90 行 18 张卡的旧数值)已于 2026-08-21 整块删除:它封印的是配置化当天的数,此后卡池扩到 63 张、倍率表三版演进,
 **读者抄这里的数字比不抄更糟**。现行卡的键集:`acquire` · `cn` · `counters` · `curve` · `effects` · `fx` · `hold` · `id` · `kind` · `name` · `proof` · `rarity` · `shelf`;
 kind 分布(2026-08-25 对抗批后):support 68 · target 8。
-数值演进与定价在 [`jokers.md`](jokers.md) / [`jokers_history.md`](jokers_history.md),升级放大规则在 CLAUDE.md「升级的三条原则」。
+数值演进与定价在 [`jokers.md`](jokers.md) / [`jokers_history.md`](jokers_history.md)(升级系统 2026-08-26 整体删除)。
 
 ### characters.json(已删除)
 
@@ -200,15 +200,15 @@ apply sites (`Settle.run`, `view/phrase.gd`) read accessors on `SectionMod`.
 ### run.json
 
 **权威 = 文件本身 + `core/db.gd::validate_run`**(2026-08-21:原示例块写 12 段/小盲大盲/5 拍,整块删除)。
-现行顶层键:`phrases_per_section` · `phrases_per_shop` · `sections_per_gig` · `gigs_per_run` · `blind_names` · `gig_names` · `section_targets` · `gig_clocks` · `warning_offset` · `lock_offset` · `late_act_window` · `final_act_window` · `early_finish_time` · `early_discard_window` · ~~`early_lock_min`~~(2026-08-31 随主动收工退役) · `hand_size` · `cache_cap` · `beat_budget` · `death_spec`。
+现行顶层键:`phrases_per_section` · `phrases_per_shop` · `sections_per_gig` · `gigs_per_run` · `blind_names` · `gig_names` · `section_targets` · `gig_clocks` · `warning_offset` · `lock_offset` · `late_act_window` · `final_act_window` · `early_finish_left`(= warning_offset, 09-05)· `early_discard_window` · `s1_face_min_run` · `s1_easy_chance` · ~~`early_lock_min`~~(2026-08-31 随主动收工退役) · `hand_size` · `cache_cap` · `beat_budget` · `death_spec`。
 结构常量(4 段 × 6 拍 × 8s,`phrases_per_shop: 3` ⇒ 7 次商店)的推导在 [`levels.md`](levels.md);
 ⚠ 所有按段索引的表长度必须 = 段数(`t_run` 锁着,表短会被静默截断成放水盘)。
 
 ### economy.json
 
-**权威 = 文件本身 + `core/db.gd::validate_economy`**(2026-08-21:原 08-05 示例块写 `discard_cost: 1`(现为 0,弃牌免费)并含已删的 `target_swap`,整块删除)。
-现行顶层键:`starting_coins` · `discard_cost` · `section_clear_reward` · `draft_rarity_weights` · `joker_prices` · `joker_price_overrides` · `reroll` · `reshuffle_cost`(`joker_upgrade` 2026-08-26 随升级系统删除)。
-规则(去掉数字仍成立的部分):弃牌免费 · 标价不保底 · 刷新递增 ·
+**权威 = 文件本身 + `core/db.gd::validate_economy`**(2026-08-21:原 08-05 示例块含已删的 `target_swap`,整块删除)。
+现行顶层键:`starting_coins` · `discard_cost`(1◆/张, 经济 v2)· `section_clear_reward` · `draft_rarity_weights` · `joker_prices` · `joker_price_overrides` · `reroll` · `kind_coins`(每拍按牌型发钱, 主收入)(`joker_upgrade` 随升级系统 08-26 删;`reshuffle_cost` 随付费洗牌 09-01 删)。
+规则(去掉数字仍成立的部分):弃牌收费 · 标价不保底 · 刷新递增 ·
 `prices`/`weights` 键集必须相等(校验锁着)。数字与推导见 [`levels.md`](levels.md) §经济。
 
 ### sim.json — 机器人信念表 (user call: bot tunables are config too)

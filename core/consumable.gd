@@ -16,7 +16,7 @@ extends RefCounted
 ## 两类效果, 复用现有机械, **不新增第二套 DSL**:
 ##   `action` —— 立即动作, 与 `Joker.on_acquire` 同一批键(wilds/trim_low/…)
 ##               外加商店类(shelf_slots/price_delta/rule_guaranteed/…)
-##   `boost`  —— 当拍加成, 直接喂给 `core/fx.gd` 的效果解释器
+##   `boost`  —— 当拍加成, 由 `core/settle.gd` 的 phrase_boosts 段手写解释(键名与 Fx 一致, 不经过 Fx)
 var id: String
 var name: String          # EN display name
 var cn_name: String
@@ -37,7 +37,11 @@ var boost: Dictionary     # 当拍加成(可空)
 var queued_beats := 0     # 排队至今经过了几拍(`"next"` 判这个)
 
 
+var _raw: Dictionary = {}   # 建它的那条数据(clone 用)
+
+
 func _init(e: Dictionary) -> void:
+	_raw = e
 	id = String(e.get("id", ""))
 	name = String(e.get("name", ""))
 	cn_name = String(e.get("cn", ""))
@@ -86,3 +90,38 @@ func is_rule_card() -> bool:
 ## 显示名 —— 与小丑牌同一条语言层规则(探针恒 cn)。
 func display_name() -> String:
 	return Lingo.pick({"cn": cn_name, "name": name})
+
+
+## 深拷贝(RunLoop.fork 推演用):排队年龄一起带走, 但不共享对象 —— 推演把真实局的碟催老了不报错。
+func clone() -> Consumable:
+	var c := Consumable.new(_raw)
+	c.queued_beats = queued_beats
+	return c
+
+
+## 消耗牌货架掷牌 —— 游戏(view/phrase.gd::_roll_consumables)与 bot(tools/bot.gd)共用这一份规则
+## (2026-09-06 收口, 此前两边各抄一份):排除已在队列的;第一格在「必出规则牌」时只从规则牌里抽,
+## 抽不出退回全池不空手;掷 n 张互不重复。随机源由调用方给(`pick(n)` 返回下标)—— 两侧都传 deck.pick_index。
+## 返回原始数据行(或 null = 池空), 调用方自己 `Consumable.new`。
+static func roll_shelf(held: Dictionary, rule_first: bool, n: int, pick: Callable) -> Array:
+	var pool: Array = []
+	for e in DB.consumables():
+		if not held.has(String(e["id"])):
+			pool.append(e)
+	var out: Array = []
+	for i in range(n):
+		if pool.is_empty():
+			out.append(null)
+			continue
+		var use := pool
+		if i == 0 and rule_first:
+			var rp: Array = []
+			for e in pool:
+				if Consumable.new(e).is_rule_card():
+					rp.append(e)
+			if not rp.is_empty():
+				use = rp
+		var picked = use[int(pick.call(use.size()))]
+		out.append(picked)
+		pool.erase(picked)
+	return out

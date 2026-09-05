@@ -30,7 +30,6 @@ var HAND_X0: float = (720.0 - (CARD_W * 5.0 + GAP * 4.0)) * 0.5
 var HAND_CARD_Y: float = float(_stage["hand_card_y"])
 var CACHE_Y: float = float(_stage["cache_y"])
 var LIFT_BASE: float = float(_stage["lift_base"])
-var LIFT_SCORING: float = float(_stage["lift_scoring"])
 var LIFT_SELECTED: float = float(_stage["lift_selected"])
 
 var sel_hand: Array = []

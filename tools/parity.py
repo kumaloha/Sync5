@@ -302,6 +302,30 @@ def dead_ids():
     return bad
 
 
+# ⑧ Run 的顶层字段 vs RunLoop.fork 的拷贝清单(2026-09-06 code review 加)。
+# fork 漏字段的失效方式是「忘了加」—— 手写白名单(t_run)本身也是手写的, 这里改成反射:
+# 凡 core/run.gd 顶层 `var X`, fork 里必须有 `r.X =`(或 `r.X.` 派生), 否则推演里那一维静默归零。
+FORK_EXEMPT = {
+    "_roll_rng": "由 _roll_seed 在 ensure_mod_roll 里重播种",
+    "face_ranking": "Director 输入, 推演不掷脸",
+    "director_ctx": "Director 输入, 推演不掷脸",
+    "tutorial_step": "教学关内部状态, 推演不走教学",
+    "_tutorial_acted": "教学关内部状态, 推演不走教学",
+    "_tutorial_step_beats": "教学关内部状态, 推演不走教学",
+}
+
+
+def fork_fields():
+    run = (ROOT / "core/run.gd").read_text(encoding="utf-8")
+    fields = re.findall(r"^var (\w+)", run, re.M)
+    rl = (ROOT / "tools/runloop.gd").read_text(encoding="utf-8")
+    i = rl.index("static func fork(")
+    j = rl.find("\nstatic func", i + 10)
+    body = rl[i:j if j > 0 else len(rl)]
+    assigned = set(re.findall(r"\br\.(\w+)\s*(?:=|\.)", body))
+    return [f for f in fields if f not in assigned and f not in FORK_EXEMPT]
+
+
 def main():
     quiet = "--check" in sys.argv
     bad = []
@@ -350,7 +374,10 @@ def main():
     if abad:
         print("✗ %d 个 action 键两侧不齐:%s" % (len(abad), " ".join(abad)))
         print("  ⚠ 后果不止低估 —— 用这种读数定的价**无效**(见 LESSONS 同名条)")
-    if bad or abad or wbad or fbad or jbad or chbad or dbad:
+    kbad = fork_fields()
+    if kbad:
+        print("✗ %d 个 Run 字段 RunLoop.fork 没拷(推演里那一维静默归零;豁免表 FORK_EXEMPT):%s" % (len(kbad), " ".join(kbad)))
+    if bad or abad or wbad or fbad or jbad or chbad or dbad or kbad:
         if bad:
             print("✗ %d 个入口两侧不对齐:%s" % (len(bad), " ".join(bad)))
         return 1

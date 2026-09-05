@@ -14,7 +14,6 @@ var KIND_PRIOR: Dictionary = _int_keys(SIM["kind_prior"])
 var COUNTERFACTUAL_TV: Dictionary = SIM["counterfactual_tv"]
 ## 求解买牌往前推演几拍。实测 M=6 约 0.48 秒/局(M=3 是 0.23s, M=12 是 0.95s)。
 ## ⚠ 截断是显式近似:远期牌堆状态本来就不可信, 而且两条臂共用补牌, 差里噪声成对抵消。
-const DRAFT_BEATS := 6
 ## 买牌收益往前看几拍的上限。⚠ **它同时是金币影子价的归一化基准**(见 `_draft` 的 lam),
 ## 两处必须是同一个数 —— 分开写死会让 `coin_decay` 的语义静默变形。
 const DRAFT_HORIZON := 20.0
@@ -71,7 +70,7 @@ func _amt(id: String) -> float:
 				# 而买牌决策本来就是「这张卡这一整局值多少」。
 				if fx.get("do", {}).has("bonus_target_pct"):
 					var pr = fx["do"]["bonus_target_pct"]
-					return 0.0 if pr is Dictionary else float(pr) * _avg_beat_target()
+					return 0.0 if pr is Dictionary else float(pr) * GameConfig.avg_beat_target()
 				# ⚠⚠ **`coins_factor` 返回的是「倍数」不是「点数」**(与 `mult_from_target_factor`
 				# 同族), 因为它的臂写的是 `(_amt(id) - 1.0)` —— 要的就是这个倍数。
 				# 2026-08-30 补:漏了这一条的后果**不是少算一点**, 而是 `_amt` 落到末尾
@@ -97,19 +96,6 @@ func _amt(id: String) -> float:
 	return 0.0
 
 
-## 一局的平均每拍目标 —— `bonus_target_pct` 换算成分数用。
-## ⚠ 从 `GameConfig.SECTION_TARGETS` 推导, **不许抄第二份**:目标分改了它要跟着改。
-func _avg_beat_target() -> float:
-	var t := 0.0
-	for v in GameConfig.SECTION_TARGETS:
-		t += float(v)
-	var n := float(GameConfig.SECTION_TARGETS.size())
-	if n <= 0.0:
-		return 0.0
-	return t / n / float(GameConfig.PHRASES_PER_SECTION)
-
-
-## glowstick average lifetime pct = init/2 (linear decay to 0), from data.
 func _glow_avg() -> float:
 	for e in DB.jokers():
 		if String(e["id"]) == "glowstick":
@@ -482,6 +468,15 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 			if j.id == forced:
 				pick = j
 		if pick == null:
+			# 与游戏侧同(view/shop.gd::_deal 首张 Target 洗牌后只摆 3 张):bot 只能在 3 张里挑,
+			# 不许全池最优(2026-09-06 code review:此前 bot 必得全局最优旗, 开局构筑系统性偏厚)。
+			var shown: Array = candidates.duplicate()
+			for i in range(shown.size() - 1, 0, -1):
+				var k := _rng.randi_range(0, i)
+				var tmp = shown[i]
+				shown[i] = shown[k]
+				shown[k] = tmp
+			candidates = shown.slice(0, 3)
 			pick = _pick_target_ev(st, candidates)
 		slots[0] = pick
 		pick.on_acquire(deck)
@@ -519,7 +514,10 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 	var lam: float = float(EV["coin_cost_ratio"]) * score_mean \
 		* pow(horizon / DRAFT_HORIZON, float(EV["coin_decay"]))
 	# 货架位数与两个「必定出」补丁 —— **与 view/shop.gd::_deal 同一套规则**(shelf API 收口)。
-	var _shelf_n: int = maxi(Joker.slots_shelf_size(slots), _g_shelf)
+	# 点名解除的「下次商店 +1 货架位」(core/beat.gd shelf_bonus)也要吃到, 用掉即清(与 view/phrase.gd 同)。
+	var _shelf_n: int = maxi(Joker.slots_shelf_size(slots, run.shelf_bonus if run != null else 0), _g_shelf)
+	if run != null:
+		run.shelf_bonus = 0
 	var offer := _weighted_pick(candidates, _shelf_n,
 		Joker.slots_target_mult(slots))
 	# 「必定出 Target」(独狼的卡面效果):抽完若一张 Target 都没有, 顶掉最后一位。
@@ -634,6 +632,7 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 	# 两轮尝试的语义不变:第一轮什么都没买才允许一次付费刷新。
 	# ⚑ 5 选 1:消耗牌与小丑牌**共用成交名额**(见 `_cons_bought` 的注释)。
 	var buys := 1 if _cons_bought else 0
+	var _reroll_n := 0   # 付费刷新的阶梯计数(免费刷新不推阶梯, 与 view/shop.gd 同)
 	# 轮次 = 2(挑一轮 + 付费刷新后再挑一轮)+ 加急给的免费刷新数 —— 免费的有几次用几次
 	#(2026-09-05 加急 1 → 3 次, 与游戏侧同改;没有加急时与旧行为逐位相同)。
 	for attempt in range(2 + _g_free_reroll):
@@ -770,14 +769,16 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 		# (2026-08-06: leaving the shop pays nothing — the skip reward is gone)
 		var _rr_free: bool = _g_free_reroll > 0
 		# 付费刷新只在第一轮、一张没买时试一次;免费刷新(加急)一张没买就一直用到用完。
-		if buys == 0 and (_rr_free or (attempt == 0 \
-				and coins >= Economy.reroll_cost(0, _g_price) + 6)):
+		# ⚠ 免费刷新不看已买数(2026-09-06 code review):买了加急本身就占一次成交 ⇒ `buys == 0` 永假, 免费分支不可达。
+		if _rr_free or (buys == 0 and attempt == 0 \
+				and coins >= Economy.reroll_cost(_reroll_n, _g_price) + 6):
 			if _rr_free:
 				_g_free_reroll -= 1          # 加急(消耗牌):免费刷新
 				_rep.free_rerolls += 1       # 零基线证物:没有加急时恒 0
 			else:
 				# 赞助的本店降价含刷新(2026-09-05, 同 `Shop._reroll_cost_now`;地板在 Economy)
-				var rc := Economy.reroll_cost(0, _g_price)
+				var rc := Economy.reroll_cost(_reroll_n, _g_price)
+				_reroll_n += 1
 				coins -= rc
 				_rep.eco_add("spend_reroll", rc)   # 经济账本:付费刷新
 			Joker.notify_shop(slots, "reroll")             # 淘碟(同编排器)
@@ -785,7 +786,7 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 			# ⚑ **但挑高要重放** —— 它的保证期是整次进店(含刷新), 不重放就等于
 			# 「刷一次就失效」, 而那正是它输给「直接刷新」的原因(用户 2026-08-30 改判)。
 			offer = _rich_only(
-				_weighted_pick(candidates, Joker.slots_shelf_size(slots)), candidates)
+				_weighted_pick(candidates, _shelf_n), candidates)   # 刷新后货架位数不变(联票 4 位保持)
 			for oj2 in offer:
 				_rep.cov_offer(String(oj2.id))
 			continue
@@ -861,7 +862,36 @@ var _g_min_rarity := ""
 var _cons_bought := false
 
 
+## 进店的消耗牌流程 = 先买, 再(离店时)帕奇欧复制 —— 与 view/phrase.gd 的 `_on_consumable_bought` →
+## `_perkeo_on_exit` 同序(2026-09-06 code review:此前复制在进店开头, 本店刚买的时机卡复制不到)。
 func _consumables_in_shop(run, coins: int, slots: Array) -> int:
+	if run == null or bool(_cfg_no_cons):
+		return coins
+	coins = _consumables_buy(run, coins, slots)
+	return _perkeo_copy(run, coins, slots)
+
+
+## 帕奇欧:离店时复制一张待播的碟。随机源走 `deck.pick_index`(与游戏侧同一条流, 探针才复现得出同一张)。
+func _perkeo_copy(run, coins: int, slots: Array) -> int:
+	if not Joker.slots_copy_consumable(slots):
+		return coins
+	var src: Array = run.consumables.duplicate()
+	if src.is_empty():
+		return coins
+	var pk = src[run.deck.pick_index(src.size())]
+	for e in DB.consumables():
+		if String(e["id"]) == pk.id:
+			var used2: Dictionary = run.take_consumable(Consumable.new(e))
+			if not used2.is_empty():
+				_apply_bot_action(run, slots, used2)
+				coins = _take_borrow(coins, slots)   # 帕奇欧复制到预支时
+			_rep.cov_install(String(e["id"]))
+			_rep.perkeo_copies += 1    # 零基线证物:没有帕奇欧时恒 0(kit SHOP_WITNESS)
+			break
+	return coins
+
+
+func _consumables_buy(run, coins: int, slots: Array) -> int:
 	if run == null:
 		return coins
 	# ⚑ `cfg.no_consumables` —— 对照组开关(2026-08-30 用户问「sim 要不要因为新卡更新」)。
@@ -878,19 +908,6 @@ func _consumables_in_shop(run, coins: int, slots: Array) -> int:
 	# 「规则在游戏里、不在模型里」的**第七次**。
 	# ⚠ 队列没有上限了 ⇒ 摘掉 `consumable_room()` 这道门。
 	# ⚑ 射程同时变窄:能被复制的只剩时机卡(与游戏侧 `_perkeo_on_exit` 同一句注释)。
-	if Joker.slots_copy_consumable(slots):
-		var src: Array = run.consumables.duplicate()
-		if not src.is_empty():
-			var pk = src[_rng.randi_range(0, src.size() - 1)]   # bot 侧用自己的 rng(探针复现)
-			for e in DB.consumables():
-				if String(e["id"]) == pk.id:
-					var used2: Dictionary = run.take_consumable(Consumable.new(e))
-					if not used2.is_empty():
-						_apply_bot_action(run, slots, used2)
-						coins = _take_borrow(coins, slots)   # 帕奇欧复制到预支时
-					_rep.cov_install(String(e["id"]))
-					_rep.perkeo_copies += 1    # 零基线证物:没有帕奇欧时恒 0(kit SHOP_WITNESS)
-					break
 	# ③ 再买 —— 一店最多一张(与游戏侧「货架只出一张」同构)
 	# ⚑ 货架 **2 格**(2026-08-31, 与游戏侧 `_roll_consumables` 同一份语义):
 	# 掷两张互不重复的, **最多成交一张**(「2 选 1」, 供给不变、选择变多)。
@@ -900,26 +917,12 @@ func _consumables_in_shop(run, coins: int, slots: Array) -> int:
 	for c in run.consumables:
 		if c != null:
 			held[c.id] = true
-	var pool: Array = []
-	for e in DB.consumables():
-		if not held.has(String(e["id"])):
-			pool.append(e)
+	# 规则只有 `Consumable.roll_shelf` 一份(与游戏侧 `_roll_consumables` 同, 含随机源 deck.pick_index)。
 	var offer2: Array = []
-	for i2 in range(2):
-		if pool.is_empty():
-			break
-		var use := pool
-		if i2 == 0 and _g_rule:
-			_g_rule = false
-			var rp: Array = []
-			for e in pool:
-				if Consumable.new(e).is_rule_card():
-					rp.append(e)
-			if not rp.is_empty():
-				use = rp
-		var picked = use[_rng.randi_range(0, use.size() - 1)]
-		offer2.append(picked)
-		pool.erase(picked)
+	for e in Consumable.roll_shelf(held, _g_rule, 2, func(n: int) -> int: return run.deck.pick_index(n)):
+		if e != null:
+			offer2.append(e)
+	_g_rule = false
 	if offer2.is_empty():
 		return coins
 	var best = null
@@ -1018,7 +1021,8 @@ func _apply_bot_action(run, slots: Array, used: Dictionary) -> void:
 			if slots[i] != null:
 				owned.append(i)
 		if owned.size() >= 2:
-			var keep: int = owned[_rng.randi_range(0, owned.size() - 1)]
+			var keep: int = owned[run.deck.pick_index(owned.size())] if run != null \
+				else owned[_rng.randi_range(0, owned.size() - 1)]   # 与游戏侧 `_anvil` 同一条随机流
 			var kept = slots[keep]
 			for i in range(slots.size()):
 				if i != keep:
@@ -1093,7 +1097,8 @@ func _timing_flags(slots: Array) -> Dictionary:
 	# 谢幕的窗口在尾声之内:只有已经压哨的拍才可能压到最后一秒。
 	var final_sec: bool = late and _rng.randf() < float(want["final_second"])
 	# 秒表:剩余秒数 —— 早锁的拍剩得多, 压哨的拍几乎为零。
-	var secs: float = float(tim.get("seconds_left_early", 3.2)) if early else 0.0
+	# 秒表 = 最后一次动作距结算的秒数(2026-09-06 与游戏侧对齐):早收拍均 3.6s, 其余拍均 1.5s(真人 Tape)。
+	var secs: float = float(tim.get("seconds_left_early", 3.6)) if early else float(tim.get("seconds_left_other", 1.5))
 	# 早弃:弃牌都赶在早锁线之前(装了早弃卡的玩家会刻意这么打)。
 	var early_disc: bool = _rng.randf() < float(want["discards_before"])
 	return {"early": early, "late": late, "final": final_sec,

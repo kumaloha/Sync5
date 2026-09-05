@@ -44,7 +44,7 @@ func _initialize() -> void:
 	print("     ⇒ **读排序与尾巴, 别把绝对值当卡的分值**(口径全文见文件头)。")
 
 	var base := _arm(base_cfg, [])
-	var base_clear := 100.0 * _mean(base["cleared"])
+	var base_clear := 100.0 * Stat.mean(base["cleared"])
 	print("\n  基准(bot 自选)通关率 %.1f%%" % base_clear)
 
 	var ids: Array = []
@@ -60,8 +60,8 @@ func _initialize() -> void:
 			"id": id,
 			"d": 100.0 * float(p["d"]),
 			"se": 100.0 * float(p["se"]),
-			"clear": 100.0 * _mean(arm["cleared"]),
-			"held": 100.0 * _mean(arm["held"]),
+			"clear": 100.0 * Stat.mean(arm["cleared"]),
+			"held": 100.0 * Stat.mean(arm["held"]),
 		})
 	rows.sort_custom(func(a, b) -> bool: return float(a["d"]) > float(b["d"]))
 
@@ -141,12 +141,3 @@ func _arm(cfg: Dictionary, pin: Array) -> Dictionary:
 					break
 		held.append(has)
 	return {"cleared": cleared, "held": held}
-
-
-func _mean(a: Array) -> float:
-	if a.is_empty():
-		return 0.0
-	var s := 0.0
-	for v in a:
-		s += float(v)
-	return s / float(a.size())

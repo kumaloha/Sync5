@@ -331,9 +331,10 @@ func trial_free() -> bool:
 
 
 static func by_id(p_id: String) -> Joker:
-	for j in pool():
-		if j.id == p_id:
-			return j
+	# 只建那一张(2026-09-06):此前每次都构造整池 64 张再线性查, 137 个调用点(测试里 68 个)。
+	for e in DB.jokers():
+		if String(e["id"]) == p_id:
+			return Joker.new(e)
 	return null
 
 

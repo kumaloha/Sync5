@@ -365,21 +365,6 @@ func _display_window(win: Rect2, s: float, acc: Color) -> void:
 	draw_line(Vector2(win.position.x, mid), Vector2(win.end.x, mid), Color(acc.r, acc.g, acc.b, 0.32), 1.0)
 
 
-## One centred amount chip in gold. The old row paired it with a CN name chip
-## in dim teal — the name now lives in the header, and the amount was the
-## least readable thing on the card (真人试玩 2026-08-05).
-func _chips(w: float, y: float, s: float, _acc: Color) -> void:
-	var font := StageTheme.num("SemiBold")
-	var txt := _mult_for(joker.id)
-	var fs := int(15.0 * s)
-	var tw := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
-	var cw := maxf(tw + 18.0 * s, 44.0 * s)
-	var r := Rect2((w - cw) * 0.5, y, cw, 20.0 * s)
-	draw_rect(r, Color(StageTheme.GOLD.r, StageTheme.GOLD.g, StageTheme.GOLD.b, 0.55), false, 1.0)
-	draw_string(font, Vector2(r.position.x, r.position.y + 15.0 * s), txt,
-		HORIZONTAL_ALIGNMENT_CENTER, r.size.x, fs, StageTheme.GOLD)
-
-
 func _draw_empty(w: float, h: float, s: float) -> void:
 	var col := Color(0.63, 0.71, 1.0, 0.30)
 	draw_rect(Rect2(0, 0, w, h), Color(0.63, 0.71, 1.0, 0.04), true)
@@ -401,10 +386,6 @@ func _draw_empty(w: float, h: float, s: float) -> void:
 	_pick_overlay(w, h, s)
 
 
-
-func _icon_for(kind: String) -> String:
-	return "◈" if kind == "target" else "♪"
-
 func _glyph_for(id: String) -> String:
 	match id:
 		"encore": return "≋"
@@ -414,48 +395,12 @@ func _glyph_for(id: String) -> String:
 		"chord": return "♬"
 		"neonsign": return "✦"
 		"vinyl": return "◉"
-		"chorus": return "♫"
 		"interest": return "◆"
 		"momentum": return "➤"
 		"vip": return "♛"
 		"glowstick": return "✧"
-		"shortcut": return "⤳"
-		"fourfingers": return "☰"
-		"twotone": return "◑"
-		"blacktone": return "◐"
-		"redtone": return "◑"
 		"bassline": return "∿"
 		"mirror": return "⧉"
-		"superwild": return "★"
 		"twin": return "❋"
 		"stair": return "▤"
 		_: return "◈"
-
-func _mult_for(id: String) -> String:
-	match id:
-		"twin": return "×3+"
-		"stair": return "×8+"
-		"mono": return "×6+"
-		"triplet": return "×4+"
-		"lonewolf": return "×4"
-		"encore": return "+80"
-		"finale": return "+70"
-		"turnover": return "+20"
-		"tipjar": return "+2◆"
-		"chord": return "+120"
-		"neonsign": return "+80"
-		"vinyl": return "+3↗"
-		"chorus": return "+75%"
-		"interest": return "+◆"
-		"momentum": return "10%↗"
-		"vip": return "15"
-		"glowstick": return "60%↘"
-		"shortcut": return "±1"
-		"fourfingers": return "4+"
-		"twotone": return "2C"
-		"blacktone": return "♠♣"
-		"redtone": return "♥♦"
-		"bassline": return "×↗"
-		"mirror": return "COPY"
-		"wildcard": return "WILD"
-		_: return "—"

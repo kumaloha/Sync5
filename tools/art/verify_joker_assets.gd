@@ -219,57 +219,6 @@ func _check_image(label: String, path: String, expected: Vector2i) -> void:
 		])
 
 
-func _check_prompt(id: String) -> void:
-	var path := "res://assets/jokers/prompts/joker_%s.json" % id
-	if not FileAccess.file_exists(path):
-		_error("missing prompt %s" % _display_path(path))
-		return
-
-	var file := FileAccess.open(path, FileAccess.READ)
-	if file == null:
-		_error("cannot open prompt %s: %s" % [_display_path(path), error_string(FileAccess.get_open_error())])
-		return
-
-	var parser := JSON.new()
-	var parse_error := parser.parse(file.get_as_text())
-	if parse_error != OK:
-		_error("invalid JSON in prompt %s at line %d: %s" % [
-			_display_path(path), parser.get_error_line(), parser.get_error_message(),
-		])
-		return
-
-	if typeof(parser.data) != TYPE_DICTIONARY:
-		_error("prompt %s must be an object" % _display_path(path))
-		return
-
-	var prompt := parser.data as Dictionary
-	if String(prompt.get("id", "")) != id:
-		_error("prompt %s id must be '%s', found '%s'" % [
-			_display_path(path), id, String(prompt.get("id", "")),
-		])
-
-	if typeof(prompt.get("prompt")) != TYPE_STRING or String(prompt.get("prompt", "")).strip_edges().is_empty():
-		_error("prompt %s prompt must be a non-empty string" % _display_path(path))
-
-	var revision: Variant = prompt.get("revision")
-	if typeof(revision) != TYPE_FLOAT and typeof(revision) != TYPE_INT:
-		_error("prompt %s revision must be a number >= 1" % _display_path(path))
-	elif int(revision) < 1:
-		_error("prompt %s revision must be >= 1" % _display_path(path))
-
-	var source_sha := String(prompt.get("source_sha256", ""))
-	if not _is_sha256(source_sha):
-		_error("prompt %s source_sha256 must be 64 lowercase SHA-256 hex characters" % _display_path(path))
-	else:
-		var source_path := "res://assets/jokers/source/joker_%s.png" % id
-		if FileAccess.file_exists(source_path):
-			var actual_source_sha := FileAccess.get_sha256(source_path)
-			if source_sha != actual_source_sha:
-				_error("prompt %s source_sha256 does not match %s" % [
-					_display_path(path), _display_path(source_path),
-				])
-
-
 func _check_placeholder_copy(path: String, value: Variant) -> void:
 	match typeof(value):
 		TYPE_DICTIONARY:

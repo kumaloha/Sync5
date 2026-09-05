@@ -29,7 +29,8 @@ TAPE = os.path.expanduser(
 
 # 改判定/改牌堆的四张(proof:solver,无 effects)。它们抬的是牌型概率,
 # 不是自己的触发率 —— 见文件头与 numbers.md §2「概率放大器」。
-RULES = ('shortcut', 'fourfingers', 'twotone', 'wildcard')
+# 规则牌 = 带 action.deck_rule 的消耗牌(2026-09-06 收口:此前手抄的四个名字里两个已不存在、两个真规则牌漏掉)
+RULES = tuple(c['id'] for c in json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'data', 'consumables.json'), encoding='utf-8'))['consumables'] if 'deck_rule' in c.get('action', {}))
 
 # settle.kind 是 Pattern.Kind 的 int(core/pattern.gd 枚举序)。
 KIND_FAMS = [

@@ -48,7 +48,7 @@ content inside that shell:
   codes may support the shell but cannot compete with the fingerprint.
 
 Canonical visual asset:
-`assets/docs/design/joker_blind_visual_system.html`.
+`assets/design/joker_blind_visual_system.html`.
 
 ### State language
 

@@ -269,7 +269,6 @@ func grant_min_rarity(r: String) -> void:
 	_render(true)
 
 
-## 本店还剩几次免费刷新(编排器算刷新价时读)。
 ## 续买态的剩余次数 —— **消耗牌路径专用**。
 ##
 ## ⚠ 联票自己是从**消耗牌货架**买走的, 那条路径不经过 `sold()`, 而 `_buys_left`
@@ -304,8 +303,9 @@ func cshelf_center(c) -> Vector2:
 	return Vector2(-1, -1)
 
 
-func free_rerolls_left() -> int:
-	return _grant_free_reroll
+## 货架价(含赞助的本店折扣)—— 替换流的提示条与成交价从这里拿, 编排器不再自己算(展示价与成交价不许分家)。
+func price_of(j) -> int:
+	return _price(j)
 
 
 func consume_free_reroll() -> bool:
@@ -320,6 +320,12 @@ func _on_cshelf_pressed(i: int = 0) -> void:
 	if _c == null:
 		return
 	if _coins < _c.price:
+		denied.emit("consumable")
+		_cshelf[i].shake()
+		return
+	# 压暗的碟(买了没用, 例如砧座在 support ≤1 时)不许成交(2026-09-06 code review):此前只压暗不拦,
+	# 4◆ 打水漂还吃掉 5 选 1 的唯一名额, 而且不报错。armed 的判据在 set_consumables。
+	if i < _cshelf.size() and not _cshelf[i].armed:
 		denied.emit("consumable")
 		_cshelf[i].shake()
 		return
@@ -436,10 +442,15 @@ func _draw_refill():
 	for c in _candidates:
 		if not (c is Dictionary):
 			taken[c.id] = true
+	# 挑高的「本店不出普通卡」对续买补货也成立(2026-09-06 code review;池空退回全池, 与 _deal 同口径)
 	var pool: Array = []
 	for cand in Joker.pool():
-		if not taken.has(cand.id):
+		if not taken.has(cand.id) and not (_grant_min_rarity != "" and String(cand.rarity) == "common"):
 			pool.append(cand)
+	if pool.is_empty():
+		for cand in Joker.pool():
+			if not taken.has(cand.id):
+				pool.append(cand)
 	if pool.is_empty():
 		return null
 	var picked: Array = _weighted_pick(pool, 1)   # 与 _deal 同一口径(签名/注入全一致)
@@ -458,6 +469,11 @@ func close() -> void:
 ## Replace-mode cancel path: show the same board again, no re-deal.
 func show_board() -> void:
 	_layer.visible = true
+
+
+## 替换流进入时只藏板子 —— 授予(名额 / 免费刷新 / 折扣)全部保留, 成交后按名额决定回来还是 close。
+func hide_board() -> void:
+	_layer.visible = false
 
 
 func _deal() -> void:
@@ -710,7 +726,7 @@ func _on_reroll() -> void:
 	# ⚑ 加急(消耗牌)的免费刷新在这里兑现(2026-08-30 code review 补:
 	# `consume_free_reroll()` 此前**没有任何调用者** —— 那张卡在游戏里是空白的)。
 	if consume_free_reroll():
-		_reroll_count += 1
+		# 免费刷新不推阶梯(2026-09-06):加急写的是「免费刷新 3 次」, 用完后首刷若跳到 6◆ 就是卡面说谎。
 		reroll_paid.emit(0)
 		return
 	var cost := _reroll_cost_now()

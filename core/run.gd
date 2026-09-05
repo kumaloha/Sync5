@@ -121,6 +121,16 @@ func reset(face_seed: int = -1) -> void:
 	tutorial_step = 0
 	_tutorial_acted.clear()
 	_tutorial_step_beats = 0
+	# ⚑⚑ run 级状态也要清(2026-09-06 code review, CRITICAL):重开复用同一个 Run 对象, 此前这五样
+	# 全部带进新局 —— 上一局的预支债在新局 S1 末被扣走 / 排队的碟在新局白播 / 上一局死在 S1 时
+	# `mod_roll.sec == 0` 让新局 S1 的掷类脸直接沿用旧掷点 / 点名奖励的货架位跨局。模型侧每局 Run.new(),
+	# 所以这是「bug 只在游戏里」的反向形状, 门抓不到。
+	debt = 0
+	consumables.clear()
+	phrase_boosts.clear()
+	mod_roll = {}
+	shelf_bonus = 0
+	last_section_phrases = 0
 	roll_faces(face_seed)
 
 
@@ -267,7 +277,7 @@ func snapshot(run_index: int) -> Dictionary:
 		"phrase_in_section": phrase_in_section, "section_score": section_score,
 		"section_discards_used": section_discards_used,
 		"prev_kind": prev_kind, "prev_target_hit": prev_target_hit,
-		"mod_roll": mod_roll.duplicate(), "shelf_bonus": shelf_bonus,
+		"mod_roll": mod_roll.duplicate(), "shelf_bonus": shelf_bonus, "roll_seed": _roll_seed,
 		"first_kind": first_kind,
 		"previous_raw_score": previous_raw_score, "request_last": request_last,
 		"boon": run_boon, "coins": coins, "faces": faces_out,
@@ -340,6 +350,9 @@ func restore(d: Dictionary) -> bool:
 	prev_target_hit = bool(d.get("prev_target_hit", false))
 	mod_roll = d.get("mod_roll", {}) if d.get("mod_roll", {}) is Dictionary else {}
 	shelf_bonus = int(d.get("shelf_bonus", 0))
+	# 掷类脸的段级种子也要还原(2026-09-06):不存它, 续玩后 `ensure_mod_roll` 用 0 重掷 ⇒ 变色灯换花色,
+	# 而且所有人、每次续玩都掷出同一个 —— 与「千人千面不可察觉」红线冲突。旧档缺键退回 0 = 旧行为。
+	_roll_seed = int(d.get("roll_seed", 0))
 	first_kind = int(d.get("first_kind", -99))
 	previous_raw_score = int(d.get("previous_raw_score", 0))
 	request_last = String(d.get("request_last", ""))
@@ -351,10 +364,17 @@ func restore(d: Dictionary) -> bool:
 	return true
 
 
+## 探针用的目标表(空 = 游戏的 `run.json section_targets`)。⚑ 2026-09-06 code review:此前 `Beat.settle`
+## 的 `section_target`(奖励分族 `bonus_target_pct` 的基数)恒读 run.json, 而 `RunLoop` 判生死读
+## `sim.json bot_targets` ⇒ 模型一局两把尺, 该族相对自己的生死线 S4 被压低 3 倍。RunLoop 把它设成 o.targets。
+var target_table: Array = []
+
+
 func target() -> int:
 	if tutorial:
 		return 0
-	return int(round(float(section_target_for(GameConfig.SECTION_TARGETS, section_idx, face()))
+	var tbl: Array = target_table if not target_table.is_empty() else GameConfig.SECTION_TARGETS
+	return int(round(float(section_target_for(tbl, section_idx, face()))
 		* variety_mult(face(), section_kinds.size())))
 
 

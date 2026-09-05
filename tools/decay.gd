@@ -135,23 +135,11 @@ func _arm(cfg: Dictionary, decay: float, n: int, seed0: int) -> Dictionary:
 		out["spend"].append(float(spend))
 		out["balance"].append(float(res["coins"]))
 		out["score"].append(float(res["total"]))
-		out["cleared"].append(float(_cleared(res["sec_scores"], faces)))
+		out["cleared"].append(float(RunLoop.cleared_sections(res["sec_scores"], faces, TARGETS)))
 		out["buys_after_full"].append(float(buys_after))
 		out["noswap"].append(float(noswap))
 		out["full_shops"].append(float(full_n))
 	return out
-
-
-## 在录好的段分上重放 `bot_targets` 反解通关段数(curve.gd 的既有做法)。
-## ⚠ 判生死只有一份实现:`Run.section_target_for`。
-func _cleared(sec_scores: Array, faces: Dictionary) -> int:
-	var k := 0
-	for i in range(sec_scores.size()):
-		var tgt := Run.section_target_for(TARGETS, i, String(faces.get(i, "")))
-		if float(sec_scores[i]) < float(tgt):
-			break
-		k += 1
-	return k
 
 
 func _report(arms: Array) -> void:

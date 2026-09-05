@@ -384,6 +384,26 @@ func _t_fork_complete(t) -> void:
 	t.eq(f.section_kinds, r.section_kinds, "fork copies section_kinds")
 	t.eq(f.cache_meta, r.cache_meta, "fork copies cache_meta")
 	t.eq(f.run_faces, r.run_faces, "fork copies run_faces")
+	# 2026-09-06 code review 补的六样(推演里镜面 / 掷类脸 / 预支 / 待播队列 / 点名奖励 / 目标表都得看得见)
+	r.prev_target_hit = true
+	r.debt = 12
+	r.shelf_bonus = 1
+	r._roll_seed = 4242
+	r.target_table = [1, 2, 3, 4]
+	for e in DB.consumables():
+		if String(e["id"]) == "opener":
+			var cq := Consumable.new(e)
+			cq.queued_beats = 2
+			r.consumables = [cq]
+	var f2: Run = RL.fork(r, 42)
+	for k in ["prev_target_hit", "debt", "shelf_bonus", "_roll_seed", "target_table"]:
+		t.eq(f2.get(k), r.get(k), "fork copies %s" % k)
+	t.eq(f2.consumables.size(), 1, "fork copies the consumable queue")
+	t.eq(f2.consumables[0].queued_beats, 2, "fork keeps queued age")
+	f2.consumables[0].queued_beats = 9
+	t.eq(r.consumables[0].queued_beats, 2, "fork's queue is a deep copy — 推演不许催老真实的碟")
+	r.consumables = []
+	r.target_table = []
 	f.section_kinds[9] = true
 	t.check(not r.section_kinds.has(9), "fork's section_kinds is a copy, not an alias")
 	f.cache_meta["ages"]["y"] = 1

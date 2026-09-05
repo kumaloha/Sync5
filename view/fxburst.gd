@@ -69,12 +69,6 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 
-## 还有特效在演(探针用;游戏侧不等它 —— 仪式不许挡住下一拍)。
-func busy() -> bool:
-	return not _shows.is_empty()
-
-
-## 换局/回首页时把没演完的仪式掐掉(谁抢走屏幕谁负责掐掉它, 同 SettleFx.dismiss)。
 func clear() -> void:
 	_shows.clear()
 	set_process(false)

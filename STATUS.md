@@ -22,7 +22,7 @@ Lumines 的节奏推进 + Balatro 的构筑。一局 4 段 × 6 拍 × 8 秒 ≈
 | 单元测试 | **3330 passed / 0 failed**(2026-08-31 平衡批后)。⚠ 耗时 ~31 分钟 | `./tools/unittest.sh`。⚑ 跑之前先跑四条秒级检查:`parity.py --check && evsync.py --check && counts.py --check && docscan.py` |
 | 单元测试 | **3172 passed / 0 failed**(2026-08-30:消耗牌开轴 + 经济收口 + code review 15 个 bug;含 `t_consumable` **119 条**)。⚠ **耗时 ~31 分钟**(从 12 分涨上来)—— 08-29 删掉 goldenvoice 的 SOLVER_BLIND 豁免后 `t_draft` 要真跑一次求解器推演。⚠⚠ 那条豁免 **08-30 又加回来了**(收入重构后金币贴地, 「持币 ≥6」再次不成立)—— **它的成立与否取决于经济参数**, 别当永久声明 | `./tools/unittest.sh`(四判据唯一一份)。⚑ **跑之前先跑三条秒级检查**:`parity.py --check && evsync.py --check && counts.py --check` |
 | CI | `.github/workflows/tests.yml`(push/PR 跑 `--import` + `unittest.sh`;**尚未在 GitHub 上验证过一次**,首跑可能要调 Godot 下载链接) | 推送即触发 |
-| 小丑牌覆盖门 | **64 张**(2026-08-30 三批转生:首批 9 张 +帕奇欧 · 二批 4 张规则牌 · 三批预支);单卡 kit 直跑 ~10 秒(不含单测)。✅ **kit 已认识消耗牌**(12→16 张全部量到) | `SYNC5_KIT_ID=<id> godot --headless --path . --script res://tools/kit.gd` |
+| 小丑牌覆盖门 | **64 张**(2026-08-30 三批转生:首批 9 张 +帕奇欧 · 二批 4 张规则牌 · 三批预支);单卡 kit 直跑 ~10 秒(不含单测)。✅ **kit 已认识消耗牌**(现 17 张) | `SYNC5_KIT_ID=<id> godot --headless --path . --script res://tools/kit.gd` |
 | 内容门 | **08-26 全量门跑完**(4.9h,对抗批新基线):五红三过期全部尸检处置(声明/仪器层,内容零改;细账 CHANGELOG 08-26b),ranking 已由 rankgen 重刷 | `./tools/gate.sh`(增量 = `--changed`) |
 | 求解器一致性 | **三关配对差 +0.0**(08-16 分级门) | `godot --headless --path . --script res://tools/pair.gd` |
 | 流程/打点/重放 | 0 违规 | 已并进 `gate.sh` |
@@ -40,7 +40,7 @@ Lumines 的节奏推进 + Balatro 的构筑。一局 4 段 × 6 拍 × 8 秒 ≈
 | | 现役 |
 |---|---|
 | 小丑牌 | **64 张** · **消耗牌 17 张**(2026-08-30 开轴 + 二批四张规则牌 + 三批预支, 见 [consumables](docs/design/consumables.md))。⚠ 这一行历史上写错过多次(23/61/63/76 都出现过)—— **一律以 `data/*.json` 的计数为准, 别手抄** |
-| Boss 脸 | **28 张在池**(按 `tier` 计 8/8/8/4,以 `faces.json` 有无 `tier` 为准)+ 5 张无 tier 未入池(unplugged/static/rotation/cover/freshsheet)。⚠ 此前三处写着 29/30/28 打架(2026-08-21 评审),以本行为准 |
+| Boss 脸 | **52 张在池**(按 `tier` 计 10/16/21/5,以 `faces.json` 有无 `tier` 为准;09-06 code review 实数)+ 7 张无 tier 未入池(unplugged/static/rotation/cover/freshsheet/redlight/patchin)。⚠ 以 `faces.json` 为准, 这一行的数会过期 |
 | 主角 | ~~8 个~~ **已删除**(2026-08-24 局外 build 整体删除,含被动层与全部立绘素材) |
 | 结构 | 4 段 × 6 拍 × 8 秒,每 3 拍一次商店 |
 
@@ -99,7 +99,7 @@ tools/bot.gd                   玩家策略(完美玩家 / 规则 bot)
 | `jokers.json` | 小丑牌(效果 DSL,`core/fx.gd` 解释) |
 | `faces.json` | Boss 脸(参数表 + `tier` + `proof` 通路 + `weak_upper_bound`)。**纯数据,散文一律在 `docs/design/blinds.md`,`db.gd` 拒绝散文键** |
 | `run.json` | 关卡结构 · 目标分 · `death_spec` · `beat_budget` |
-| `economy.json` `sim.json` `ui.json` `tape.json` | 经济(含 `joker_upgrade` 升级曲线)/ 机器人信念 / 界面坐标文案(blindcard·jokercard 与脸·卡**交叉校验**)/ 打点开关(含 `upload` 回传节) |
+| `economy.json` `sim.json` `ui.json` `tape.json` | 经济 / 机器人信念 / 界面坐标文案(blindcard·jokercard 与脸·卡**交叉校验**)/ 打点开关(含 `upload` 回传节) |
 | ~~`characters.json` `tickets.json` `assets.json`~~ | **已删除**(2026-08-24 局外 build 整体删除) |
 | `director.json` | B 轴剧本 + `context` 四开关(novelty/streak_shift/returning/explore_shelf) |
 | `ranking.json` | **仪器输出**(`price.gd` → `rankgen.py`),手改无效;校验守池脸完备性 |
@@ -110,7 +110,7 @@ tools/bot.gd                   玩家策略(完美玩家 / 规则 bot)
 
 ---
 
-## 工具链(`tools/`,55 个 .gd + 4 .py + 1 .sh)
+## 工具链(`tools/`;数量以 `ls tools/` 为准 —— 09-06 删了 5 个一次性探针, `tools/_*.gd` = 一次性件不进表;`tools/_tdomain.gd` / `SYNC5_TEST_DOMAINS` = 单域跑测)
 
 | 工具 | 干什么 | 耗时 |
 |---|---|---|
@@ -328,6 +328,9 @@ price 里 ration/trilogy/trilogy4 三个放置要用 `SYNC5_PRICE_ONLY` 单独�
 
 ## 增量快照(2026-08-10 ~ 09-05,与上文冲突时以本节为准)
 
+- **2026-09-06 · 全项目 code review**(细账 CHANGELOG 09-06):五线并行审 → 修 36 处 bug(重开不清债/碟/掷点 CRITICAL · 秒表死卡 · 替换流吞名额 · 压暗砧座可买 …)·
+  模型侧 14 处对齐(客串离场 / 掷骰种子 / 一局一把尺 / 随机源统一)· parity 第 ⑧ 层 · 删 36 条孤儿文案 + 5 死探针 + 十余处死码 · 文档 34 处。
+  快照分域单测绿;门/price 未跑(用户原则)。⚠ bot 读数基线又换。
 - **2026-09-05 晚 · 试玩三报闭环**(细账 CHANGELOG 09-05 晚):三张「本店」消耗牌(加急/赞助/挑高)在 5 选 1 下
   买下即关店 = **08-31 起是空白卡**, 各带 `extra_buys: 1` 修;加急 → 本店免费刷新 3 次;赞助折扣含刷新
   (`Economy.reroll_cost(n, delta)`, 地板 1◆);斗牛士卡面去黑话;**早收线 4.5 → 3.0s = `warning_offset`**

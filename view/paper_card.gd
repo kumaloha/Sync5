@@ -7,7 +7,6 @@ extends Button
 ## A–10 use the traditional pip layout, J/Q/K a large centred suit,
 ## 大王/小王 the jester mark. Red suits glow #ff6aa9, black #9fe9ff.
 
-const RATIO := 170.0 / 114.0     # design card is 114×170
 
 ## pip layout, ported verbatim from the spec:
 ## rank -> [[x%, y%, rotated, fontSize?], ...]   (L=29, R=71, C=50)
@@ -137,6 +136,7 @@ func _get_drag_data(_pos: Vector2) -> Variant:
 	if drag_payload.is_empty() or card == null:
 		return null
 	var prev := PaperCard.new()
+	prev.is_mirror = true   # 拖拽幽灵不带倒影(与 JokerSlotView._get_drag_data 同款)
 	prev.size = size
 	prev.setup(card)
 	prev.modulate = Color(1, 1, 1, 0.88)
@@ -209,7 +209,7 @@ func _accent() -> Color:
 		return StageTheme.SUIT_BLK
 	if mask_suit:
 		return StageTheme.DIM   # 蒙色:红粉/青蓝就是花色情报, 一并遮掉
-	return StageTheme.SUIT_RED if card.is_red() else StageTheme.SUIT_BLK
+	return StageTheme.suit_color(card)
 
 
 ## Chrome colour for the card's own trim — violet while the card sits in the

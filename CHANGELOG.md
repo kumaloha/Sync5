@@ -5,6 +5,56 @@
 
 ---
 
+## 2026-09-06(一)· 全项目 code review:五条线并行审, 修 bug · 清过期重复文档 · 精简代码
+
+用户:「接下来你全项目 codereview:1. bugfix 2. 找文档过期、重复的 3. 代码冗余的、不够精简的, 解决掉」。
+五个只读审查线并行(core 正确性 / view 正确性 / 模型与游戏一致性 / 文档过期重复 / 代码冗余), 每条带 文件:行号 与证据;
+我逐条复核后分四批修, 每批过快照单测(分钟级), **门 / price 不跑**(用户原则)。
+
+### ① 模型与游戏一致性(17 处不一致, 修 14, 3 处记 TODO)
+
+真机 bug 三条:**秒表是死卡**(08-31 主动收工退役后 `secs_left = cur_lock − elapsed` 在唯一的结算点恒 0;改按「最后一次动作距结算」计,
+与早收判据 B 同尺, 卡面「每提前 1 秒打完:+8%」)· **免费刷新推阶梯**(加急 3 次用完首刷跳到 6◆, 卡面说谎;免费不再计数)·
+**替换流吞掉联票名额**(满槽买新替旧时 `shop.close()` 清零授予、成交后直接开拍;改成只藏板、成交后按名额回商店, 帕奇欧一店只复制一次)。
+模型侧:RunLoop 从不 `next_section()`(客串永不离场)· 探针 `_roll_seed` 恒 0(掷类脸 1000 局同一结果)· 免费刷新分支不可达(买了加急 ⇒ buys=1)·
+首张 Target bot 全池最优(游戏 3 选 1)· 点名奖励货架位 / 联票刷新后位数 / 刷新阶梯 / 消耗牌到点时序 / 帕奇欧改离店 / 三处随机源统一到
+`deck.pick_index` · fork 补八个字段 · **模型一局两把尺**(结算链 `section_target` 读 run.json, 判生死读 bot_targets ⇒ 奖励分族 S4 被压 3 倍;
+`Run.target_table` 一份, RunLoop 设成 o.targets)。⚠ 四张时机卡与全体 bot 读数的基线**又换了**, 下次 price/sim 不可与旧读数比。
+`parity.py` 加第 ⑧ 层:Run 顶层字段 vs `RunLoop.fork` 反射对账(手写白名单本身也是手写的)。
+未做(记 TODO):5 张时间闸门脸(收线/封盘/加场/拆台/长收线)在 bot 里没有时钟;bot 早收掷点不看本拍有没有动作;求解器弃牌枚举看不见 `cache_rank_sum`(回收对完美玩家是空气)。
+
+### ② core / view 正确性(18 + 12 条, 修 22)
+
+**CRITICAL:重开不清 run 级状态** —— `Run.reset()` 不清 debt / 待播队列 / phrase_boosts / mod_roll / shelf_bonus:上一局的预支债在新局 S1 末被扣走或判死、
+排队的碟白播、死在 S1 重开则新局 S1 的掷类脸沿用旧掷点。模型每局 `Run.new()` ⇒ 门抓不到(「bug 只在游戏里」的反向形状);
+t_consumable 那条「新局不带债」断言测的是新对象默认值(假绿), 改成先写脏再 reset。
+其余:双封的缓存牌只挡对调不挡弃牌(封条跟着牌走, 两张都判)· `_roll_seed` 不进快照(续玩重掷且全员同种子)· `load_error` 漏 consumables ·
+消耗牌 `deck_rule`/`wilds` 值不校验 · `bot_targets` 长度不校验(正是「截断成放水盘」的形状)· 孤注赢的那拍浮标写「×0.5」(多条效果只留第一条)·
+拔电下没削到也算「咬」· 万能牌标签 `☆H → ☆D` 往返不闭合(Tape 重放假违规)· 利息的死门 `coins_gte 4` 与卡面漏写上限 · 点数区间脸下补牌 null 落手 ·
+**`bonus_target_pct` 两套语义**(消耗牌乘整段目标, 小丑牌乘每拍目标, 差 6 倍;统一为每拍目标, 快闪 0.095 → 0.57 等值)。
+view:压暗的砧座仍能买(4◆ 打水漂还吃掉唯一名额)· 替换流的价漏掉赞助折扣(标 2◆ 收 3◆)· 没钱弃牌时浮字说「选中有被封的牌」(金币分支不可达)·
+点唱机 `_rule_next` 跨局 · 挑高对续买补货失效 · INTRO 暂停会被特写 tween 推出状态 · 暂停键悬在商店 / 结算屏上按了没反应 · 拖拽预览多一层倒影 · 唱片被盖住时仍每帧重画。
+
+### ③ 精简(36 条, 做 30)
+
+死码:joker_slot 的 `_chips/_mult_for/_icon_for` + 7 条指向已转生 id 的 match 臂 · `free_rerolls_left` · `FxBurst.busy` · `SaveState._reset_cache_for_tests` ·
+theme 九个 const · widgets 三个 const · `PaperCard.RATIO` · `Bot.DRAFT_BEATS` · `hand.LIFT_SCORING`+`ui.lift_scoring` · `ui.cons_tab*`+lingo「消 耗 品」·
+`sim.lonewolf_value`(只被自己的校验器吊着命)· **lingo 36 条孤儿键**(t_lingo 加反向断言:表里每个键都得有人用)· `Deck.recycle`。
+两个家收口:`StageTheme.suit_color` · `GameConfig.avg_beat_target`(三份)· `RunLoop.cleared_sections`(两份)· **`Consumable.roll_shelf`**(消耗牌货架掷牌, 游戏/bot 两份逐行同构)·
+lift 的 `_mean` → `Stat.mean` · `Joker.by_id` 不再每次建整池(137 个调用点)· `probbook.py RULES` 从数据推导(手抄的四个名字两个已不存在、两个真规则牌漏掉)。
+死探针删 5(blindtime / swapprobe / faceshot / blind_sheet(画的是小盲时代)/ key_sheet);测试冗余删 4 处。
+⚠ 一次删函数的脚本把 `core/save.gd` 的 `static` 留了半截 ⇒ 全树解析失败 161 红 —— 改完批量删码要先 `--check-only` 逐文件过语法, 再跑测试。
+
+### ④ 文档(40 条, 做 34)
+
+三处「把已删机制当施工图写着」:consumables.md §2 交互(栏位 / 实时可点 / 唱片不能挪)整节重写 · levels.md 经济横幅(自己写着弃牌免费 / 洗牌 / 4/6/9◆, 三条全反)·
+ui_meta.md 点唱片提前收工整节加退役横幅。数字:开局 8◆(三处写 10)· 工资 1◆(三处写 3)· S4 1680(三处写 5600)· 脸 52 在池 10/16/21/5(STATUS 写 28)·
+7 次商店(三处写 8)· 消耗牌 17 · `early_finish_left` · 平价 3◆ · beat_budget · bot_targets · 死链四处(`agree.gd` / `min_rank` / visual 路径 / 升级三原则)·
+README 补四篇漏列、⑪ 重号。CLAUDE.md 两段证据压成原则(单测秒数 / 奖励分族读数)。taptap.md 加推翻横幅。
+未做:CLAUDE.md 经济四条与 levels/numbers 的多份重复(留一份指针 —— 下次动经济时一起)· docscan 的 GONE 粒度。
+
+---
+
 ## 2026-09-05(日 晚)· 试玩三报:三张「本店」消耗牌买了什么都不发生 · 斗牛士的黑话 · 早收线从没对过真人
 
 用户报三条:「免费刷新一次的消耗牌卖 3◆, 和直接点刷新没区别」·「脸的规则咬到你的拍, 看不懂」·

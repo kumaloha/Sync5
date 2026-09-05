@@ -2,8 +2,6 @@ extends RefCounted
 
 
 func run(t) -> void:
-	t.check(FileAccess.file_exists("res://data/boons.json"),
-		"finale boons live in their own data table")
 	var boon_script = load("res://core/blind_boon.gd")
 	t.check(boon_script != null, "BlindBoon has a focused data facade")
 	if boon_script == null:

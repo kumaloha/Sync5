@@ -280,6 +280,10 @@ func run(t) -> void:
 	t.check(not double_seal.swap_with_cache(0, oldest_i), "the oldest cache object cannot swap")
 	t.check(double_seal.swap_blocked_cache().has(double_seal.sealed_cache_card),
 		"the view model can mark the sealed cache object before a drag")
+	# 2026-09-06:封条挡的是「动」—— 弃牌也算动(此前只挡对调, 缓存那张选中一弃就绕过了封条)
+	t.check(not double_seal.can_discard_selected([], [oldest_i]), "the sealed cache object cannot be discarded either")
+	t.check(double_seal.discard_blocked_cache().has(double_seal.sealed_cache_card),
+		"discard_blocked_cache marks the sealed cache object, not the hand one")
 
 	# lowend searches the available deck for a 2..9 refill without consuming high cards.
 	var low_deck := Deck.new(310)

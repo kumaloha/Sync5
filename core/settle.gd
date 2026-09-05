@@ -116,8 +116,10 @@ static func run(result: Dictionary, slots: Array, extra: Dictionary) -> Dictiona
 		if not continue_next and b.has("bonus"):
 			ctx.bonus = int(ctx.bonus) + int(b["bonus"])
 		if not continue_next and b.has("bonus_target_pct"):
+			# 与小丑牌的 `bonus_target_pct`(core/fx.gd)同口径 = **每拍**目标分(段目标 / 拍数)的百分比。
+			# 2026-09-06 code review:此前这里乘的是整段目标, 同一句「+目标分 N%」在两种卡上差 6 倍;快闪 0.095 → 0.57 等值重标。
 			ctx.bonus = int(ctx.bonus) + int(round(float(b["bonus_target_pct"])
-				* float(extra.get("section_target", 0))))
+				* float(extra.get("section_target", 0)) / float(GameConfig.PHRASES_PER_SECTION)))
 		if not continue_next and b.has("additive"):
 			ctx.additive = int(ctx.additive) + int(b["additive"])
 	var pre_joker_mult: float = ctx.mult
@@ -148,7 +150,11 @@ static func run(result: Dictionary, slots: Array, extra: Dictionary) -> Dictiona
 	# rounding makes two +3 effects become +4 at half power; aggregate rounding
 	# correctly makes their combined +6 become +3.
 	if patch_power < 1.0 and not patch_restored:
-		face_bit = true
+		# 只有小丑牌真的贡献了东西、被削掉了才算「咬」(2026-09-06;与本函数口径「只记事实」一致)
+		if int(ctx.additive) != pre_joker_additive or int(ctx.bonus) != pre_joker_bonus \
+				or float(ctx.bonus_pct) != pre_joker_bonus_pct \
+				or (pre_joker_mult > 0.0 and float(ctx.mult) != pre_joker_mult):
+			face_bit = true
 		ctx.additive = pre_joker_additive + int(round(
 			float(int(ctx.additive) - pre_joker_additive) * patch_power))
 		ctx.bonus = pre_joker_bonus + int(round(

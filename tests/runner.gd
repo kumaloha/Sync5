@@ -90,7 +90,7 @@ func _bonus(joker_id: String) -> int:
 			if do.has("bonus"):
 				return int(do["bonus"])
 			if do.has("bonus_target_pct"):
-				return int(round(float(do["bonus_target_pct"]) * _avg_beat_target()))
+				return int(round(float(do["bonus_target_pct"]) * GameConfig.avg_beat_target()))
 	return 0
 
 
@@ -108,25 +108,10 @@ func _bonus_n(joker_id: String, n: int) -> int:
 			if do.has("bonus"):
 				return int(do["bonus"]) * n
 			if do.has("bonus_target_pct"):
-				return int(round(float(do["bonus_target_pct"]) * _avg_beat_target() * float(n)))
+				return int(round(float(do["bonus_target_pct"]) * GameConfig.avg_beat_target() * float(n)))
 	return 0
 
 
-## 一局的平均每拍目标 —— `bonus_target_pct` 的换算基准。
-## ⚑ 与 `core/fx.gd` 的退路、`tools/bot.gd::_avg_beat_target()` **三处同源**,
-## 都从 `SECTION_TARGETS` 推导 ⇒ 目标分一改三处一起动, 不会漂开。
-func _avg_beat_target() -> float:
-	var t := 0.0
-	for v in GameConfig.SECTION_TARGETS:
-		t += float(v)
-	var n := float(GameConfig.SECTION_TARGETS.size())
-	if n <= 0.0:
-		return 0.0
-	return t / n / float(GameConfig.PHRASES_PER_SECTION)
-
-
-## 任意 do 通道的数额(additive / additive_face_value / chips_per_card …)——
-## 同上理由(2026-08-12 v3 改基牌重定价又红了 3 条手抄断言, 补这个通用口)。
 func _do_amount(joker_id: String, key: String) -> float:
 	for e in DB.jokers():
 		if String(e["id"]) != joker_id:

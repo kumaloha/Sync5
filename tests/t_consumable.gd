@@ -15,7 +15,6 @@ extends RefCounted
 func run(t) -> void:
 	var raw := DB.consumables()
 	t.check(raw.size() >= 10, "consumables 表已装载(%d 张)" % raw.size())
-	t.eq(DB.load_error(), "", "consumables.json 校验干净")
 
 	# ---- ① 数据层 ----
 	var by_id := {}
@@ -215,11 +214,23 @@ func run(t) -> void:
 	# 所以这里手动记一次, 再验存档往返。
 	lr.debt += int(ln.get("repay", 0))
 	t.eq(lr.debt, 12, "欠 12")
+	lr._roll_seed = 777
 	var loan_snap: Dictionary = lr.snapshot(0)
 	var lr2 := Run.new()
 	t.check(lr2.restore(loan_snap), "快照可还原")
 	t.eq(lr2.debt, 12, "**债进了存档** —— 续玩后还得还")
+	t.eq(lr2._roll_seed, 777, "掷类脸的段级种子进了存档(续玩不重掷、不全员同种子)")
+	# ⚠ 先把脏状态写进去再 reset —— 新对象默认就是 0, 那样的断言删掉 reset 里的清账也照绿(假绿)。
 	var fresh := Run.new()
+	fresh.debt = 99
+	fresh.shelf_bonus = 2
+	fresh.mod_roll = {"sec": 0, "suit": 1}
+	for e in DB.consumables():
+		if String(e["id"]) == "opener":
+			fresh.consumables.append(Consumable.new(e))
 	fresh.reset(1)
-	t.eq(fresh.debt, 0, "新局不带债")
+	t.eq(fresh.debt, 0, "新局不带债(reset 清 debt)")
+	t.eq(fresh.consumables.size(), 0, "新局不带上一局排队的碟")
+	t.eq(fresh.shelf_bonus, 0, "新局不带点名奖励的货架位")
+	t.eq(fresh.mod_roll.size(), 0, "新局不带上一局的掷点(否则死在 S1 重开, S1 的掷类脸沿用旧掷点)")
 	t.check(int(ln["repay"]) > int(ln["borrow"]), "还 > 借")

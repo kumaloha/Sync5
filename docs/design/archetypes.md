@@ -6,7 +6,7 @@
 > 要求把流派找全,然后重设数值 + 增删改小丑牌。
 >
 > 原作流派全目录(42 条,15+ 来源交叉)见 [`research_balatro_builds.md`](research_balatro_builds.md)。
-> 卡片层候选池见 [`jokers_atlas.md`](jokers_atlas.md)(60 张口径已定稿)——
+> 卡片层候选池见 [`jokers_atlas.md`](jokers_atlas.md)(张数以 `data/jokers.json` 为准)——
 > 本篇是**流派层**,落到卡片时向那份 60 名单提修正案(§5),不另开第二个候选池。
 
 ---

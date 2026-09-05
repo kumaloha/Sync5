@@ -148,11 +148,6 @@
   "shredder": 2.0,
   "wrecker": 2.1
  },
- "lonewolf_value": {
-  "high_prior": 0.35,
-  "mult": 3.0,
-  "vow_discount": 0.5
- },
  "ev": {
   "blend_w": 6.0,
   "mult_prior": 1.6,
@@ -228,7 +223,9 @@
     "late": 0.25,
     "early": 0.25
    },
-   "seconds_left_early": 3.2,
+   "seconds_left_early": 3.6,
+   "seconds_left_other": 1.5,
+   "_comment_seconds_left": "秒表读的「最后一次动作距结算的秒数」(2026-09-06 与游戏侧对齐;此前游戏侧恒 0 = 死卡)。真人 Tape 08-31 起:剩 ≥3s 的拍均 3.6, 其余动过手的拍均 1.5;一拍不动手 = 0(bot 恒动手)。",
    "cards": {
     "finale": {
      "late": 0.7

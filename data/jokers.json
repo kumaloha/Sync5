@@ -299,12 +299,9 @@
    "rarity": "uncommon",
    "curve": "floating",
    "proof": "coin",
-   "fx": "+1 coin per 8 held",
+   "fx": "+1 coin per 8 held, max 3",
    "effects": [
     {
-     "when": {
-      "coins_gte": 4
-     },
      "do": {
       "coins": 1,
       "per": "coins:8",
@@ -1024,7 +1021,7 @@
    "rarity": "uncommon",
    "curve": "burst",
    "proof": "score",
-   "fx": "+8% per second left at settle",
+   "fx": "Each second finished early: +8%",
    "effects": [
     {
      "do": {

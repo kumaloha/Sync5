@@ -54,6 +54,18 @@ static var EARLY_DISCARD_WINDOW: float = float(_run["early_discard_window"])
 ## 两个数若要分开, 必须先给早收线自己画一条可见的线, 否则规则又回到看不见。
 static var EARLY_FINISH_LEFT: float = float(_run["early_finish_left"])
 
+
+## 一局的平均每拍目标 —— `bonus_target_pct` 没有真实段目标时的换算基准(求解器的假想局面)。
+## ⚑ 只此一份(2026-09-06 收口:此前 core/fx.gd · tools/bot.gd · tests/runner.gd 各抄了一份)。
+static func avg_beat_target() -> float:
+	var t := 0.0
+	for v in SECTION_TARGETS:
+		t += float(v)
+	var n := float(SECTION_TARGETS.size())
+	if n <= 0.0:
+		return 0.0
+	return t / n / float(PHRASES_PER_SECTION)
+
 # --- Card flow ---
 static var HAND_SIZE: int = int(_run["hand_size"])
 static var CACHE_CAP: int = int(_run["cache_cap"])

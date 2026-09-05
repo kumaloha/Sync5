@@ -34,9 +34,9 @@
    "name": "Pop-Up",
    "price": 3,
    "fire": "next",
-   "fx": "Next beat: +9.5% of target",
+   "fx": "Next beat: +57% of target",
    "boost": {
-    "bonus_target_pct": 0.095
+    "bonus_target_pct": 0.57
    },
    "proof": "score"
   },

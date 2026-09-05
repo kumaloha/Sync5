@@ -61,10 +61,10 @@ static func from_label(s: String) -> Card:
 	if su < 0:
 		return Card.new(-1, 0)
 	var rs := s.substr(0, s.length() - 1)
-	if rs == "★":
-		return Card.new(JOKER_RANK, JOKER_BIG)
-	if rs == "☆":
-		return Card.new(JOKER_RANK, JOKER_LITTLE)
+	# 万能牌保留花色位(2026-09-06):超级百搭注入的是 suit 2/3, 写成 "☆H"/"☆S";此前一律还原成 suit 1 ⇒
+	# label → from_label → label 不闭合, Tape 重放拿手牌集合比对时报假违规。
+	if rs == "★" or rs == "☆":
+		return Card.new(JOKER_RANK, su)
 	for r in RANK_NAMES:
 		if RANK_NAMES[r] == rs:
 			return Card.new(int(r), su)

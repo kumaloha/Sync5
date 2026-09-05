@@ -131,12 +131,6 @@ func _reshuffle_discard() -> void:
 	shuffle()
 
 
-## 洗牌动作用(2026-08-26):把弃牌堆整体洗回抽牌堆 —— 与 draw 抽空时的自动回收
-## 同一条路径, 只是把入口交给玩家(付费, 编排器扣钱)。堆里的 JOKER 全部回到可抽态。
-func recycle() -> void:
-	draw_pile.append_array(discard_pile)
-	discard_pile.clear()
-	shuffle()
 
 ## 设想抽 n 张但**不消耗牌堆**(docs/design/solver_roadmap.md:求解器是在"算", 不是在"玩" ——
 ## 真去 draw() 会让求解本身改变游戏状态, 那就不是同一局了)。

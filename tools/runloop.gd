@@ -113,6 +113,11 @@ static func play(o: Opts, bot: Bot) -> Dictionary:
 	# 唯一消费者 `next_request_goal`(request 脸当值时每拍一掷)⇒ 约 1/8 的局随进程变,
 	# 正是 sim A/A「1000 局翻 1 局」的形状。派生自 deck_seed, 不碰共享主流。
 	run._blind_rng.seed = o.deck_seed * 31 + 7
+	# ⚠ 掷类脸(轮盘 / 变色灯 / 点名)的段级明掷也要有种子(2026-09-06 code review):RunLoop 不调 `roll_faces`,
+	# `_roll_seed` 停在 0 ⇒ 1000 局掷出**同一个值**, 三张脸的方差整个塌了。同一条派生纪律。
+	run._roll_seed = o.deck_seed * 97 + 13
+	# 模型一局一把尺:结算链里的 `section_target`(奖励分族基数)与判生死用同一张表(core/run.gd::target_table)。
+	run.target_table = o.targets
 	var st: Dictionary = o.st if not o.st.is_empty() else _fresh_st()
 	var coins: int = run.coins
 	var total := 0
@@ -132,11 +137,11 @@ static func play(o: Opts, bot: Bot) -> Dictionary:
 			var p := Beat.begin(run)      # 脸 / 发牌 / 入场费全在这一句
 			if o.on_begin.is_valid():
 				o.on_begin.call(run, p)   # ⚠ 决策**之前**
-			var flags := _play(o, bot, p, run, section, mod)
-			# ⚑ 拍内消耗牌(2026-08-29):在**看过手牌、做完动作之后**决定烧不烧 ——
-			# 这正是「实时可点」相对「商店里用」的全部价值(用户拍板:商店里用
-			# 「有点怪」)。放在 settle 之前, 所以加成能进这一拍的乘法链。
+			# ⚑ 到点的消耗牌在**决策之前**播(2026-09-06 code review, 与 view/phrase.gd `_fire_due_consumables`
+			# 紧跟 `Beat.begin` 同刻)。08-29「看过手牌再决定烧不烧」那条随 09-01 全自动触发一起没了 ——
+			# 放在决策之后会让万能牌 / 修剪在模型里晚一拍生效。
 			bot._consumable_in_beat(run, p, section, pidx)
+			var flags := _play(o, bot, p, run, section, mod)
 			# ⚠ 必须在 `Beat.settle` **之前**抓 —— 它在里面就被更新了。
 			var prev_kind_before := run.prev_kind
 			var outcome := Beat.settle(run, p, flags)
@@ -204,6 +209,10 @@ static func play(o: Opts, bot: Bot) -> Dictionary:
 		# 那一次幻影商店的剩余拍是 0(`ev × horizon` 恒为 0, 实测买入率 0%), 所以它
 		# 几乎不改读数 —— 但它是**「规则在游戏里、在模型里不一致」的反方向一例**,
 		# 而这个形状本项目已经栽过五次。不留。
+		# ⚑ 段边界走 `run.next_section()`(2026-09-06 code review):客串(section_life)到寿离场只发生在那里,
+		# 此前 RunLoop 只 `reset_section_state()` ⇒ 租赁卡在模型里永不离场。与游戏同序:先谢幕, 再开段末商店。
+		if section < GameConfig.SECTIONS_PER_RUN - 1:
+			run.next_section()
 		if o.shop and section < GameConfig.SECTIONS_PER_RUN - 1:
 			coins = bot._draft(run.joker_slots, o.cfg, run.deck, coins, st,
 				_left(section, GameConfig.PHRASES_PER_SECTION), section, o.faces,
@@ -267,6 +276,17 @@ static func _tally(st: Dictionary, outcome: Dictionary, tally_score: bool = true
 ##
 ## ⚠ 两条对照臂用**同一个 seed** fork —— 公共随机数, 噪声成对抵消。
 ## 这是全项目第五处公共随机数;前四处的教训都是「独立采样让噪声吃掉真实差异」。
+## 一局通过了几段(逐段比 `Run.section_target_for`, 遇负即止)—— wallet/decay 两个探针共用这一份(2026-09-06 收口)。
+static func cleared_sections(sec_scores: Array, faces: Dictionary, targets: Array) -> int:
+	var k := 0
+	for i in range(sec_scores.size()):
+		var tgt := Run.section_target_for(targets, i, String(faces.get(i, "")))
+		if float(sec_scores[i]) < float(tgt):
+			break
+		k += 1
+	return k
+
+
 static func fork(run: Run, seed_value: int) -> Run:
 	var r := Run.new()
 	r.deck = run.deck.fork(seed_value)
@@ -292,6 +312,19 @@ static func fork(run: Run, seed_value: int) -> Run:
 	r.request_last = run.request_last
 	r.previous_raw_score = run.previous_raw_score
 	r.tutorial = run.tutorial
+	# 2026-09-06 code review 又补六样:镜面读的 prev_target_hit · 掷类脸的 mod_roll/_roll_seed(推演里不重掷)·
+	# 预支的 debt · 待播队列(深拷贝, 推演不许催老真实的碟)· 点名奖励的 shelf_bonus · 模型的目标表。
+	r.prev_target_hit = run.prev_target_hit
+	r.mod_roll = run.mod_roll.duplicate(true)
+	r._roll_seed = run._roll_seed
+	r.debt = run.debt
+	r.shelf_bonus = run.shelf_bonus
+	r.target_table = run.target_table
+	r.consumables = []
+	for c in run.consumables:
+		r.consumables.append(c.clone())
+	r.phrase_boosts = run.phrase_boosts.duplicate(true)
+	r.last_section_phrases = run.last_section_phrases
 	r._blind_rng.seed = seed_value * 131 + 17   # 派生种子:推演可复现, 不碰本尊的流
 	r.stage = Run.Stage.DECISION         # Beat 的状态机从"可以开拍"起步
 	return r

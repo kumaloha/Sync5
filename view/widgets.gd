@@ -559,9 +559,6 @@ class StageCard:
 	## 「玻璃板里面卡别的图层是很难动」针对的是**有边界的板/贴图矩形**。曾照 html 的 `inset:34px` 搬过一层
 	## 内衬深底 + 渐变贴图矩形, 两组可见的矩形边被用户点名(「内置矩形」), 已删。
 	## **别再加外发光/主色描边/第二块内板** —— 都是凭空多出来的。
-	const LINE_INSET := 30.0      # 白线距外框(显示像素, 设计稿 4.9%×640≈31)
-	const PANEL_INSET := 34.0     # 内衬深底, 设计稿 inset:34px
-	const PANEL_RADIUS := 18.0    # 设计稿 border-radius:18px
 
 	## `ins` = 白线距外框(大卡 30 / 玩家条这种小件要按比例缩), 内衬深底再往里 4。
 	## `lit_only` = 只画会发光的部分(线 + 一层极淡玻璃膜), 给倒影用 ——
@@ -1398,7 +1395,6 @@ class ConsumableSlot:
 	## 而消耗牌 100% 一次性。比靠颜色区分强 —— 色弱也读得出来。
 	## ⚑ 与唱片位排队时的碟是**同一样东西**:商店里你买的是这张碟, 买完它排进歌单。
 	## ⚠ 局内的两格栏位已随「全部自动触发」退役, 所以这个类现在**只有商店用**。
-	signal used(idx: int)
 	var idx := 0
 	var accent := Color.WHITE
 	var label := ""          # 卡的短名(cn/en 走 Lingo.pick, 由调用方填)
@@ -1428,11 +1424,7 @@ class ConsumableSlot:
 		focus_mode = Control.FOCUS_NONE
 		for st in ["normal", "hover", "pressed", "disabled", "focus"]:
 			add_theme_stylebox_override(st, StyleBoxEmpty.new())
-		pressed.connect(func() -> void:
-			if filled and armed:
-				used.emit(idx)
-			else:
-				shake())   # ⚠ 点不动也要有反馈 —— 被拒绝的点击不许无声(DJKey 同款)
+		# 点击的判据只在 Shop._on_cshelf_pressed 一处(armed / 买得起 / 成交), 这里不再各跑一套(2026-09-06)。
 
 	func shake() -> void:
 		_shake_t = 0.35

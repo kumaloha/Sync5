@@ -50,6 +50,29 @@ func run(t) -> void:
 	for path in files:
 		_scan_source(t, table, path)
 
+	# ---- ③b 反向:表里的每个键都得有人用(2026-09-06 code review 删掉 36 条孤儿后加的锁)----
+	# 此前只有单向校验(上屏的都在表里), 改文案时旧行不删也不红 ⇒ 死条目以改文案的速度长回来。
+	var hay := ""
+	for dir in ["res://view", "res://core", "res://tools", "res://tools/art", "res://tests"]:
+		for f in DirAccess.get_files_at(dir):
+			if String(f).ends_with(".gd"):
+				var fa := FileAccess.open(dir + "/" + String(f), FileAccess.READ)
+				if fa != null:
+					hay += fa.get_as_text() + "\n"
+	for f in DirAccess.get_files_at("res://data"):
+		if String(f).ends_with(".json") and String(f) != "lingo.json":
+			var fa := FileAccess.open("res://data/" + String(f), FileAccess.READ)
+			if fa != null:
+				hay += fa.get_as_text() + "\n"
+	var mfa := FileAccess.open("res://assets/jokers/manifest.json", FileAccess.READ)   # 美术线 manifest 的 amount 也是消费者
+	if mfa != null:
+		hay += mfa.get_as_text() + "\n"
+	var orphans: Array = []
+	for k in table:
+		if not String(k).begins_with("_") and hay.find(String(k)) < 0:
+			orphans.append(k)
+	t.check(orphans.is_empty(), "lingo.json 里没人用的键(改了文案要删旧行):%s" % str(orphans))
+
 	# ---- ④ 行为 ----
 	Lingo.force("en")
 	t.eq(Lingo.t("弃牌"), "Discard", "t() translates in en")

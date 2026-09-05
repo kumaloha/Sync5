@@ -85,6 +85,8 @@ func set_queue(q: Array) -> void:
 
 
 func _process(delta: float) -> void:
+	if not is_visible_in_tree():
+		return   # 首页 / 图鉴 / 商店整屏盖着时不转不画(2026-09-06)
 	_angle += 0.5 * delta
 	queue_redraw()
 

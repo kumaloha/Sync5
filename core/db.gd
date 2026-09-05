@@ -56,6 +56,7 @@ static func load_error() -> String:
 	ranking()
 	lingo()
 	profile()
+	consumables()   # 2026-09-06:此前漏了它 —— 校验只挂在 t_consumable 先调一次的语句顺序上
 	return _err
 
 
@@ -1097,7 +1098,8 @@ static func _validate_effects(effects: Array, owner: String, counters: Dictionar
 const _CONSUMABLE_ACTIONS := ["wilds", "trim_low", "deck_rule", "shelf_slots",
 	"extra_buys", "price_delta", "rule_guaranteed", "free_reroll", "min_rarity",
 	"copy_one_destroy_rest", "loan"]
-## 当拍加成的通道 —— 与 `core/settle.gd` 里 phrase_boosts 那段消费的键一一对应。
+## 当拍加成的通道 —— 键名与 `core/settle.gd` 里 phrase_boosts 那段消费的一致;⚠ 语义由 settle 那段
+## 手写解释(不经过 Fx), 2026-09-06 起 `bonus_target_pct` 与小丑牌同口径 = **每拍**目标分的百分比。
 const _CONSUMABLE_BOOSTS := ["bonus_pct", "mult", "bonus", "bonus_target_pct",
 	"additive", "chance"]
 
@@ -1139,6 +1141,12 @@ static func validate_consumables(d: Dictionary) -> String:
 			if not _CONSUMABLE_ACTIONS.has(String(ak)):
 				return "consumable '%s' 的 action 键 '%s' 不认识, 只能是 %s" \
 					% [cid, ak, str(_CONSUMABLE_ACTIONS)]
+			# 值也要查(2026-09-06):规则牌全在消耗牌这一侧, 而值校验此前只在小丑牌那边 —— 写成旧名
+			# `twotone` 会全绿, 然后 Pattern 不认识它, 4◆ 的卡什么也不做。
+			if String(ak) == "deck_rule" and not _DECK_RULES.has(String(e["action"][ak])):
+				return "consumable '%s' 的 deck_rule '%s' 不认识, 只能是 %s" % [cid, e["action"][ak], str(_DECK_RULES)]
+			if String(ak) == "wilds" and (int(e["action"][ak]) < 2 or int(e["action"][ak]) > 6):
+				return "consumable '%s' 的 wilds 必须在 2..6" % cid
 		# boost 走的是 Fx 的通道名, 与小丑牌同一批 —— 这里只挡明显的手滑。
 		for bk in e.get("boost", {}):
 			if not _CONSUMABLE_BOOSTS.has(String(bk)):
@@ -1222,9 +1230,18 @@ static func validate_jokers(d: Dictionary) -> String:
 
 static func validate_sim(d: Dictionary) -> String:
 	for k in ["runs", "cohorts", "kind_prior", "counterfactual_tv",
-			"lonewolf_value", "ev", "chase", "solver"]:
+			"ev", "chase", "solver", "bot_targets"]:
 		if not d.has(k):
 			return "missing key '%s'" % k
+	# bot_targets 与 run.json 的 section_targets 同一条校验(2026-09-06):表短了 `section_target_for` 会
+	# 静默用末段共用一个偏低目标 —— 正是「截断成放水盘」那次坏了一整天的形状, 而它一直没被查。
+	var bt = d["bot_targets"]
+	var want_n: int = int(run()["sections_per_gig"]) * int(run()["gigs_per_run"])
+	if not (bt is Array) or bt.size() != want_n:
+		return "bot_targets wants %d entries" % want_n
+	for v in bt:
+		if float(v) <= 0.0:
+			return "bot_targets must be positive"
 	# 平衡贪心的权重 (docs/design/solver_roadmap.md)。lam < 0 会把「养牌」变成「主动毁缓存」;
 	# lam_samples < 1 会让 cache_value 恒为 0, 于是 lam 静默失效 —— 那正是最难发现的
 	# 一类失效:参数还在配置里写着, 行为却已经退化成单拍贪心。

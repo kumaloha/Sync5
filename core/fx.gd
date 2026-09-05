@@ -52,8 +52,9 @@ static func apply_effects(effects: Array, state: Dictionary, ctx: Dictionary) ->
 		if not _when_ok(e.get("when", {}), state, ctx):
 			continue
 		var text := _do(e["do"], state, ctx)
-		if popup == "" and text != "":
-			popup = text
+		# 多条效果的浮标拼起来(2026-09-06):孤注是 [恒 ×0.5, 半率 ×4] 两条, 只留第一条 ⇒ 赢的那拍屏幕上写「×0.5」。
+		if text != "":
+			popup = text if popup == "" else popup + " " + text
 	return popup
 
 
@@ -382,12 +383,7 @@ static func _do(d: Dictionary, state: Dictionary, ctx: Dictionary) -> String:
 				if st > 0:
 					per_beat = float(st) / float(GameConfig.PHRASES_PER_SECTION)
 				else:
-					var tot := 0.0
-					for v in GameConfig.SECTION_TARGETS:
-						tot += float(v)
-					var n := float(GameConfig.SECTION_TARGETS.size())
-					if n > 0.0:
-						per_beat = tot / n / float(GameConfig.PHRASES_PER_SECTION)
+					per_beat = GameConfig.avg_beat_target()   # 只此一份(2026-09-06 收口)
 				var amt_pts: int = int(round(per_beat * contrib))
 				if amt_pts == 0:
 					return ""

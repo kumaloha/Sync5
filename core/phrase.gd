@@ -194,7 +194,9 @@ func can_discard_selected(hand_indices: Array, cache_indices: Array = []) -> boo
 		if i < 0 or i >= cache.size() or seen_cache.has(i):
 			return false
 		seen_cache[i] = true
-		if cache[i] == sealed_hand_card:
+		# 封条跟着**牌**走(t_phrase「moved seal」):被封的手牌可以被路由进缓存, 在那里仍不可弃;
+		# 而缓存自己那张封条(双封的 sealed_cache_card)此前**没判** ⇒ 只挡对调不挡弃牌, 卡面「动不了」说了一半谎(2026-09-06)。
+		if cache[i] == sealed_hand_card or cache[i] == sealed_cache_card:
 			return false
 	return true
 
@@ -229,6 +231,8 @@ func discard_selected(hand_indices: Array, cache_indices: Array = []) -> bool:
 		hidden.erase(hand[i])
 		deck.discard(hand[i])
 		hand[i] = _draw_refill()
+		if hand[i] == null:
+			hand[i] = deck.draw()   # 点数区间脸下两堆都没有合规牌:退回普通抽, 手里不许留 null(结算会崩)
 		if hand[i] != null and (blind_refill \
 				or (face_refill and hand[i].rank >= 11 and hand[i].rank <= 13)):
 			hidden[hand[i]] = true
@@ -348,7 +352,9 @@ func swap_blocked_cache() -> Dictionary:
 func discard_blocked_cache() -> Dictionary:
 	var out := {}
 	if sealed_hand_card != null:
-		out[sealed_hand_card] = true
+		out[sealed_hand_card] = true   # 移进缓存的手牌封条仍要标(视图按对象标, 不按区)
+	if sealed_cache_card != null:
+		out[sealed_cache_card] = true
 	return out
 
 

@@ -124,7 +124,7 @@ class SpyBot extends Bot:
 			# 没买 —— 三选一。预算 = 进店余额 − 刷新花掉的, 满槽时还能加上折半回收。
 			var budget: int = coins_in - rerolls * Economy.reroll_cost(0)
 			if empty == 0:
-				budget += Economy.sell_value(before[_weakest_slot(before)])
+				budget += Economy.sell_value(before[_weakest_slot(before, {})])
 			if shelf.is_empty():
 				cat = CAT_NO_SUPPORT
 			elif cheapest > budget:
@@ -293,24 +293,11 @@ func _arm(cfg: Dictionary, solve: bool, n: int, seed0: int, spy: bool = true) ->
 		out["score"].append(float(res["total"]))
 		out["rerolls"].append(float(rr))
 		out["reroll_coins"].append(float(rc))
-		out["cleared"].append(float(_cleared(res["sec_scores"], faces)))
+		out["cleared"].append(float(RunLoop.cleared_sections(res["sec_scores"], faces, TARGETS)))
 		out["full_at"].append(float(full_at))
 		out["buys_after_full"].append(float(buys_after))
 		out["shops"].append_array(mine)
 	return out
-
-
-## 在录好的段分上**重放 bot_targets** 反解通关段数(curve.gd 的既有做法 ——
-## 不死局才能这么做, 真判生死会把后续段的数据整个截掉)。
-## ⚠ 判生死只有一份实现:`Run.section_target_for`。
-func _cleared(sec_scores: Array, faces: Dictionary) -> int:
-	var k := 0
-	for i in range(sec_scores.size()):
-		var tgt := Run.section_target_for(TARGETS, i, String(faces.get(i, "")))
-		if float(sec_scores[i]) < float(tgt):
-			break
-		k += 1
-	return k
 
 
 func _report_arm(title: String, arm: Dictionary) -> void:

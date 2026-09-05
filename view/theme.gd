@@ -11,11 +11,9 @@ extends RefCounted
 # 承担**(激光/探照灯/光斑/柔光/霓虹边), 底色不再贡献任何亮度 —— 这和五张玻璃卡
 # 参考图一致: 卡躺在纯黑上, 霓虹才炸得出来。
 const BG0 := Color("000000")
-const BG1 := Color("030308")
 const BG2 := Color("07070f")
 const INK := Color("eef1fb")
 const DIM := Color("9aa2c8")
-const FAINT := Color("5e669a")
 const LINE := Color(0.63, 0.71, 1.0, 0.22)
 # 主色以 assets/reference/ 的规格为准(2026-08-06 用户:「没有赛博朋克的感觉…
 # 这个蓝和你现在的蓝不一样」—— 逐个对了一遍, 五个常量全都比规格浅一档,
@@ -37,12 +35,8 @@ const SLATE := Color("7b88ab")   # 中性冷灰蓝: 全局 chrome(顶栏)用, �
 # #23cdff, 色相 197°)。旧值 5fa8ff 是 217° 的灰蓝 —— 赛博朋克感就是被它杀掉的。
 const BLUE := Color("23cdff")
 const RED := Color("ff3632")     # h.003 s.80 —— 纯红, 不是 354° 的珊瑚粉
-const SURFACE := Color("232b58")
-const SURFACE_DARK := Color("1b2247")
 
 # --- neon GLASS cards (spec: docs/mockups/整副卡牌.dc.html · 1a 玻璃底 × 2a 传统点阵) ---
-const GLASS_TOP := Color(30.0 / 255, 12.0 / 255, 32.0 / 255, 0.72)
-const GLASS_BOT := Color(10.0 / 255, 6.0 / 255, 20.0 / 255, 0.82)
 const GLASS_BODY := Color(0.078, 0.035, 0.102, 0.80)   # flat blend for the stylebox
 const SUIT_RED := Color("ff6aa9")                       # ♥ ♦
 const SUIT_BLK := Color("9fe9ff")                       # ♠ ♣
@@ -56,9 +50,6 @@ static func frame_color(card: Card) -> Color:
 	return FRAME_RED if card.is_red() else FRAME_BLK
 
 # kept so older call sites still compile
-const PAPER0 := GLASS_BODY
-const PAPER_EDGE := FRAME_BLK
-const PAPER_INNER := Color(0.63, 0.71, 1.0, 0.22)
 
 static var _fonts := {}
 

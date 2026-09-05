@@ -157,7 +157,7 @@ currency, never just inflates the number):
 
 ## Support quota table (batch-2 时代的 15 张口径,历史保留)
 
-> ⚑ **60 张口径的配额表在 [`jokers_atlas.md`](jokers_atlas.md) §0**(2026-08-10 起生效):
+> ⚑ **配额表在 [`jokers_atlas.md`](jokers_atlas.md) §0**(2026-08-10 起生效;张数以 `data/jokers.json` 为准, 现 64):
 > burst ~22 · fixed ~10 · growth ~8 · floating ~6 · decay ≤2;普 ~24 / 罕 ~18 / 稀 8(稀释保护);
 > 原则上限不随规模放大:复制 1 · 甜品 ≤2 · 衰减 ≤2 且不入稀有。
 
@@ -572,7 +572,7 @@ Structural findings:
   (真机一局期望 **2.1-2.5 次**,用户点名「太高了」)低一个量级,且**是算出来的不是拍的**。
   **实装结果**:5 张 Target 已填 `rarity: "rare"`;`target_swap{price,chance,from_section}`
   连同 `GameConfig.TARGET_SWAP_*` 三个常量、bot/shop 的两段特判分支**整体删除**;
-  价格走同一张价目表(首张仍免费, 之后 = 稀有档 **9◆**, 原专属价是 8◆)。
+  价格走同一张价目表(首张仍免费, 之后 = **平价 3◆**, 经济 v2;曾是稀有档 9◆)。
 
 **回归**(接 bot 侧那条门:`cfg.target` 强制的队列不许换旗,除非 `cfg.pivot`):
 
