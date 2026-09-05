@@ -188,17 +188,16 @@ func run(t) -> void:
 	t.eq(Settle.run(flush_res, [null, bass, null, null], {})["score"],
 		int(round(base * 1.5)), "bassline ×1.5 at 16 discards")
 
-	# mirror(2026-08-25 改造):连续两拍达成旗条件才生效 —— 上一拍也命中时复制半个,
-	# 上一拍没命中(或没有上一拍)时静默。必买卡从此要玩出来。
+	# mirror(2026-09-05 去连击):达成 Target 的拍就复制整个 Target 倍率。连击(08-25 加)是一条
+	# 玩家看不见的状态线 —— 与早收线同病 —— 且 09-04 量到 5.9% 低于 rare 带。`prev_target_hit` 有没有都一样。
 	var mirror := Joker.by_id("mirror")
 	var streak := {"prev_target_hit": true}
-	t.eq(Settle.run(flush_res, [Joker.by_id("mono"), mirror, null, null], streak)["score"],
-		int(round(float(base) * t._tmult("mono", "FLUSH")
-			* (1.0 + (t._tmult("mono", "FLUSH") - 1.0) * t._do_amount("mirror", "mult_from_target_factor")))),
-		"mirror copies the target on a streak (power from data; 2026-09-04 0.5 → 1.0)")
-	t.eq(Settle.run(flush_res, [Joker.by_id("mono"), mirror, null, null], {})["score"],
-		int(round(float(base) * t._tmult("mono", "FLUSH"))),
-		"mirror silent on the first hit — the streak needs two")
+	var copied := int(round(float(base) * t._tmult("mono", "FLUSH")
+		* (1.0 + (t._tmult("mono", "FLUSH") - 1.0) * t._do_amount("mirror", "mult_from_target_factor"))))
+	t.eq(Settle.run(flush_res, [Joker.by_id("mono"), mirror, null, null], streak)["score"], copied,
+		"mirror copies the target (power from data; 0.5 → 1.0 on 09-04, streak dropped 09-05)")
+	t.eq(Settle.run(flush_res, [Joker.by_id("mono"), mirror, null, null], {})["score"], copied,
+		"mirror copies on the first hit too — no streak needed (2026-09-05)")
 	t.eq(Settle.run(flush_res, [null, mirror, null, null], streak)["score"],
 		base, "mirror silent without a target")
 	t.eq(Settle.run(pair_res, [Joker.by_id("mono"), mirror, null, null], streak)["score"],

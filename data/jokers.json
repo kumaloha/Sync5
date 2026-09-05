@@ -429,12 +429,9 @@
    "rarity": "rare",
    "curve": "floating",
    "proof": "score",
-   "fx": "Two Target hands running: copy it",
+   "fx": "Target hand: copy its multiplier",
    "effects": [
     {
-     "when": {
-      "target_streak": true
-     },
      "do": {
       "mult_from_target_factor": 1.0
      }
@@ -804,7 +801,7 @@
    "rarity": "uncommon",
    "curve": "burst",
    "proof": "score",
-   "fx": "Trips or better: +45%",
+   "fx": "Trips or better: x1.5",
    "effects": [
     {
      "when": {
@@ -815,7 +812,7 @@
       ]
      },
      "do": {
-      "bonus_pct": 0.45
+      "mult": 1.5
      }
     }
    ]
@@ -989,7 +986,7 @@
    "proof": "score",
    "fx": "Coins cap at five; hands x1.6",
    "hold": {
-    "coin_cap": 12
+    "coin_cap": 5
    },
    "effects": [
     {

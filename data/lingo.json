@@ -286,7 +286,7 @@
   "金币每 2 枚:加成+5%(上限 15%)": "Per 2◆: +5% boost (max 15%)",
   "金币每 2 枚:基础分 +1": "+1 chip per 2 coins held",
   "金币每 2 枚:加成 +5%": "+5% bonus per 2 coins held",
-  "代价金币上限 5 枚:全场 ×1.6": "Cost: coins cap at 5",
+  "代价金币上限 5 枚:全场 ×1.6": "Coins cap at 5: all hands ×1.6",
   "暂停": "Paused",
   "退出本局(不计战绩)": "Quit run (not recorded)",
   "上次的演出还没结束": "Your last show is unfinished",
@@ -294,7 +294,7 @@
   "继续演出 ▸": "Continue ▸",
   "放弃, 开新的一局": "Discard and start fresh",
   "三条或更好:基础分+30": "Trips or better: +25 chips",
-  "三条或更好:加成+45%": "Trips or better: +60% boost",
+  "三条或更好:×1.5 倍率": "Trips or better: ×1.5",
   "打出三条/葫芦/四条:×2 倍率": "Trips/House/Quads: ×10 mult",
   "打出顺子/同花顺:×4.8 倍率": "Straight/Str.Flush: ×11 mult",
   "打出同花/同花顺:×5.6 倍率": "Flush / Str. Flush: ×12 mult",
@@ -341,7 +341,7 @@
   "整段只有 10 次弃牌额度": "10 discards for the whole section",
   "打满 4 种牌型,每缺一种目标分+50%": "Need 4 hand types; missing: +50% target",
   "30%/张": "30%/card",
-  "连续两拍达成 Target:再乘一次": "Two Target hits running: re-mult in full",
+  "达成 Target 的拍:再乘一次": "Target hand: copy its multiplier",
   "直弃缓存牌:按点数十倍给奖励分": "Cache discards: bonus = 10 × rank",
   "10×点数": "10× rank"
  }

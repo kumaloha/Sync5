@@ -222,7 +222,7 @@ All +N / % / × numbers are relative scales pending the simulation balance pass.
 | 客串 gueststar | 倍率 +0.5, 下个段末谢幕离场 | 租赁正规军(hold section_life);换阵润滑剂 |
 | 斗牛士 matador | 被 BOSS 规则扣分的拍 +2◆(卡面 09-05 去黑话:「咬」是 versus.md 的设计词, 玩家看不懂) | 盲注节拍件(结算 face_bit 事实口径;hold face_coins) |
 | 盲奏 blindplay | 每张盖着上台的得分牌基础分 +8 | 信息脸唯一顺应位;蒙色/蒙点下整手算盲 |
-| 镜面(改) | 连续两拍达成旗条件才生效 | target_streak 谓词;必买卡要玩出来, 首次怕禁回 |
+| 镜面(改) | ~~连续两拍达成旗条件才生效~~ → **达成 Target 的拍就复制**(09-05) | ~~target_streak~~;连击是一条玩家看不见的状态线(与早收线同病), 且 09-04 量到 5.9% 低于 rare 带;去掉条件, 复制整个 Target 倍率, 必买与否等真人 |
 | 拆迁(改) | 弃满 6 张才 ×3.5 | 用户拍板;弃 6 事实绑定对子(自由牌数学) |
 | 贝斯线(改) | 每 8 张弃牌一档(原 12) | bot 手抄的 12 被抓, 改从 json 推导步长 |
 
@@ -265,7 +265,7 @@ see the calibration note below).
 | Four Fingers | 四指 | Rare | fixed | rule | Four cards make straights and flushes |
 | Black Tone | 黑调 | Rare | fixed | rule | Black suits count as one |
 | Red Tone | 红调 | Rare | fixed | rule | Red suits count as one |
-| Mirror | 镜面 | Rare | floating | copy | Copies your Target at half power |
+| Mirror | 镜面 | Rare | floating | copy | Copies your Target's multiplier on every Target hand(09-05;曾是 half power + 连击) |
 | Wildcard | 百搭 | Rare | fixed | rule | Two wild cards join your deck |
 
 Built-in tensions: Turnover vs Tip Jar (discard or not), Finale vs Momentum

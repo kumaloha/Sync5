@@ -332,7 +332,7 @@
    "trigger": "每累计弃 8 张:倍率+0.25,永久"
   },
   "mirror": {
-   "trigger": "连续两拍达成 Target:再乘一次"
+   "trigger": "达成 Target 的拍:再乘一次"
   },
   "variation": {
    "trigger": "成牌与上拍不同:+目标分 28%"
@@ -365,7 +365,7 @@
    "trigger": "三条或更好:基础分+30"
   },
   "triplebill": {
-   "trigger": "三条或更好:加成+45%"
+   "trigger": "三条或更好:×1.5 倍率"
   },
   "backer": {
    "trigger": "金币每 2 枚:基础分+1(上限10)"
