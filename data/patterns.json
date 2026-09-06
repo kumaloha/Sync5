@@ -1,0 +1,39 @@
+{
+  "_comment": "牌型表(2026-09-06 从 core/pattern.gd 的三个 const 搬来 —— 镜像不许手抄数字, docs/design/mirror.md §4)。键 = Pattern.Kind 名, 三张表键集合必须与枚举一致(DB 校验)。chips/mult 的推导与历次重锚全在 docs/design/cards.md 与 core/pattern.gd 头注;kind_coins 仍在 economy.json。",
+  "names": {
+    "HIGH_CARD": "High Card",
+    "PAIR": "Pair",
+    "TWO_PAIR": "Two Pair",
+    "THREE_KIND": "Three of a Kind",
+    "STRAIGHT": "Straight",
+    "FLUSH": "Flush",
+    "FULL_HOUSE": "Full House",
+    "FOUR_KIND": "Four of a Kind",
+    "STRAIGHT_FLUSH": "Straight Flush",
+    "ROYAL_FLUSH": "Royal Flush"
+  },
+  "chips": {
+    "HIGH_CARD": 5,
+    "PAIR": 10,
+    "TWO_PAIR": 20,
+    "THREE_KIND": 30,
+    "STRAIGHT": 30,
+    "FLUSH": 35,
+    "FULL_HOUSE": 40,
+    "FOUR_KIND": 60,
+    "STRAIGHT_FLUSH": 100,
+    "ROYAL_FLUSH": 140
+  },
+  "mult": {
+    "HIGH_CARD": 1,
+    "PAIR": 2,
+    "TWO_PAIR": 3,
+    "THREE_KIND": 5,
+    "STRAIGHT": 6,
+    "FLUSH": 7,
+    "FULL_HOUSE": 9,
+    "FOUR_KIND": 16,
+    "STRAIGHT_FLUSH": 21,
+    "ROYAL_FLUSH": 26
+  }
+}

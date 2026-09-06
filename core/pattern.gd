@@ -14,36 +14,17 @@ enum Kind {
 	FULL_HOUSE, FOUR_KIND, STRAIGHT_FLUSH, ROYAL_FLUSH,
 }
 
-const NAMES := {
-	Kind.HIGH_CARD: "High Card",
-	Kind.PAIR: "Pair",
-	Kind.TWO_PAIR: "Two Pair",
-	Kind.THREE_KIND: "Three of a Kind",
-	Kind.STRAIGHT: "Straight",
-	Kind.FLUSH: "Flush",
-	Kind.FULL_HOUSE: "Full House",
-	Kind.FOUR_KIND: "Four of a Kind",
-	Kind.STRAIGHT_FLUSH: "Straight Flush",
-	Kind.ROYAL_FLUSH: "Royal Flush",
-}
+## ⚑ 三张表 2026-09-06 搬进 data/patterns.json(「镜像不许手抄数字」, docs/design/mirror.md §4):
+## Lua 镜像与 Godot 读同一份数据。调用方语法不变(`Pattern.BASE_MULT[Pattern.Kind.FLUSH]`);
+## 键仍是 Kind 的 int 值, 由 _load_table 按枚举名转换。⚠ 推导与历次重锚的注释保留在下面原位。
+static var NAMES: Dictionary = _load_table("names")
 
 # 2026-08-05 真人试玩二改(用户拍板 chips×mult): the additive ladder — even
 # steepened — kept patterns and jokers on separate axes. Splitting each hand
 # into (chips, mult) makes the pattern the FIRST multiplier, so rare hands
 # scale with targets instead of being replaced by them. Proportions follow
 # Balatro; rank_sum (≈30-60 on our A=14 scale) plays the card-chips role.
-const BASE_CHIPS := {
-	Kind.HIGH_CARD: 5,
-	Kind.PAIR: 10,
-	Kind.TWO_PAIR: 20,
-	Kind.THREE_KIND: 30,
-	Kind.STRAIGHT: 30,
-	Kind.FLUSH: 35,
-	Kind.FULL_HOUSE: 40,
-	Kind.FOUR_KIND: 60,
-	Kind.STRAIGHT_FLUSH: 100,
-	Kind.ROYAL_FLUSH: 140,
-}
+static var BASE_CHIPS: Dictionary = _load_table("chips")
 
 ## **抄 Balatro 的 level-1 表**(2026-08-06 用户拍板:「你看看原作, 牌型的倍率。
 ## 基本可以抄他的」), 数据核对自 balatrowiki.org/w/Poker_Hands:
@@ -153,23 +134,22 @@ const BASE_CHIPS := {
 ## 连带:整体分数水位 **+7.8%**(受影响的顺/花/葫芦合计 19% 的拍)——
 ## 目标分本来就是完美玩家尺度、对真人偏难(CLAUDE.md), 松一点是**预期方向**。
 ## ⚠ `kind_coins` 的尺是 `−log₂P(≥k)`, **同一个 P 也变了**, 但动它要重新平衡经济 ⇒ 挂 TODO。
-const BASE_MULT := {
-	Kind.HIGH_CARD: 1,
-	Kind.PAIR: 2,
-	Kind.TWO_PAIR: 3,
-	Kind.THREE_KIND: 5,
-	Kind.STRAIGHT: 6,
-	Kind.FLUSH: 7,
-	Kind.FULL_HOUSE: 9,
-	Kind.FOUR_KIND: 16,
-	Kind.STRAIGHT_FLUSH: 21,
-	Kind.ROYAL_FLUSH: 26,
-}
+static var BASE_MULT: Dictionary = _load_table("mult")
 
 ## ⚑ 经济 v2(2026-08-26 用户拍板 A 案):牌型金币表搬进 data/economy.json `kind_coins`
-## (「数值与内容全部在 data」;chips/mult 两表仍是 const —— 另案, 别顺手动)。
+## (「数值与内容全部在 data」;chips/mult 两表 2026-09-06 也搬进了 data/patterns.json)。
 ## 表意 = 每拍按成牌发钱的**主收入通道**, 尺 = 组合难度 −log₂P(≥k)(levels.md 经济 v2)。
 static var BASE_COINS: Dictionary = _load_kind_coins()
+
+## data/patterns.json 的一张表 {Kind 名: 值} → {Kind 值: 值}(校验在 DB.validate_patterns:键集合必须 == 枚举)。
+static func _load_table(which: String) -> Dictionary:
+	var out := {}
+	var raw: Dictionary = DB.patterns().get(which, {})
+	for n in raw:
+		# JSON 数在 Godot 里恒为 float;names 保持字符串, 其余两表进 int(消费方本来就 int() 一遍, 这里再收一次口)。
+		out[int(Kind[String(n)])] = String(raw[n]) if which == "names" else int(raw[n])
+	return out
+
 
 static func _load_kind_coins() -> Dictionary:
 	var out := {}

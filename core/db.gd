@@ -57,6 +57,7 @@ static func load_error() -> String:
 	lingo()
 	profile()
 	consumables()   # 2026-09-06:此前漏了它 —— 校验只挂在 t_consumable 先调一次的语句顺序上
+	patterns()
 	return _err
 
 
@@ -120,6 +121,42 @@ static func validate_profile(d: Dictionary) -> String:
 	# 0 或负数不是「关掉」而是静默除零/恒零 —— 要关体力显示去改 view, 别改成 0
 	if int(d["energy_max"]) < 1 or int(d["xp_per_level"]) < 1:
 		return "energy_max / xp_per_level 必须 >= 1"
+	return ""
+
+
+## 牌型表(2026-09-06 从 core/pattern.gd 搬来;`Pattern` 是它唯一的消费者)。
+static func patterns() -> Dictionary:
+	return _load("patterns", func(d): return validate_patterns(d))
+
+
+## 三张表的键集合都必须恰好等于 Pattern.Kind 的枚举名 —— 少一个键 = 某牌型查表 null 炸在结算里,
+## 多一个键 = 静默的死数据。数值:chips ≥ 0、mult ≥ 1(0 倍会让整个牌型归零)、name 非空。
+static func validate_patterns(d: Dictionary) -> String:
+	var e := _keys_ok(d, ["names", "chips", "mult"])
+	if e != "":
+		return e
+	var kinds: Array = Pattern.Kind.keys()
+	for which in ["names", "chips", "mult"]:
+		var tb = d[which]
+		if typeof(tb) != TYPE_DICTIONARY:
+			return "%s 必须是 {Kind 名: 值}" % which
+		for k in tb:
+			if not kinds.has(String(k)):
+				return "%s 有未知牌型 '%s'" % [which, k]
+		for k in kinds:
+			if not tb.has(k):
+				return "%s 缺牌型 '%s'" % [which, k]
+		for k in tb:
+			match which:
+				"names":
+					if String(tb[k]) == "":
+						return "names.%s 为空" % k
+				"chips":
+					if int(tb[k]) < 0:
+						return "chips.%s 必须 >= 0" % k
+				"mult":
+					if int(tb[k]) < 1:
+						return "mult.%s 必须 >= 1" % k
 	return ""
 
 
