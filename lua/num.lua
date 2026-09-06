@@ -115,6 +115,17 @@ function M.is_array(t)
 	return n == #t
 end
 
+-- Array.clear():原地清空(别用 t = {} —— 外面可能还握着这张表)。
+function M.clear(t)
+	for i = #t, 1, -1 do t[i] = nil end
+	for k in pairs(t) do t[k] = nil end
+end
+
+-- 整数 → 字符串。⚠ 不用 tostring:5.3+ 对整值浮点会印成 "10.0"。
+function M.itos(x)
+	return string.format("%d", x)
+end
+
 function M.size(t)
 	local n = 0
 	for _ in pairs(t) do n = n + 1 end

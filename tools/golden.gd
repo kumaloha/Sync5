@@ -12,6 +12,7 @@ func _initialize() -> void:
 	var only := OS.get_environment("SYNC5_GOLDEN")
 	var fams := {
 		"rng": Callable(self, "_fam_rng"),
+		"pattern": Callable(self, "_fam_pattern"),
 	}
 	var n := 0
 	for name in fams:
@@ -120,4 +121,57 @@ func _fam_rng() -> String:
 						rng.state = saved
 						ops.append(["S", state_hex(saved)])
 		cases.append({"seed": s, "ops": ops})
+	return "return " + lua(cases) + "\n"
+
+
+# ---------------------------------------------------------------- pattern 族
+
+static func cards_out(arr: Array) -> Array:
+	var out: Array = []
+	for c in arr:
+		out.append([c.rank, c.suit])
+	return out
+
+
+static func labels(arr: Array) -> Array:
+	var out: Array = []
+	for c in arr:
+		out.append(c.label())
+	return out
+
+
+## 3000 手:8 张(种子牌堆抽)+ 强制 0~5 张万能 + 16 种规则位组合(每三手带 false 键)。
+## 期望 = evaluate_best 的全部字段 + best_score_of + 前五张的 score_five。
+func _fam_pattern() -> String:
+	var cases: Array = []
+	var keys := ["shortcut", "fourfingers", "redtone", "blacktone"]
+	for i in range(3000):
+		var deck := Deck.new(41000 + i)
+		var cards: Array = []
+		for _j in range(8):
+			cards.append(deck.draw())
+		var w: int = i % 4
+		if i % 97 == 0:
+			w = 4
+		if i % 193 == 0:
+			w = 5
+		for j in range(w):
+			cards[j] = Card.new(Card.JOKER_RANK, 2 + (j % 2))
+		var bits: int = i % 16
+		var rules := {}
+		for b in range(4):
+			var on: bool = (bits >> b) & 1 == 1
+			if on or i % 3 == 0:
+				rules[keys[b]] = on
+		var res: Dictionary = Pattern.evaluate_best(cards, rules)
+		var five: Array = cards.slice(0, 5)
+		cases.append({
+			"cards": cards_out(cards), "rules": rules,
+			"kind": int(res["kind"]), "name": String(res["name"]), "chips": int(res["chips"]),
+			"pmult": int(res["pmult"]), "rank_sum": int(res["rank_sum"]), "score": int(res["score"]),
+			"coins": int(res["coins"]), "resolved": labels(res["resolved"]),
+			"best": Pattern.best_score_of(cards, rules),
+			"five": Pattern.score_five(five, rules),
+			"five_kind": int(Pattern.evaluate_best(five, rules)["kind"]),
+		})
 	return "return " + lua(cases) + "\n"

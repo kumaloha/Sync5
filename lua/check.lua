@@ -58,6 +58,43 @@ function fams.rng(g)
 	end
 end
 
+-- ---------------------------------------------------------------- pattern
+local Card = require("core.card")
+local Pattern = require("core.pattern")
+
+local function mk_cards(pairs_)
+	local out = {}
+	for _, p in ipairs(pairs_) do out[#out + 1] = Card.new(p[1], p[2]) end
+	return out
+end
+
+local function labels(arr)
+	local out = {}
+	for _, c in ipairs(arr) do out[#out + 1] = c:label() end
+	return table.concat(out, " ")
+end
+
+function fams.pattern(g)
+	for i, case in ipairs(g) do
+		local cards = mk_cards(case.cards)
+		local rules = case.rules
+		local res = Pattern.evaluate_best(cards, rules)
+		local tag = string.format("pattern #%d [%s]", i - 1, labels(cards))
+		eq(res.kind, case.kind, tag .. " kind")
+		eq(res.name, case.name, tag .. " name")
+		eq(res.chips, case.chips, tag .. " chips")
+		eq(res.pmult, case.pmult, tag .. " pmult")
+		eq(res.rank_sum, case.rank_sum, tag .. " rank_sum")
+		eq(res.score, case.score, tag .. " score")
+		eq(res.coins, case.coins, tag .. " coins")
+		eq(labels(res.resolved), table.concat(case.resolved, " "), tag .. " resolved")
+		eq(Pattern.best_score_of(cards, rules), case.best, tag .. " best_score_of")
+		local five = { cards[1], cards[2], cards[3], cards[4], cards[5] }
+		eq(Pattern.score_five(five, rules), case.five, tag .. " score_five")
+		eq(Pattern.evaluate_best(five, rules).kind, case.five_kind, tag .. " five_kind")
+	end
+end
+
 -- ---------------------------------------------------------------- 主流程
 local ORDER = { "rng", "pattern", "settle", "fx", "run" }
 local only = os.getenv("SYNC5_CHECK")
