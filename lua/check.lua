@@ -1,11 +1,12 @@
 -- 金样对拍(docs/design/mirror.md §6):lua lua/check.lua  /  luajit lua/check.lua
 -- 逐族读 golden/<族>.lua, 用镜像重放, 字符串逐字相同才算过。退出码 0 = 全绿。
+-- SYNC5_CHECK=rng,pattern 只跑几族;重放器在 tools/fams.lua。
 local root = (arg and arg[0] or ""):match("^(.*)[/\\]") or "."
 package.path = root .. "/?.lua;" .. package.path
 io.stdout:setvbuf("no")
 local num = require("num")
-local Rng = require("rng")
 local init = require("init")
+local fams = require("tools.fams")
 _G.H = num.hex2f64   -- 金样里的浮点是 H"<f64hex>"
 
 local pass, fail = 0, 0
@@ -15,9 +16,9 @@ local function eq(a, b, msg)
 		pass = pass + 1
 	else
 		fail = fail + 1
-		if shown < 40 then
+		if shown < 30 then
 			shown = shown + 1
-			print(string.format("  x FAIL: %s (got %s, expected %s)", msg, tostring(a), tostring(b)))
+			print(string.format("  x FAIL: %s\n      got      %s\n      expected %s", msg, tostring(a), tostring(b)))
 		end
 	end
 end
@@ -34,68 +35,6 @@ local function golden(name)
 	return dofile(path)
 end
 
-local fams = {}
-
--- ---------------------------------------------------------------- rng
-function fams.rng(g)
-	for ci, case in ipairs(g) do
-		local rng = Rng.new():seed(case.seed)
-		for i, op in ipairs(case.ops) do
-			local k = op[1]
-			local tag = string.format("rng seed=%d step=%d %s", case.seed, i, k)
-			if k == "i" then
-				eq(rng:randi(), op[2], tag)
-			elseif k == "r" then
-				eq(rng:randi_range(op[2], op[3]), op[4], tag .. string.format("(%d,%d)", op[2], op[3]))
-			elseif k == "f" then
-				eq(num.f64hex(rng:randf()), num.f64hex(op[2]), tag)
-			elseif k == "s" then
-				eq(rng:state_hex(), op[2], tag)
-			elseif k == "S" then
-				rng:set_state_hex(op[2])
-			end
-		end
-	end
-end
-
--- ---------------------------------------------------------------- pattern
-local Card = require("core.card")
-local Pattern = require("core.pattern")
-
-local function mk_cards(pairs_)
-	local out = {}
-	for _, p in ipairs(pairs_) do out[#out + 1] = Card.new(p[1], p[2]) end
-	return out
-end
-
-local function labels(arr)
-	local out = {}
-	for _, c in ipairs(arr) do out[#out + 1] = c:label() end
-	return table.concat(out, " ")
-end
-
-function fams.pattern(g)
-	for i, case in ipairs(g) do
-		local cards = mk_cards(case.cards)
-		local rules = case.rules
-		local res = Pattern.evaluate_best(cards, rules)
-		local tag = string.format("pattern #%d [%s]", i - 1, labels(cards))
-		eq(res.kind, case.kind, tag .. " kind")
-		eq(res.name, case.name, tag .. " name")
-		eq(res.chips, case.chips, tag .. " chips")
-		eq(res.pmult, case.pmult, tag .. " pmult")
-		eq(res.rank_sum, case.rank_sum, tag .. " rank_sum")
-		eq(res.score, case.score, tag .. " score")
-		eq(res.coins, case.coins, tag .. " coins")
-		eq(labels(res.resolved), table.concat(case.resolved, " "), tag .. " resolved")
-		eq(Pattern.best_score_of(cards, rules), case.best, tag .. " best_score_of")
-		local five = { cards[1], cards[2], cards[3], cards[4], cards[5] }
-		eq(Pattern.score_five(five, rules), case.five, tag .. " score_five")
-		eq(Pattern.evaluate_best(five, rules).kind, case.five_kind, tag .. " five_kind")
-	end
-end
-
--- ---------------------------------------------------------------- 主流程
 local ORDER = { "rng", "pattern", "settle", "fx", "run" }
 local only = os.getenv("SYNC5_CHECK")
 for _, name in ipairs(ORDER) do
@@ -107,12 +46,13 @@ for _, name in ipairs(ORDER) do
 			print(string.format("  - %-8s skipped (no replayer yet)", name))
 		else
 			local before = pass + fail
-			local ok, err = pcall(fams[name], g)
+			local t0 = os.clock()
+			local ok, err = pcall(fams[name], g, eq)
 			if not ok then
 				fail = fail + 1
 				print(string.format("  x %-8s crashed: %s", name, tostring(err)))
 			end
-			print(string.format("  · %-8s %d checks", name, pass + fail - before))
+			print(string.format("  · %-8s %6d checks  %.2fs", name, pass + fail - before, os.clock() - t0))
 		end
 	end
 end

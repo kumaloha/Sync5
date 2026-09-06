@@ -34,6 +34,11 @@ local function localized(name)
 	return v
 end
 
+-- 与 core/db.gd 同一份表:这些参数进结算链(SectionMod.affects_settle 读它)
+DB._FACE_PARAMS_SETTLE = { "target_power", "bonus_disabled", "repeat_factor",
+	"zero_discard_factor", "lock_first", "request_factor", "joker_power",
+	"phase_factors", "suit_half", "callout_factor" }
+
 function DB.load_error() return "" end
 function DB.run() return localized("run") end
 function DB.economy() return raw("economy") end

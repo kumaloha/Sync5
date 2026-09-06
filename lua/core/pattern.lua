@@ -492,9 +492,14 @@ function Pattern._run_exists(ds, need, gaps)
 end
 
 -- range(n) 的 k 元组合(0 基下标, 与 Godot 同;调用方 +1)。
+local _combos_cache = {}
 function Pattern._combos_indices(n, k)
+	local key = n * 16 + k
+	local hit = _combos_cache[key]
+	if hit then return hit end
 	local res = {}
 	Pattern._combo_helper(0, n, k, {}, res)
+	_combos_cache[key] = res
 	return res
 end
 
