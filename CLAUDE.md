@@ -47,6 +47,7 @@ SYNC5_KIT_ID=<joker_id> godot --headless --path . --script res://tools/kit.gd   
 ./tools/gate.sh <face_id>                                                  # 只验一张新脸(⚠ 见下,不再是十几秒)
 godot --headless --path . --script res://tools/pair.gd                     # 守「求解器 = 游戏代码」
 godot --headless --path . --import                                         # 新增 class_name **或改了 assets/ 下的文件**后必须先跑
+python3 tools/webbundle.py && python3 -m http.server 8771 --directory lua/web   # **Lua 版本地启动**(浏览器 http://localhost:8771, 逻辑全在 Lua 里跑)
 ```
 
 **其余探针(生成器/定价/可加性/建模验证/截图)的清单见 [STATUS.md](STATUS.md) 的工具链表。**

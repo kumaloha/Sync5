@@ -5,15 +5,23 @@ local N = 4294967296
 local ops
 -- ⚠ 新版 LuaJIT 也编译得过 5.3 运算符, 但结果是 32 位**有符号**(-32 而不是 4294967264);
 -- 所以运算符那支也要 `% 2^32` 归一, 而不是只 `& 0xFFFFFFFF`(踩过:clz32 拿到负数死循环)。
+-- ⚠ Fengari(浏览器里的 Lua 5.3)整数只有 32 位:4294967295 这种字面量是浮点, 进 `&` 就炸 —— 见 chunk 里的 INT32。
 local chunk = load and load([[
-	local N = 4294967295
-	local M = 4294967296
+	local M = 4294967296.0
+	-- 整数宽度:5.3+/5.5 是 64 位;新版 LuaJIT(能编译这些运算符)与 Fengari(浏览器)是 32 位 ——
+	-- 32 位下 ≥2^31 的无符号值先转成有符号二补码再进运算符, 否则「number has no integer representation」。
+	local INT32 = (math.maxinteger or 0) < 4294967295
+	local function s(x)
+		x = x % M
+		if INT32 and x >= 2147483648 then x = x - M end
+		return x
+	end
 	return {
-		band = function(a, b) return ((a & b) & N) % M end,
-		bor = function(a, b) return ((a | b) & N) % M end,
-		bxor = function(a, b) return ((a ~ b) & N) % M end,
-		rshift = function(a, n) return ((a >> n) & N) % M end,
-		lshift = function(a, n) return ((a << n) & N) % M end,
+		band = function(a, b) return (s(a) & s(b)) % M end,
+		bor = function(a, b) return (s(a) | s(b)) % M end,
+		bxor = function(a, b) return (s(a) ~ s(b)) % M end,
+		rshift = function(a, n) return (s(a) >> n) % M end,
+		lshift = function(a, n) return (s(a) << n) % M end,
 	}
 ]])
 if chunk then

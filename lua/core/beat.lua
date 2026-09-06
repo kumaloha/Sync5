@@ -12,7 +12,7 @@ local BlindBoon = require(P .. "blind_boon")
 
 local Beat = {}
 
-local function warn(msg) io.stderr:write("[Beat] " .. msg .. "\n") end
+local function warn(msg) if io and io.stderr then io.stderr:write("[Beat] " .. msg .. "\n") else print("[Beat] " .. msg) end end
 
 function Beat._expect(run, want, who)
 	if run.stage == want then return true end

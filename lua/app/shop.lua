@@ -229,7 +229,7 @@ function Shop:_install_bought(j, price)
 				break
 			end
 		end
-		if not placed then io.stderr:write("[shop] 买了 '" .. j.id .. "' 却没有空的 Support 槽\n") end
+		if not placed then print("[shop] 买了 '" .. j.id .. "' 却没有空的 Support 槽") end
 	end
 	run.coins = Economy.cap_held(run.coins, s)
 	if run.tutorial and j.kind == "target" then

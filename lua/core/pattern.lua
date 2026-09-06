@@ -83,7 +83,7 @@ function Pattern.score_five(five, rules)
 	if not empty(rules) then rk = Pattern._rules_key(rules) end
 	local key = -1
 	if rk >= 0 then
-		key = Pattern._key5(five) + rk * 1073741824
+		key = Pattern._key5(five) + rk * 1073741824.0   -- 浮点:32 位整数环境(Fengari)下整数乘法会回绕撞键
 		local hit = _memo[key]
 		if hit ~= nil then return hit end
 	end

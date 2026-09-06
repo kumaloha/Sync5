@@ -35,6 +35,8 @@ function App.new(opts)
 	SaveState.storage = opts.storage
 	SaveState.fresh = opts.fresh and true or false
 	SaveState.probe = false
+	if opts.now then SaveState.now = opts.now end            -- function() -> unix 秒(浏览器没有 os.time 时注入)
+	if opts.day_key then SaveState.day_key = opts.day_key end -- function() -> "YYYY-MM-DD"
 	if opts.locale then
 		Lingo.set_resolver(function()
 			local saved = SaveState.lang()
@@ -243,6 +245,8 @@ function App:tick(now_ms)
 	local dt = (now_ms - self._last_ms) / 1000.0
 	self._last_ms = now_ms
 	if dt < 0 then dt = 0 end
+	-- 钟只在帧里走:页面被切到后台 / 卡顿一大段后回来, 不许一帧把整拍烧掉(Godot 侧的 _process 同理靠帧驱动)
+	if dt > 0.5 then dt = 0.5 end
 	if self.paused then return self.state end
 	local st = self.state
 	if st == St.INTRO then

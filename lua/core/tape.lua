@@ -40,7 +40,12 @@ end
 
 function Tape._stamp()
 	local s
-	if Tape.stamp then s = Tape.stamp() else s = os.date("!%Y%m%dT%H%M%S") end
+	if Tape.stamp then
+		s = Tape.stamp()
+	else
+		local ok, d = pcall(os.date, "!%Y%m%dT%H%M%S")
+		s = ok and tostring(d) or tostring(clock())
+	end
 	_nth = _nth + 1
 	return string.format("%s_%02d", s, _nth)
 end
@@ -66,7 +71,7 @@ function Tape.on(kind, payload)
 	local e = num.shallow(payload)
 	for _, k in ipairs(Tape.RESERVED) do
 		if payload[k] ~= nil then
-			io.stderr:write(string.format("[Tape] `%s` 事件的 payload 用了保留字 `%s`\n", kind, k))
+			print(string.format("[Tape] `%s` 事件的 payload 用了保留字 `%s`", kind, k))
 		end
 	end
 	e.n = _seq

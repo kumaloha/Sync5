@@ -42,3 +42,6 @@ docs/mockups/*/consumable-coin.html
 docs/mockups/*/consumable-slot-empty-state.html
 docs/mockups/*/shop-consumable-layout.html
 docs/mockups/*/vinyl-queued-coin.html
+
+# Lua 镜像的浏览器打包(tools/webbundle.py 生成)
+lua/web/sync5.bundle.js

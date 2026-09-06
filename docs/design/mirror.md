@@ -199,6 +199,9 @@ run 30 局(3 局教学)逐拍摘要 1260 条。合计 **27397 条**, LuaJIT ≈ 
 **状态(2026-09-06 一口气做完五段)**:0~4 全部落地。`lua/check.lua` 五族 27397 条 5.5 与 LuaJIT 双绿;`tools/mirror.py` 393 个公开/编排函数全有孪生;
 `tools/drive.lua` 无头驱动整局(含教学关 / 商店 / 消耗牌 / 存档)两种 Lua 各 4 局跑通;Godot 侧四处「手抄数字」搬家(`patterns.json` / `theme.json` / `ui.json.stage` / `run.json.resolve_feedback`)前后截图逐件对照不动。
 第 3 段顺手把货架组装从 `view/shop.gd` 抽成 `core/shelf.gd`(游戏 / 金样 / Lua 共用一份)。
+**本地启动**(09-06 晚, 用户:「能在本地启动一下 lua 版本吗」):LÖVE 的 cask 被 Homebrew 停用 ⇒ 改用 Fengari(浏览器里的 Lua 5.3)——
+`lua/web/index.html` 是契约的可运行范例(JS 只画画布与接鼠标), `tools/webbundle.py` 打包;教学关 → 商店 → 买 Target → 回拍全程点通。
+它顺带验出两条运行时差异并落成机械:Fengari 整数只有 32 位(位运算垫片按 `math.maxinteger` 分宽度;牌型记忆键改浮点)· 页面切后台时一帧会吞掉整拍(编排层 dt 限幅 0.5 s)。
 
 ---
 

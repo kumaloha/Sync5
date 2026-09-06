@@ -27,7 +27,7 @@ Fx._seen_when = {}
 Fx._seen_do = {}
 
 local function warn(msg)
-	io.stderr:write("[Fx] " .. msg .. "\n")
+	if io and io.stderr then io.stderr:write("[Fx] " .. msg .. "\n") else print("[Fx] " .. msg) end
 end
 
 local function starts(s, pre)

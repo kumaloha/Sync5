@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sync5 · Lua 镜像(浏览器参考渲染器)</title>
+<style>
+  html, body { margin: 0; background: #000; color: #eef1fb; height: 100%; overflow: hidden; font-family: "Rajdhani", "PingFang SC", "Noto Sans SC", sans-serif; }
+  #wrap { display: flex; align-items: center; justify-content: center; height: 100vh; }
+  canvas { background: #000; touch-action: none; }
+  #boot { position: fixed; left: 12px; top: 12px; font-size: 13px; color: #9aa2c8; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/fengari-web@0.1.4/dist/fengari-web.js"></script>
+<script>document.write('<script src="sync5.bundle.js?v=' + Date.now() + '"><\/script>')</script>   <!-- 打包产物不许被浏览器缓存 -->
+</head>
+<body>
+<div id="wrap"><canvas id="c" width="720" height="1280"></canvas></div>
+<div id="boot">loading lua…</div>
+
+<script type="application/lua">
+-- 引导:把 window.SYNC5_SOURCES 里的模块挂进 require, 建 App, 暴露给 JS。逻辑全在 Lua;JS 只画。
+local js = require "js"
+local SRC = js.global.SYNC5_SOURCES
+table.insert(package.searchers, 2, function(name)
+  local src = SRC[name]
+  if type(src) ~= "string" then return "\n\tno bundled module '" .. name .. "'" end
+  local chunk, err = load(src, "=" .. name)
+  if not chunk then error(err) end
+  return chunk, name
+end)
+local json = require("json")
+local App = require("app.phrase")
+local DB = require("core.db")
+local ls = js.global.localStorage
+local perf = js.global.performance
+local storage = {
+  read = function() local v = ls:getItem("sync5.save"); if type(v) ~= "string" then return nil end; return v end,
+  write = function(s) ls:setItem("sync5.save", s) end,
+}
+local app = App.new({
+  storage = storage,
+  locale = function() return "cn" end,
+  now_ms = function() return perf:now() end,
+  now = function() return math.floor(js.global.Date:now() / 1000) end,
+  day_key = function() local d = js.new(js.global.Date); return string.format("%04d-%02d-%02d", d:getFullYear(), d:getMonth() + 1, d:getDate()) end,
+})
+local function enc(v) if v == nil then return "null" end return json.encode(v) end
+-- 逐个挂成 JS 全局函数(Lua 表的代理在 JS 里不能当对象点方法用);JS 调用时 this 是第一个参数。
+local G = js.global
+G.sync5_tick = function(_, ms) return app:tick(ms) end
+G.sync5_view = function(_) return enc(app:view()) end
+G.sync5_events = function(_) return enc(app:events()) end
+G.sync5_ui = function(_) return enc(DB.ui()) end
+G.sync5_jokers = function(_)
+  local o = {}
+  for _, e in ipairs(DB.jokers()) do o[e.id] = { cn = e.cn, fx = e.fx } end
+  return enc(o)
+end
+G.sync5_intent = function(_, name, a, b)
+  local f = app[name]
+  if type(f) ~= "function" then return enc({ ok = false, why = "nointent:" .. tostring(name) }) end
+  local ok, r = pcall(f, app, a, b)
+  if not ok then return enc({ ok = false, why = "error", err = tostring(r) }) end
+  return enc(r)
+end
+js.global.document:getElementById("boot").textContent = "lua ready · " .. _VERSION
+</script>
+
+<script>
+(() => {
+const W = 720, H = 1280;
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+let scale = 1, V = null, UI = null, TH = null, hits = [], floaters = [], drag = null, lastTick = 0, shakeT = 0;
+const C = { cyan: '#1effec', pink: '#ff328d', violet: '#7642ff', amber: '#ff9b2b', gold: '#ffd36e', red: '#ff3632', blue: '#23cdff', ink: '#eef1fb', dim: '#9aa2c8', slate: '#7b88ab', suit_red: '#ff6aa9', suit_blk: '#9fe9ff', marked: '#ffb347' };
+function fit() { scale = Math.min(innerWidth / W, innerHeight / H); cv.style.width = (W * scale) + 'px'; cv.style.height = (H * scale) + 'px'; }
+addEventListener('resize', fit); fit();
+function call(name, a, b) { try { const r = JSON.parse(sync5_intent(name, a, b)); if (r && r.why === 'error') console.error(name, r.err); return r; } catch (e) { console.error(name, e); return null; } }
+function font(size, weight, zh) { ctx.font = `${weight || 500} ${size}px ${zh ? '"PingFang SC","Noto Sans SC",' : '"Rajdhani",'} "PingFang SC","Noto Sans SC",sans-serif`; }
+function T(s, x, y, size, color, align, weight, zh) { font(size, weight, zh); ctx.fillStyle = color || C.ink; ctx.textAlign = align || 'left'; ctx.textBaseline = 'top'; ctx.fillText(String(s), x, y); }
+function rr(x, y, w, h, r, fill, stroke, lw, glow) { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); if (glow) { ctx.shadowColor = glow; ctx.shadowBlur = 18; } if (fill) { ctx.fillStyle = fill; ctx.fill(); } ctx.shadowBlur = 0; if (stroke) { ctx.lineWidth = lw || 1.5; ctx.strokeStyle = stroke; ctx.stroke(); } }
+function wrap(s, x, y, w, size, color, lh, zh, maxLines) { font(size, 400, zh); ctx.fillStyle = color; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; let line = '', ly = y, n = 0; for (const ch of String(s)) { const t = line + ch; if (ctx.measureText(t).width > w && line) { ctx.fillText(line, x, ly); ly += lh; line = ch; n++; if (maxLines && n >= maxLines) return; } else line = t; } ctx.fillText(line, x, ly); }
+function hit(x, y, w, h, id, data) { hits.push({ x, y, w, h, id, data }); }
+function within(p, r) { return p.x >= r.x && p.y >= r.y && p.x <= r.x + r.w && p.y <= r.y + r.h; }
+function topHit(p, pred) { for (let i = hits.length - 1; i >= 0; i--) { const h = hits[i]; if (within(p, h) && (!pred || pred(h))) return h; } return null; }
+function floater(text, x, y, color, ttl) { floaters.push({ text, x, y, color: color || C.gold, ttl: ttl || 1.2, age: 0 }); }
+const GLYPH = ['♣', '♦', '♥', '♠'];
+
+function card(c, x, y, w, h, opts) {
+  opts = opts || {};
+  if (!c) { rr(x, y, w, h, 12, 'rgba(255,255,255,0.03)', 'rgba(255,255,255,0.12)'); return; }
+  const red = c.red, col = red ? C.suit_red : C.suit_blk;
+  const lift = c.selected ? -22 : 0; y += lift;
+  const border = c.scoring ? C.cyan : col;
+  rr(x, y, w, h, 12, 'rgba(20,9,26,0.86)', border, c.scoring ? 3 : 1.5, c.scoring ? C.cyan : (c.selected ? col : null));
+  if (c.hidden) { T('?', x + w / 2, y + h / 2 - 28, 48, C.dim, 'center', 600); return; }
+  const rankTxt = c.wild ? (c.label.slice(0, -1)) : c.label.slice(0, -1);
+  if (!c.mask_rank) T(rankTxt, x + 10, y + 8, 30, col, 'left', 700);
+  if (!c.mask_suit) T(c.wild ? '★' : GLYPH[c.suit], x + w / 2, y + h / 2 - 34, 62, col, 'center', 600);
+  if (!c.mask_rank) { ctx.save(); ctx.translate(x + w - 10, y + h - 8); ctx.rotate(Math.PI); T(rankTxt, 0, 0, 24, col, 'left', 700); ctx.restore(); }
+  if (c.marked) rr(x, y, w, h, 12, 'rgba(255,179,71,0.18)', C.marked, 2);
+  if (opts.blocked) rr(x, y, w, h, 12, 'rgba(0,0,0,0.55)');
+}
+
+function drawStage() {
+  const st = UI.stage, hud = UI.hud, v = V;
+  // HUD
+  rr(hud.pos[0], hud.pos[1], hud.size[0], hud.size[1], 18, 'rgba(0,0,0,0.55)', 'rgba(123,136,171,0.55)');
+  T(v.hud.score, hud.pos[0] + hud.score[0], hud.pos[1] + hud.score[1], 44, C.ink, 'left', 700);
+  T('/ ' + v.hud.target, hud.pos[0] + hud.target[0], hud.pos[1] + hud.target[1], 24, C.dim);
+  T('◆ ' + v.hud.coins, hud.pos[0] + hud.coin[0] + 120, hud.pos[1] + hud.coin[1] + 8, 30, C.gold, 'left', 700);
+  T('PHRASE ' + String(v.hud.phrase_no).padStart(2, '0'), hud.pos[0] + hud.phrase[0] + 120, hud.pos[1] + hud.phrase[1], 22, C.dim, 'left', 600);
+  rr(hud.pos[0] + hud.pbar_pos[0], hud.pos[1] + hud.pbar_pos[1], hud.pbar_size[0], hud.pbar_size[1], 5, 'rgba(255,255,255,0.08)');
+  rr(hud.pos[0] + hud.pbar_pos[0], hud.pos[1] + hud.pbar_pos[1], hud.pbar_size[0] * Math.min(1, v.hud.fraction), hud.pbar_size[1], 5, C.cyan);
+  // time bar
+  const tb = { x: st.margin, y: 128, w: 720 - st.margin * 2, h: 6 };
+  rr(tb.x, tb.y, tb.w, tb.h, 3, 'rgba(255,255,255,0.06)');
+  if (v.screen === 'decision') rr(tb.x, tb.y, tb.w * Math.min(1, v.hud.progress), tb.h, 3, v.hud.warn ? C.pink : C.violet);
+  if (v.hud.warn) T(v.hud.countdown, 360, 440, 120, C.pink, 'center', 700);
+  // joker row
+  T('♪ 小丑牌 ♪', 360, st.pill_y + 6, 19, C.cyan, 'center', 500, true);
+  const jsize = (720 - st.margin * 2 - st.gap * 3) / 4;
+  for (let i = 0; i < 4; i++) {
+    const x = st.margin + i * (jsize + st.gap), y = st.joker_y, j = v.jokers[i];
+    const replMode = v.shop && v.shop.replace_pick !== null && v.shop.replace_pick !== undefined;
+    rr(x, y, jsize, st.joker_h, 14, 'rgba(8,4,16,0.8)', i === 0 ? C.pink : C.cyan, replMode && i > 0 ? 3 : 1.2, replMode && i > 0 ? C.gold : null);
+    if (j) { T(j.name, x + 10, y + 8, 20, C.ink, 'left', 600, true); T(j.rarity === 'rare' ? '稀有' : j.rarity === 'uncommon' ? '罕见' : (j.kind === 'target' ? 'TARGET' : '普通'), x + jsize - 8, y + 12, 12, C.dim, 'right'); wrap(j.fx, x + 10, y + 40, jsize - 20, 13, C.dim, 16, false, 4); const ks = Object.keys(j.state || {}); if (ks.length) T(ks.map(k => k + ' ' + (Math.round(j.state[k] * 100) / 100)).join(' '), x + 10, y + st.joker_h - 24, 13, C.gold); }
+    else T(i === 0 ? 'TARGET' : 'SUPPORT', x + jsize / 2, y + st.joker_h / 2 - 8, 14, 'rgba(154,162,200,0.5)', 'center');
+    hit(x, y, jsize, st.joker_h, 'slot', i);
+  }
+  // blind card
+  const bw = st.blind_h * st.blind_ratio[0] / st.blind_ratio[1], bx = st.margin, by = st.wave[1];
+  const acc = [C.blue, C.amber, C.red, C.pink][Math.min(3, v.blind.section_idx)];
+  rr(bx, by, bw, st.blind_h, 12, 'rgba(10,4,18,0.9)', acc, 2, acc);
+  T(v.blind.is_wall ? 'BOSS' : v.blind.blind_name, bx + 10, by + 8, 14, acc, 'left', 700);
+  T('第 ' + v.blind.gig + ' 场', bx + bw - 8, by + 10, 12, C.dim, 'right', 400, true);
+  if (v.blind.face) { T(v.blind.face.name, bx + 10, by + 34, 20, C.ink, 'left', 600, true); wrap(v.blind.face.fx, bx + 10, by + 62, bw - 20, 12, C.dim, 15, false, 4); }
+  else T(v.blind.visible ? '纯分数' : '教学关', bx + 10, by + 34, 18, C.dim, 'left', 500, true);
+  T('目标 ' + v.blind.target, bx + 10, by + st.blind_h - 46, 13, acc, 'left', 600, true);
+  if (v.blind.status) T(v.blind.status, bx + 10, by + st.blind_h - 28, 12, C.gold, 'left', 400, true);
+  if (v.blind.roll_note) T(v.blind.roll_note.trim(), bx + 10, by + st.blind_h - 14, 11, C.gold, 'left', 400, true);
+  if (v.blind.next_face) T('下一场 · ' + v.blind.next_face.name, bx, by + st.blind_h + 6, 12, C.dim, 'left', 400, true);
+  // wave placeholder
+  ctx.strokeStyle = 'rgba(118,66,255,0.35)'; ctx.lineWidth = 2; ctx.beginPath();
+  for (let x = bx + bw + 20; x < 720 - st.margin - st.vinyl - 20; x += 6) { const ph = (x / 18) + (performance.now() / 140); ctx.lineTo(x, by + st.blind_h / 2 + Math.sin(ph) * 22 * (v.screen === 'decision' ? 1 : 0.3)); } ctx.stroke();
+  // vinyl / queue
+  const vd = st.vinyl, vx = 720 - st.margin - vd, vy = by + (st.blind_h - vd) / 2;
+  if (!v.vinyl.length) { ctx.beginPath(); ctx.arc(vx + vd / 2, vy + vd / 2, vd / 2, 0, Math.PI * 2); ctx.fillStyle = '#0a0a12'; ctx.fill(); ctx.strokeStyle = C.cyan; ctx.lineWidth = 2; ctx.stroke(); ctx.beginPath(); ctx.arc(vx + vd / 2, vy + vd / 2, 16, 0, Math.PI * 2); ctx.fillStyle = C.cyan; ctx.fill(); }
+  else { const n = Math.min(3, v.vinyl.length), d = 56; for (let i = 0; i < n; i++) { const cx = vx + vd - d / 2 - (n - 1 - i) * (d - 8), cy = vy + vd / 2; ctx.beginPath(); ctx.arc(cx, cy, d / 2, 0, Math.PI * 2); ctx.fillStyle = '#1a0710'; ctx.fill(); ctx.strokeStyle = C.suit_red; ctx.lineWidth = 2; ctx.stroke(); T(v.vinyl[i].beat, cx, cy - 12, 20, C.suit_red, 'center', 700); } if (v.vinyl.length > 3) T('+' + (v.vinyl.length - 3), vx, vy + vd - 20, 14, C.dim); }
+  // hand
+  if (v.hand) {
+    const cw = st.card_w, chh = st.card_h, g = st.gap;
+    T(UI.hand.hand_tab, 360, st.hand_top + 10, 16, C.dim, 'center', 400, true);
+    rr(st.orbit[0], st.hand_top, 720 - st.orbit[0] * 2, st.orbit[1], 30, 'rgba(26,33,72,0.35)', 'rgba(160,180,255,0.3)', 2);
+    v.hand.cards.forEach((c, i) => { const x = st.margin + i * (cw + g), y = st.hand_card_y; if (!(drag && drag.zone === 'hand' && drag.i === i && drag.moved)) card(c, x, y, cw, chh, { blocked: c && ((v.hand.decide === false)) }); hit(x, y - 24, cw, chh + 24, 'hand', i); });
+    T(UI.hand.cache_tab, 360, st.cache_y - 36, 16, C.violet, 'center', 400, true);
+    const cn = v.hand.cache.length, x0 = (720 - (cn * cw + (cn - 1) * g)) / 2;
+    v.hand.cache.forEach((c, i) => { const x = x0 + i * (cw + g), y = st.cache_y; if (!(drag && drag.zone === 'cache' && drag.i === i && drag.moved)) { card(c, x, y, cw, chh); rr(x, y + (c && c.selected ? -22 : 0), cw, chh, 12, null, C.violet, 1.5); } hit(x, y - 24, cw, chh + 24, 'cache', i); });
+    // keys
+    const ky = st.cache_y + 40, kw = 88;
+    const sx = st.margin - UI.hand.key_outset, dx = 720 - st.margin + UI.hand.key_outset - kw;
+    rr(sx, ky, kw, kw, kw / 2, 'rgba(0,0,0,0.6)', v.hand.can_swap ? C.cyan : C.slate, 3); T('⇅', sx + kw / 2, ky + 22, 34, C.cyan, 'center', 700); T(UI.hand.sort_label, sx + kw / 2, ky + kw + 8, 16, C.cyan, 'center', 400, true); hit(sx, ky, kw, kw + 30, 'sort');
+    const canD = v.hand.can_discard_sel;
+    rr(dx, ky, kw, kw, kw / 2, 'rgba(0,0,0,0.6)', canD ? C.pink : (v.hand.can_drop ? C.slate : '#552'), 3, canD ? C.pink : null); T('✕', dx + kw / 2, ky + 22, 34, C.pink, 'center', 700); T(UI.hand.discard_label, dx + kw / 2, ky + kw + 8, 16, C.pink, 'center', 400, true);
+    if (v.hand.fee > 0) T('◆' + v.hand.fee, dx + kw + 4, ky - 18, 16, C.gold, 'left', 700); hit(dx, ky, kw, kw + 30, 'discard');
+    if (v.hand.best_name) T(v.hand.best_name, 360, st.hand_top - 30, 15, 'rgba(30,255,236,0.55)', 'center', 500);
+    if (drag && drag.moved && drag.card) card(drag.card, drag.p.x - cw / 2, drag.p.y - chh / 2, cw, chh);
+  }
+}
+
+function drawShop() {
+  const s = V.shop, sh = UI.shop;
+  rr(0, 0, 720, 1280, 0, 'rgba(8,10,26,0.92)');
+  rr(sh.blind_pos[0], sh.blind_pos[1], sh.blind_size[0], sh.blind_size[1], 16, 'rgba(0,0,0,0.5)', C.slate);
+  const b = V.blind;
+  T(s.mid ? '本场进度' : '下一场', sh.blind_pos[0] + 20, sh.blind_pos[1] + 16, 16, C.dim, 'left', 400, true);
+  if (s.mid) { T('还差 ' + s.need, sh.blind_pos[0] + 20, sh.blind_pos[1] + 44, 52, C.ink, 'left', 700, true); T('已得 ' + s.score + ' / 目标 ' + s.target + ' · 还剩 ' + s.left + ' 拍', sh.blind_pos[0] + 20, sh.blind_pos[1] + 112, 18, C.dim, 'left', 400, true); }
+  else { T('目标 ' + s.target, sh.blind_pos[0] + 20, sh.blind_pos[1] + 44, 44, C.ink, 'left', 700, true); }
+  if (b.face) { T(b.face.name, sh.blind_pos[0] + 20, sh.blind_pos[1] + 156, 22, C.pink, 'left', 600, true); wrap(b.face.fx, sh.blind_pos[0] + 20, sh.blind_pos[1] + 186, sh.blind_size[0] - 40, 14, C.dim, 18, false, 2); }
+  T((s.route || []).map(r => (r.state === 0 ? '✓' : r.state === 1 ? '▶' : '·') + r.name).join('  →  '), sh.blind_pos[0] + 20, sh.blind_pos[1] + sh.blind_size[1] - 30, 13, C.dim, 'left', 400, true);
+  T(sh.title, 360, sh.title_pos[1], 34, C.ink, 'center', 600, true);
+  const kind = s.buys_left > 0 ? sh.encore_line.replace('%d', s.buys_left).replace('%d', s.coins) : (s.first_target ? sh.target_line : sh.support_line.replace('%d', s.coins));
+  T(kind, 360, sh.kind_pos[1], 18, C.dim, 'center', 400, true);
+  const n = s.offers.length, cw = n <= 3 ? sh.card_w : sh.card_w_4, g = n <= 3 ? sh.card_gap : sh.card_gap_4, x0 = (720 - cw * n - g * (n - 1)) / 2;
+  s.offers.forEach((o, i) => { const x = x0 + i * (cw + g), y = sh.cards_y, h = cw * 1.1; ctx.globalAlpha = o.aff ? 1 : 0.45; rr(x, y, cw, h, 14, 'rgba(8,4,16,0.9)', o.kind === 'target' ? C.pink : C.cyan, s.replace_pick === i ? 3 : 1.5, s.replace_pick === i ? C.gold : null); T(o.id, x + 10, y + 10, 18, C.ink, 'left', 600); T(o.kind === 'target' ? 'TARGET' : o.rarity, x + cw - 8, y + 12, 12, C.dim, 'right'); const j = JOKERS[o.id]; if (j) { T(j.cn, x + 10, y + 36, 20, C.ink, 'left', 600, true); wrap(j.fx, x + 10, y + 66, cw - 20, 14, C.dim, 17, false, 5); } ctx.globalAlpha = 1; T(o.price === 0 ? sh.free_text : '◆ ' + o.price, x + cw / 2, y + h + sh.price_dy, 22, o.price === 0 ? C.cyan : (o.aff ? C.gold : '#8a5560'), 'center', 700, o.price === 0); hit(x, y, cw, h + 40, 'offer', i); });
+  const by = sh.btn_y;
+  rr(360 - 220 - 12, by, 220, 58, 16, 'rgba(41,48,102,0.9)', 'rgba(160,180,255,0.4)'); T(s.reroll_cost === 0 ? sh.free_text : sh.reroll_text.replace('%d', s.reroll_cost), 360 - 12 - 110, by + 16, 20, C.ink, 'center', 500, true); hit(360 - 220 - 12, by, 220, 58, 'reroll');
+  rr(360 + 12, by, 220, 58, 16, 'rgba(41,48,102,0.9)', 'rgba(160,180,255,0.4)'); T(sh.skip_text, 360 + 12 + 110, by + 16, 20, C.ink, 'center', 500, true); hit(360 + 12, by, 220, 58, 'leave');
+  // consumables
+  const cy = sh.cons_y || 912, dd = sh.cons_disc || 132, colw = sh.cons_col_w || 190, cg = sh.cons_gap || 24, lx = sh.cons_left || 190, rx = sh.cons_right || 692, cx0 = lx + ((rx - lx) - (colw * 2 + cg)) / 2;
+  s.consumables.forEach((c, i) => { const col = cx0 + i * (colw + cg), x = col + (colw - dd) / 2; if (!c) return; ctx.globalAlpha = c.armed ? 1 : 0.45; ctx.beginPath(); ctx.arc(x + dd / 2, cy + dd / 2, dd / 2, 0, Math.PI * 2); ctx.fillStyle = '#1a0710'; ctx.fill(); ctx.strokeStyle = C.gold; ctx.lineWidth = 2; ctx.stroke(); if (c.stamp) T(c.stamp, x + dd / 2, cy + dd / 2 - 18, 34, C.gold, 'center', 700); T(c.name, col + colw / 2, cy + dd + 12, 15, C.ink, 'center', 500, true); wrap(CONS[c.id] || c.fx, col, cy + dd + 36, colw, 12, C.dim, 14, true, 2); T('◆ ' + c.price, col + colw / 2, cy + dd + 76, 17, C.gold, 'center', 700); ctx.globalAlpha = 1; hit(x, cy, dd, dd + 100, 'cons', i); });
+  if (s.replace_pick !== null && s.replace_pick !== undefined) { rr(sh.replace_prompt_pos[0], sh.replace_prompt_pos[1], sh.replace_prompt_w, 40, 12, 'rgba(0,0,0,0.85)', C.gold); T(sh.replace_prompt.replace('%d', s.offers[s.replace_pick] ? s.offers[s.replace_pick].price : 0), sh.replace_prompt_pos[0] + sh.replace_prompt_w / 2, sh.replace_prompt_pos[1] + 10, 15, C.gold, 'center', 500, true); rr(360 - 80, sh.replace_prompt_pos[1] + 50, 160, 40, 12, 'rgba(60,10,20,0.9)', C.pink); T(sh.replace_cancel_text, 360, sh.replace_prompt_pos[1] + 60, 16, C.pink, 'center', 500, true); hit(360 - 80, sh.replace_prompt_pos[1] + 50, 160, 40, 'cancel_replace'); }
+}
+
+function drawOverlays() {
+  const v = V;
+  if (v.screen === 'front') {
+    rr(0, 0, 720, 1280, 0, '#000');
+    T('SYNC5', 360, 300, 96, C.cyan, 'center', 700); T('Lua 镜像 · 浏览器参考渲染器', 360, 410, 20, C.dim, 'center', 400, true);
+    T('局数 ' + v.home.runs_total + ' · 体力 ' + v.home.energy + '/' + v.home.energy_max + ' · LV.' + v.home.profile.level, 360, 450, 16, C.dim, 'center', 400, true);
+    if (v.resume_prompt) { rr(150, 560, 420, 60, 16, 'rgba(6,16,20,0.95)', C.cyan); T('继续上次的演出 ▸', 360, 578, 22, C.ink, 'center', 500, true); hit(150, 560, 420, 60, 'resume_run'); rr(150, 640, 420, 50, 16, 'rgba(22,6,9,0.95)', C.pink); T('放弃, 开新的一局', 360, 654, 18, C.pink, 'center', 500, true); hit(150, 640, 420, 50, 'drop'); }
+    else { rr(150, 600, 420, 80, 20, 'rgba(6,16,20,0.95)', C.cyan, 2, C.cyan); T(v.home.seen_tutorial ? '开始巡演 ▸' : '开始(教学关)▸', 360, 622, 28, C.ink, 'center', 600, true); hit(150, 600, 420, 80, 'start'); }
+    T('点击 = 选择 · 拖拽 = 手牌↔缓存对调 · P 暂停 · 数据/规则全在 Lua 里跑', 360, 1180, 14, C.dim, 'center', 400, true);
+  }
+  if (v.screen === 'intro') { rr(0, 0, 720, 1280, 0, 'rgba(0,0,0,0.78)'); const b = v.blind; T(v.intro.kind === 'gamma' ? '每场演出有一张盲注' : (b.is_wall ? 'BOSS 墙' : b.blind_name), 360, 420, 40, C.pink, 'center', 700, true); T(b.face ? b.face.name : '纯分数', 360, 490, 56, C.ink, 'center', 700, true); if (b.face) wrap(b.face.fx, 160, 570, 400, 22, C.dim, 28, false, 3); T('目标 ' + b.target, 360, 680, 30, C.gold, 'center', 600, true); T('巡演路线 · ' + (v.intro.route || []).map(r => r.name).join(' → '), 360, 812, 15, 'rgba(30,255,236,0.72)', 'center', 400, true); T('点击跳过', 360, 900, 14, C.dim, 'center', 400, true); hit(0, 0, 720, 1280, 'skip_intro'); }
+  if (v.screen === 'cutin') { rr(0, 0, 720, 1280, 0, 'rgba(0,0,0,0.7)'); wrap((v.cutin.command || '').replace(/[{}]/g, ''), 120, 560, 480, 24, C.ink, 32, true); if (v.cutin.key === 'beta') T('+' + v.cutin.coins + ' ◆', 360, 660, 30, C.gold, 'center', 700); }
+  if (v.tutorial && (v.screen === 'decision' || v.screen === 'draft') && v.tutorial.hint.command) { rr(40, 1190, 640, 64, 14, 'rgba(0,0,0,0.85)', C.cyan); T(v.tutorial.hint.signal, 60, 1198, 13, C.cyan, 'left', 700); wrap(v.tutorial.hint.command.replace(/[{}]/g, ''), 60, 1216, 600, 16, C.ink, 20, true, 2); }
+  if (v.screen === 'end') { const e = v.end_screen; rr(0, 0, 720, 1280, 0, 'rgba(0,0,0,0.85)'); T(e.win ? '演出成功' : '演出失败', 360, 380, 56, e.win ? C.cyan : C.pink, 'center', 700, true); T(e.score + ' / ' + e.target, 360, 470, 40, C.ink, 'center', 600); if (e.why) T('预支违约 · 还不上 ' + e.why, 360, 530, 18, C.pink, 'center', 400, true); if (e.win) T('工资 +' + e.wage + ' ◆ · 第 ' + e.gig + ' 场谢幕', 360, 530, 18, C.gold, 'center', 400, true); rr(150, 640, 420, 60, 16, 'rgba(6,16,20,0.95)', C.cyan); T(e.win ? '谢幕 ▸' : '再来一次 ▸', 360, 658, 22, C.ink, 'center', 500, true); hit(150, 640, 420, 60, e.win ? 'end_next' : 'restart'); rr(150, 720, 420, 50, 16, 'rgba(22,6,9,0.95)', C.slate); T('返回主页', 360, 734, 18, C.dim, 'center', 500, true); hit(150, 720, 420, 50, 'end_home'); }
+  if (v.paused) { rr(0, 0, 720, 1280, 0, 'rgba(0,0,5,0.72)'); rr(170, 470, 380, 230, 16, 'rgba(10,13,31,0.96)', C.cyan); T('暂停', 360, 492, 26, C.cyan, 'center', 600, true); rr(206, 552, 308, 46, 12, 'rgba(15,41,51,0.95)', C.cyan); T('继续 ▸', 360, 564, 19, C.ink, 'center', 500, true); hit(206, 552, 308, 46, 'resume'); rr(206, 612, 308, 44, 12, 'rgba(51,15,26,0.95)', C.pink); T('退出本局(不计战绩)', 360, 624, 17, C.pink, 'center', 500, true); hit(206, 612, 308, 44, 'quit_run'); }
+  // floaters
+  floaters.forEach(f => { ctx.globalAlpha = Math.max(0, 1 - f.age / f.ttl); T(f.text, f.x, f.y - f.age * 40, 26, f.color, 'center', 700, /[一-鿿]/.test(f.text)); ctx.globalAlpha = 1; });
+}
+
+function handleEvents(evs) {
+  for (const e of evs) {
+    if (e.kind === 'settle') { floater(`${e.base} × ${Number(e.mult).toFixed(2)} = ${e.score}`, 360, 560, C.cyan, 1.8); if (e.coins > 0) floater('+' + e.coins + ' ◆', 600, 150, C.gold); (e.popups || []).forEach((p, k) => setTimeout(() => floater(p.text, 26 + (p.slot + 0.5) * 167, 190, C.gold), 300 + 220 * k)); shakeT = 0.3; }
+    else if (e.kind === 'deny') floater(e.text || e.why, 360, 1000, '#ff5f7e');
+    else if (e.kind === 'section_clear') floater('目标达成 ✓  工资 +' + e.wage + ' ◆', 360, 640, C.cyan, 1.6);
+    else if (e.kind === 'disc_fired') floater('▶ ' + e.names.join(' · '), 360, 620, C.suit_red, 1.6);
+    else if (e.kind === 'loan_repay') floater('还款 -' + e.paid + ' ◆', 600, 150, C.pink);
+    else if (e.kind === 'guest_exit') floater(e.name + ' 谢幕', 26 + (e.slot + 0.5) * 167, 190, C.pink);
+    else if (e.kind === 'run_end') shakeT = 0.5;
+  }
+}
+
+let JOKERS = {}, CONS = {};
+function loop() {
+  // 用定时器而不是 rAF:后台标签页 / 自动化驱动下 rAF 会停, 钟就不走了;逻辑层自己按 dt 限幅(≤0.5s/帧)
+  const ts = performance.now();
+  const dt = (ts - lastTick) / 1000; lastTick = ts;
+  sync5_tick(performance.now());
+  handleEvents(JSON.parse(sync5_events()));
+  V = JSON.parse(sync5_view());
+  floaters = floaters.filter(f => (f.age += dt) < f.ttl);
+  hits = [];
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, W, H);
+  if (shakeT > 0) { shakeT -= dt; ctx.translate((Math.random() - 0.5) * 12, (Math.random() - 0.5) * 12); }
+  if (V.screen !== 'front') drawStage();
+  if (V.screen === 'draft' && V.shop) drawShop();
+  drawOverlays();
+}
+
+function pt(e) { const r = cv.getBoundingClientRect(); const t = e.touches ? e.touches[0] : e; return { x: (t.clientX - r.left) / scale, y: (t.clientY - r.top) / scale }; }
+function onDown(e) { const p = pt(e); const h = topHit(p); if (!h) return; if ((h.id === 'hand' || h.id === 'cache') && V.hand) { drag = { zone: h.id, i: h.data, start: p, p, moved: false, card: (h.id === 'hand' ? V.hand.cards : V.hand.cache)[h.data] }; } else drag = { hit: h, start: p, p, moved: false }; e.preventDefault(); }
+function onMove(e) { if (!drag) return; drag.p = pt(e); if (Math.hypot(drag.p.x - drag.start.x, drag.p.y - drag.start.y) > 12) drag.moved = true; }
+function onUp(e) {
+  if (!drag) return; const d = drag; drag = null; const p = d.p;
+  if (!d.moved) { const h = topHit(p); if (!h) return; click(h); return; }
+  if (d.zone) { const t = topHit(p, x => x.id === 'hand' || x.id === 'cache' || x.id === 'discard'); if (!t) return; if (t.id === 'discard') call('discard_one', d.zone, d.i); else if (d.zone === 'hand' && t.id === 'cache') call('drag_swap', d.i, t.data); else if (d.zone === 'cache' && t.id === 'hand') call('drag_swap', t.data, d.i); }
+}
+function click(h) {
+  const id = h.id, s = V.screen;
+  if (id === 'start') call('start_run'); else if (id === 'resume_run') call('resume_run'); else if (id === 'drop') call('drop_checkpoint');
+  else if (id === 'skip_intro') call('skip_intro');
+  else if (id === 'hand') call('tap_hand', h.data); else if (id === 'cache') call('tap_cache', h.data);
+  else if (id === 'sort') call('sort'); else if (id === 'discard') call('discard');
+  else if (id === 'offer') call('buy', h.data); else if (id === 'cons') call('buy_consumable', h.data); else if (id === 'reroll') call('reroll'); else if (id === 'leave') call('leave');
+  else if (id === 'slot' && s === 'draft' && V.shop && V.shop.replace_pick !== null && V.shop.replace_pick !== undefined) call('replace', h.data);
+  else if (id === 'cancel_replace') call('cancel_replace');
+  else if (id === 'end_next') call('end_next'); else if (id === 'restart') call('restart'); else if (id === 'end_home') call('end_home');
+  else if (id === 'resume') call('resume'); else if (id === 'quit_run') call('quit_run');
+}
+cv.addEventListener('mousedown', onDown); addEventListener('mousemove', onMove); addEventListener('mouseup', onUp);
+cv.addEventListener('touchstart', onDown, { passive: false }); addEventListener('touchmove', onMove, { passive: false }); addEventListener('touchend', onUp);
+addEventListener('keydown', e => { if (e.key === 'p') { if (V && V.paused) call('resume'); else call('pause'); } });
+
+function boot() {
+  if (!window.sync5_view) { setTimeout(boot, 50); return; }
+  UI = JSON.parse(sync5_ui());
+  // 卡面文案:小丑牌名 / 消耗牌描述都从 ui.json 与数据里来
+  JOKERS = JSON.parse(sync5_jokers());
+  const cc = UI.consumablecard || {}; for (const k in cc) CONS[k] = cc[k].trigger || cc[k].command || '';
+  document.getElementById('boot').textContent = '';
+  lastTick = performance.now();
+  setInterval(loop, 40);
+}
+boot();
+})();
+</script>
+</body>
+</html>

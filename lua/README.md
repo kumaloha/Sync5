@@ -15,6 +15,14 @@ lua lua/selftest.lua     # 数值语义与 64 位算术自测
 lua lua/tools/drive.lua 1 3   # 无头跑 3 局
 ```
 
+**本地启动(浏览器参考渲染器, 逻辑全在 Lua 里跑)**:
+
+```bash
+python3 tools/webbundle.py && python3 -m http.server 8771 --directory lua/web
+# 然后开 http://localhost:8771 —— Fengari(浏览器里的 Lua 5.3)跑 lua/, JS 只画画布和接鼠标
+```
+`lua/web/index.html` 就是契约 `app/CONTRACT.md` 的可运行范例(读 view 画、手势翻意图、events 做一次性动画), 照它接即可。
+
 **在引擎里跑**(沙箱没有 io / arg / dofile 也行, 全走 `require`):
 
 ```lua
@@ -35,6 +43,7 @@ local r = require("sync5.check").run({ print = print })   -- 前缀按你放的�
 | `app/CONTRACT.md` | 视图契约(你要读的那份) | Godot 仓库 |
 | `check.lua` `tools/fams.lua` `tools/runloop.lua` | 对拍器 | 仪器 |
 | `tools/drive.lua` | 无头驱动范例 | — |
+| `web/index.html` | 浏览器参考渲染器(Fengari);`tools/webbundle.py` 打包 | Godot 仓库 |
 
 ## 规矩
 
