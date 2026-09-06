@@ -27,7 +27,7 @@
 **code review 剩下的三条模型缺口**(不急):5 张时间闸门脸 bot 无时钟 · bot 早收掷点不看动作 · 求解器看不见 cache_rank_sum(回收)。
 
 ### 接下来按序(不许跳)
-0. **⭐ 2026-09-06 新开轴:TapMaker Lua 镜像**(用户拍板「手工镜像 + 机械门」,规格 [`docs/design/mirror.md`](docs/design/mirror.md),落地五段与验收在那篇 §11;分工 = 本仓库唯一真源、我写 `lua/`、她从 GitHub 拉自己搬)。⚠ 下面 2/3/5 不受影响,仍按各自触发条件走。
+0. ✅ **TapMaker Lua 镜像五段做完**(2026-09-06 晚, CHANGELOG 09-06 二):`lua/` 可交付, 她从 GitHub 拉、读 `lua/README.md` + `lua/app/CONTRACT.md` 接渲染。**接下来**:她那边跑起来的截图对 `docs/mockups/*.html`(渲染这半只能她验)· 商店授予记账三份收口(抽成 `core/shelf.gd` 的实例态, mirror.md §12)· 图鉴 v2 · 改 `core/` 的纪律 = 重生成金样 + `mirror.py`(CLAUDE.md 预检行)。
 1. ✅ **唱片位视觉批**(09-05 晚做完, CHANGELOG ④):碟从货架飞入唱片位, 到点的落进队列、即生效的转一圈溶掉, 牌堆类有浮字。
    ⚠ 若用户其实指「碟面要看出是哪张卡」(碟上现在只刻拍号), 另议。
 2. **`bot_targets` 重标 + `curve`**(numbers.md §2.4:卡先定稿, 关卡分最后)—— 攒成一批, 一次单测 + 一次门。

@@ -91,6 +91,9 @@ tools/bot.gd                   玩家策略(完美玩家 / 规则 bot)
 
 ## 数据与配置
 
+⚑ 2026-09-06 「镜像不许手抄数字」筛出四处搬进 JSON:牌型表 → `data/patterns.json` · 色板 → `data/theme.json` · `view/layout.gd` 的装配坐标 → `ui.json.stage` · `RESOLVE_FEEDBACK` → `run.json`。
+`lua/data/*.lua` 是它们的生成物(`tools/luagen.py`)。
+
 **所有数值与内容在 `data/*.json`**,`core/db.gd` 校验 ——
 未知键/坏引用**在测试里直接红**(⚠ 是**测试期门禁**,运行时不拒绝启动;理由见 `core/db.gd` 文件头)。
 
@@ -114,6 +117,7 @@ tools/bot.gd                   玩家策略(完美玩家 / 规则 bot)
 
 | 工具 | 干什么 | 耗时 |
 |---|---|---|
+| **`luagen.py` · `golden.gd` · `mirror.py` · `lua/check.lua`** ⚑(2026-09-06 新, Lua 镜像三道门, 规格 [`docs/design/mirror.md`](docs/design/mirror.md)) | `luagen` 把 `data/*.json` 生成 `lua/data/`(`--check` 比对);`golden.gd` 在 Godot 里生成五族金样 `lua/golden/`(rng / pattern / settle / fx / run, 27397 条);`mirror.py --check` 守「`core/` 每个公开函数在 `lua/core/` 有同名孪生 + `view/phrase.gd` 编排函数在 `lua/app/` 有孪生」(393 个);`lua lua/check.lua` 逐位重放。**改 `core/` 就重生成金样再跑 check** | luagen / mirror 秒级 · golden ≈ 40 s · check ≈ 3.5 s(LuaJIT)/ 9.5 s(5.5) |
 | ⚠⚠ **08-27~08-30 的探针读数** | **全部作废, 要重跑** —— `RunLoop` 的「达标即收工」在 `o.targets` 为空时恒真 ⇒ **不传目标表的 11 个探针一局只打 4 拍**(应有 24)。受影响:`curve`(关卡分那张表)· `kit` · `price` → `ranking.json` · `gate.sh` · `coin` · `addit` · `blind` · `wallet` · `decay` · `decomp` · `udp`。⚠ **`sim.gd` 不受影响**(它传表)。已修 + `tests/t_run.gd::_t_probe_runs_full` 锁住 | — |
 | **`gate.sh`** ⚑ | **加了内容就要过的门**(测试+脸覆盖自证+**小丑牌覆盖自证**+单调性+哨兵+流程+打点+重放+尺子) | ⚠⚠ **实测 ~4.5 小时**(2026-08-15 逐步计时,见下)。~~15 分钟~~ 那个数是 **S10 之前**的,**过期了一个数量级** |
 | **`unittest.sh`** | 全量单测 + **四判据唯一一份**(exit 0 · 0 failed · SCRIPT ERROR 0 · 非白名单 ^ERROR 0 · 通过数 ≥ 2400);gate.sh 与 CI 都调它 | ~13 分钟 |
@@ -326,7 +330,12 @@ price 里 ration/trilogy/trilogy4 三个放置要用 `SYNC5_PRICE_ONLY` 单独�
 
 ---
 
-## 增量快照(2026-08-10 ~ 09-05,与上文冲突时以本节为准)
+## 增量快照(2026-08-10 ~ 09-06,与上文冲突时以本节为准)
+
+### 2026-09-06(二)· Lua 镜像(TapMaker 版)落地
+用户拍板「手工镜像 + 机械门」并要求一口气做完。`lua/` 长成:`core/` 21 个类的逐文件孪生(+ 新抽出的 `core/shelf.gd` ↔ `shelf.lua`)· PCG32 复刻(32 位肢体, 5.1/LuaJIT/5.3+ 通吃)·
+`lua/data/`(生成)· `lua/golden/` 五族 27397 条(5.5 与 LuaJIT 双绿)· `lua/app/phrase.lua` + `shop.lua` 编排层 + `CONTRACT.md` + `README.md` · `tools/drive.lua` 无头整局。
+Godot 侧:四处手抄数字搬 JSON(截图前后逐件对照不动)· 货架组装抽成 `core/shelf.gd`。⚠ 商店授予记账仍三份(view / golden ShopSim / lua), 见 mirror.md §12。
 
 - **2026-09-06 · 全项目 code review**(细账 CHANGELOG 09-06):五线并行审 → 修 36 处 bug(重开不清债/碟/掷点 CRITICAL · 秒表死卡 · 替换流吞名额 · 压暗砧座可买 …)·
   模型侧 14 处对齐(客串离场 / 掷骰种子 / 一局一把尺 / 随机源统一)· parity 第 ⑧ 层 · 删 36 条孤儿文案 + 5 死探针 + 十余处死码 · 文档 34 处。

@@ -26,7 +26,7 @@ static var S1_FACE_MIN_RUN: int = int(_run["s1_face_min_run"])
 static var S1_EASY_CHANCE: float = float(_run["s1_easy_chance"])
 
 # --- Phrase timing (seconds) ---
-static var RESOLVE_FEEDBACK := 0.25
+static var RESOLVE_FEEDBACK: float = float(_run["resolve_feedback"])   # 2026-09-06 搬进 run.json(镜像不许手抄数字)
 static var LATE_ACT_WINDOW: float = float(_run["late_act_window"])
 ## 谢幕(curtain)的压哨窗口 —— 尾声(finale)那 2 秒之内更窄的一档。
 ## 与 `late_act_window` 同族配置, 不写死:两张卡的窗口宽度是可调的平衡旋钮。

@@ -6,10 +6,9 @@ extends RefCounted
 ##
 ## ⚠ 这里只**造**节点, **不连信号** —— 「谁听谁」是编排, 留在 `view/phrase.gd`。
 ## ⚠ 也不打点、不碰钱:那两件事按铁律只许发生在编排器。
-## ⚠ **关键**坐标与文案从 `data/ui.json` 取(手牌/缓存/盲注卡/货架/信息区那几节);
-##   但本文件正文仍有十几处写死的位置(音浪 426/216 · 均衡器 626/44 · 唱片 132 · 两条饰线 · 遮罩板),
-##   2026-08-21 评审点名「文件头说不许, 正文自己写了十余个」—— 这句改成真话:**它们是一次性装配常量,
-##   搬进 ui.json 是待办**, 在那之前改这些数字请在此处改, 并同步 docs/design/ui_meta.md 的坐标表。
+## ⚠ 坐标与文案全部从 `data/ui.json` 取(手牌/缓存/盲注卡/货架/信息区那几节 + `stage` 节的装配常量)。
+##   2026-09-06:正文那十几处写死的位置(音浪 · 均衡器 · 唱片 · 饰线 · 标签 · 槽位 · 轨道框)搬进了
+##   `ui.json.stage`(镜像不许手抄数字, docs/design/mirror.md §4)—— 这个文件不再有魔法数字。
 ##
 ## `build()` 返回的字典就是编排器要拿的那几个把手;**add_child 的顺序 = 画的顺序**,
 ## 动之前先想清楚谁该盖住谁(替换态那两个部件由 `view/replace.gd` 在这之后挂上去)。
@@ -167,14 +166,17 @@ static func _build_joker_row(host: Control, margin: float, gap: float, pill_w: f
 	var line_l := ColorRect.new()
 	line_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	line_l.color = Color(0.55, 0.63, 1.0, 0.22)
-	line_l.position = Vector2(margin, 167)
-	line_l.size = Vector2(200, 1)
+	var ui: Dictionary = DB.ui()["stage"]
+	var lines_y := float(ui["lines_y"])
+	var line_w := float(ui["line_w"])
+	line_l.position = Vector2(margin, lines_y)
+	line_l.size = Vector2(line_w, 1)
 	host.add_child(line_l)
 	var line_r := ColorRect.new()
 	line_r.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	line_r.color = line_l.color
-	line_r.position = Vector2(720 - margin - 200, 167)
-	line_r.size = Vector2(200, 1)
+	line_r.position = Vector2(720 - margin - line_w, lines_y)
+	line_r.size = Vector2(line_w, 1)
 	host.add_child(line_r)
 
 	# 小丑牌区的标签条(盲注 2026-08-05 移到音浪层左侧的竖卡, 这里回到原样)
@@ -188,10 +190,10 @@ static func _build_joker_row(host: Control, margin: float, gap: float, pill_w: f
 		HORIZONTAL_ALIGNMENT_CENTER)
 	pl.custom_minimum_size = Vector2(170, 30)
 	pill.add_child(pl)
-	pill.custom_minimum_size = Vector2(pill_w, 34)
-	pill.size = Vector2(pill_w, 34)
+	pill.custom_minimum_size = Vector2(pill_w, float(ui["pill_h"]))
+	pill.size = Vector2(pill_w, float(ui["pill_h"]))
 	host.add_child(pill)
-	pill.position = Vector2(360.0 - pill_w * 0.5, 150)
+	pill.position = Vector2(360.0 - pill_w * 0.5, float(ui["pill_y"]))
 	pill.modulate.a = 0.85
 	var pill_tw := pill.create_tween().set_loops()
 	pill_tw.tween_property(pill, "modulate:a", 1.0, 1.5).set_trans(Tween.TRANS_SINE)
@@ -203,23 +205,26 @@ static func _build_joker_row(host: Control, margin: float, gap: float, pill_w: f
 	for i in range(4):
 		var slot := JokerSlotView.new()
 		slot.slot_kind = "target" if i == 0 else "support"
-		slot.position = Vector2(margin + i * (jsize + gap), 200)
-		slot.size = Vector2(jsize, 172.0)
+		slot.position = Vector2(margin + i * (jsize + gap), float(ui["joker_y"]))
+		slot.size = Vector2(jsize, float(ui["joker_h"]))
 		host.add_child(slot)
 		views.append(slot)
 	return views
 
 
 static func _build_wave_zone(host: Control, out: Dictionary, margin: float) -> void:
+	var ui: Dictionary = DB.ui()["stage"]
+	var wv: Array = ui["wave"]
+	var eqr: Array = ui["eq"]
 	out["wave"] = WaveView.new()
-	out["wave"].position = Vector2(0, 426)
-	out["wave"].size = Vector2(720, 216)
+	out["wave"].position = Vector2(float(wv[0]), float(wv[1]))
+	out["wave"].size = Vector2(float(wv[2]), float(wv[3]))
 	host.add_child(out["wave"])
 
 	# bar curtain filling the gap down to the hand frame (hand_top = 672)
 	out["eq"] = EqStrip.new()
-	out["eq"].position = Vector2(0, 626)
-	out["eq"].size = Vector2(720, 44)
+	out["eq"].position = Vector2(float(eqr[0]), float(eqr[1]))
+	out["eq"].size = Vector2(float(eqr[2]), float(eqr[3]))
 	host.add_child(out["eq"])
 
 	# 盲注卡: 音浪层**左侧**, 和右边的唱片对称, 音浪从两者之间穿过。
@@ -227,9 +232,10 @@ static func _build_wave_zone(host: Control, out: Dictionary, margin: float) -> v
 	# 宽按目录 118:176 比例随高走(≈145), 左缘仍在 margin —— 字号随设计空间整体 +23%,
 	# 可读性就是这次放大的全部目的。竖向中心仍落在音浪轴 534(带的中点)。
 	out["blind_card"] = Widgets.BlindCard.new()
-	var bc_h := 216.0
-	out["blind_card"].size = Vector2(bc_h * 118.0 / 176.0, bc_h)
-	out["blind_card"].position = Vector2(margin, 426.0)
+	var bc_h := float(ui["blind_h"])
+	var ratio: Array = ui["blind_ratio"]
+	out["blind_card"].size = Vector2(bc_h * float(ratio[0]) / float(ratio[1]), bc_h)
+	out["blind_card"].position = Vector2(margin, float(wv[1]))
 	out["blind_card"].mouse_filter = Control.MOUSE_FILTER_IGNORE
 	host.add_child(out["blind_card"])
 
@@ -239,9 +245,10 @@ static func _build_wave_zone(host: Control, out: Dictionary, margin: float) -> v
 	# ⚠ 几何照 2026-08-31 退役前**逐字还原**:132×132, 右缘距边 margin, 竖向中心对齐盲注卡。
 	# ⚑ 它现在的职责是**待播队列**(空着就是转盘), 见 `view/vinyl_deck.gd` 的文件头。
 	# ⚠ 排版铁律那句「盲注卡 + 音浪 + 唱片(左中右)」因此回到字面意思。
+	var vd := float(ui["vinyl"])
 	out["vinyl"] = VinylDeck.new()
-	out["vinyl"].size = Vector2(132, 132)
-	out["vinyl"].position = Vector2(720.0 - margin - 132.0, 426.0 + (216.0 - 132.0) * 0.5)
+	out["vinyl"].size = Vector2(vd, vd)
+	out["vinyl"].position = Vector2(720.0 - margin - vd, float(wv[1]) + (bc_h - vd) * 0.5)
 	host.add_child(out["vinyl"])
 
 
@@ -257,8 +264,9 @@ static func _build_orbit(host: Control, hand_top: float) -> OrbitZone:
 	# ⇒ 真正的教训:**装饰性控件一律显式 IGNORE**, 别依赖它排在哪一层 ——
 	# 依赖层序的正确性会在下一次调整层序时**静默失效**。
 	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	frame.position = Vector2(24, hand_top)
-	frame.size = Vector2(672, 286)
+	var orb: Array = DB.ui()["stage"]["orbit"]
+	frame.position = Vector2(float(orb[0]), hand_top)
+	frame.size = Vector2(720.0 - float(orb[0]) * 2.0, float(orb[1]))
 	frame.add_theme_stylebox_override("panel", StageTheme.box(
 		Color(0.10, 0.13, 0.28, 0.45), Color(0.63, 0.71, 1.0, 0.30), 2, 30))
 	host.add_child(frame)

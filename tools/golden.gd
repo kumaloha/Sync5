@@ -15,6 +15,7 @@ func _initialize() -> void:
 		"pattern": Callable(self, "_fam_pattern"),
 		"settle": Callable(self, "_fam_settle"),
 		"fx": Callable(self, "_fam_fx"),
+		"run": Callable(self, "_fam_run"),
 	}
 	var n := 0
 	for name in fams:
@@ -354,7 +355,7 @@ static func rand_result(rng: RandomNumberGenerator, deck: Deck, i: int) -> Array
 
 func _fam_settle() -> String:
 	var cases: Array = []
-	for i in range(2000):
+	for i in range(1200):   # 2000 → 1200(2026-09-06 晚:金样进仓库, 每次重生成都是一份新 blob, 按重放成本与仓库体积定)
 		var rng := RandomNumberGenerator.new()
 		rng.seed = 52000 + i
 		var deck := Deck.new(52000 + i)
@@ -385,8 +386,8 @@ func _fam_fx() -> String:
 	var jid := 0
 	for e in DB.jokers():
 		var id := String(e["id"])
-		for k in range(24):
-			var i := jid * 24 + k
+		for k in range(16):   # 24 → 16(同上)
+			var i := jid * 16 + k
 			var rng := RandomNumberGenerator.new()
 			rng.seed = 61000 + i
 			var deck := Deck.new(61000 + i)
@@ -560,3 +561,558 @@ func _fam_fx() -> String:
 			cfg["budget"].append([sidx, dur, GameConfig.beat_discards(dur, sidx), GameConfig.discard_batch(dur, sidx)])
 	g["config"] = cfg
 	return "return " + lua(g) + "\n"
+
+
+# ---------------------------------------------------------------- run 族(整局重放)
+
+## 与 lua/tools/fams.lua::canon 逐字相同的规范化串(摘要用)。
+static func canon(v) -> String:
+	match typeof(v):
+		TYPE_NIL: return "nil"
+		TYPE_BOOL: return "T" if v else "F"
+		TYPE_INT: return "%d" % v
+		TYPE_FLOAT:
+			if v == floor(v) and absf(v) < 9007199254740992.0:
+				return "%d" % int(v)
+			return "f:" + f64hex(v)
+		TYPE_STRING, TYPE_STRING_NAME: return "'" + String(v) + "'"
+		TYPE_ARRAY:
+			var parts: Array = []
+			for e in v:
+				parts.append(canon(e))
+			return "[" + ",".join(parts) + "]"
+		TYPE_DICTIONARY:
+			var keys: Array = []
+			for k in v:
+				keys.append(String(k))
+			keys.sort()
+			var parts: Array = []
+			for k in keys:
+				var val = v[k] if v.has(k) else v[int(k)]
+				parts.append(k + "=" + canon(val))
+			return "{" + ",".join(parts) + "}"
+		_: return "'" + str(v) + "'"
+
+
+static func joker_digest(j) -> String:
+	if j == null:
+		return "-"
+	var keys: Array = j.state.keys()
+	keys.sort()
+	var parts: Array = []
+	for k in keys:
+		parts.append(String(k) + "=" + canon(j.state[k]))
+	return String(j.id) + "{" + ",".join(parts) + "}"
+
+
+static func lbl(arr: Array) -> String:
+	var out: Array = []
+	for c in arr:
+		out.append(c.label() if c != null else "?")
+	return " ".join(out)
+
+
+## 一局在某一刻的状态摘要 —— lua/tools/runloop.lua::digest 同一定义。
+static func digest(run: Run) -> String:
+	var slots_s: Array = []
+	for j in run.joker_slots:
+		slots_s.append(joker_digest(j))
+	var cons: Array = []
+	for c in run.consumables:
+		cons.append("%s:%d" % [String(c.id), int(c.queued_beats)])
+	var kinds: Array = []
+	for k in run.section_kinds:
+		kinds.append(int(k))
+	kinds.sort()
+	var ks: Array = []
+	for k in kinds:
+		ks.append("%d" % k)
+	var rules: Array = []
+	for k in run.deck.rules:
+		if run.deck.rules[k]:
+			rules.append(String(k))
+	rules.sort()
+	return "|".join([
+		"sec=%d" % run.section_idx, "pis=%d" % run.phrase_in_section, "pi=%d" % run.phrase_index,
+		"score=%d" % run.section_score, "coins=%d" % run.coins, "debt=%d" % run.debt, "stage=%d" % run.stage,
+		"rng=" + state_hex(run.deck._rng.state),
+		"draw=" + lbl(run.deck.draw_pile), "disc=" + lbl(run.deck.discard_pile), "cache=" + lbl(run.cache),
+		"slots=" + ";".join(slots_s), "cons=" + ",".join(cons), "boost=%d" % run.phrase_boosts.size(),
+		"face=" + run.face(), "boon=" + run.run_boon, "mr=" + canon(run.mod_roll),
+		"pk=%d" % run.prev_kind, "pth=" + ("T" if run.prev_target_hit else "F"), "fk=%d" % run.first_kind,
+		"kinds=" + ",".join(ks), "sdu=%d" % run.section_discards_used, "sb=%d" % run.shelf_bonus,
+		"rl=" + run.request_last, "prs=%d" % run.previous_raw_score,
+		"brng=" + state_hex(run._blind_rng.state), "rs=%d" % run._roll_seed,
+		"trim=" + ("T" if run.deck.trim_low else "F"), "rules=" + ",".join(rules),
+		"wildx=" + canon(run.deck.wild_extra),
+		"tut=%s/%d" % [("T" if run.tutorial else "F"), run.tutorial_step],
+	])
+
+
+## 商店的非渲染逻辑 —— lua/app/shop.lua 的同构体(view/shop.gd 授予记账 + view/phrase.gd 成交编排)。
+## ⚠ 三处一份(view / 这里 / Lua):改 view 的商店规则要同步这里与 lua/app/shop.lua(mirror.md §12 认下的代价)。
+class ShopSim extends RefCounted:
+	var run: Run
+	var rng: RandomNumberGenerator
+	var candidates: Array = []
+	var reroll_count := 0
+	var buys_left := 0
+	var shelf_bonus := 0
+	var grant_shelf := 0
+	var grant_extra_buys := 0
+	var grant_price := 0
+	var grant_free_reroll := 0
+	var grant_min_rarity := ""
+	var coffer: Array = []
+	var coffer_used := false
+	var shop_buys := 0
+	var perkeo_fired := false
+	var opened := false
+	var closed := false
+	var rule_next := false
+
+	func _init(r: Run, g: RandomNumberGenerator) -> void:
+		run = r
+		rng = g
+
+	func open() -> void:
+		Joker.notify_shop(run.joker_slots, "enter")
+		shop_buys = 0
+		perkeo_fired = false
+		shelf_bonus = run.shelf_bonus
+		run.shelf_bonus = 0
+		reroll_count = 0
+		buys_left = 0
+		grant_min_rarity = ""
+		deal()
+		var rf := rule_next
+		rule_next = false
+		coffer = roll_consumables(rf)
+		coffer_used = false
+		opened = true
+		closed = false
+
+	func deal() -> void:
+		candidates = Shelf.deal(run.joker_slots, shelf_bonus, grant_shelf, grant_min_rarity, rng, {}, {})
+
+	func roll_consumables(rule_first: bool) -> Array:
+		var held := {}
+		for c in run.consumables:
+			held[c.id] = true
+		var out: Array = []
+		for e in Consumable.roll_shelf(held, rule_first, 2, func(n: int) -> int: return run.deck.pick_index(n)):
+			out.append(null if e == null else Consumable.new(e))
+		return out
+
+	func price(j) -> int:
+		var sp := Economy.shelf_price(j, run.joker_slots)
+		return maxi(1, sp + grant_price) if sp > 0 else 0
+
+	func has_room(j) -> bool:
+		return Joker.has_room_for(run.joker_slots, String(j.kind))
+
+	func affordable(j) -> bool:
+		var p := price(j)
+		if p == 0:
+			return true
+		if j.kind == "target":
+			return run.coins >= p
+		var budget: int = run.coins
+		if not has_room(j):
+			var best_sell := 0
+			for k in range(1, run.joker_slots.size()):
+				if run.joker_slots[k] != null:
+					best_sell = maxi(best_sell, Economy.sell_value(run.joker_slots[k]))
+			budget += best_sell
+		return budget >= p
+
+	func buy_limit() -> int:
+		return Joker.slots_buy_limit(run.joker_slots) + grant_extra_buys
+
+	func consumable_effective(c) -> bool:
+		if c.action.has("copy_one_destroy_rest"):
+			var n := 0
+			for i in range(1, run.joker_slots.size()):
+				if run.joker_slots[i] != null:
+					n += 1
+			return n >= 2
+		return true
+
+	func _after_sale(sold_joker) -> bool:
+		if shop_buys < buy_limit():
+			if sold_joker != null:
+				sold(sold_joker)
+			buys_left = buy_limit() - shop_buys
+			return true
+		_exit()
+		return false
+
+	func _exit() -> void:
+		perkeo_on_exit()
+		close()
+
+	func close() -> void:
+		grant_shelf = 0
+		grant_extra_buys = 0
+		grant_price = 0
+		grant_free_reroll = 0
+		closed = true
+
+	func sold(j) -> void:
+		var at: int = candidates.find(j)
+		candidates.erase(j)
+		var refill = Shelf.refill(run.joker_slots, candidates, grant_min_rarity, rng, {}, {})
+		if refill != null:
+			if at >= 0 and at <= candidates.size():
+				candidates.insert(at, refill)
+			else:
+				candidates.append(refill)
+
+	## 返回 {ok, replace, stay}
+	func buy(i: int) -> Dictionary:
+		if closed or i >= candidates.size():
+			return {"ok": false}
+		var j = candidates[i]
+		if not affordable(j):
+			return {"ok": false}
+		if not has_room(j):
+			return {"ok": false, "replace": true}
+		return _install_bought(j, price(j))
+
+	func _install_bought(j, p: int) -> Dictionary:
+		if p < 0 or run.coins < p:
+			return {"ok": false}
+		run.coins -= p
+		run.tutorial_note("buy")
+		Joker.notify_shop(run.joker_slots, "buy")
+		var swapped_target := false
+		if j.kind == "target":
+			var swapping: bool = run.joker_slots[0] != null
+			swapped_target = swapping
+			if swapping:
+				Joker.notify_shop(run.joker_slots, "target_swap")
+				var trefund := Economy.sell_value(run.joker_slots[0])
+				if trefund > 0:
+					run.coins = Economy.grant(run.coins, trefund, run.joker_slots)
+			run.joker_slots[0] = j
+			j.on_acquire(run.deck)
+		else:
+			for k in range(1, run.joker_slots.size()):
+				if run.joker_slots[k] == null:
+					run.joker_slots[k] = j
+					j.on_acquire(run.deck)
+					break
+		run.coins = Economy.cap_held(run.coins, run.joker_slots)
+		if run.tutorial and j.kind == "target":
+			run.tutorial_shop_seen()
+			_exit()
+			return {"ok": true, "stay": false}
+		if not (j.kind == "target" and swapped_target):
+			shop_buys += 1
+		return {"ok": true, "stay": _after_sale(j)}
+
+	func replace(i: int, k: int) -> Dictionary:
+		if closed or i >= candidates.size():
+			return {"ok": false}
+		var new_j = candidates[i]
+		if k == 0:
+			return {"ok": false, "stay": true}
+		var old = run.joker_slots[k]
+		var p := price(new_j)
+		var refund: int = Economy.sell_value(old) if old != null else 0
+		if run.coins + refund < p:
+			return {"ok": false, "stay": true}
+		run.coins = Economy.grant(run.coins, refund, run.joker_slots) - p
+		Joker.notify_shop(run.joker_slots, "buy")
+		run.joker_slots[k] = new_j
+		new_j.on_acquire(run.deck)
+		run.coins = Economy.cap_held(run.coins, run.joker_slots)
+		shop_buys += 1
+		return {"ok": true, "stay": _after_sale(new_j)}
+
+	func reroll() -> Dictionary:
+		if closed:
+			return {"ok": false}
+		if grant_free_reroll > 0:
+			grant_free_reroll -= 1
+			Joker.notify_shop(run.joker_slots, "reroll")
+			deal()
+			return {"ok": true, "cost": 0}
+		var cost := Economy.reroll_cost(reroll_count, grant_price)
+		if run.coins < cost:
+			return {"ok": false}
+		reroll_count += 1
+		run.coins -= cost
+		Joker.notify_shop(run.joker_slots, "reroll")
+		deal()
+		return {"ok": true, "cost": cost}
+
+	func buy_consumable(i: int) -> Dictionary:
+		if closed or i >= coffer.size() or coffer[i] == null or coffer_used:
+			return {"ok": false}
+		var c = coffer[i]
+		if run.coins < c.price:
+			return {"ok": false}
+		if not consumable_effective(c):
+			return {"ok": false}
+		run.coins -= c.price
+		var used: Dictionary = run.take_consumable(c)
+		if not used.is_empty():
+			apply_consumable(used)
+		shop_buys += 1
+		coffer_used = true
+		if shop_buys < buy_limit():
+			coffer_used = false
+			for k in range(coffer.size()):
+				if coffer[k] != null and String(coffer[k].id) == String(c.id):
+					coffer[k] = null
+			buys_left = buy_limit() - shop_buys
+			return {"ok": true, "stay": true}
+		_exit()
+		return {"ok": true, "stay": false}
+
+	func leave() -> Dictionary:
+		if closed:
+			return {"ok": false}
+		run.tutorial_shop_seen()
+		_exit()
+		return {"ok": true, "stay": false}
+
+	func apply_consumable(used: Dictionary) -> void:
+		var cid := String(used["id"])
+		var act: Dictionary = used.get("action", {})
+		if act.has("wilds"):
+			run.deck.add_wilds(cid, int(act["wilds"]))
+		if act.has("trim_low"):
+			run.deck.trim_low_ranks()
+		if act.has("deck_rule"):
+			run.deck.rules[String(act["deck_rule"])] = true
+		apply_shop_action(cid, act)
+
+	func apply_shop_action(id: String, act: Dictionary) -> void:
+		if act.has("shelf_slots"):
+			grant_shelf = maxi(grant_shelf, int(act["shelf_slots"]))
+			if opened and not closed:
+				deal()
+		if act.has("extra_buys"):
+			grant_extra_buys += int(act["extra_buys"])
+		if act.has("price_delta"):
+			grant_price += int(act["price_delta"])
+		if act.has("rule_guaranteed"):
+			rule_next = true
+		if act.has("deck_rule"):
+			run.deck.rules[String(act["deck_rule"])] = true
+		if act.has("free_reroll"):
+			grant_free_reroll += int(act["free_reroll"])
+		if act.has("min_rarity"):
+			grant_min_rarity = String(act["min_rarity"])
+			if opened and not closed:
+				deal()
+		if act.has("loan"):
+			var ln: Dictionary = act["loan"]
+			run.coins = Economy.grant(run.coins, int(ln.get("borrow", 0)), run.joker_slots)
+			run.debt += int(ln.get("repay", 0))
+		if act.has("copy_one_destroy_rest"):
+			anvil()
+		if act.has("wilds"):
+			run.deck.add_wilds(id, int(act["wilds"]))
+		if act.has("trim_low"):
+			run.deck.trim_low_ranks()
+
+	func anvil() -> void:
+		var owned: Array = []
+		for i in range(1, run.joker_slots.size()):
+			if run.joker_slots[i] != null:
+				owned.append(i)
+		if owned.size() < 2:
+			return
+		var keep: int = owned[run.deck.pick_index(owned.size())]
+		var kept = run.joker_slots[keep]
+		for i in range(run.joker_slots.size()):
+			if i != keep:
+				run.joker_slots[i] = null
+		if kept.kind == "support":
+			for i in range(1, run.joker_slots.size()):
+				if run.joker_slots[i] == null:
+					var dup = Joker.by_id(kept.id)
+					dup.state = kept.state.duplicate(true)
+					run.joker_slots[i] = dup
+					break
+
+	func perkeo_on_exit() -> void:
+		if perkeo_fired:
+			return
+		perkeo_fired = true
+		if not Joker.slots_copy_consumable(run.joker_slots):
+			return
+		var src: Array = run.consumables.duplicate()
+		if src.is_empty():
+			return
+		var pick = src[run.deck.pick_index(src.size())]
+		for e in DB.consumables():
+			if String(e["id"]) == pick.id:
+				var copy := Consumable.new(e)
+				var used: Dictionary = run.take_consumable(copy)
+				if not used.is_empty():
+					apply_consumable(used)
+				break
+
+
+## 一局的随机策略回放脚本(动作 + 摘要)。不死局:段末工资照发、还不上就清账继续(RunLoop 口径)。
+func _play_run(seed: int, tutorial: bool) -> Dictionary:
+	var prng := RandomNumberGenerator.new()
+	prng.seed = seed * 3 + 1
+	var srng := RandomNumberGenerator.new()
+	srng.seed = seed * 5 + 2
+	var run := Run.new()
+	run.deck = Deck.new(seed)
+	run.cache = []
+	run.joker_slots = [null, null, null, null]
+	run.coins = GameConfig.STARTING_COINS
+	run.tutorial = tutorial
+	run._blind_rng.seed = seed * 31 + 7
+	run._roll_seed = seed * 97 + 13
+	if tutorial:
+		run.run_faces = {}
+		run.run_boon = ""
+	else:
+		var frng := RandomNumberGenerator.new()
+		frng.seed = seed * 13 + 3
+		run.run_faces = SectionMod.roll_run(frng)
+		run.run_boon = RunLoop.roll_boon(seed)
+	var shop := ShopSim.new(run, srng)
+	var ops: Array = []
+	var died := -1
+	for section in range(GameConfig.SECTIONS_PER_RUN):
+		run.section_idx = section
+		run.reset_section_state()
+		var section_over := false
+		while not section_over:
+			var p := Beat.begin(run)
+			run.age_consumables()
+			for used in run.due_consumables(run.phrase_in_section + 1):
+				shop.apply_consumable(used)
+			ops.append(["beat"])
+			var n_act := prng.randi_range(0, 2)
+			for _a in range(n_act):
+				var t := prng.randi_range(0, 6)
+				if t <= 3:
+					var k := prng.randi_range(1, 3)
+					var h: Array = []
+					var c: Array = []
+					for _t in range(k):
+						if prng.randi_range(0, 3) == 0 and not run.cache.is_empty():
+							var ci := prng.randi_range(0, run.cache.size() - 1)
+							if not c.has(ci):
+								c.append(ci)
+						else:
+							var hi := prng.randi_range(0, p.hand.size() - 1)
+							if not h.has(hi):
+								h.append(hi)
+					ops.append(["discard", h, c])
+					p.discard_selected(h, c)
+				elif t <= 5:
+					if not run.cache.is_empty():
+						var hi := prng.randi_range(0, p.hand.size() - 1)
+						var ci := prng.randi_range(0, run.cache.size() - 1)
+						ops.append(["swap", hi, ci])
+						p.swap_with_cache(hi, ci)
+				else:
+					ops.append(["sort"])
+					p.sort_hand()
+			var flags := {"late": prng.randi_range(0, 3) == 0, "early": prng.randi_range(0, 3) == 0,
+				"final": prng.randi_range(0, 7) == 0, "secs_left": float(prng.randi_range(0, 80)) / 10.0,
+				"early_discards": prng.randi_range(0, 3) == 0}
+			ops.append(["settle", flags])
+			Beat.settle(run, p, flags)
+			Beat.phrase_end(run, p, flags)
+			run.tutorial_note("play")
+			run.tutorial_try_advance()
+			var out := run.advance()
+			ops.append(["D", digest(run)])
+			if run.tutorial and not bool(out["section_done"]):
+				if run.tutorial_step == Tutorial.shop_step() and run.joker_slots[0] == null:
+					_shop_visit(shop, prng, ops)
+					continue
+				if bool(out["shop_break"]):
+					continue
+			if bool(out["section_done"]):
+				if run.tutorial and run.tutorial_done():
+					run.tutorial = false
+					run.roll_faces(seed * 11 + 5, -1)
+					ops.append(["tutorial_done"])
+				ops.append(["sec_end", bool(out["cleared"])])
+				if not bool(out["cleared"]) and died < 0:
+					died = section
+				run.coins = Economy.grant(run.coins, GameConfig.SECTION_CLEAR_REWARD, run.joker_slots)
+				if run.debt > 0:
+					var rp: Dictionary = run.repay_debt(run.coins)
+					if bool(rp["ok"]):
+						run.coins = int(rp["coins"])
+					else:
+						run.coins = 0
+						run.debt = 0
+				ops.append(["D", digest(run)])
+				section_over = true
+				if not bool(out["finale"]):
+					run.next_section()
+					_shop_visit(shop, prng, ops)
+			elif bool(out["shop_break"]):
+				_shop_visit(shop, prng, ops)
+	ops.append(["end"])
+	return {"seed": seed, "tutorial": tutorial, "ops": ops, "died": died}
+
+
+func _shop_visit(shop: ShopSim, prng: RandomNumberGenerator, ops: Array) -> void:
+	shop.open()
+	ops.append(["shop"])
+	for _step in range(4):
+		if shop.closed:
+			break
+		var r := prng.randi_range(0, 9)
+		if r <= 4:
+			var n := shop.candidates.size()
+			if n == 0:
+				ops.append(["leave"])
+				shop.leave()
+				break
+			var i := prng.randi_range(0, n - 1)
+			if not shop.affordable(shop.candidates[i]):
+				i = -1
+				for k in range(n):
+					if shop.affordable(shop.candidates[k]):
+						i = k
+						break
+			if i < 0:
+				ops.append(["leave"])
+				shop.leave()
+				break
+			var res := shop.buy(i)
+			if bool(res.get("replace", false)):
+				var k := prng.randi_range(1, 3)
+				ops.append(["replace", i, k])
+				shop.replace(i, k)
+			else:
+				ops.append(["buy", i])
+		elif r <= 6:
+			var ci := prng.randi_range(0, 1)
+			ops.append(["cbuy", ci])
+			shop.buy_consumable(ci)
+		elif r == 7:
+			ops.append(["reroll"])
+			shop.reroll()
+		else:
+			ops.append(["leave"])
+			shop.leave()
+	if not shop.closed:
+		ops.append(["leave"])
+		shop.leave()
+	ops.append(["shop_end"])
+	ops.append(["D", digest(shop.run)])
+
+
+func _fam_run() -> String:
+	var runs: Array = []
+	for i in range(30):
+		runs.append(_play_run(100000 + i * 7, i % 10 == 0))
+	return "return " + lua(runs) + "\n"

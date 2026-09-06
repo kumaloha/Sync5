@@ -5,6 +5,23 @@
 
 ---
 
+## 2026-09-06(二)· Lua 镜像(TapMaker 版):手工镜像 + 机械门,一口气五段
+
+用户:「我想做一个适配 tapmaker 的版本 …… 想要 godot 和这个客户端同步」→「我的建议是你写好,我给她 github 就可以了」→「手工镜像 + 机械门 这个可以」→「开工,但不要一次做一段」。
+三条路(手工镜像 / GDScript→Lua 转译器 / 共享原生库)选了第一条:转译器的 bug 不报错, 原生库进不了 TapMaker 的沙箱。规格 [`docs/design/mirror.md`](docs/design/mirror.md)。
+
+**三层同步**:数据共用(`tools/luagen.py` 把 `data/*.json` 生成 `lua/data/`, 生成物手改无效)· 逻辑镜像(`core/*.gd` ↔ `lua/core/*.lua` 同名类同名函数, 数值语义收在 `num.lua`:`int()` 向零截断 / `round()` 半数远离零 / 整数除模 C 语义;随机数照搬 Godot 4.6 的 PCG32, 含 `randf` 两步 + float32 舍入)·
+金样对拍(`tools/golden.gd` 在 Godot 里生成五族期望, `lua lua/check.lua` 逐位重放:rng 4000 · pattern 16500 · settle 1200 · fx 3925 · run 1260 = 27397 条, Lua 5.5 与 LuaJIT 双绿)+ 覆盖门(`tools/mirror.py`:393 个公开/编排函数全有孪生)。三道门进 CLAUDE.md 的秒级预检行。
+
+**判据「镜像不许手抄数字」**筛出 Godot 侧四处搬 JSON:牌型表 `NAMES/BASE_CHIPS/BASE_MULT` → `data/patterns.json`(pattern.gd 写着「另案, 别顺手动」—— 这次就是那个另案)· 色板 21 个常量 → `data/theme.json` · `view/layout.gd` 十几处装配坐标 → `ui.json.stage` · `RESOLVE_FEEDBACK` → `run.json`。前后截图逐件对照(饰线/标签/四槽/盲注卡/音浪/唱片/均衡器/轨道框)不动。
+顺手把货架组装从 `view/shop.gd::_deal/_draw_refill` 抽成 `core/shelf.gd`(游戏 / 金样 / Lua 共用一份;首张 Target 三选一 · 同池权重 · 独狼必出 Target · 挑高不出普通卡全在那边)。
+
+**编排层** `lua/app/phrase.lua`(拍钟 / 每 3 拍开店 / 结算 / 段末 / 终局 / 教学门 / 打点 / 待播队列)+ `app/shop.lua`(授予记账 / 5 选 1 / 替换 / 刷新 / 消耗牌 / 帕奇欧 / 砧座);
+视图契约 `app/CONTRACT.md`(拉模型:每帧读 `view()` 画、手势翻意图、`events()` 一次性动画;索引 0 基);`tools/drive.lua` 无头整局两种 Lua 各 4 局跑通。**渲染不写**(urhox-libs 接口不公开, 盲写验不了), 她按契约接。
+认下的代价:改规则付两份(门守着不会忘)· 商店授予记账三份(view / `golden.gd::ShopSim` / lua;组装已收一份, 记账收口记 TODO)· 渲染只能靠她的截图验。
+
+---
+
 ## 2026-09-06(一)· 全项目 code review:五条线并行审, 修 bug · 清过期重复文档 · 精简代码
 
 用户:「接下来你全项目 codereview:1. bugfix 2. 找文档过期、重复的 3. 代码冗余的、不够精简的, 解决掉」。

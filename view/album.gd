@@ -18,7 +18,7 @@ const H := 1280.0
 const GRID := Rect2(44.0, 168.0, 632.0, 955.0)   # 底沿 1123,页签轨 1143 上留 20
 const CELL_H := 222.0
 const GAP := 14.0
-const ACC := StageTheme.VIOLET      # 页面主色:构筑线一贯用紫(稀有同族)
+static var ACC: Color = StageTheme.VIOLET      # 页面主色:构筑线一贯用紫(稀有同族)
 
 const RARITY_CN := {"common": "普通", "uncommon": "罕见", "rare": "稀有"}
 const RARITY_TINT := {"common": Color("8ea3c8"), "uncommon": Color("5fd8ff"),

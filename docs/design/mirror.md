@@ -106,14 +106,16 @@ lua/
 - 用 **32 位肢体**实现 64 位乘加,配一个位运算垫片(`bit` / `bit32` / 5.3+ 运算符三选一,5.3+ 那支用 `load` 延迟解析,免得 `&` 在 5.1 里是语法错误)⇒ **5.1 / LuaJIT / 5.3 / 5.4 都能跑**,Lua 版本不用问。
 - `seed(s)`:state=0 → 走一步 → state += s → 走一步(`pcg32_srandom_r`);`inc` 用 Godot 的缺省。
 - `randi_range(a, b)`:Godot 的 `random(int, int)` + `pcg32_boundedrand_r`(拒绝采样,阈值 `-bound % bound`),**逐行搬**,不自己写「更简单的」。
-- ⚠⚠ **`randf()` 是两步 + float32**:Godot 4 的 canonical 法先 `rand()` 取指数偏移(0 时返回 0),再 `ldexp((float)(rand() | 0x80000001), -32 - clz32(offset))`。`director.gd:373` 量到的「randf 消耗两步」就是它。**`(float)` 那一步把 32 位整数舍入到 24 位尾数**,Lua 没有 float32,要手写 round-to-nearest-even 再 ldexp。`randd` 三步。这是最容易做出「差一个 ulp」的地方,rng 金样专门覆盖。
+- ⚠⚠ **`randf()` 是两步 + float32**:Godot 4 的 canonical 法先 `rand()` 取指数偏移(0 时返回 0),再 `ldexp((float)(rand() | 0x80000001), -32 - clz32(offset))`。`director.gd:373` 量到的「randf 消耗两步」就是它。**`(float)` 那一步把 32 位整数舍入到 24 位尾数**,Lua 没有 float32,要手写 round-to-nearest-even 再 ldexp。双精度那支三步。这是最容易做出「差一个 ulp」的地方,rng 金样专门覆盖。
 - `state` 可读写(存档快照用),Lua 侧用 `{hi, lo}` 两个 32 位或字符串十六进制表示,金样里一律十六进制字符串。
 
 **容器映射。** `Dictionary` → 表;`Array` → 序列;`.duplicate(true)` → 递归拷贝助手;`typeof` 分支 → `type()` + 整数/浮点判别(`math.type`,5.1 下退化为整数性检查)。`Callable`/lambda(14 处)→ 闭包。
 
 **排序。** 核心只有整数数组 `.sort()` 与 `hand.sort_custom(Card.sort_desc)`。整数排序无歧义;`Card.sort_desc` 若存在并列(同点同花不可能,但万能牌可能),在**两边同时**补索引级平局规则 —— 规则不许依赖不稳定排序的实现细节,`table.sort` 与 Godot 的 introsort 在并列上的行为都不可复现。
 
-**字符串。** `%s` 格式化只在 Tape / 文案 / 调试用;数值进文案前一律走 `Lingo.t()` 或契约给出的整数,**格式化留给渲染侧**。摘要里的浮点用 `"%.10f"`(两边都有)。
+**字符串。** `%s` 格式化只在 Tape / 文案 / 调试用;数值进文案前一律走 `Lingo.t()` 或契约给出的整数,**格式化留给渲染侧**。
+**摘要里的浮点用 IEEE 位串**(`num.f64hex` ↔ Godot `PackedFloat64Array.to_byte_array()`), 不用 `%.10f` —— 两边 printf 的最后一位不可信, 位串逐位相同才算过(实施时改的, 09-06)。
+整值一律按整数印(`canon`:`v == floor(v)` ⇒ `%d`), 因为 LuaJIT 分不出 3 与 3.0。
 
 ---
 
@@ -123,7 +125,7 @@ lua/
 
 | 族 | 输入(写在金样里) | 期望(Godot 算的) | 守什么 |
 |---|---|---|---|
-| **rng** | 若干种子 × 一条混合调用序列(`randi` / `randi_range(a,b)` / `randf` / 读写 `state`) | 每次调用的返回值 | §5 的 PCG32 复刻,含 float32 舍入 |
+| **rng** | 若干种子 × 一条混合调用序列(`randi` / `randi_range(a,b)` / `randf` / 读写 `state`;GDScript 不暴露双精度那支, 镜像照样实现但不入金样) | 每次调用的返回值 | §5 的 PCG32 复刻,含 float32 舍入 |
 | **pattern** | 随机手牌(含 0~4 张万能牌、规则牌位 `RULE_BITS` 各组合) | `kind / chips / pmult / score` + 选中的五张 | `_classify` 与 `_score_many_wilds` 捷径 |
 | **settle** | 随机结算上下文(牌型、槽内小丑与 state、脸、增益、`extra`、预掷的 `rolls`) | 分数、金币、每个小丑的 state 变化 | 乘法链顺序与舍入(`settle.gd` §「aggregate rounding」) |
 | **fx** | 每张小丑牌 / 消耗牌 × 它每条 `effects` 的触发场景 | 结算差分 + `on_*` 钩子后的 state | DSL 解释器逐操作码覆盖(**每个操作码至少一条**,新操作码没金样 = 红) |
@@ -131,7 +133,9 @@ lua/
 
 **状态摘要 `digest()`**,两边各自实现、同一定义:`section_idx · phrase_in_section · phrase_index · section_score · coins · debt · deck.rng.state(hex) · 牌堆顺序 · 手牌 · 缓存 · 弃牌堆 · 槽(id + state 按键名排序)· 待播队列 · 货架 · face · boon · mod · prev_kind · tape 事件计数`,用 `|` 拼成一行。只含整数、`%.10f` 浮点、字符串。
 
-**规模**:rng 20 种子 × 200 步;pattern 3000 手;settle 2000 例;fx 全覆盖;run 30 局(含 3 局教学、每张脸至少登场一次)。全部跑完 < 10 s。
+**规模(实施值, 09-06)**:rng 20 种子 × 200 步 · pattern 1500 手 × 11 项(四成带万能;全带时 Lua 5.5 重放要 30 s)· settle 1200 例 ·
+fx = 64 卡 × 16 上下文 + 钩子序列 + 40 组槽统计/经济 + 59 脸参数电池 + 120 次掷脸 + 消耗牌 + 增益 + 配置常量, 附 DSL 操作码覆盖断言 ·
+run 30 局(3 局教学)逐拍摘要 1260 条。合计 **27397 条**, LuaJIT ≈ 3.5 s、Lua 5.5 ≈ 9.5 s(pattern 占九成)。金样文件共 ≈ 3.8 MB(2000/24 例的初版 5.6 MB, 按仓库体积裁到 1200/16)。
 
 **重生成时机**:改了 `core/` 就重生成(它是 Godot 侧的真相,不是 Lua 侧的);重生成后 `check.lua` 红 = 该搬了。
 
@@ -156,7 +160,7 @@ lua/
 **三条通道**:
 - `app:view()` → **纯数据表**,每帧可读:`hud`(分/目标/金币/第几拍/进度/倒数)· `blind`(档位/序号/第 N 场/脸/增益)· `jokers[4]`(id/state 摘要/高亮)· `hand[5]` / `cache[3]`(牌/选中/待弃/盖面/锁定)· `vinyl`(待播碟列表或空转)· `shop`(货架 5 位、价格、可买、刷新价、盲注板两态)· `banner` · `tutorial`(focus 与文案键)· `screen`(home / intro / play / shop / end)。
 - **意图**(纯函数,返回是否被接受 + 拒因键):`start_run / restart / skip_intro / tap_hand(i) / tap_cache(i) / drag_swap(h, c) / discard / sort / buy(shelf_i) / reroll / continue / replace(shelf_i, slot_i) / end_ack`。索引 0 基。
-- `app:events()` → **一次性事件队列**,每帧取空:`settle{score, chain}` · `card_fly{from, to}` · `deny{reason}` · `coin_delta` · `disc_arrive` · `section_clear` · `run_end{win}`。立即模式渲染需要单次触发,状态表给不了。
+- `app:events()` → **一次性事件队列**,每帧取空:`settle{score, chain}` · `card_fly{from, to}` · `deny{reason}` · `disc_bought` · `disc_fired` · `section_clear` · `run_end{win}`。立即模式渲染需要单次触发,状态表给不了。
 
 **坐标与样式的出处**:`ui.json`(720×1280 绝对坐标,Yoga 用 absolute 定位即可)· `theme.json`(色板)· `assets/fonts/`(Rajdhani)· `docs/design/ui_meta.md`(玻璃卡三件套、辉光、分层)· `docs/mockups/*.html`(她的语言就是 Flexbox,设计稿到她那边的距离比到 Godot 近)。
 
@@ -192,12 +196,18 @@ lua/
 | **3 一局** | run / beat / phrase / director / tutorial / tape / save 纯函数 · `RESOLVE_FEEDBACK` 搬家 · run 族(RunLoop + Bot 生成动作) | 30 局逐拍摘要相同 |
 | **4 交付** | `app/phrase.lua` · `CONTRACT.md` · `README.md` · `theme.json` 与 layout 坐标搬家 · `mirror.py` 进预检行 · CLAUDE.md / STATUS / README 导览 · 推送 | 预检行全绿;她拉下来能 `require` 并跑 `check.lua` |
 
+**状态(2026-09-06 一口气做完五段)**:0~4 全部落地。`lua/check.lua` 五族 27397 条 5.5 与 LuaJIT 双绿;`tools/mirror.py` 393 个公开/编排函数全有孪生;
+`tools/drive.lua` 无头驱动整局(含教学关 / 商店 / 消耗牌 / 存档)两种 Lua 各 4 局跑通;Godot 侧四处「手抄数字」搬家(`patterns.json` / `theme.json` / `ui.json.stage` / `run.json.resolve_feedback`)前后截图逐件对照不动。
+第 3 段顺手把货架组装从 `view/shop.gd` 抽成 `core/shelf.gd`(游戏 / 金样 / Lua 共用一份)。
+
 ---
 
 ## 12. 代价与不做
 
 - **付两份规则税**,门让它显性;数据税为零。
 - **渲染我构造上验不了**,唯一证据是她跑起来的截图。
+- **商店的授予记账有三份**(`view/shop.gd` + `view/phrase.gd` 的编排 · `tools/golden.gd::ShopSim` · `lua/app/shop.lua`):货架**组装**收成了 `core/shelf.gd` 一份, 但联票名额 / 免费刷新 / 折扣 / 5 选 1 的记账仍住在 view 里(它是节点代码, 抽出来要动 762 行的 shop.gd)。
+  改商店规则要三处同改;整局金样只能证明「ShopSim = Lua」, 证明不了「ShopSim = view」。这是本篇认下的第二个代价, 收口(抽成 `core/shelf.gd` 的实例态)记 TODO。
 - 不做:存档互通 · 图鉴(v2)· Uplink · DB 校验镜像 · 转译器 · 任何「为了 Lua 好写而改规则」(同 CLAUDE.md 那条:不许为了模型好用改内容)。
 
 ---

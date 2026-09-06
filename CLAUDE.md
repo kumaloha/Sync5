@@ -68,9 +68,12 @@ godot --headless --path . --import                                         # 新
 ⚠⚠ **跑任何长探针之前, 先跑这两条秒级检查**(2026-08-30 立, 一天踩四次):
 ```bash
 python3 tools/parity.py --check && python3 tools/evsync.py --check && python3 tools/counts.py --check
+python3 tools/luagen.py --check && python3 tools/mirror.py --check && lua lua/check.lua      # Lua 镜像三道门(2026-09-06 立, 秒级)
 ```
 `parity` 查游戏侧/bot 侧的规则与 action 键是否对齐(不齐 = 模型看不见那条规则,
-sim 读数会系统性偏);`evsync` 查 bot 的估值地板与 evbook 是否同步。
+sim 读数会系统性偏);`evsync` 查 bot 的估值地板与 evbook 是否同步;
+`luagen` 查 `lua/data/` 是否与 `data/*.json` 同步, `mirror` 查 `core/` 每个公开函数在 `lua/core/` 有没有孪生,
+`check.lua` 用 Godot 生成的金样逐位重放 Lua 镜像(改了 `core/` 先 `godot --headless --path . --script res://tools/golden.gd` 重生成)。
 **它们秒级, 而门要 30 分钟** —— 先确认代码面收口了, 再启动长跑。
 
 ⚠ 三条跑探针的纪律(踩过,详见 [LESSONS.md](LESSONS.md)):
@@ -98,6 +101,11 @@ sim 读数会系统性偏);`evsync` 查 bot 的估值地板与 evbook 是否同�
   (14 份 → 1 份的起因与收敛口径见 [CHANGELOG.md](CHANGELOG.md);
   迁移时四个静默坑的完整版见 [LESSONS.md](LESSONS.md)。)
 - 新文件命名**一词化无下划线**(用户拍板)。
+- **⚑⚑ Lua 镜像(2026-09-06 用户拍板「手工镜像 + 机械门」,规格 [`docs/design/mirror.md`](docs/design/mirror.md))**:`lua/` 是 `core/` 的逐文件孪生 +
+  生成的数据 + 金样 + 编排层,给 TapMaker(UrhoX/Lua)版用;**本仓库是唯一真源**,她从 GitHub 拉、自己接渲染。
+  三条纪律:**改 `core/*.gd` 就得改 `lua/core/*.lua`**(`tools/mirror.py` 守同名函数;`tools/golden.gd` 重生成金样后 `lua lua/check.lua` 逐位重放)·
+  **改数据零成本**(`tools/luagen.py` 重生成 `lua/data/`)· **镜像不许手抄数字**:Lua 侧需要的每一个数都必须来自 `lua/data/`,
+  这条判据把牌型表 / 色板 / 舞台装配坐标 / `resolve_feedback` 逼进了 JSON(2026-09-06)。
 - **数值与内容全部在 `data/*.json`**(2026-08-05 配置化,schema 见 `docs/design/tech.md`):
   小丑牌 = 效果 DSL(`core/fx.gd` 解释),Boss 脸 = 参数表,关卡/经济/机器人信念表 = 纯数字,
   打点开关 = `tape.json`。
@@ -307,7 +315,8 @@ sim 读数会系统性偏);`evsync` 查 bot 的估值地板与 evbook 是否同�
 
 - 调色:青 `#1effec` / 粉 `#ff328d` / 紫 `#7642ff` / 金 `#ff9b2b` / 红 `#ff3632`
   **改色必须量色相和饱和度,不能只看色值像不像**;
-  **主色的权威 = `assets/reference/`,改色先采样,别凭记忆值。**
+  **主色的权威 = `assets/reference/`,改色先采样,别凭记忆值。色值本身住在 `data/theme.json`**(2026-09-06 从 `view/theme.gd` 搬家,
+  `StageTheme.CYAN` 等调用方语法不变;Lua 镜像读同一份)。
   (二次校色的实测数字见 [`docs/design/ui_meta.md`](docs/design/ui_meta.md)。)
 - **背景 = 黑**(2026-08-06 两轮定稿:先「压暗」→ 用户「卡牌底下那个背景做成黑色吧」):
   局内 `BG0/1/2 = 000000/030308/07070f`,首页底色渐变全归零。
@@ -348,7 +357,8 @@ sim 读数会系统性偏);`evsync` 查 bot 的估值地板与 evbook 是否同�
 **对齐类反馈要查「视觉顶端」而不是几何顶端** —— 角标与倒影的光都算进去
 (实例见 [`docs/design/ui_meta.md`](docs/design/ui_meta.md))。
 
-关键坐标与全部界面文案在 **`data/ui.json`**(stage/hud/shop/hand/banner 五节,2026-08-05 起):
+关键坐标与全部界面文案在 **`data/ui.json`**(stage/hud/shop/hand/banner 五节,2026-08-05 起;`stage` 节 2026-09-06 起也装着
+`view/layout.gd` 原来写死的十几处装配坐标 —— 那个文件不再有魔法数字):
 **改布局改文案 = 改 JSON。** 具体坐标见 [`docs/design/ui_meta.md`](docs/design/ui_meta.md) 与 `data/ui.json` 本身。
 
 ### 渲染手法 —— 具体做法全在 [`docs/design/ui_meta.md`](docs/design/ui_meta.md)

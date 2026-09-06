@@ -31,7 +31,7 @@ static var _err := ""
 
 const _RUN_KEYS := ["phrases_per_section", "phrases_per_shop", "sections_per_gig",
 	"gigs_per_run", "blind_names", "gig_names", "section_targets", "gig_clocks",
-	"warning_offset", "lock_offset", "late_act_window", "final_act_window",
+	"warning_offset", "lock_offset", "resolve_feedback", "late_act_window", "final_act_window",
 	"early_finish_left", "early_discard_window",
 	"hand_size", "cache_cap", "beat_budget", "death_spec",
 	"s1_face_min_run", "s1_easy_chance"]
@@ -58,6 +58,7 @@ static func load_error() -> String:
 	profile()
 	consumables()   # 2026-09-06:此前漏了它 —— 校验只挂在 t_consumable 先调一次的语句顺序上
 	patterns()
+	theme()
 	return _err
 
 
@@ -121,6 +122,37 @@ static func validate_profile(d: Dictionary) -> String:
 	# 0 或负数不是「关掉」而是静默除零/恒零 —— 要关体力显示去改 view, 别改成 0
 	if int(d["energy_max"]) < 1 or int(d["xp_per_level"]) < 1:
 		return "energy_max / xp_per_level 必须 >= 1"
+	return ""
+
+
+## 色板(2026-09-06 从 view/theme.gd 搬来;`StageTheme` 是它唯一的消费者)。
+static func theme() -> Dictionary:
+	return _load("theme", func(d): return validate_theme(d))
+
+
+const _THEME_KEYS := ["bg0", "bg2", "ink", "dim", "line", "cyan", "violet", "pink", "amber", "gold",
+	"slate", "blue", "red", "glass_body", "suit_red", "suit_blk", "frame_red", "frame_blk",
+	"marked", "card_ink", "cache_accent"]
+
+
+## 键集合固定(少一个 = 某处画成洋红并报错;多一个 = 死数据);值是 #rrggbb 或 [r,g,b,a]。
+static func validate_theme(d: Dictionary) -> String:
+	var e := _keys_ok(d, _THEME_KEYS)
+	if e != "":
+		return e
+	for k in _THEME_KEYS:
+		var v = d[k]
+		if v is String:
+			if not Color.html_is_valid(String(v)):
+				return "theme.%s 不是合法的 #rrggbb: '%s'" % [k, v]
+		elif v is Array:
+			if v.size() < 3 or v.size() > 4:
+				return "theme.%s 数组要 3~4 个分量" % k
+			for c in v:
+				if float(c) < 0.0 or float(c) > 1.0:
+					return "theme.%s 分量越界 0..1" % k
+		else:
+			return "theme.%s 必须是字符串或数组" % k
 	return ""
 
 

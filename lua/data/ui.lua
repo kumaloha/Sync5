@@ -442,6 +442,35 @@ return {
 		["cache_y"] = 1024,
 		["lift_base"] = 16,
 		["lift_selected"] = -2,
+		["_comment_layout"] = "2026-09-06 从 view/layout.gd 的一次性装配常量搬来(文件头早写着「搬进 ui.json 是待办」;镜像不许手抄数字)。lines_y/line_w = 小丑牌区两条饰线;pill_y/pill_h = 「♪ 小丑牌 ♪」标签;joker_y/joker_h = 四个槽;wave/eq = [x,y,w,h];blind_h + blind_ratio = 盲注卡(宽按 118:176 随高走);vinyl = 唱片边长(竖向中心对齐盲注卡);orbit = [x, h](y = hand_top)",
+		["lines_y"] = 167,
+		["line_w"] = 200,
+		["pill_y"] = 150,
+		["pill_h"] = 34,
+		["joker_y"] = 200,
+		["joker_h"] = 172,
+		["wave"] = {
+			0,
+			426,
+			720,
+			216,
+		},
+		["eq"] = {
+			0,
+			626,
+			720,
+			44,
+		},
+		["blind_h"] = 216,
+		["blind_ratio"] = {
+			118,
+			176,
+		},
+		["vinyl"] = 132,
+		["orbit"] = {
+			24,
+			286,
+		},
 	},
 	["hud"] = {
 		["pos"] = {

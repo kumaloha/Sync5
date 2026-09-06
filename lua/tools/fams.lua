@@ -394,6 +394,17 @@ function fams.fx(g, eq)
 	eq(#uncovered, 0, "fx opcode coverage: " .. table.concat(uncovered, " "))
 end
 
+-- ---------------------------------------------------------------- run(整局重放)
+function fams.run(g, eq)
+	local runloop = require(R .. "tools.runloop")
+	for _, case in ipairs(g) do
+		local ok, err = pcall(runloop.replay, case, eq)
+		if not ok then
+			eq("crash: " .. tostring(err), "", string.format("run seed=%d replay", case.seed))
+		end
+	end
+end
+
 -- Godot 侧 tools/golden.gd::rand_slots 的 RNG 消耗复刻(只为让 weighted_pick 的 rng 状态对齐)。
 function fams.replay_rand_slots(rng, n)
 	local DB = require(R .. "core.db")

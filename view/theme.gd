@@ -10,11 +10,11 @@ extends RefCounted
 # 现在底色 = 黑, 梯子只留极微的一点抬升(避免纯平)。**画面里的光全部由光效层
 # 承担**(激光/探照灯/光斑/柔光/霓虹边), 底色不再贡献任何亮度 —— 这和五张玻璃卡
 # 参考图一致: 卡躺在纯黑上, 霓虹才炸得出来。
-const BG0 := Color("000000")
-const BG2 := Color("07070f")
-const INK := Color("eef1fb")
-const DIM := Color("9aa2c8")
-const LINE := Color(0.63, 0.71, 1.0, 0.22)
+static var BG0: Color = _c("bg0")
+static var BG2: Color = _c("bg2")
+static var INK: Color = _c("ink")
+static var DIM: Color = _c("dim")
+static var LINE: Color = _c("line")
 # 主色以 assets/reference/ 的规格为准(2026-08-06 用户:「没有赛博朋克的感觉…
 # 这个蓝和你现在的蓝不一样」—— 逐个对了一遍, 五个常量全都比规格浅一档,
 # 每个"差一点"加起来就是"不像"。spec = Neon Rain Card Game.dc.html 的出现频次表)。
@@ -24,27 +24,38 @@ const LINE := Color(0.63, 0.71, 1.0, 0.22)
 # (我们 354° 是珊瑚粉红, 参考 1° 是纯正猩红)。
 # 实测 (色相, 饱和): pink .926/.76-.97 · purple .713/.66-.89 · green .484/.91-1.0
 #                    gold .085/.84-.98 · red .003/.78-.99
-const CYAN := Color("1effec")    # h.486 s.88
-const VIOLET := Color("7642ff")  # h.713 s.74
-const PINK := Color("ff328d")    # h.926 s.80
-const AMBER := Color("ff9b2b")   # h.088 s.83
-const GOLD := Color("ffd36e")
+static var CYAN: Color = _c("cyan")    # h.486 s.88
+static var VIOLET: Color = _c("violet")  # h.713 s.74
+static var PINK: Color = _c("pink")    # h.926 s.80
+static var AMBER: Color = _c("amber")   # h.088 s.83
+static var GOLD: Color = _c("gold")
 # 盲注档位色(交接件列的主题色): 蓝 → 橙 → 红, 逐档升温
-const SLATE := Color("7b88ab")   # 中性冷灰蓝: 全局 chrome(顶栏)用, 不跟关卡变色
+static var SLATE: Color = _c("slate")   # 中性冷灰蓝: 全局 chrome(顶栏)用, 不跟关卡变色
 # 档位蓝 = **电光蓝**, 采自 ref_wetfloor_club.png 的 BASS 卡(最亮饱和像素
 # #23cdff, 色相 197°)。旧值 5fa8ff 是 217° 的灰蓝 —— 赛博朋克感就是被它杀掉的。
-const BLUE := Color("23cdff")
-const RED := Color("ff3632")     # h.003 s.80 —— 纯红, 不是 354° 的珊瑚粉
+static var BLUE: Color = _c("blue")
+static var RED: Color = _c("red")     # h.003 s.80 —— 纯红, 不是 354° 的珊瑚粉
 
 # --- neon GLASS cards (spec: docs/mockups/整副卡牌.dc.html · 1a 玻璃底 × 2a 传统点阵) ---
-const GLASS_BODY := Color(0.078, 0.035, 0.102, 0.80)   # flat blend for the stylebox
-const SUIT_RED := Color("ff6aa9")                       # ♥ ♦
-const SUIT_BLK := Color("9fe9ff")                       # ♠ ♣
-const FRAME_RED := Color(1.0, 79.0 / 255, 163.0 / 255, 0.85)
-const FRAME_BLK := Color(53.0 / 255, 232.0 / 255, 224.0 / 255, 0.75)
-const MARKED := Color("ffb347")                         # 待弃 highlight
-const CARD_INK := Color("fdf4ff")                       # rank glyphs
-const CACHE_ACCENT := Color("a56bff")                   # cache slots read violet
+static var GLASS_BODY: Color = _c("glass_body")   # flat blend for the stylebox
+static var SUIT_RED: Color = _c("suit_red")                       # ♥ ♦
+static var SUIT_BLK: Color = _c("suit_blk")                       # ♠ ♣
+static var FRAME_RED: Color = _c("frame_red")
+static var FRAME_BLK: Color = _c("frame_blk")
+static var MARKED: Color = _c("marked")                         # 待弃 highlight
+static var CARD_INK: Color = _c("card_ink")                       # rank glyphs
+static var CACHE_ACCENT: Color = _c("cache_accent")                   # cache slots read violet
+
+## 色板从 data/theme.json 读(2026-09-06 搬家, 镜像与 Godot 同一份);字符串 = #rrggbb, 数组 = [r,g,b,a]。
+static func _c(key: String) -> Color:
+	var v = DB.theme().get(key)
+	if v is String:
+		return Color(String(v))
+	if v is Array and v.size() >= 3:
+		return Color(float(v[0]), float(v[1]), float(v[2]), float(v[3]) if v.size() > 3 else 1.0)
+	push_error("[StageTheme] theme.json 缺色 '%s'" % key)
+	return Color.MAGENTA
+
 
 static func frame_color(card: Card) -> Color:
 	return FRAME_RED if card.is_red() else FRAME_BLK

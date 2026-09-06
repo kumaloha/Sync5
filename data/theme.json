@@ -1,0 +1,45 @@
+{
+  "_comment": "色板(2026-09-06 从 view/theme.gd 的 21 个常量搬来 —— 镜像不许手抄数字, docs/design/mirror.md §4)。字符串 = #rrggbb;数组 = [r, g, b, a] 0..1。主色的权威仍是 assets/reference/(改色先采样), 色相/饱和度的实测记录在 view/theme.gd 头注与 docs/design/ui_meta.md。Lua 镜像与 Godot 读同一份。",
+  "bg0": "#000000",
+  "bg2": "#07070f",
+  "ink": "#eef1fb",
+  "dim": "#9aa2c8",
+  "line": [
+    0.63,
+    0.71,
+    1.0,
+    0.22
+  ],
+  "cyan": "#1effec",
+  "violet": "#7642ff",
+  "pink": "#ff328d",
+  "amber": "#ff9b2b",
+  "gold": "#ffd36e",
+  "slate": "#7b88ab",
+  "blue": "#23cdff",
+  "red": "#ff3632",
+  "glass_body": [
+    0.078,
+    0.035,
+    0.102,
+    0.8
+  ],
+  "suit_red": "#ff6aa9",
+  "suit_blk": "#9fe9ff",
+  "frame_red": [
+    1.0,
+    0.30980392156862746,
+    0.6392156862745098,
+    0.85
+  ],
+  "frame_blk": [
+    0.20784313725490197,
+    0.9098039215686274,
+    0.8784313725490196,
+    0.75
+  ],
+  "marked": "#ffb347",
+  "card_ink": "#fdf4ff",
+  "cache_accent": "#a56bff",
+  "_comment_stage": "盲注档位色 = blue → amber → red → pink 逐档升温(Widgets.StageCard.accent_for 读它们)"
+}

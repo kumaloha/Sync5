@@ -435,27 +435,9 @@ func sold(j, slots: Array, coins: int, left: int = 0) -> void:
 ## 补货抽一张:排除已持有与在架的,按稀有度权重(与 _deal 同一口径)。
 ## 池子抽空(极端:全持有)返回 null —— 那时货架就少一张, 与旧行为一致。
 func _draw_refill():
-	var taken := {}
-	for jj in _slots:
-		if jj != null:
-			taken[jj.id] = true
-	for c in _candidates:
-		if not (c is Dictionary):
-			taken[c.id] = true
-	# 挑高的「本店不出普通卡」对续买补货也成立(2026-09-06 code review;池空退回全池, 与 _deal 同口径)
-	var pool: Array = []
-	for cand in Joker.pool():
-		if not taken.has(cand.id) and not (_grant_min_rarity != "" and String(cand.rarity) == "common"):
-			pool.append(cand)
-	if pool.is_empty():
-		for cand in Joker.pool():
-			if not taken.has(cand.id):
-				pool.append(cand)
-	if pool.is_empty():
-		return null
-	var picked: Array = _weighted_pick(pool, 1)   # 与 _deal 同一口径(签名/注入全一致)
-	return picked[0] if not picked.is_empty() else null
-
+	# 组装规则在 core/shelf.gd(游戏 / 金样 / Lua 镜像共用一份, 2026-09-06);这里只剩注入。
+	return Shelf.refill(_slots, _candidates, _grant_min_rarity, null, _rarity_mult,
+		Director.explore_boost(Joker.pool(), _explore_used))
 
 func close() -> void:
 	# ⚠ 「这次商店」类的授予随离店清零 —— 一次性就是一次性。
@@ -477,75 +459,14 @@ func hide_board() -> void:
 
 
 func _deal() -> void:
-	var want := "target" if _slots[0] == null else "support"
-	var owned: Array = []
-	for j in _slots:
-		if j != null:
-			owned.append(j.id)
-	var candidates: Array = []
-	# 首张 Target = 免费三选一(开局引导, 唯一特例);之后 **Target 与 Support 同池**,
-	# 一律按稀有度权重抽(2026-08-06 用户拍板:「不应该有任何卡有固定概率, 大家都是一样的。
-	# 除了第一轮有 target 之外, 其他都是随机的」)。换旗的专属骰子与专属价格已删 ——
-	# Target 现在是 rarity=rare, 出现率是**池子组成的推论**而不是一个凭空的常数。
-	var first_target: bool = want == "target"
-	for j in Joker.pool():
-		if owned.has(j.id):
-			continue
-		if first_target:
-			if j.kind == "target":
-				candidates.append(j)
-		else:
-			candidates.append(j)
-	var shelf_n := Joker.slots_shelf_size(_slots, shelf_bonus)
-	if _grant_shelf > 0:
-		shelf_n = maxi(shelf_n, _grant_shelf)
-	if first_target:
-		candidates.shuffle()
-		_candidates = candidates.slice(0, 3)
-	else:
-		_candidates = _weighted_pick(candidates, shelf_n)
-		# 「必定出 Target」—— 与 tools/bot.gd 同一套规则, 别各写一份
-		if Joker.slots_guarantee_target(_slots):
-			var has_t := false
-			for j in _candidates:
-				if j.kind == "target":
-					has_t = true
-			if not has_t:
-				var tp: Array = []
-				for j in candidates:
-					if j.kind == "target":
-						tp.append(j)
-				if not tp.is_empty() and not _candidates.is_empty():
-					_candidates[_candidates.size() - 1] = tp[randi_range(0, tp.size() - 1)]
-		# ⚠⚠ **「必定出规则牌」的货架补丁已删(2026-08-30 二批转生)** ——
-		# 规则牌(近道/四指/黑调/红调)全部转生为消耗牌, 而它们是**仅有的**带 `acquire`
-		# 的小丑牌 ⇒ 这段补丁在小丑牌货架上**永远找不到目标, 静默什么都不做**。
-		# 点唱机的目标已搬到消耗牌位(`view/phrase.gd::_roll_consumable` 的 `_rule_next`)。
-	# (升级上架段 2026-08-26 随升级系统整体删除 —— 路线 ③。)
-	# ⚑ 挑高(消耗牌):**这次商店**不再出普通卡 —— 含刷新与续买后的重发。
-	# ⚠⚠ 2026-08-30 用户改判:旧版只管**下一次发牌**, 而「用户宁愿走刷新」——
-	# 花 3◆ 买一次性的过滤, 不如同样的钱去刷新, 于是这张卡**买了还不如不买**
-	# (实测总分 −1556, z=−5.96)。⇒ 保证期改成**整次进店**, 刷新出来的也必是好卡,
-	# 它才真的比「多刷一次」值钱。清零点搬到 `open()`(进店)。
-	# ⚠ 「必出 8 以上」在货架上没有对应物(货架摆的是小丑牌不是扑克牌),
-	# 所以语义是「没有普通卡」, 卡面同步 —— **卡面必须说实话**。
-	if _grant_min_rarity != "":
-		var rich: Array = []
-		for j in _candidates:
-			if j.rarity != "common":
-				rich.append(j)
-		if rich.size() < _candidates.size():
-			for j in candidates:
-				if rich.size() >= _candidates.size():
-					break
-				if j.rarity != "common" and not rich.has(j):
-					rich.append(j)
-			if rich.size() == _candidates.size():
-				_candidates = rich
+	# ⚑ 组装规则在 core/shelf.gd(2026-09-06 抽出:游戏 / 金样 / Lua 镜像共用一份)。
+	# 首张 Target 免费三选一 · 之后同池按稀有度权重 · 独狼必出 Target · 挑高不出普通卡 —— 全在那边。
+	# 这里只剩注入:全局随机(rng = null)、Director 的稀有度乘数、探索型货架的 boost。
+	var cands := Shelf.candidates(_slots)
+	_candidates = Shelf.deal(_slots, shelf_bonus, _grant_shelf, _grant_min_rarity, null, _rarity_mult,
+		Director.explore_boost(cands, _explore_used))
 	# ⚠ 挑高的授予**不在这里清零** —— 它保整次进店(含刷新), 清零点在 `open()`。
-	# 点唱机的 `_grant_rule` 已随规则牌转生搬走(现在管的是消耗牌位)。
 	_render(true)
-
 
 ## 渲染当前 _candidates(deal 弹入场动画;sold 后的重渲染不弹)。
 func _render(popin: bool) -> void:
