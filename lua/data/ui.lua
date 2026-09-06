@@ -1,0 +1,666 @@
+-- 由 tools/luagen.py 从 data/ui.json 生成 —— 仪器输出, 手改无效(docs/design/mirror.md §4)
+return {
+	["_comment"] = "UI 布局与文案(docs/design/tech.md)。stage=全局几何;hud/shop/hand/banner 各组件自读一节。blindcard=盲注卡目录文案(assets/docs/design/blind_card_ui.html 的 command/signal,2026-08-11 接入)。",
+	["blindcard"] = {
+		["norepeat"] = {
+			["command"] = "重复上一拍的牌型,得分减半",
+			["signal"] = "REPEAT ×50%",
+		},
+		["lostpage"] = {
+			["command"] = "每拍开头标记一张缓存牌,拍末没收",
+			["signal"] = "CACHE −1",
+		},
+		["smallstage"] = {
+			["command"] = "缓存只有两格",
+			["signal"] = "CACHE 2",
+		},
+		["facedown"] = {
+			["command"] = "J/Q/K 盖面发牌,结算才翻开",
+			["signal"] = "JQK HIDE",
+		},
+		["lastcall"] = {
+			["command"] = "最后 2 秒不能弃牌",
+			["signal"] = "CLOSE −2s",
+		},
+		["lockup"] = {
+			["command"] = "最后 2 秒不能交换",
+			["signal"] = "LOCK −2s",
+		},
+		["onetake"] = {
+			["command"] = "每拍最多弃 2 张",
+			["signal"] = "MAX 2",
+		},
+		["oneswap"] = {
+			["command"] = "每拍只能交换一次",
+			["signal"] = "ONE SWAP",
+		},
+		["setlist"] = {
+			["command"] = "第一拍的牌型定为主打,其他只得一半",
+			["signal"] = "OTHERS ×50%",
+		},
+		["blindspot"] = {
+			["command"] = "弃牌补入的牌盖面,结算才翻开",
+			["signal"] = "REFILL HIDE",
+		},
+		["throttle"] = {
+			["command"] = "弃牌与交换合计最多动 4 张",
+			["signal"] = "CARDS 4",
+		},
+		["request"] = {
+			["command"] = "没完成本拍点歌,得分 −10%",
+			["signal"] = "MISS −10%",
+		},
+		["redlight"] = {
+			["command"] = "红牌不能换进缓存",
+			["signal"] = "RED BLOCK",
+		},
+		["lowend"] = {
+			["command"] = "弃牌只会补到 2 至 9",
+			["signal"] = "RANK 2—9",
+		},
+		["wetink"] = {
+			["command"] = "新进缓存的牌,下一拍才能取出",
+			["signal"] = "LOCK 1",
+		},
+		["handseal"] = {
+			["command"] = "开拍随机一张手牌贴封条,不能弃",
+			["signal"] = "SEAL LOCK",
+		},
+		["rerun"] = {
+			["command"] = "重复上一拍的牌型,得分归零",
+			["signal"] = "REPEAT 0",
+		},
+		["raisedbar"] = {
+			["command"] = "本段目标分提高 50%",
+			["signal"] = "TARGET +50%",
+		},
+		["trilogy"] = {
+			["command"] = "打满 4 种牌型,每缺一种目标分+25%",
+			["signal"] = "VARIETY 4",
+		},
+		["blackout"] = {
+			["command"] = "人头牌和补牌全部盖面",
+			["signal"] = "FULL HIDE",
+		},
+		["doubleseal"] = {
+			["command"] = "手牌与缓存各随机封一张,动不了",
+			["signal"] = "DOUBLE LOCK",
+		},
+		["patchin"] = {
+			["command"] = "小丑牌减半;打出开拍时的缓存牌可全效",
+			["signal"] = "POWER ×50%",
+		},
+		["ration"] = {
+			["command"] = "整段只有 10 次弃牌额度",
+			["signal"] = "DISCARD 10",
+		},
+		["switchtrack"] = {
+			["command"] = "首个动作二选一:弃牌或交换,另一种关闭",
+			["signal"] = "ONE TRACK",
+		},
+		["rush"] = {
+			["command"] = "每拍只有 6 秒",
+			["signal"] = "CLOCK 6s",
+		},
+		["doubleset"] = {
+			["command"] = "结算完再按一半分数加算一次",
+			["signal"] = "REPLAY ×50%",
+		},
+		["spotlight"] = {
+			["command"] = "每拍多发一张牌,自动取最佳五张",
+			["signal"] = "HAND +1",
+		},
+		["afterglow"] = {
+			["command"] = "上一拍得分的 10% 计入本拍",
+			["signal"] = "CARRY 10%",
+		},
+		["encore"] = {
+			["command"] = "第一批弃掉的牌留下幽灵,结算仍可入选",
+			["signal"] = "GHOST HAND",
+		},
+		["overtime"] = {
+			["command"] = "每拍 6 秒,最后 2 秒不能弃牌",
+			["signal"] = "6s · CLOSE −2s",
+		},
+		["teardown"] = {
+			["command"] = "每拍 6 秒,最后 2 秒不能交换",
+			["signal"] = "6s · LOCK −2s",
+		},
+		["closing"] = {
+			["command"] = "每拍 6 秒,最多弃 2 张",
+			["signal"] = "6s · MAX 2",
+		},
+		["highend"] = {
+			["command"] = "弃牌只补 9 以上的大牌",
+			["signal"] = "HIGH ONLY",
+		},
+		["countdown"] = {
+			["command"] = "拍长 8/8/6/6/4/4,一拍比一拍短",
+			["signal"] = "8·6·4",
+		},
+		["crescendo"] = {
+			["command"] = "前 3 拍得分打折,后 3 拍得分加成",
+			["signal"] = "HALF → BOOST",
+		},
+		["dimstage"] = {
+			["command"] = "每拍随机盖住 2 张手牌",
+			["signal"] = "DIM ×2",
+		},
+		["roulette"] = {
+			["command"] = "开场转盘:封缓存 1 格,一半概率封 2 格",
+			["signal"] = "ROULETTE",
+		},
+		["colorlight"] = {
+			["command"] = "开场掷一种花色,整关它算分减半",
+			["signal"] = "COLOR ROLL",
+		},
+		["callout"] = {
+			["command"] = "打出点名牌型前 7 折,打出后商店多一张",
+			["signal"] = "CALLOUT",
+		},
+		["suitveil"] = {
+			["command"] = "所有牌的花色被遮住,只看得见点数",
+			["signal"] = "SUIT VEIL",
+		},
+		["rankfog"] = {
+			["command"] = "所有牌的点数被遮住,只看得见花色",
+			["signal"] = "RANK FOG",
+		},
+		["raisedbar125"] = {
+			["command"] = "本段目标分提高 25%",
+			["signal"] = "TARGET +25%",
+		},
+		["raisedbar175"] = {
+			["command"] = "本段目标分提高 75%",
+			["signal"] = "TARGET +75%",
+		},
+		["raisedbar200"] = {
+			["command"] = "本段目标分翻倍",
+			["signal"] = "TARGET ×2",
+		},
+		["ration8"] = {
+			["command"] = "整段只有 8 次弃牌额度",
+			["signal"] = "DISCARD 8",
+		},
+		["throttle6"] = {
+			["command"] = "每拍弃牌加交换合计最多 6 张",
+			["signal"] = "MOVE 6",
+		},
+		["onetake1"] = {
+			["command"] = "每拍一口气最多只弃 1 张",
+			["signal"] = "DISCARD 1",
+		},
+		["setlist25"] = {
+			["command"] = "第一拍的牌型定为主打,其他只得 25%",
+			["signal"] = "SETLIST 25%",
+		},
+		["norepeat75"] = {
+			["command"] = "重复上一拍的牌型只得 75% 分",
+			["signal"] = "REPEAT 75%",
+		},
+		["request80"] = {
+			["command"] = "没完成本拍点歌,得分 −20%",
+			["signal"] = "MISS −20%",
+		},
+		["colorlight25"] = {
+			["command"] = "开场掷一种花色,整关它只算 25% 分",
+			["signal"] = "COLOR 25%",
+		},
+		["callout50"] = {
+			["command"] = "打出点名牌型,否则本拍只得 50% 分",
+			["signal"] = "CALLOUT 50%",
+		},
+		["dimstage3"] = {
+			["command"] = "每拍随机盖住 3 张手牌",
+			["signal"] = "HIDE 3",
+		},
+		["wetink2"] = {
+			["command"] = "新进缓存的牌锁定两拍",
+			["signal"] = "INK ×2",
+		},
+		["lastcall4"] = {
+			["command"] = "最后 4 秒不能弃牌",
+			["signal"] = "LOCK 4s",
+		},
+		["trilogy4"] = {
+			["command"] = "打满 4 种牌型,每缺一种目标分+50%",
+			["signal"] = "KINDS 4",
+		},
+		["crescendo07"] = {
+			["command"] = "前三拍得分 ×0.7,后三拍 ×1.3",
+			["signal"] = "PHASE 0.7",
+		},
+		["lowend_throttle"] = {
+			["command"] = "弃牌只补 2 至 9,合计最多动 4 张",
+			["signal"] = "RANK 2—9 · CARDS 4",
+		},
+	},
+	["jokercard"] = {
+		["twin"] = {
+			["trigger"] = "打出对子/两对:×1.4 倍率",
+		},
+		["stair"] = {
+			["trigger"] = "打出顺子/同花顺:×4.8 倍率",
+		},
+		["mono"] = {
+			["trigger"] = "打出同花/同花顺:×5.6 倍率",
+		},
+		["triplet"] = {
+			["trigger"] = "打出三条/葫芦/四条:×2 倍率",
+		},
+		["lonewolf"] = {
+			["trigger"] = "零弃牌:+2◆;商店必出 Target",
+		},
+		["kaleido"] = {
+			["trigger"] = "成牌与上拍不同:×4 倍率",
+		},
+		["shredder"] = {
+			["trigger"] = "最后 3 秒前打完且成牌:×4 倍率",
+		},
+		["wrecker"] = {
+			["trigger"] = "一批弃满 4 张:本拍成牌 ×2",
+		},
+		["fastforward"] = {
+			["trigger"] = "最后 3 秒前打完:倍率永久 +0.1",
+		},
+		["deejay"] = {
+			["trigger"] = "每进一次商店:倍率永久 +0.05",
+		},
+		["goldenvoice"] = {
+			["trigger"] = "金币每 6 枚:倍率+0.1(上限.5)",
+		},
+		["hush"] = {
+			["trigger"] = "本拍不弃牌:倍率 +0.4",
+		},
+		["harmony"] = {
+			["trigger"] = "缓存三张同花色:倍率 ×1.75",
+		},
+		["ensemble"] = {
+			["trigger"] = "缓存也上台:8 张里挑最好的 5 张",
+		},
+		["allin"] = {
+			["trigger"] = "每拍抛硬币:×2 或 ×0.5",
+		},
+		["loadeddice"] = {
+			["trigger"] = "你所有的概率翻倍",
+		},
+		["recycle"] = {
+			["trigger"] = "直弃缓存牌:按点数十倍给奖励分",
+		},
+		["gueststar"] = {
+			["trigger"] = "倍率 +0.5;下个段末谢幕离场",
+		},
+		["matador"] = {
+			["trigger"] = "被 BOSS 规则扣分的拍:+2◆",
+		},
+		["blindplay"] = {
+			["trigger"] = "每张盖着上台的得分牌:基础分+8",
+		},
+		["encore"] = {
+			["trigger"] = "与上拍同牌型:+目标分 78%",
+		},
+		["finale"] = {
+			["trigger"] = "最后 2 秒有操作:+目标分 24%",
+		},
+		["turnover"] = {
+			["trigger"] = "每弃 1 张:+目标分 22%",
+		},
+		["tipjar"] = {
+			["trigger"] = "整拍零弃牌:+1◆",
+		},
+		["chord"] = {
+			["trigger"] = "缓存三张同花色:+60 奖励分",
+		},
+		["neonsign"] = {
+			["trigger"] = "每拍必发:+目标分 11%",
+		},
+		["vinyl"] = {
+			["trigger"] = "每弃 1 张:基础分+1,永久累计",
+		},
+		["interest"] = {
+			["trigger"] = "金币每 8 枚:结算 +1◆,上限 3",
+		},
+		["momentum"] = {
+			["trigger"] = "最后 3 秒前打完:加成+10%,永久",
+		},
+		["vip"] = {
+			["trigger"] = "J/Q/K 按 20 点计入基础分",
+		},
+		["glowstick"] = {
+			["trigger"] = "加成+60%起步,每拍递减 6%",
+		},
+		["bassline"] = {
+			["trigger"] = "每累计弃 8 张:倍率+0.25,永久",
+		},
+		["mirror"] = {
+			["trigger"] = "达成 Target 的拍:再乘一次",
+		},
+		["variation"] = {
+			["trigger"] = "成牌与上拍不同:+目标分 28%",
+		},
+		["reprise"] = {
+			["trigger"] = "与上拍同牌型:加成+140%",
+		},
+		["fullcast"] = {
+			["trigger"] = "打出顺/花/葫芦:×1.2 倍率",
+		},
+		["superfan"] = {
+			["trigger"] = "金币每 2 枚:加成 +5%",
+		},
+		["rainbow"] = {
+			["trigger"] = "成牌集齐四花色:+目标分 39%",
+		},
+		["nopair"] = {
+			["trigger"] = "五张点数不同:+目标分 65%",
+		},
+		["rehearsal"] = {
+			["trigger"] = "缓存三张点数连续:+200 奖励分",
+		},
+		["duo"] = {
+			["trigger"] = "成牌含对子:基础分+10",
+		},
+		["duet"] = {
+			["trigger"] = "成牌含对子:加成+25%",
+		},
+		["triad"] = {
+			["trigger"] = "三条或更好:基础分+30",
+		},
+		["triplebill"] = {
+			["trigger"] = "三条或更好:×1.5 倍率",
+		},
+		["backer"] = {
+			["trigger"] = "金币每 2 枚:基础分+1(上限10)",
+		},
+		["bench"] = {
+			["trigger"] = "缓存最高点数计入基础分",
+		},
+		["boxseats"] = {
+			["trigger"] = "缓存区每张人头牌:×1.35",
+		},
+		["bassclef"] = {
+			["trigger"] = "2~5 的小牌按 15 点计入基础分",
+		},
+		["warmtone"] = {
+			["trigger"] = "每张计分红牌:基础分+3",
+		},
+		["cooltone"] = {
+			["trigger"] = "每张计分黑牌:基础分+3",
+		},
+		["undertone"] = {
+			["trigger"] = "每张计分 ≤5 小牌:基础分+9",
+		},
+		["curtain"] = {
+			["trigger"] = "最后 1 秒内有操作:加成+60%",
+		},
+		["stopwatch"] = {
+			["trigger"] = "每提前 1 秒打完:加成+8%",
+		},
+		["freeze"] = {
+			["trigger"] = "最后 3 秒前打完:下拍加成+30%",
+		},
+		["earlyout"] = {
+			["trigger"] = "弃牌都在前 6 秒:+目标分 42%",
+		},
+		["segue"] = {
+			["trigger"] = "每张换入的计分牌:+目标分 13%",
+		},
+		["stilllife"] = {
+			["trigger"] = "整拍零交换:+目标分 32%",
+		},
+		["stageexit"] = {
+			["trigger"] = "每弃 1 张人头牌:+目标分 30%",
+		},
+		["royalty"] = {
+			["trigger"] = "牌型金币 ×1.5",
+		},
+		["digger"] = {
+			["trigger"] = "每进一次商店:基础分+5,永久",
+		},
+		["collector"] = {
+			["trigger"] = "每买一张卡:基础分+15(上限+30)",
+		},
+		["skint"] = {
+			["trigger"] = "代价金币上限 5 枚:全场 ×1.6",
+		},
+		["rebrand"] = {
+			["trigger"] = "每次换旗:加成+40%(常驻旗)",
+		},
+		["_comment"] = "⚑ 文案标准(2026-08-18 用户:「描述清晰比字数限制还重要」):① 句式一律「条件:效果」② 作用层只用四个词 —— 基础分(吃倍率)/倍率/加成%(乘区)/奖励分(不吃倍率), 与结算分解框(settle_fx)同一套词, 结算里见过的词卡面上就认识 ③ 数值进句子 ④ 跟随尺度的奖励写「+目标分的N%」—— 写死数字会撒谎。改数值要同步:本表数字 · manifest amount 章 · jokers.json 是效果真相。",
+		["perkeo"] = {
+			["trigger"] = "离开商店:复制一张消耗牌",
+		},
+	},
+	["stage"] = {
+		["margin"] = 26,
+		["card_w"] = 114,
+		["card_h"] = 170,
+		["gap"] = 16,
+		["resolve_hold"] = 1.0,
+		["pill_w"] = 200,
+		["hand_top"] = 672,
+		["hand_card_y"] = 738,
+		["cache_y"] = 1024,
+		["lift_base"] = 16,
+		["lift_selected"] = -2,
+	},
+	["hud"] = {
+		["pos"] = {
+			26,
+			26,
+		},
+		["size"] = {
+			668,
+			96,
+		},
+		["pills"] = {
+			["x0"] = 244,
+			["pitch"] = 19,
+			["gap"] = 6,
+			["y"] = 16,
+			["w"] = 14,
+			["h"] = 7,
+		},
+		["coin"] = {
+			486,
+			4,
+		},
+		["score"] = {
+			22,
+			12,
+		},
+		["target"] = {
+			140,
+			38,
+		},
+		["target_x_base"] = 30,
+		["phrase"] = {
+			446,
+			38,
+		},
+		["pbar_pos"] = {
+			22,
+			74,
+		},
+		["pbar_size"] = {
+			624,
+			10,
+		},
+	},
+	["shop"] = {
+		["title"] = "选择小丑牌",
+		["title_pos"] = {
+			0,
+			400,
+		},
+		["kind_pos"] = {
+			0,
+			452,
+		},
+		["blind_pos"] = {
+			80,
+			80,
+		},
+		["blind_size"] = {
+			560,
+			296,
+		},
+		["target_line"] = "TARGET · 定义什么是好答案 · 免费",
+		["support_line"] = "SUPPORT · 定义怎么到达答案 · ◆ %d",
+		["_comment_encore_line"] = "续买态副标题(2026-09-05 起不再点名联票:加急/赞助/挑高各带 1 次名额, 买完同样进这一态, 副标题写「联票」就是说谎) —— 参数 = [还能再选几张, 当前金币]。联票买的是**至多**两次不是必须两次, 所以这一行同时给出剩余次数与出口(2026-08-28 用户:「至多可以选 2 个, 如果钱只够选 1 个或者没有, 要点跳过」)。出口本身一直是「继续 ▸」那个键。",
+		["encore_line"] = "还能再选 %d 张 · ◆ %d · 不买就点继续",
+		["card_w"] = 200,
+		["card_gap"] = 24,
+		["card_w_4"] = 156,
+		["card_gap_4"] = 14,
+		["cards_y"] = 520,
+		["price_dy"] = 8,
+		["btn_y"] = 806,
+		["reroll_text"] = "刷新 · %d ◆",
+		["skip_text"] = "继续 ▸",
+		["free_text"] = "免费",
+		["insufficient"] = "◆ 不足",
+		["replace_prompt"] = "拖或点要换掉的槽位 · ◆%d 买入 · 旧卡折半",
+		["replace_cancel_text"] = "✕ 不换了",
+		["replace_prompt_pos"] = {
+			155,
+			592,
+		},
+		["replace_preview_pos"] = {
+			282,
+			448,
+		},
+		["replace_preview_size"] = {
+			156,
+			132,
+		},
+		["replace_prompt_w"] = 410,
+		["_comment_route"] = "巡演路线行(journey #4):商店盲注板脚注的整局四脸缩略。板内基线 y 与字号;画法在 Widgets.BlindBoard, 数据由编排器注入(phrase.gd::_shop_route)。⚠ 行要留在玻璃白线(板底内缩 14)之内 —— 商店板因此加高 276→296(intro 的板没有这一行, 尺寸没动)。",
+		["route_y"] = 272,
+		["route_fs"] = 14,
+		["blindcard_pos"] = {
+			28,
+			940,
+		},
+		["_comment_blindcard_pos"] = "商店期间局内盲注卡的停靠位(2026-08-27 用户:「选牌时展示盲注没错, 但压住小丑牌很奇怪, 可以放下面」)——开店挪到货架/按钮之下, 关店(下一拍 _start_phrase)还原 layout 初始位。",
+		["_comment_cons"] = "商店的消耗牌区(2 张)。碟径 132 = 局内唱片 VinylDeck 同尺寸(2026-09-02 用户:「跟光碟一样大」)。两列在 [cons_left, cons_right] 这段里**居中** —— 左界是盲注卡停靠位(blindcard_pos 28 + 卡宽 145)的右侧, 右界 = 720 − margin。⚠ cons_y 是**绝对** y, 不再跟着 btn_y 走(两个数都在这张表里, 一起看得见)。名字/描述/价格三行跟着碟底排, 间距 12/36/76。",
+		["cons_y"] = 912,
+		["cons_disc"] = 132,
+		["cons_col_w"] = 190,
+		["cons_gap"] = 24,
+		["cons_left"] = 190,
+		["cons_right"] = 692,
+	},
+	["hand"] = {
+		["deny"] = {
+			["window"] = "弃牌已关闭",
+			["swap_window"] = "交换已关闭",
+			["onetake"] = "弃牌张数到顶",
+			["oneswap"] = "本拍已换过",
+			["throttle"] = "弃换张数用尽",
+			["track_swap"] = "已选交换轨",
+			["track_discard"] = "已选弃牌轨",
+			["budget"] = "弃牌额度不足",
+			["coins"] = "◆ 不足",
+			["sealed"] = "选中有被封的牌",
+			["wetink"] = "缓存牌锁定中",
+			["blocked"] = "这张换不了",
+			["locked"] = "本拍已锁定",
+		},
+		["hand_tab"] = "手 牌 区",
+		["cache_tab"] = "缓 存 区",
+		["sort_label"] = "理牌",
+		["discard_label"] = "弃牌",
+		["hand_tab_pos"] = {
+			312,
+			682,
+		},
+		["cache_tab_pos"] = {
+			314,
+			985,
+		},
+		["key_outset"] = 17,
+		["_comment_key_outset"] = "理牌/弃牌两个键的**外挪量**与**宽度**(2026-08-16 用户两次反馈:「一个靠左一点一个再靠右一点」→「按钮的位置你也没处理」)。\n⚠ **只挪位置不够**:26 已经是全屏边距, 外挪上限就是 17px = 屏宽 2.4%, **看不出来**。\n⚑ 真正的分隔靠**把键做窄**:114(与卡同宽)→ 88, 于是与缓存牌的间隙从 24px 变成 **50px**。\n⚠ 键窄了但**点击区不变小**:DJKey 自己有热区, 88 仍远大于拇指最小 44pt。",
+		["key_w"] = 88,
+	},
+	["banner"] = {
+		["_comment"] = "结算屏文案。fail_loan = fail 屏的死因行(show_fail 的 why, %d = 还不上的预支金额;2026-08-27 加行:分数达标却因预支违约死掉, 只念分数会让玩家困惑)。",
+		["fail_loan"] = "预支违约：还不上 %d◆",
+	},
+	["tutor_focus"] = {
+		["_comment"] = "教学关高亮的**合法区域名白名单**(core/db.gd 校验 + Tutorial.regions())。⚠⚠ **值只是说明, 不是坐标** —— 2026-08-16 这里原本手写着四个矩形, 而手牌行/缓存行/弃牌键的位置是**运行时按 stage 的 card_w/gap/cache_y 算出来的**, 这里那份是目测抄的第二份, 键做窄(key_w)之后更对不上 ⇒ 用户报「高光位置不对、跟原图不对应」。真值现在从活部件取:`Hand.focus_rect()`(hand/cache/discard)与本文件的 `hud.pos`+`hud.size`(hud)。**别再往这里写坐标。**",
+		["hud"] = "顶栏(分数/金币/拍数)",
+		["hand"] = "手牌行 5 张",
+		["cache"] = "缓存行 3 格",
+		["discard"] = "弃牌键",
+		["jokers"] = "小丑牌四槽(矩形由编排器从 joker_views 活算)",
+		["blind"] = "盲注卡(矩形由编排器从 blind_card 活算;γ 特写用它指公示卡的盲注板)",
+		["coins"] = "金币 chip(β 特写;矩形由编排器从 hud.coin_label 活算)",
+		["shelf"] = "商店货架价签行(D 分镜;矩形由编排器从 shop.price_row_rect 活算)",
+	},
+	["patterns"] = {
+		["_comment"] = "牌型中文名, 按 Pattern.Kind 下标。结算分解框(settle_fx)与其他要念牌型名的地方共用这一份。",
+		["0"] = "高牌",
+		["1"] = "对子",
+		["2"] = "两对",
+		["3"] = "三条",
+		["4"] = "顺子",
+		["5"] = "同花",
+		["6"] = "葫芦",
+		["7"] = "四条",
+		["8"] = "同花顺",
+		["9"] = "皇家同花顺",
+	},
+	["consumablecard"] = {
+		["opener"] = {
+			["trigger"] = "段首拍:加成 +57%",
+		},
+		["chorus"] = {
+			["trigger"] = "第 4 拍:+200 奖励分",
+		},
+		["popup"] = {
+			["trigger"] = "下一拍:+目标分 57%",
+		},
+		["jackpot"] = {
+			["trigger"] = "第 6 拍:半概率 ×2.1",
+		},
+		["superwild"] = {
+			["trigger"] = "四张万能牌进牌堆",
+		},
+		["trim"] = {
+			["trigger"] = "牌堆移除所有 2 和 3",
+		},
+		["doublebill"] = {
+			["trigger"] = "本店:货架 4 张,可再买 2 张",
+		},
+		["sponsor"] = {
+			["trigger"] = "本店:全场 −2◆,刷新也是",
+		},
+		["jukebox"] = {
+			["trigger"] = "下次货架必出规则牌",
+		},
+		["anvil"] = {
+			["trigger"] = "复制一张 SUPPORT,毁其余",
+		},
+		["encorecall"] = {
+			["trigger"] = "本店:免费刷新 3 次",
+		},
+		["highroller"] = {
+			["trigger"] = "这次商店:刷新也不出普通卡",
+		},
+		["shortcut"] = {
+			["trigger"] = "顺子可以跳过一个点数",
+		},
+		["fourfingers"] = {
+			["trigger"] = "顺子和同花,四张就够",
+		},
+		["blacktone"] = {
+			["trigger"] = "♠♣ 算同一花色(黑同花)",
+		},
+		["redtone"] = {
+			["trigger"] = "♥♦ 算同一花色(红同花)",
+		},
+		["advance"] = {
+			["trigger"] = "每段借 10◆ 还 12◆;欠款=失败",
+		},
+	},
+}

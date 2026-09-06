@@ -1,0 +1,1433 @@
+-- 由 tools/luagen.py 从 data/jokers.json 生成 —— 仪器输出, 手改无效(docs/design/mirror.md §4)
+return {
+	["jokers"] = {
+		{
+			["id"] = "twin",
+			["name"] = "Twin",
+			["cn"] = "双子",
+			["kind"] = "target",
+			["rarity"] = "rare",
+			["proof"] = "score",
+			["fx"] = "Pairs and two pairs: ×1.4",
+			["effects"] = {
+				{
+					["when"] = {
+						["kind"] = "PAIR",
+					},
+					["do"] = {
+						["mult"] = 1.4,
+					},
+				},
+				{
+					["when"] = {
+						["kind"] = "TWO_PAIR",
+					},
+					["do"] = {
+						["mult"] = 1.4,
+					},
+				},
+			},
+		},
+		{
+			["id"] = "stair",
+			["name"] = "Stairway",
+			["cn"] = "阶梯",
+			["kind"] = "target",
+			["rarity"] = "rare",
+			["proof"] = "score",
+			["fx"] = "Straights and straight flushes: ×4.8",
+			["effects"] = {
+				{
+					["when"] = {
+						["kind"] = "STRAIGHT",
+					},
+					["do"] = {
+						["mult"] = 4.8,
+					},
+				},
+				{
+					["when"] = {
+						["kind_in"] = {
+							"STRAIGHT_FLUSH",
+							"ROYAL_FLUSH",
+						},
+					},
+					["do"] = {
+						["mult"] = 4.8,
+					},
+				},
+			},
+		},
+		{
+			["id"] = "mono",
+			["name"] = "Monochrome",
+			["cn"] = "单色",
+			["kind"] = "target",
+			["rarity"] = "rare",
+			["proof"] = "score",
+			["fx"] = "Flushes and straight flushes: ×5.6",
+			["effects"] = {
+				{
+					["when"] = {
+						["kind"] = "FLUSH",
+					},
+					["do"] = {
+						["mult"] = 5.6,
+					},
+				},
+				{
+					["when"] = {
+						["kind_in"] = {
+							"STRAIGHT_FLUSH",
+							"ROYAL_FLUSH",
+						},
+					},
+					["do"] = {
+						["mult"] = 5.6,
+					},
+				},
+			},
+		},
+		{
+			["id"] = "triplet",
+			["name"] = "Triplet",
+			["cn"] = "三连音",
+			["kind"] = "target",
+			["rarity"] = "rare",
+			["proof"] = "score",
+			["fx"] = "Trips, full house, quads: ×2",
+			["effects"] = {
+				{
+					["when"] = {
+						["kind"] = "THREE_KIND",
+					},
+					["do"] = {
+						["mult"] = 2,
+					},
+				},
+				{
+					["when"] = {
+						["kind"] = "FULL_HOUSE",
+					},
+					["do"] = {
+						["mult"] = 2,
+					},
+				},
+				{
+					["when"] = {
+						["kind"] = "FOUR_KIND",
+					},
+					["do"] = {
+						["mult"] = 2,
+					},
+				},
+			},
+		},
+		{
+			["id"] = "lonewolf",
+			["name"] = "Lone Wolf",
+			["cn"] = "独狼",
+			["kind"] = "target",
+			["rarity"] = "rare",
+			["proof"] = "coin",
+			["fx"] = "No discards: +2 coins; Targets always",
+			["effects"] = {
+				{
+					["when"] = {
+						["discards_eq"] = 0,
+					},
+					["do"] = {
+						["coins"] = 2,
+					},
+				},
+			},
+			["shelf"] = {
+				["target_guaranteed"] = true,
+			},
+		},
+		{
+			["id"] = "encore",
+			["name"] = "Encore",
+			["cn"] = "回响",
+			["kind"] = "support",
+			["rarity"] = "common",
+			["curve"] = "burst",
+			["proof"] = "score",
+			["fx"] = "Same hand as last phrase: +78% target",
+			["effects"] = {
+				{
+					["when"] = {
+						["same_as_prev"] = true,
+					},
+					["do"] = {
+						["bonus_target_pct"] = 0.78,
+					},
+				},
+			},
+		},
+		{
+			["id"] = "finale",
+			["name"] = "Finale",
+			["cn"] = "尾声",
+			["kind"] = "support",
+			["rarity"] = "common",
+			["curve"] = "burst",
+			["proof"] = "score",
+			["fx"] = "Act in final 2 seconds: +24% target",
+			["effects"] = {
+				{
+					["when"] = {
+						["acted_late"] = true,
+					},
+					["do"] = {
+						["bonus_target_pct"] = 0.24,
+					},
+				},
+			},
+		},
+		{
+			["id"] = "turnover",
+			["name"] = "Turnover",
+			["cn"] = "周转",
+			["kind"] = "support",
+			["rarity"] = "common",
+			["curve"] = "burst",
+			["proof"] = "score",
+			["fx"] = "+22% target per discard this phrase",
+			["effects"] = {
+				{
+					["when"] = {
+						["discards_gte"] = 1,
+					},
+					["do"] = {
+						["bonus_target_pct"] = 0.22,
+						["per"] = "discard",
+					},
+				},
+			},
+		},
+		{
+			["id"] = "tipjar",
+			["name"] = "Tip Jar",
+			["cn"] = "小费罐",
+			["kind"] = "support",
+			["rarity"] = "common",
+			["curve"] = "burst",
+			["proof"] = "coin",
+			["fx"] = "Zero discards this phrase: +1 coin",
+			["effects"] = {
+				{
+					["when"] = {
+						["discards_eq"] = 0,
+					},
+					["do"] = {
+						["coins"] = 1,
+					},
+				},
+			},
+		},
+		{
+			["id"] = "chord",
+			["name"] = "Chord",
+			["cn"] = "和弦",
+			["kind"] = "support",
+			["rarity"] = "common",
+			["curve"] = "burst",
+			["proof"] = "score",
+			["fx"] = "Cache all one color: +60",
+			["effects"] = {
+				{
+					["when"] = {
+						["cache_mono_color"] = true,
+					},
+					["do"] = {
+						["bonus"] = 60.0,
+					},
+				},
+			},
+		},
+		{
+			["id"] = "neonsign",
+			["name"] = "Neon Sign",
+			["cn"] = "灯牌",
+			["kind"] = "support",
+			["rarity"] = "common",
+			["curve"] = "fixed",
+			["proof"] = "score",
+			["fx"] = "Every phrase: +11% of target",
+			["effects"] = {
+				{
+					["do"] = {
+						["bonus_target_pct"] = 0.11,
+					},
+				},
+			},
+		},
+		{
+			["id"] = "vinyl",
+			["name"] = "Vinyl",
+			["cn"] = "黑胶",
+			["kind"] = "support",
+			["rarity"] = "common",
+			["curve"] = "growth",
+			["proof"] = "score",
+			["fx"] = "Every discard: +1 forever",
+			["counters"] = {
+				["n"] = {
+					["on_discard"] = "sum",
+				},
+			},
+			["effects"] = {
+				{
+					["when"] = {
+						["counter_gte"] = {
+							"n",
+							1,
+						},
+					},
+					["do"] = {
+						["additive"] = 1,
+						["per"] = "counter:n",
+					},
+				},
+			},
+		},
+		{
+			["id"] = "interest",
+			["name"] = "Interest",
+			["cn"] = "利息",
+			["kind"] = "support",
+			["rarity"] = "uncommon",
+			["curve"] = "floating",
+			["proof"] = "coin",
+			["fx"] = "+1 coin per 8 held, max 3",
+			["effects"] = {
+				{
+					["do"] = {
+						["coins"] = 1,
+						["per"] = "coins:8",
+						["cap"] = 3,
+					},
+				},
+			},
+		},
+		{
+			["id"] = "momentum",
+			["name"] = "Momentum",
+			["cn"] = "惯性",
+			["kind"] = "support",
+			["rarity"] = "uncommon",
+			["curve"] = "growth",
+			["proof"] = "score",
+			["fx"] = "Done before final 3s: +10% forever",
+			["counters"] = {
+				["stacks"] = {
+					["on_early_finish"] = 1,
+				},
+			},
+			["effects"] = {
+				{
+					["when"] = {
+						["counter_gte"] = {
+							"stacks",
+							1,
+						},
+					},
+					["do"] = {
+						["bonus_pct"] = 0.1,
+						["per"] = "counter:stacks",
+					},
+				},
+			},
+		},
+		{
+			["id"] = "vip",
+			["name"] = "VIP",
+			["cn"] = "贵宾",
+			["kind"] = "support",
+			["rarity"] = "uncommon",
+			["curve"] = "fixed",
+			["proof"] = "score",
+			["fx"] = "Face cards count as 20",
+			["effects"] = {
+				{
+					["do"] = {
+						["additive_face_value"] = 20,
+					},
+				},
+			},
+		},
+		{
+			["id"] = "glowstick",
+			["name"] = "Glow Stick",
+			["cn"] = "荧光棒",
+			["kind"] = "support",
+			["rarity"] = "uncommon",
+			["curve"] = "decay",
+			["proof"] = "score",
+			["fx"] = "+60%, fades 6% each phrase",
+			["counters"] = {
+				["pct"] = {
+					["init"] = 0.6,
+					["decay_per_phrase"] = 0.06,
+					["floor"] = 0.0,
+				},
+			},
+			["effects"] = {
+				{
+					["when"] = {
+						["counter_gte"] = {
+							"pct",
+							0.001,
+						},
+					},
+					["do"] = {
+						["bonus_pct"] = {
+							["counter"] = "pct",
+						},
+					},
+				},
+			},
+		},
+		{
+			["id"] = "bassline",
+			["name"] = "Bassline",
+			["cn"] = "贝斯线",
+			["kind"] = "support",
+			["rarity"] = "rare",
+			["curve"] = "growth",
+			["proof"] = "score",
+			["fx"] = "Every 8 discards: ×0.25 forever",
+			["counters"] = {
+				["n"] = {
+					["on_discard"] = "sum",
+				},
+			},
+			["effects"] = {
+				{
+					["when"] = {
+						["counter_gte"] = {
+							"n",
+							8,
+						},
+					},
+					["do"] = {
+						["mult_add"] = 0.25,
+						["per"] = "counter:n",
+						["step"] = 8,
+					},
+				},
+			},
+		},
+		{
+			["id"] = "mirror",
+			["name"] = "Mirror",
+			["cn"] = "镜面",
+			["kind"] = "support",
+			["rarity"] = "rare",
+			["curve"] = "floating",
+			["proof"] = "score",
+			["fx"] = "Target hand: copy its multiplier",
+			["effects"] = {
+				{
+					["do"] = {
+						["mult_from_target_factor"] = 1.0,
+					},
+				},
+			},
+		},
+		{
+			["id"] = "kaleido",
+			["name"] = "Kaleidoscope",
+			["cn"] = "万花筒",
+			["kind"] = "target",
+			["rarity"] = "rare",
+			["proof"] = "score",
+			["fx"] = "Different made hand: ×4",
+			["effects"] = {
+				{
+					["when"] = {
+						["diff_from_prev"] = true,
+						["kind_in"] = {
+							"PAIR",
+							"TWO_PAIR",
+							"THREE_KIND",
+							"STRAIGHT",
+							"FLUSH",
+							"FULL_HOUSE",
+							"FOUR_KIND",
+							"STRAIGHT_FLUSH",
+							"ROYAL_FLUSH",
+						},
+					},
+					["do"] = {
+						["mult"] = 4.0,
+					},
+				},
+			},
+		},
+		{
+			["id"] = "variation",
+			["name"] = "Variation",
+			["cn"] = "变奏",
+			["kind"] = "support",
+			["rarity"] = "common",
+			["curve"] = "burst",
+			["proof"] = "score",
+			["fx"] = "Different hand than last phrase: +28% target",
+			["effects"] = {
+				{
+					["when"] = {
+						["diff_from_prev"] = true,
+					},
+					["do"] = {
+						["bonus_target_pct"] = 0.28,
+					},
+				},
+			},
+		},
+		{
+			["id"] = "reprise",
+			["name"] = "Reprise",
+			["cn"] = "复读",
+			["kind"] = "support",
+			["rarity"] = "uncommon",
+			["curve"] = "burst",
+			["proof"] = "score",
+			["fx"] = "Same hand as last: +140%",
+			["effects"] = {
+				{
+					["when"] = {
+						["same_as_prev"] = true,
+					},
+					["do"] = {
+						["bonus_pct"] = 1.4,
+					},
+				},
+			},
+		},
+		{
+			["id"] = "fullcast",
+			["name"] = "Full Cast",
+			["cn"] = "全员",
+			["kind"] = "support",
+			["rarity"] = "common",
+			["curve"] = "burst",
+			["proof"] = "score",
+			["fx"] = "Five-card hands: x1.2",
+			["effects"] = {
+				{
+					["when"] = {
+						["kind_in"] = {
+							"STRAIGHT",
+							"FLUSH",
+							"FULL_HOUSE",
+							"STRAIGHT_FLUSH",
+							"ROYAL_FLUSH",
+						},
+					},
+					["do"] = {
+						["mult"] = 1.2,
+					},
+				},
+			},
+		},
+		{
+			["id"] = "superfan",
+			["name"] = "Superfan",
+			["cn"] = "铁粉",
+			["kind"] = "support",
+			["rarity"] = "uncommon",
+			["curve"] = "floating",
+			["proof"] = "score",
+			["fx"] = "+5% per 2 coins held",
+			["effects"] = {
+				{
+					["when"] = {
+						["coins_gte"] = 2,
+					},
+					["do"] = {
+						["bonus_pct"] = 0.05,
+						["per"] = "coins:2",
+						["cap"] = 0.15,
+					},
+				},
+			},
+		},
+		{
+			["id"] = "shredder",
+			["name"] = "Shredder",
+			["cn"] = "速弹",
+			["kind"] = "target",
+			["rarity"] = "rare",
+			["proof"] = "score",
+			["fx"] = "Done before final 3s, with hand: ×4",
+			["effects"] = {
+				{
+					["when"] = {
+						["early_finish"] = true,
+						["kind_in"] = {
+							"PAIR",
+							"TWO_PAIR",
+							"THREE_KIND",
+							"STRAIGHT",
+							"FLUSH",
+							"FULL_HOUSE",
+							"FOUR_KIND",
+							"STRAIGHT_FLUSH",
+							"ROYAL_FLUSH",
+						},
+					},
+					["do"] = {
+						["mult"] = 4.0,
+					},
+				},
+			},
+		},
+		{
+			["id"] = "rainbow",
+			["name"] = "Rainbow",
+			["cn"] = "彩虹",
+			["kind"] = "support",
+			["rarity"] = "common",
+			["curve"] = "burst",
+			["proof"] = "score",
+			["fx"] = "All four suits in hand: +39% target",
+			["effects"] = {
+				{
+					["when"] = {
+						["all_suits"] = true,
+					},
+					["do"] = {
+						["bonus_target_pct"] = 0.39,
+					},
+				},
+			},
+		},
+		{
+			["id"] = "nopair",
+			["name"] = "No Pair",
+			["cn"] = "清流",
+			["kind"] = "support",
+			["rarity"] = "common",
+			["curve"] = "burst",
+			["proof"] = "score",
+			["fx"] = "No pair in hand: +65% target",
+			["effects"] = {
+				{
+					["when"] = {
+						["no_pair"] = true,
+					},
+					["do"] = {
+						["bonus_target_pct"] = 0.65,
+					},
+				},
+			},
+		},
+		{
+			["id"] = "rehearsal",
+			["name"] = "Rehearsal",
+			["cn"] = "排练",
+			["kind"] = "support",
+			["rarity"] = "common",
+			["curve"] = "burst",
+			["proof"] = "solver",
+			["fx"] = "Cache forms a run: +200",
+			["effects"] = {
+				{
+					["when"] = {
+						["cache_run"] = true,
+					},
+					["do"] = {
+						["bonus"] = 200.0,
+					},
+				},
+			},
+		},
+		{
+			["id"] = "bassclef",
+			["name"] = "Bass Clef",
+			["cn"] = "低音谱",
+			["kind"] = "support",
+			["rarity"] = "uncommon",
+			["curve"] = "fixed",
+			["proof"] = "score",
+			["fx"] = "Low cards count as 15",
+			["effects"] = {
+				{
+					["do"] = {
+						["additive_low_value"] = 15,
+					},
+				},
+			},
+		},
+		{
+			["id"] = "warmtone",
+			["name"] = "Warm Tone",
+			["cn"] = "暖色",
+			["kind"] = "support",
+			["rarity"] = "common",
+			["curve"] = "fixed",
+			["proof"] = "score",
+			["fx"] = "Red scoring cards: +3 chips each",
+			["effects"] = {
+				{
+					["do"] = {
+						["chips_per_card"] = 3,
+						["card_filter"] = "red",
+					},
+				},
+			},
+		},
+		{
+			["id"] = "cooltone",
+			["name"] = "Cool Tone",
+			["cn"] = "冷色",
+			["kind"] = "support",
+			["rarity"] = "common",
+			["curve"] = "fixed",
+			["proof"] = "score",
+			["fx"] = "Black scoring cards: +3 chips each",
+			["effects"] = {
+				{
+					["do"] = {
+						["chips_per_card"] = 3,
+						["card_filter"] = "black",
+					},
+				},
+			},
+		},
+		{
+			["id"] = "undertone",
+			["name"] = "Undertone",
+			["cn"] = "低声部",
+			["kind"] = "support",
+			["rarity"] = "common",
+			["curve"] = "fixed",
+			["proof"] = "score",
+			["fx"] = "Fives and under: +9 chips each",
+			["effects"] = {
+				{
+					["do"] = {
+						["chips_per_card"] = 9,
+						["card_filter"] = "rank_lte_5",
+					},
+				},
+			},
+		},
+		{
+			["id"] = "duo",
+			["name"] = "Duo",
+			["cn"] = "对唱",
+			["kind"] = "support",
+			["rarity"] = "common",
+			["curve"] = "burst",
+			["proof"] = "score",
+			["fx"] = "Hands with a pair: +10 chips",
+			["effects"] = {
+				{
+					["when"] = {
+						["kind_in"] = {
+							"PAIR",
+							"TWO_PAIR",
+							"THREE_KIND",
+							"FULL_HOUSE",
+							"FOUR_KIND",
+						},
+					},
+					["do"] = {
+						["additive"] = 10,
+					},
+				},
+			},
+		},
+		{
+			["id"] = "duet",
+			["name"] = "Duet",
+			["cn"] = "二重唱",
+			["kind"] = "support",
+			["rarity"] = "uncommon",
+			["curve"] = "burst",
+			["proof"] = "score",
+			["fx"] = "Hands with a pair: +25%",
+			["effects"] = {
+				{
+					["when"] = {
+						["kind_in"] = {
+							"PAIR",
+							"TWO_PAIR",
+							"THREE_KIND",
+							"FULL_HOUSE",
+							"FOUR_KIND",
+						},
+					},
+					["do"] = {
+						["bonus_pct"] = 0.25,
+					},
+				},
+			},
+		},
+		{
+			["id"] = "triad",
+			["name"] = "Triad",
+			["cn"] = "三和弦",
+			["kind"] = "support",
+			["rarity"] = "common",
+			["curve"] = "burst",
+			["proof"] = "score",
+			["fx"] = "Trips or better: +30 chips",
+			["effects"] = {
+				{
+					["when"] = {
+						["kind_in"] = {
+							"THREE_KIND",
+							"FULL_HOUSE",
+							"FOUR_KIND",
+						},
+					},
+					["do"] = {
+						["additive"] = 30,
+					},
+				},
+			},
+		},
+		{
+			["id"] = "triplebill",
+			["name"] = "Triple Bill",
+			["cn"] = "三重",
+			["kind"] = "support",
+			["rarity"] = "uncommon",
+			["curve"] = "burst",
+			["proof"] = "score",
+			["fx"] = "Trips or better: x1.5",
+			["effects"] = {
+				{
+					["when"] = {
+						["kind_in"] = {
+							"THREE_KIND",
+							"FULL_HOUSE",
+							"FOUR_KIND",
+						},
+					},
+					["do"] = {
+						["mult"] = 1.5,
+					},
+				},
+			},
+		},
+		{
+			["id"] = "backer",
+			["name"] = "Backer",
+			["cn"] = "后台",
+			["kind"] = "support",
+			["rarity"] = "common",
+			["curve"] = "floating",
+			["proof"] = "score",
+			["fx"] = "+1 chip per 2 coins, max 10",
+			["effects"] = {
+				{
+					["when"] = {
+						["coins_gte"] = 2,
+					},
+					["do"] = {
+						["additive"] = 1,
+						["per"] = "coins:2",
+						["cap"] = 10,
+					},
+				},
+			},
+		},
+		{
+			["id"] = "bench",
+			["name"] = "Bench",
+			["cn"] = "替补",
+			["kind"] = "support",
+			["rarity"] = "uncommon",
+			["curve"] = "floating",
+			["proof"] = "score",
+			["fx"] = "Top cache rank counts as chips",
+			["effects"] = {
+				{
+					["do"] = {
+						["additive_cache_top"] = 1,
+					},
+				},
+			},
+		},
+		{
+			["id"] = "boxseats",
+			["name"] = "Box Seats",
+			["cn"] = "包厢",
+			["kind"] = "support",
+			["rarity"] = "rare",
+			["curve"] = "floating",
+			["proof"] = "score",
+			["fx"] = "Each face in cache: x1.35",
+			["effects"] = {
+				{
+					["do"] = {
+						["mult_add"] = 0.35,
+						["per"] = "cache_face",
+					},
+				},
+			},
+			["_comment"] = "2026-08-27 用户:「×1.2/张太低, 都是很难的条件」(占格机会成本大)—— 0.2→0.35/张(满 3 张 ×2.05);五因子口径, 全池重标时再校。",
+		},
+		{
+			["id"] = "freeze",
+			["name"] = "Freeze Frame",
+			["cn"] = "定格",
+			["kind"] = "support",
+			["rarity"] = "uncommon",
+			["curve"] = "burst",
+			["proof"] = "score",
+			["fx"] = "Done before final 3s: next +30%",
+			["counters"] = {
+				["armed"] = {
+					["pulse_on_early_finish"] = 1,
+				},
+			},
+			["effects"] = {
+				{
+					["when"] = {
+						["counter_gte"] = {
+							"armed",
+							1,
+						},
+					},
+					["do"] = {
+						["bonus_pct"] = 0.3,
+					},
+				},
+			},
+		},
+		{
+			["id"] = "stilllife",
+			["name"] = "Still Life",
+			["cn"] = "静物",
+			["kind"] = "support",
+			["rarity"] = "common",
+			["curve"] = "burst",
+			["proof"] = "score",
+			["fx"] = "Zero swaps this phrase: +32% target",
+			["effects"] = {
+				{
+					["when"] = {
+						["swaps_eq"] = 0,
+					},
+					["do"] = {
+						["bonus_target_pct"] = 0.32,
+					},
+				},
+			},
+		},
+		{
+			["id"] = "segue",
+			["name"] = "Segue",
+			["cn"] = "串场",
+			["kind"] = "support",
+			["rarity"] = "common",
+			["curve"] = "burst",
+			["proof"] = "score",
+			["fx"] = "Each swapped card that scores: +13% target",
+			["effects"] = {
+				{
+					["do"] = {
+						["bonus_target_pct"] = 0.13,
+						["per"] = "swapped_scoring",
+					},
+				},
+			},
+		},
+		{
+			["id"] = "stageexit",
+			["name"] = "Stage Exit",
+			["cn"] = "让位",
+			["kind"] = "support",
+			["rarity"] = "common",
+			["curve"] = "burst",
+			["proof"] = "score",
+			["fx"] = "Each face card discarded: +30% target",
+			["effects"] = {
+				{
+					["do"] = {
+						["bonus_target_pct"] = 0.3,
+						["per"] = "face_discard",
+					},
+				},
+			},
+		},
+		{
+			["id"] = "royalty",
+			["name"] = "Royalties",
+			["cn"] = "分成",
+			["kind"] = "support",
+			["rarity"] = "uncommon",
+			["curve"] = "floating",
+			["proof"] = "coin",
+			["fx"] = "Hand coin rewards x1.5",
+			["effects"] = {
+				{
+					["do"] = {
+						["coins_factor"] = 1.5,
+					},
+				},
+			},
+		},
+		{
+			["id"] = "skint",
+			["name"] = "Broke & Happy",
+			["cn"] = "穷开心",
+			["kind"] = "support",
+			["rarity"] = "rare",
+			["curve"] = "fixed",
+			["proof"] = "score",
+			["fx"] = "Coins cap at five; hands x1.6",
+			["hold"] = {
+				["coin_cap"] = 5,
+			},
+			["effects"] = {
+				{
+					["do"] = {
+						["mult_add"] = 0.6,
+					},
+				},
+			},
+		},
+		{
+			["id"] = "curtain",
+			["name"] = "Curtain Call",
+			["cn"] = "谢幕",
+			["kind"] = "support",
+			["rarity"] = "uncommon",
+			["curve"] = "burst",
+			["proof"] = "score",
+			["fx"] = "Act in the final second: +60%",
+			["effects"] = {
+				{
+					["when"] = {
+						["acted_final"] = true,
+					},
+					["do"] = {
+						["bonus_pct"] = 0.6,
+					},
+				},
+			},
+		},
+		{
+			["id"] = "stopwatch",
+			["name"] = "Stopwatch",
+			["cn"] = "秒表",
+			["kind"] = "support",
+			["rarity"] = "uncommon",
+			["curve"] = "burst",
+			["proof"] = "score",
+			["fx"] = "Each second finished early: +8%",
+			["effects"] = {
+				{
+					["do"] = {
+						["bonus_pct"] = 0.08,
+						["per"] = "second_left",
+					},
+				},
+			},
+		},
+		{
+			["id"] = "earlyout",
+			["name"] = "Early Purge",
+			["cn"] = "早弃",
+			["kind"] = "support",
+			["rarity"] = "common",
+			["curve"] = "burst",
+			["proof"] = "score",
+			["fx"] = "All discards in first 6s: +42% target",
+			["effects"] = {
+				{
+					["when"] = {
+						["early_discards"] = true,
+					},
+					["do"] = {
+						["bonus_target_pct"] = 0.42,
+					},
+				},
+			},
+		},
+		{
+			["id"] = "digger",
+			["name"] = "Crate Digger",
+			["cn"] = "淘碟",
+			["kind"] = "support",
+			["rarity"] = "uncommon",
+			["curve"] = "growth",
+			["proof"] = "shop",
+			["fx"] = "Each shop visit: +5 forever",
+			["counters"] = {
+				["n"] = {
+					["on_enter"] = 1,
+				},
+			},
+			["effects"] = {
+				{
+					["when"] = {
+						["counter_gte"] = {
+							"n",
+							1,
+						},
+					},
+					["do"] = {
+						["additive"] = 5,
+						["per"] = "counter:n",
+					},
+				},
+			},
+		},
+		{
+			["id"] = "collector",
+			["name"] = "Collector",
+			["cn"] = "收藏家",
+			["kind"] = "support",
+			["rarity"] = "uncommon",
+			["curve"] = "growth",
+			["proof"] = "shop",
+			["fx"] = "Each card bought: +15 forever",
+			["counters"] = {
+				["n"] = {
+					["on_buy"] = 1,
+				},
+			},
+			["effects"] = {
+				{
+					["when"] = {
+						["counter_gte"] = {
+							"n",
+							1,
+						},
+					},
+					["do"] = {
+						["additive"] = 15,
+						["per"] = "counter:n",
+						["cap"] = 30,
+					},
+				},
+			},
+		},
+		{
+			["id"] = "rebrand",
+			["name"] = "Reinvention",
+			["cn"] = "转型",
+			["kind"] = "support",
+			["rarity"] = "uncommon",
+			["curve"] = "growth",
+			["proof"] = "shop",
+			["fx"] = "Targets always offered; each change +40%",
+			["counters"] = {
+				["n"] = {
+					["on_target_swap"] = 1,
+				},
+			},
+			["effects"] = {
+				{
+					["when"] = {
+						["counter_gte"] = {
+							"n",
+							1,
+						},
+					},
+					["do"] = {
+						["bonus_pct"] = 0.4,
+						["per"] = "counter:n",
+					},
+				},
+			},
+			["shelf"] = {
+				["target_guaranteed"] = true,
+			},
+		},
+		{
+			["id"] = "wrecker",
+			["name"] = "Demolition",
+			["cn"] = "拆迁",
+			["kind"] = "target",
+			["rarity"] = "rare",
+			["proof"] = "score",
+			["fx"] = "Discard four: made hands x2",
+			["effects"] = {
+				{
+					["when"] = {
+						["discards_gte"] = 4,
+						["kind_in"] = {
+							"PAIR",
+							"TWO_PAIR",
+							"THREE_KIND",
+							"STRAIGHT",
+							"FLUSH",
+							"FULL_HOUSE",
+							"FOUR_KIND",
+							"STRAIGHT_FLUSH",
+							"ROYAL_FLUSH",
+						},
+					},
+					["do"] = {
+						["mult"] = 2.0,
+					},
+				},
+			},
+			["_comment"] = "2026-08-27 用户拍板:弃6×3.5 → 弃4×2 —— 经济 v2(弃牌1◆/张)下弃6=6◆≈三拍收入,条件成本剧变(cards.md 倍率 v3 连带)。discard_bias 同步 4(手抄教训)。",
+		},
+		{
+			["id"] = "fastforward",
+			["name"] = "Fast Forward",
+			["cn"] = "快进",
+			["kind"] = "support",
+			["rarity"] = "rare",
+			["curve"] = "growth",
+			["proof"] = "score",
+			["fx"] = "Done before final 3s: ×0.1 forever",
+			["counters"] = {
+				["stacks"] = {
+					["on_early_finish"] = 1,
+				},
+			},
+			["effects"] = {
+				{
+					["when"] = {
+						["counter_gte"] = {
+							"stacks",
+							1,
+						},
+					},
+					["do"] = {
+						["mult_add"] = 0.1,
+						["per"] = "counter:stacks",
+					},
+				},
+			},
+		},
+		{
+			["id"] = "deejay",
+			["name"] = "Deejay",
+			["cn"] = "打碟",
+			["kind"] = "support",
+			["rarity"] = "rare",
+			["curve"] = "growth",
+			["proof"] = "shop",
+			["fx"] = "Each shop visit: ×0.05 forever",
+			["counters"] = {
+				["n"] = {
+					["on_enter"] = 1,
+				},
+			},
+			["effects"] = {
+				{
+					["when"] = {
+						["counter_gte"] = {
+							"n",
+							1,
+						},
+					},
+					["do"] = {
+						["mult_add"] = 0.05,
+						["per"] = "counter:n",
+					},
+				},
+			},
+		},
+		{
+			["id"] = "goldenvoice",
+			["name"] = "Golden Voice",
+			["cn"] = "金嗓",
+			["kind"] = "support",
+			["rarity"] = "rare",
+			["curve"] = "floating",
+			["proof"] = "score",
+			["fx"] = "x0.1 per 6 coins, max 0.5",
+			["effects"] = {
+				{
+					["when"] = {
+						["coins_gte"] = 6,
+					},
+					["do"] = {
+						["mult_add"] = 0.1,
+						["per"] = "coins:6",
+						["cap"] = 0.5,
+					},
+				},
+			},
+		},
+		{
+			["id"] = "hush",
+			["name"] = "Hush",
+			["cn"] = "静场",
+			["kind"] = "support",
+			["rarity"] = "rare",
+			["curve"] = "burst",
+			["proof"] = "score",
+			["fx"] = "No discards this phrase: x1.4",
+			["effects"] = {
+				{
+					["when"] = {
+						["discards_eq"] = 0,
+					},
+					["do"] = {
+						["mult_add"] = 0.4,
+					},
+				},
+			},
+			["_comment"] = "静场放宽(2026-08-26 用户拍板):零弃零换(8%)→ 只禁弃牌 —— 经济 v2 下不弃牌 = 省弃牌费, 双重协同;数额 0.4→0.15 按触发率反推, kit 校。",
+		},
+		{
+			["id"] = "harmony",
+			["name"] = "Harmony",
+			["cn"] = "和声",
+			["kind"] = "support",
+			["rarity"] = "rare",
+			["curve"] = "burst",
+			["proof"] = "score",
+			["fx"] = "Cache all one color: x1.75",
+			["effects"] = {
+				{
+					["when"] = {
+						["cache_mono_color"] = true,
+					},
+					["do"] = {
+						["mult_add"] = 0.75,
+					},
+				},
+			},
+		},
+		{
+			["id"] = "ensemble",
+			["name"] = "Ensemble",
+			["cn"] = "合奏",
+			["kind"] = "support",
+			["rarity"] = "rare",
+			["curve"] = "fixed",
+			["proof"] = "score",
+			["fx"] = "Cache joins: best five of eight",
+			["hold"] = {
+				["cache_scoring"] = 1,
+			},
+		},
+		{
+			["id"] = "allin",
+			["name"] = "All In",
+			["cn"] = "孤注",
+			["kind"] = "support",
+			["rarity"] = "rare",
+			["curve"] = "burst",
+			["proof"] = "score",
+			["fx"] = "Coin flip: ×2 or ×0.5",
+			["effects"] = {
+				{
+					["do"] = {
+						["mult"] = 0.5,
+					},
+				},
+				{
+					["when"] = {
+						["chance"] = 0.5,
+					},
+					["do"] = {
+						["mult"] = 4.0,
+					},
+				},
+			},
+		},
+		{
+			["id"] = "loadeddice",
+			["name"] = "Loaded Dice",
+			["cn"] = "灌铅骰",
+			["kind"] = "support",
+			["rarity"] = "rare",
+			["curve"] = "fixed",
+			["proof"] = "score",
+			["fx"] = "All your odds are doubled",
+			["hold"] = {
+				["odds_mult"] = 2,
+			},
+		},
+		{
+			["id"] = "recycle",
+			["name"] = "Recycle",
+			["cn"] = "回收",
+			["kind"] = "support",
+			["rarity"] = "uncommon",
+			["curve"] = "floating",
+			["proof"] = "score",
+			["fx"] = "Cache discards pay 10x their rank",
+			["effects"] = {
+				{
+					["do"] = {
+						["bonus"] = 10,
+						["per"] = "cache_rank_sum",
+					},
+				},
+			},
+		},
+		{
+			["id"] = "gueststar",
+			["name"] = "Guest Star",
+			["cn"] = "客串",
+			["kind"] = "support",
+			["rarity"] = "uncommon",
+			["curve"] = "decay",
+			["proof"] = "score",
+			["fx"] = "Adds ×0.5; bows out next section",
+			["hold"] = {
+				["section_life"] = 1,
+			},
+			["effects"] = {
+				{
+					["do"] = {
+						["mult_add"] = 0.5,
+					},
+				},
+			},
+		},
+		{
+			["id"] = "matador",
+			["name"] = "Matador",
+			["cn"] = "斗牛士",
+			["kind"] = "support",
+			["rarity"] = "uncommon",
+			["curve"] = "floating",
+			["proof"] = "coin",
+			["fx"] = "Boss rule cut score: +2 coins",
+			["hold"] = {
+				["face_coins"] = 2,
+			},
+		},
+		{
+			["id"] = "blindplay",
+			["name"] = "Blind Play",
+			["cn"] = "盲奏",
+			["kind"] = "support",
+			["rarity"] = "uncommon",
+			["curve"] = "burst",
+			["proof"] = "score",
+			["fx"] = "Hidden scorers: +8 chips each",
+			["effects"] = {
+				{
+					["do"] = {
+						["additive"] = 8,
+						["per"] = "hidden_scoring",
+					},
+				},
+			},
+		},
+		{
+			["id"] = "perkeo",
+			["name"] = "Perkeo",
+			["cn"] = "帕奇欧",
+			["kind"] = "support",
+			["rarity"] = "rare",
+			["curve"] = "fixed",
+			["proof"] = "shop",
+			["fx"] = "Leaving shop: copy one consumable",
+			["effects"] = {},
+			["shelf"] = {
+				["copy_consumable"] = true,
+			},
+		},
+	},
+}

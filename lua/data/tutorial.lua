@@ -1,0 +1,119 @@
+-- 由 tools/luagen.py 从 data/tutorial.json 生成 —— 仪器输出, 手改无效(docs/design/mirror.md §4)
+return {
+	["_comment"] = "教学关脚本(docs/design/difficulty.md §4)。**教学单开一关**(用户 2026-08-07:「教学总要时间, 但教学只要一次, 不影响整体节奏」), 不受一局 4.9 分钟约束、不判生死、不进 curve.gd —— **别把它的放水算进 death_spec 的 13.7%**。形状 = 起承転結 的「起」:安全的地方、无惩罚地理解机制。\n⚑⚑ **v6 = 分镜化(2026-08-27 用户拍板)**:分镜(shot)= 高光构图 + 文字条锚位, 步(拍)= 分镜内换词。主线 A(自动结算)→ α 特写(分数)→ B(弃牌/交换, 两拍同构图)→ β 特写(发钱)→ C(全景自由拍)→ D(商店价签)→ γ 特写(转正式局的公示卡讲盲注)。\n· v1「给时间」/ v2「指出区域」/ v3「做中学 + 动作门」的演进史见 core/tutorial.gd 文件头;\n· **扑克不用教**(Balatro 的 Shared Mental Model)—— 只教本作特有的:8 秒 · 弃牌 1◆ 即弃即补 · 缓存交换 · 成牌发钱 · 商店。",
+	["_comment_steps"] = "每一步 = 一拍。`shot` 分镜 id:**同 shot 的步共用 focus(构图)与条锚**(db 校验锁「同 shot 必同 focus」), 条锚位由编排器按 shot 翻译成 y(坐标不进本文件)。`require` 动作门(学分制:跨拍累计, 提前做过到那步门即开;每步仍展示满 1 拍, 拍末必过 = STEP_MAX_BEATS 兜底)。`spot` 次级强调(小半径柔光圈), 位置随步切换、不动条与 focus。`args` = command 里 %d 价签的活取键(Tutorial.ARG_KEYS 白名单, 经济一调价文案自动跟 —— 不再抄死数字)。`command` 的 {} 是高亮段(至多一个;含 ◆/免费/free → 金, 否则青)。",
+	["_comment_shop_step"] = "⚑ **最后一步(shot D)= 商店分镜**:它的展示面是商店层本身 —— 编排器在推进到这一步时弹真商店(首张 Target 免费三选一, 与正式局同流程), 条锚在商店盲注板下、focus 指货架价签行;关店即算上完这一课(Run.tutorial_shop_seen)。第 5-6 拍是无提示自由拍, 段边界处转正式。**一关只开这一次店**(每 3 拍的正式节奏留给正式局展示)。不设门的理由不变:买不起是合法状态, 强制买 = 强制引导(明确不做)。",
+	["components"] = {
+		"hand",
+		"discard",
+		"cache",
+		"multiselect",
+		"shop",
+	},
+	["steps"] = {
+		{
+			["seconds"] = 8.0,
+			["shot"] = "A",
+			["require"] = "",
+			["unlock"] = {
+				"hand",
+				"discard",
+				"cache",
+				"multiselect",
+				"shop",
+			},
+			["focus"] = {
+				"hand",
+			},
+			["command"] = "这 5 张按{德州牌型}每 8 秒自动结算——不动它也会算",
+			["signal"] = "AUTO SETTLE · 8s BEAT",
+		},
+		{
+			["seconds"] = 8.0,
+			["shot"] = "B",
+			["require"] = "discard",
+			["unlock"] = {},
+			["focus"] = {
+				"hand",
+				"cache",
+				"discard",
+			},
+			["spot"] = "discard",
+			["command"] = "选中不要的牌弃掉,{每张 %d◆},原位立刻补新",
+			["args"] = {
+				"discard_cost",
+			},
+			["signal"] = "DISCARD · INSTANT REFILL",
+		},
+		{
+			["seconds"] = 8.0,
+			["shot"] = "B",
+			["require"] = "swap",
+			["unlock"] = {},
+			["focus"] = {
+				"hand",
+				"cache",
+				"discard",
+			},
+			["spot"] = "cache",
+			["command"] = "缓存的牌和手牌交换{免费},也能一起弃",
+			["signal"] = "CACHE SWAP · FREE",
+		},
+		{
+			["seconds"] = 8.0,
+			["shot"] = "C",
+			["require"] = "",
+			["unlock"] = {},
+			["focus"] = {},
+			["command"] = "这一拍自由发挥——弃、换,凑出你最大的牌型",
+			["signal"] = "FREE PLAY · GO BIG",
+		},
+		{
+			["seconds"] = 8.0,
+			["shot"] = "D",
+			["require"] = "",
+			["unlock"] = {},
+			["focus"] = {
+				"shelf",
+			},
+			["command"] = "小丑牌{每张 %d◆}——分数靠它们打上去",
+			["args"] = {
+				"joker_price",
+			},
+			["signal"] = "JOKERS · PUSH THE SCORE",
+		},
+	},
+	["cutins"] = {
+		["_comment"] = "特写(插播):α/β 挂在 RESOLVE 的滚分动画演完后 —— 冻钟 seconds 秒(只在教学关, 时间条/音浪同停), 高光切到 focus, 点按跳过(intro 同手势), 播完正常进下一拍;**动作拍(2/3/4)不插播**(after_step 只挂 0 与 1)。γ 不是冻钟插播:它长在**教学毕转正式局的第一次开局公示卡**(view/intro.gd)上 —— 加一行提示 + 高光盲注板, 一次性(存档旗 tutor_gamma), after_step 记账 = 脚本步数(教学走完之后)。",
+		["alpha"] = {
+			["after_step"] = 0,
+			["seconds"] = 2.5,
+			["focus"] = {
+				"hud",
+			},
+			["command"] = "牌型变成分数,堆到{目标分}就过关",
+		},
+		["beta"] = {
+			["after_step"] = 1,
+			["seconds"] = 2.5,
+			["focus"] = {
+				"coins",
+			},
+			["command"] = "打出牌型还{发钱},大牌给得多",
+		},
+		["gamma"] = {
+			["after_step"] = 5,
+			["seconds"] = 4.0,
+			["focus"] = {
+				"blind",
+			},
+			["command"] = "每场演出有一张{盲注}——它改规则,先看它再出牌",
+		},
+	},
+	["_comment_require"] = "动作 id 的白名单 = `Tutorial.ACTIONS`(`core/db.gd` 校验)。⚠ **写错一个动作名, 那一步永远推进不了, 而且不报错** —— 所以这条必须是硬校验。⚑ **学分制(v6)**:`_tutorial_acted` 跨拍累计, 不再每拍清 —— 玩家在 A 拍就弃过牌, 到 B 的弃牌门时门已经开着;推进只消费本步的门, 不清别步动作。",
+	["_comment_shop"] = "⚠ **`shop` 这个 component 目前没有任何地方 gate 它** —— 闸门只有 `discard`(`_discard_open`)/`cache`(`_swap_open`)/`multiselect`(`hand.multi_select`)三个真的接了线。所以这里 `unlock: [\"shop\"]` **是记账不是门**(本项目「注释承诺不存在的机制」已经踩过 5 次)。",
+	["_comment_focus"] = "`focus` = 这一步的高光构图(名字取自 ui.json 的 `tutor_focus` 白名单, 矩形一律活取)。空数组 = **全景**(高光全撤, 压暗层整层隐身 —— C 拍就是让玩家看全场)。",
+	["_comment_unlock"] = "⚠⚠ **`unlock` 已作废:第一步就全部解锁, 后面一个都不压**(2026-08-17 用户:「你压制这些操作干嘛」)。⚑ 根因:我把「教」做成了「禁」—— 「还没解锁」对玩家表现为**点了没反应**, 和 bug 长得一模一样。教学关靠「指」不靠「关」。字段保留是因为 `core/db.gd` 要求「走完教学关全部解锁」—— 由第一步一次满足, 默认是不锁。",
+	["_comment_text"] = "⚠ **文案里不许写 markdown** —— `draw_string` 不解析星号。强调走 {} 双色拼段(v6), 不走标记。",
+	["_comment_beats"] = "⚑ 拍长一律 8 秒(2026-08-18 用户拍板「教学关也按 8 秒」)。⚑ B 分镜的 focus = 弃牌/交换路径要触碰的**全部区域**(手牌+缓存+弃牌键一个大构图, 镜头两拍不动), 不是话题区 —— 只亮键等于把路径前半段压暗成「禁用」(2026-08-18 用户)。次级强调由 `spot` 光斑承担, 位置随步换、构图不动。",
+}
