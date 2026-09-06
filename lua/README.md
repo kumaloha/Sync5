@@ -15,6 +15,14 @@ lua lua/selftest.lua     # 数值语义与 64 位算术自测
 lua lua/tools/drive.lua 1 3   # 无头跑 3 局
 ```
 
+**在引擎里跑**(沙箱没有 io / arg / dofile 也行, 全走 `require`):
+
+```lua
+local r = require("sync5.check").run({ print = print })   -- 前缀按你放的位置
+-- r.pass / r.fail / r.lines;fail == 0 = 你的运行时上逻辑层与 Godot 逐位一致
+```
+这一步就是「真机验证」:它同时验了你的 Lua 版本、位运算垫片(`load` 被禁会自动退回 `bit` 库)与全部规则。
+
 ## 目录
 
 | 路径 | 是什么 | 谁维护 |
