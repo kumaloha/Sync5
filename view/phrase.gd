@@ -1563,6 +1563,9 @@ func _begin_run() -> bool:
 ## `_drop_energy_layer()` 只管节点, `_close_energy_wall()` 只管意图 + 调它拆节点。
 var _energy_layer: Control = null
 var _energy_ad_showing := false
+## 这一次播放发过奖没有 —— `closed` 与 `rewarded` 的先后**真 SDK 不保证**, 关比奖先到时
+## 不许把奖吃掉(2026-09-08 质量审查):关只是「延后一帧再判」, 判的时候看这面旗。
+var _energy_rewarded := false
 var _pending_start: Callable = Callable()   # 只活到这一层关闭;不落盘、不跨场景
 
 
@@ -1577,7 +1580,7 @@ func _deny_no_energy() -> void:
 	var save_ok := SaveState.can_add_energy_from_ad() \
 		or (SaveState.is_probe() and OS.get_environment("SYNC5_PROBE_ENERGY_WALL") == "1")
 	if energy_wall_ok(ads.has_ad("energy"), save_ok):
-		_pending_start = Callable(self, "start_run")
+		_pending_start = start_run
 		ads.load_ad("energy")
 		_open_energy_wall()
 		return
@@ -1594,6 +1597,9 @@ func _drop_energy_layer() -> void:
 
 func _open_energy_wall() -> void:
 	_drop_energy_layer()
+	# 丢掉的 dismiss 回调会把 showing 永远卡在真上, 之后每一面墙的按钮都是死的 —— 开层就清一次。
+	_energy_ad_showing = false
+	_energy_rewarded = false
 	var layer := Control.new()
 	layer.position = Vector2.ZERO
 	layer.size = Vector2(720, 1280)
@@ -1613,7 +1619,7 @@ func _open_energy_wall() -> void:
 	panel.add_theme_stylebox_override("panel",
 		StageTheme.box(Color(0.04, 0.05, 0.12, 0.96), StageTheme.GOLD, 1, 16))
 	panel.position = Vector2(150, 500)
-	panel.size = Vector2(420, 190)
+	panel.size = Vector2(420, 210)   # 两个按钮(600+46 / 652+34)都要落在 500..710 里
 	layer.add_child(panel)
 	var title := StageTheme.label(Lingo.t("体力不足"), StageTheme.zh(), 23,
 		StageTheme.GOLD, HORIZONTAL_ALIGNMENT_CENTER)
@@ -1635,9 +1641,28 @@ func _open_energy_wall() -> void:
 		if _energy_ad_showing:
 			return
 		_energy_ad_showing = true
+		_energy_rewarded = false
 		Tape.on("ad", {"k": "energy", "ev": "show"})
 		ads.show_ad("energy"))
 	layer.add_child(go)
+	# 明确的拒绝口(2026-09-08 质量审查):点空白也能关, 但「关」不该只有一个猜出来的手势。
+	var no := Button.new()
+	no.text = Lingo.t("不看了")
+	no.add_theme_font_override("font", StageTheme.zh())
+	no.add_theme_font_size_override("font_size", 15)
+	no.focus_mode = Control.FOCUS_NONE
+	for st in ["normal", "hover", "pressed"]:
+		no.add_theme_stylebox_override(st,
+			StageTheme.box(Color(0.06, 0.07, 0.14, 0.9), StageTheme.rim(0.35), 1, 10))
+	no.add_theme_color_override("font_color", StageTheme.rim(0.8))
+	no.position = Vector2(186, 652)
+	no.size = Vector2(348, 34)
+	no.pressed.connect(func() -> void:
+		if _energy_ad_showing:
+			return
+		_close_energy_wall(false)
+		fx.float_text(Lingo.t("体力不足,明天回满"), Vector2(243.0, 986.0), Color("ff5f7e"), 90))
+	layer.add_child(no)
 	add_child(layer)
 	_energy_layer = layer
 
@@ -1647,7 +1672,7 @@ func _close_energy_wall(start: bool) -> void:
 	_energy_ad_showing = false
 	_drop_energy_layer()
 	if start:
-		call_deferred("_replay_pending_start")
+		_replay_pending_start.call_deferred()
 	else:
 		_pending_start = Callable()
 
@@ -1870,6 +1895,8 @@ func _shop_route() -> Array:
 var _shop_buys := 0
 ## 本店已发的换金币广告次数(每店上限的账;每局的账在 run.ad_used)。进店归零, 与 _shop_buys 同款。
 var _shop_ads := 0
+## 正在放换金币的广告(与体力那边的 _energy_ad_showing 同款护栏):放中再点一次不许再叫一次 show。
+var _coins_ad_showing := false
 ## 本店广告放失败过 ⇒ 本店不再弹, 下家店再试(spec §4.3)
 var _shop_ad_failed := false
 var _perkeo_fired := false
@@ -2055,12 +2082,13 @@ func _on_shop_denied(why: String, need: int) -> void:
 
 
 func _on_shop_ad_requested() -> void:
-	if state != St.DRAFT or replace.pick != null:
+	if state != St.DRAFT or replace.pick != null or _coins_ad_showing:
 		return
 	if not ad_offer_ok(ads.has_ad("coins"), run.tutorial, run.ad_used, _shop_ads, phrase.coins, run.joker_slots):
 		shop.hide_ad_offer()
 		return
 	Tape.on("ad", {"k": "coins", "ev": "show"})
+	_coins_ad_showing = true
 	ads.show_ad("coins")
 
 
@@ -2076,14 +2104,17 @@ func _on_ad_rewarded(kind: String) -> void:
 	if c == "drop":
 		Tape.on("ad", {"k": "coins", "ev": "drop"})
 		return
+	var shop_used := _shop_ads if c == "store" else 0
+	if not Economy.ad_coins_allowed(run.ad_used, shop_used, phrase.coins, run.joker_slots):
+		Tape.on("ad", {"k": "coins", "ev": "drop"})   # 重复回调 / 双击:上限在发钱那一刻再守一次
+		return
 	phrase.coins = Economy.grant(phrase.coins, Economy.ad_coins(), run.joker_slots)
 	run.ad_used += 1
 	var ev := {"k": "coins", "ev": "reward", "coins": phrase.coins}
 	if c == "store":
 		_shop_ads += 1
 		shop.hide_ad_offer()
-		shop.set_buys_left(shop._buys_left, phrase.coins)   # 副标题的余额跟上;货架不重掷
-		shop._render(false)                                 # 价签的可购性按新余额重算
+		shop.refresh_coins(phrase.coins)   # 副标题的余额与价签的可购性跟上;货架不重掷
 		# 碟的 armed 只在 set_consumables 里算 —— 不刷, 为它看的广告就白看了(2026-09-08 spec 审查)
 		_refresh_shop_consumables()
 	else:
@@ -2097,6 +2128,7 @@ func _on_ad_failed(kind: String, why: String) -> void:
 	if kind == "energy":
 		_on_energy_ad_failed()
 		return
+	_coins_ad_showing = false
 	_shop_ad_failed = true
 	shop.hide_ad_offer()
 	if state == St.DRAFT:
@@ -2104,15 +2136,18 @@ func _on_ad_failed(kind: String, why: String) -> void:
 		fx.float_text(Lingo.t("广告暂时没有,稍后再试"), Vector2(float(at[0]), float(at[1])), Color("ff5f7e"), 90)
 
 
-## 关掉(含没看完):金币那支什么都不做 —— offer 还在(若仍有货), 上限只数真发出去的钱。
+## 关掉(含没看完):金币那支只解掉放中护栏 —— offer 还在(若仍有货), 上限只数真发出去的钱。
 func _on_ad_closed(kind: String) -> void:
 	if kind == "energy":
 		_on_energy_ad_closed()
+		return
+	_coins_ad_showing = false
 
 
 func _on_energy_ad_rewarded() -> void:
 	if not _energy_ad_showing:
 		return
+	_energy_rewarded = true
 	# 入账失败(跨日已回满等)也照样开局 —— 玩家真看了, 而且此时体力本来就够
 	SaveState.add_energy_from_ad()
 	Tape.on("ad", {"k": "energy", "ev": "reward"})
@@ -2128,8 +2163,16 @@ func _on_energy_ad_failed() -> void:
 
 
 ## 关掉没看完:发奖那条已经把层关了就是 no-op;层还在 = 没看完 ⇒ 回到今天的浮字。
+## ⚠ 但**不能当场判** —— 真 SDK 不保证 rewarded 先于 closed(2026-09-08 质量审查):
+## 同帧晚到的 rewarded 会被这一条抢先关掉层, 玩家看完整支广告却什么都没拿到。
 func _on_energy_ad_closed() -> void:
 	if not _energy_ad_showing:
+		return
+	_energy_cancel_if_unrewarded.call_deferred()   # 同帧晚到的 rewarded 先落地(真 SDK 顺序不保证)
+
+
+func _energy_cancel_if_unrewarded() -> void:
+	if _energy_rewarded or not _energy_ad_showing:
 		return
 	_close_energy_wall(false)
 	fx.float_text(Lingo.t("体力不足,明天回满"), Vector2(243.0, 986.0), Color("ff5f7e"), 90)

@@ -105,7 +105,7 @@ func _process(_delta: float) -> bool:
 			# 流 B:撞墙。`_deny_no_energy` 自己先开首页(首页是底), 与真人同序。
 			if not _wall_up():
 				return _finish()
-			# 出口一:点空白处(面板在 150..570 × 500..690, 取左上角一定在外面)。
+			# 出口一:点空白处(面板在 150..570 × 500..710, 取左上角一定在外面)。
 			# ⚠ 走真输入路径 —— 直接调 _close_energy_wall 会**空绿**(暗幕吞点击这个 bug 照样过)。
 			_tap(Vector2(30, 30))
 			_wait = 2
@@ -168,10 +168,10 @@ func _tap(at: Vector2) -> void:
 
 ## 把钱清成 0。⚠ **两处都要清**:`phrase.coins` 是真账, `shop._coins` 是商店进店时拷的那一份 ——
 ## 只清前者的话 `_on_reroll()` 拿旧余额判、根本不发 `denied`, 整条 offer 路径一步都没走到
-## (而探针会因此「绿得像对了」)。走 `set_buys_left` 是因为游戏侧同步余额用的就是它。
+## (而探针会因此「绿得像对了」)。走 `refresh_coins` 是因为游戏侧同步余额用的就是它。
 func _broke() -> void:
 	_scene.phrase.coins = 0
-	_scene.shop.set_buys_left(_scene.shop._buys_left, 0)
+	_scene.shop.refresh_coins(0)
 
 
 ## 推进一拍(与 flow_probe 同款:强行过关 + 把钟拨到锁定, 让被测代码自己走结算)。

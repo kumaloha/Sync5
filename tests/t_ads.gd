@@ -8,9 +8,8 @@ extends RefCounted
 func run(t) -> void:
 	# ---- ① 适配层 ----
 	var a := Ads.new()
-	t.get_root().add_child(a)
 	# ⚠ runner 在 `_initialize()` 里跑, 那一刻 root 还没 inside_tree ⇒ add_child **不会**触发
-	# `_ready`(实测 `get_root().is_inside_tree() == false`), 而测试不许 await 帧 ⇒ 手动打一次。
+	# `_ready`(实测 `get_root().is_inside_tree() == false`), 而测试不许 await 帧 ⇒ 干脆不进树, 手动打一次。
 	a._ready()
 	t.eq(a.mode(), "off", "探针缺省 off(截图与日志零广告痕迹)")
 	t.check(not a.has_ad("coins"), "off 时没货")
@@ -40,13 +39,18 @@ func run(t) -> void:
 	a._fake_finish("coins")
 	t.eq(rewards.size(), 1, "dismiss 模式不发奖")
 	t.eq(closes.size(), 3, "dismiss 模式只关")
-	t.eq(Ads.pick_mode_for(true, "", false), "off", "探针 + 无环境变量 = off")
-	t.eq(Ads.pick_mode_for(true, "fake", false), "fake", "显式 SYNC5_ADS=fake 盖过探针(adsprobe 用)")
-	t.eq(Ads.pick_mode_for(false, "", false), "fake", "桌面缺省 fake")
-	t.eq(Ads.pick_mode_for(false, "off", true), "off", "显式 off 盖过 android")
-	t.eq(Ads.pick_mode_for(false, "", true), "admob", "android 且插件在 = admob")
-	t.eq(Ads.pick_mode_for(false, "banana", false), "fake", "未知环境值当没设")
-	a.queue_free()
+	t.eq(Ads.pick_mode_for(true, "", false, true), "off", "探针 + 无环境变量 = off")
+	t.eq(Ads.pick_mode_for(true, "fake", false, true), "fake", "显式 SYNC5_ADS=fake 盖过探针(adsprobe 用)")
+	t.eq(Ads.pick_mode_for(false, "", false, true), "fake", "debug 桌面缺省 fake")
+	t.eq(Ads.pick_mode_for(false, "off", true, true), "off", "显式 off 盖过 android")
+	t.eq(Ads.pick_mode_for(false, "", true, true), "admob", "android 且插件在 = admob")
+	t.eq(Ads.pick_mode_for(false, "", true, false), "admob", "插件在就走真后端(与 debug 无关)")
+	t.eq(Ads.pick_mode_for(false, "banana", false, true), "fake", "未知环境值当没设")
+	# ⚑ 导出的正式包没插件 ⇒ 什么都不给。假后端白发奖比不给钱贵得多(2026-09-08 质量审查)。
+	t.eq(Ads.pick_mode_for(false, "", false, false), "off", "导出包没插件 = off, 绝不假发奖")
+	t.eq(Ads.pick_mode_for(true, "fake", false, false), "fake", "显式环境值盖过一切")
+	t.check(not Ads.has_plugin_class("RewardedAdLoader"), "本仓库没装插件 ⇒ 类表里没有")
+	a.free()
 
 	# ---- ③ 编排器的纯判定(view/phrase.gd 静态函数, 流本身由 tools/adsprobe.gd 驱动)----
 	var PV = load("res://view/phrase.gd")
@@ -59,11 +63,11 @@ func run(t) -> void:
 	t.check(not PV.ad_offer_ok(true, false, 0, 0, Joker.slots_coin_cap(capped), capped),
 		"坐在金币上限上不弹(发了也入不了账, Economy.ad_coins_allowed 的护栏)")
 	# 发奖三情形:store / late / drop(规格 §4.3 表)
-	t.eq(PV.ad_reward_case(true, 4), "store", "run 活着且在 DRAFT(4)⇒ 店内入账")
-	t.eq(PV.ad_reward_case(true, 2), "late", "run 活着但在拍中(DECISION)⇒ 晚到照发")
-	t.eq(PV.ad_reward_case(false, 4), "drop", "run 没了 ⇒ 丢")
-	t.eq(PV.ad_reward_case(true, 0), "drop", "FRONT ⇒ 丢(首页没有局)")
-	t.eq(PV.ad_reward_case(true, 5), "drop", "END ⇒ 丢(结算屏之后没有店可花)")
+	t.eq(PV.ad_reward_case(true, PV.St.DRAFT), "store", "run 活着且在 DRAFT ⇒ 店内入账")
+	t.eq(PV.ad_reward_case(true, PV.St.DECISION), "late", "run 活着但在拍中(DECISION)⇒ 晚到照发")
+	t.eq(PV.ad_reward_case(false, PV.St.DRAFT), "drop", "run 没了 ⇒ 丢")
+	t.eq(PV.ad_reward_case(true, PV.St.FRONT), "drop", "FRONT ⇒ 丢(首页没有局)")
+	t.eq(PV.ad_reward_case(true, PV.St.END), "drop", "END ⇒ 丢(结算屏之后没有店可花)")
 	# 体力墙的纯判定:有货 且 存档允许(未满 + 今日未到顶)才把墙变成入口;探针强制开关只给 adsprobe 用
 	t.check(PV.energy_wall_ok(true, true), "有货 + 存档允许 ⇒ 墙变入口")
 	t.check(not PV.energy_wall_ok(false, true), "没货 ⇒ 今天的行为(明天回满)")

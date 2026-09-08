@@ -294,6 +294,13 @@ func set_buys_left(left: int, coins: int) -> void:
 	_refresh_kind_line()
 
 
+## 只换余额:副标题与价签跟上, 货架不重掷(2026-09-08 广告发奖)。
+func refresh_coins(coins: int) -> void:
+	_coins = coins
+	_refresh_kind_line()
+	_render(false)
+
+
 ## 联票授予的本店**额外**成交张数(0 = 无授予)。编排器把它**加**在基础名额上。
 ##
 ## ⚑⚑ **2026-09-02 用户拍板改口径**:此前它是「本店成交上限」, 与基础名额**取大** ——
