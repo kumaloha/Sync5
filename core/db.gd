@@ -56,6 +56,7 @@ static func load_error() -> String:
 	ranking()
 	lingo()
 	profile()
+	ads()   # 2026-09-08:与 profile() 同一批加, 别再漏一次「先调一次才校验」的老坑
 	consumables()   # 2026-09-06:此前漏了它 —— 校验只挂在 t_consumable 先调一次的语句顺序上
 	patterns()
 	theme()
@@ -122,9 +123,12 @@ static func validate_profile(d: Dictionary) -> String:
 	# 0 或负数不是「关掉」而是静默除零/恒零 —— 要关体力显示去改 view, 别改成 0
 	if int(d["energy_max"]) < 1 or int(d["xp_per_level"]) < 1:
 		return "energy_max / xp_per_level 必须 >= 1"
-	# 看广告换体力(2026-09-08):两键 ≥ 0(0 = 入口永远不出现, 允许, 但不许负)
-	if int(d["ad_energy"]) < 0 or int(d["ad_energy_per_day"]) < 0:
-		return "ad_energy / ad_energy_per_day 必须 >= 0"
+	# 看广告换体力(2026-09-08):ad_energy ≥ 1(0 = 看完广告得 0⚡ 还烧掉一次额度, 不是「关掉」);
+	# ad_energy_per_day ≥ 0(0 = 入口永远不出现, 允许)。
+	if int(d["ad_energy"]) < 1:
+		return "ad_energy 必须 >= 1(要关入口改 ad_energy_per_day = 0)"
+	if int(d["ad_energy_per_day"]) < 0:
+		return "ad_energy_per_day 必须 >= 0"
 	return ""
 
 

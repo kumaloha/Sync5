@@ -375,11 +375,12 @@ func _t_fork_complete(t) -> void:
 	r.previous_raw_score = 777
 	r.request_last = "color_mix"
 	r.coins = 11
+	r.ad_used = 2   # 广告换金币的每局账(2026-09-08)—— fork 曾漏拷这个字段
 	r.tutorial = false
 	var f: Run = RL.fork(r, 42)
 	for k in ["run_boon", "section_idx", "phrase_in_section", "section_score", "phrase_index",
 			"prev_kind", "first_kind", "section_discards_used", "previous_raw_score",
-			"request_last", "coins", "tutorial"]:
+			"request_last", "coins", "ad_used", "tutorial"]:
 		t.eq(f.get(k), r.get(k), "fork copies %s" % k)
 	t.eq(f.section_kinds, r.section_kinds, "fork copies section_kinds")
 	t.eq(f.cache_meta, r.cache_meta, "fork copies cache_meta")

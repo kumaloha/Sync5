@@ -66,7 +66,15 @@ func run(t) -> void:
 	t.eq(Economy.ad_coins(), int(DB.economy()["ad_coins"]), "ad_coins 读自 economy.json")
 	var ps: int = GameConfig.AD_COINS_PER_SHOP
 	var pr: int = GameConfig.AD_COINS_PER_RUN
-	t.check(Economy.ad_coins_allowed(0, 0), "开局第一店允许")
-	t.check(not Economy.ad_coins_allowed(0, ps), "每店上限到了就不许(同一店第二次)")
-	t.check(not Economy.ad_coins_allowed(pr, 0), "每局上限到了就不许(新店也不行)")
-	t.check(Economy.ad_coins_allowed(pr - 1, 0), "每局差一次仍许")
+	t.check(Economy.ad_coins_allowed(0, 0, 0, []), "开局第一店允许")
+	t.check(not Economy.ad_coins_allowed(0, ps, 0, []), "每店上限到了就不许(同一店第二次)")
+	t.check(not Economy.ad_coins_allowed(pr, 0, 0, []), "每局上限到了就不许(新店也不行)")
+	t.check(Economy.ad_coins_allowed(pr - 1, 0, 0, []), "每局差一次仍许")
+
+	# ⚑ 金币上限护栏(2026-09-08 审查修补):两个次数上限都没到, 但 grant 一分不加时也不许
+	# —— 与体力那边「未满才许看, 不能囤」同一个洞(ad_coins_allowed 现在必须自己查 grant)。
+	# 复用上面的 skint_slots/cap(同一张 skint、同一个金币上限), 不必再声明一份。
+	t.check(cap < GameConfig.AD_COINS + cap, "skint 有金币上限(否则下面两条是空转)")
+	t.check(not Economy.ad_coins_allowed(0, 0, cap, skint_slots), "坐在金币上限上 ⇒ 发了也入不了账 ⇒ 不许")
+	t.check(Economy.ad_coins_allowed(0, 0, maxi(0, cap - 1), skint_slots), "上限之下差 1 ⇒ 仍能入账一点 ⇒ 许")
+	t.check(Economy.ad_coins_allowed(0, 0, 999, []), "没有上限卡时余额再多也许(上限不是「有钱就不许」)")

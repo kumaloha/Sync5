@@ -114,8 +114,9 @@ function Economy.ad_coins()
 	return GameConfig.AD_COINS
 end
 
-function Economy.ad_coins_allowed(run_used, shop_used)
-	return shop_used < GameConfig.AD_COINS_PER_SHOP and run_used < GameConfig.AD_COINS_PER_RUN
+function Economy.ad_coins_allowed(run_used, shop_used, coins, slots)
+	if shop_used >= GameConfig.AD_COINS_PER_SHOP or run_used >= GameConfig.AD_COINS_PER_RUN then return false end
+	return Economy.grant(coins, Economy.ad_coins(), slots) > coins
 end
 
 return Economy

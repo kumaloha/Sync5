@@ -295,6 +295,7 @@ static func fork(run: Run, seed_value: int) -> Run:
 	for j in run.joker_slots:
 		r.joker_slots.append(null if j == null else j.clone())
 	r.coins = run.coins
+	r.ad_used = run.ad_used   # 广告换金币的每局账(2026-09-08)
 	r.run_faces = run.run_faces.duplicate()
 	r.section_idx = run.section_idx
 	r.phrase_in_section = run.phrase_in_section

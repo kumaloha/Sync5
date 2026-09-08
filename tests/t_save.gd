@@ -98,4 +98,9 @@ func run(t) -> void:
 	t.check(SaveState._ad_energy_can_in(legacy2, day, cap, per_day), "旧档缺广告键 = 今天 0 次")
 	# 探针闸(公开口):测试自己就是探针 —— 探针恒满 ⇒ 永远不许, 画面上永远没有这个入口
 	t.check(not SaveState.can_add_energy_from_ad(), "探针 can_add 恒 false")
+	var existed2 := FileAccess.file_exists(SaveState.PATH)
+	var mtime2 := FileAccess.get_modified_time(SaveState.PATH) if existed2 else 0
 	t.check(not SaveState.add_energy_from_ad(), "探针 add 恒 false 且不落盘")
+	t.eq(FileAccess.file_exists(SaveState.PATH), existed2, "探针 add 不落盘:文件存在与否没变")
+	if existed2:
+		t.eq(FileAccess.get_modified_time(SaveState.PATH), mtime2, "探针 add 不落盘:修改时间没动")

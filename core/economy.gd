@@ -43,8 +43,9 @@ static func shelf_price(j: Joker, slots: Array) -> int:
 
 ## ---- 金币上限(穷开心 skint 的 `hold.coin_cap`)的两个口 ----
 ##
-## ⚑ **所有金币入账都必须走 `grant`** —— 入账点有四处(结算收入 `core/beat.gd`、
-## 段工资 `view/phrase.gd` 与 `tools/runloop.gd`、替换回收),漏一处 = 上限对那条
+## ⚑ **所有金币入账都必须走 `grant`** —— 入账点有五处(结算收入 `core/beat.gd`、
+## 段工资 `view/phrase.gd` 与 `tools/runloop.gd`、替换回收、广告换金币 `view/phrase.gd` 与
+## `tools/bot.gd`(2026-09-08)),漏一处 = 上限对那条
 ## 收入无效**且不报错**,正是「规则在游戏里、不在模型里」那五次的形状。
 ##
 ## 语义:上限**卡住收入**,不没收既有存量 —— 但装卡那一刻要 `cap_held` 修剪一次,
@@ -150,10 +151,15 @@ static func reroll_cost(n: int, delta: int = 0) -> int:
 ## ---- 激励视频换金币(2026-09-08, 规格 docs/superpowers/specs/2026-09-08-ads-design.md)----
 ## 数全部来自 economy.json;目标分与 bot 基线按**零广告**标定, 这里只管「给多少」与「还能不能给」。
 ## ⚠ 两侧都要调(view/phrase.gd 与 tools/bot.gd)—— `tools/parity.py` 的 ENTRIES 守着 `ad_coins`。
+## 入账必须走 Economy.grant(金币上限那条铁律;grant 的注释列了入账点, 广告是第五处)。
 static func ad_coins() -> int:
 	return GameConfig.AD_COINS
 
 
-## 还能不能再发一次:每店与每局两个上限都没到。只数真发出去的钱(失败 / 关掉没看完不计)。
-static func ad_coins_allowed(run_used: int, shop_used: int) -> bool:
-	return shop_used < GameConfig.AD_COINS_PER_SHOP and run_used < GameConfig.AD_COINS_PER_RUN
+## 还能不能再发一次:每店与每局两个上限都没到, **且发了真能入账** —— 穷开心(skint)的金币上限
+## 会让 `grant` 一分不加, 那时不许 offer(与体力那边「未满才许看, 不能囤」同一个洞)。
+## 只数真发出去的钱(失败 / 关掉没看完不计)。入账本身走 `grant`(所有金币入账都走它, 见上)。
+static func ad_coins_allowed(run_used: int, shop_used: int, coins: int, slots: Array) -> bool:
+	if shop_used >= GameConfig.AD_COINS_PER_SHOP or run_used >= GameConfig.AD_COINS_PER_RUN:
+		return false
+	return grant(coins, ad_coins(), slots) > coins

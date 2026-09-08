@@ -146,8 +146,10 @@ func run(t) -> void:
 	t.check(DB.validate_economy(eco_bad) != "", "每店上限大于每局上限被拒(每店那条会是死数据)")
 	t.check(DB.validate_profile({"energy_max": 5, "xp_per_level": 4}) != "",
 		"profile 缺 ad_energy / ad_energy_per_day 被拒")
-	t.check(DB.validate_profile({"energy_max": 5, "xp_per_level": 4, "ad_energy": -1, "ad_energy_per_day": 5}) != "",
-		"ad_energy 负数被拒")
+	t.check(DB.validate_profile({"energy_max": 5, "xp_per_level": 4, "ad_energy": 0, "ad_energy_per_day": 5}) != "",
+		"ad_energy = 0 被拒(看完得 0⚡ 还烧额度)")
+	t.check(DB.validate_profile({"energy_max": 5, "xp_per_level": 4, "ad_energy": 1, "ad_energy_per_day": 0}) == "",
+		"ad_energy_per_day = 0 允许(= 关掉入口)")
 	t.eq(DB.validate_ads(DB.ads()), "", "ads.json 干净")
 	t.check(DB.validate_ads({"test_mode": false, "test_unit": "x",
 		"android": {"rewarded_coins": "", "rewarded_energy": ""}}) != "",

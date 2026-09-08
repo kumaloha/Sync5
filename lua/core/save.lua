@@ -274,7 +274,7 @@ end
 
 -- 看广告换体力(2026-09-08):未满才许 · 每日上限 · 入账不超满值 · 只有真发奖才计数。
 function SaveState.ad_energy_amount()
-	return num.int(num.get(DB.profile(), "ad_energy", 1))
+	return num.int(num.get(DB.profile(), "ad_energy", 0))
 end
 
 function SaveState.ad_energy_per_day()

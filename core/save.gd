@@ -294,9 +294,9 @@ static func note_run_started() -> void:
 ##
 ## ⚑⚑ **体力已从「只显示」转正为真闸门**:正式开局前扣 1 点, 不足 = 不开局。
 ## 余额存独立键 `energy`/`energy_day` —— 不再从 `runs_today` 推导, 因为口径分岔了:
-## 教学关开局**不扣**、将来看广告**不开局也回**, 推导式背不动这两种(runs_today 仍是事实照记)。
+## 教学关开局**不扣**、看广告**不开局也回**, 推导式背不动这两种(runs_today 仍是事实照记)。
 ## 恢复 = 既有设计那一条:**跨天回满**(`energy_day` 不是今天 ⇒ 读满值);
-## profile.json 没有更细的恢复参数, 定时回复/看广告归后续批(SDK 选型归用户, 本批只留桩)。
+## 看广告换体力见下一节(2026-09-08);定时回复不做。
 ## ⚠ **旧存档没有这两个键 = 满值**(别让老玩家更新完开局即卡)—— 缺键正好走「跨天」那条分支。
 ## ⚠ 探针恒满、恒放行、绝不落盘(截图稳定, 实验条件不依赖机器本地状态 —— 本文件的一贯闸)。
 ## ⚠ 算术拆成纯函数层(`_energy_in` / `_spend_in`, 探针闸外)—— 测试自己就是 `--script`
@@ -369,8 +369,10 @@ static func _spend_in(d: Dictionary, n: int, day: String, cap: int) -> bool:
 ## 探针:`can_add` 恒 false(探针恒满 ⇒ 画面上永远没有这个入口, 截图稳定), `add` no-op false。
 ## 算术仍拆成纯函数层(`_ad_energy_*_in`), 与体力那一节同一理由:测试自己就是探针。
 
+## 缺省 0(fail-closed, 同 `ad_energy_per_day`)—— 实际上摸不到:`DB.validate_profile`
+## 强制这个键必须存在且 >= 1, `.get` 的缺省只在校验被绕过时兜底, 兜的是「不发」而不是「发一点」。
 static func ad_energy_amount() -> int:
-	return int(DB.profile().get("ad_energy", 1))
+	return int(DB.profile().get("ad_energy", 0))
 
 
 static func ad_energy_per_day() -> int:
