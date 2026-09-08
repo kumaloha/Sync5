@@ -74,7 +74,7 @@
 | | `test_unit` | 官方 Android 激励视频测试单元 ID | `test_mode` 为 true 时两个 kind 都用它 |
 | | `android.rewarded_coins` / `android.rewarded_energy` | ""(真 ID 由用户填) | `test_mode=false` 时不许为空。**App ID 不在这里** —— 它进 AndroidManifest,由插件设置管,放 JSON 是死数据 |
 | `data/ui.json` `shop` 节 | `ad_offer_text` | 「差 %d◆ · 看广告 +%d◆」 | 行内 offer 文案(缺口未知时用 `ad_offer_text_plain` 「看广告 +%d◆」) |
-| | `ad_offer_pos` | 现「买不起」浮字的位置 | offer 的锚点;两键布局零改动 |
+| | `ad_offer_pos` | 底栏两键之下、消耗牌碟之上的固定带(868..908) | offer 的锚点(实装取固定带而不是随浮字走:浮字位置随点的是哪张卡而变, 键要稳);两键布局零改动 |
 | 挡开局(`phrase.gd`) | 字面量包 `Lingo.t()` | 「看广告 +%d⚡ · 马上开局」·「广告暂时没有,稍后再试」 | home 既有做法(`ui.json` 没有 home 节,不新开) |
 | `data/lingo.json` | 上述所有新中文的英文;删「看广告补体力 · 敬请期待」 | | `tests/t_lingo` 守完整性(ui.json 叶子与 `Lingo.t()` 字面量都要在表里) |
 
