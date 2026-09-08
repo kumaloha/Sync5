@@ -19,6 +19,7 @@ Lumines 的节奏推进 + Balatro 的构筑。一局 4 段 × 6 拍 × 8 秒 ≈
 
 | 项 | 状态 | 命令 |
 |---|---|---|
+| 单元测试 | **3648 passed / 0 failed**(2026-09-08 商业化批后, `run.sh` 带锁 21:12 起跑, 四判据全过:passed=3648 · SCRIPT ERROR=0 · ^ERROR=0 · exit 0;新域 `t_ads`)。⚠ 耗时 ~55 分钟 |
 | 单元测试 | **3330 passed / 0 failed**(2026-08-31 平衡批后)。⚠ 耗时 ~31 分钟 | `./tools/unittest.sh`。⚑ 跑之前先跑四条秒级检查:`parity.py --check && evsync.py --check && counts.py --check && docscan.py` |
 | 单元测试 | **3172 passed / 0 failed**(2026-08-30:消耗牌开轴 + 经济收口 + code review 15 个 bug;含 `t_consumable` **119 条**)。⚠ **耗时 ~31 分钟**(从 12 分涨上来)—— 08-29 删掉 goldenvoice 的 SOLVER_BLIND 豁免后 `t_draft` 要真跑一次求解器推演。⚠⚠ 那条豁免 **08-30 又加回来了**(收入重构后金币贴地, 「持币 ≥6」再次不成立)—— **它的成立与否取决于经济参数**, 别当永久声明 | `./tools/unittest.sh`(四判据唯一一份)。⚑ **跑之前先跑三条秒级检查**:`parity.py --check && evsync.py --check && counts.py --check` |
 | CI | `.github/workflows/tests.yml`(push/PR 跑 `--import` + `unittest.sh`;**尚未在 GitHub 上验证过一次**,首跑可能要调 Godot 下载链接) | 推送即触发 |
@@ -26,6 +27,7 @@ Lumines 的节奏推进 + Balatro 的构筑。一局 4 段 × 6 拍 × 8 秒 ≈
 | 内容门 | **08-26 全量门跑完**(4.9h,对抗批新基线):五红三过期全部尸检处置(声明/仪器层,内容零改;细账 CHANGELOG 08-26b),ranking 已由 rankgen 重刷 | `./tools/gate.sh`(增量 = `--changed`) |
 | 求解器一致性 | **三关配对差 +0.0**(08-16 分级门) | `godot --headless --path . --script res://tools/pair.gd` |
 | 流程/打点/重放 | 0 违规 | 已并进 `gate.sh` |
+| 广告两条流 | **adsprobe 0 违规**(2026-09-08:商店三店的每店/每局上限 · 空白点击关墙 · 看完真开局;首跑抓到一个真 bug 已修) | `SYNC5_ADS=fake SYNC5_PROBE_ENERGY_WALL=1 godot --headless --path . --script res://tools/adsprobe.gd`(已并进 `gate.sh`) |
 
 ---
 
