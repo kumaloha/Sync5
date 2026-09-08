@@ -440,6 +440,15 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 			if not shop_act.is_empty():
 				_apply_bot_action(run, slots, {"id": String(cid), "action": shop_act})
 			break
+	# ⚑ 广告换金币的**上界臂**(2026-09-08, 规格 docs/superpowers/specs/2026-09-08-ads-design.md §6)。
+	# cfg.ads 缺省关 = 零广告基线(所有既有读数逐位不动);开 = 每店只要还许就先领 ——
+	# 真人是「买不起才看」, 这里量的是上界。验收带:通关率 +≤5pt、每局多买 ≤2 张(用户喊了才跑)。
+	# ⚠ 与游戏侧 view/phrase.gd::_on_ad_rewarded **成对**(parity ENTRIES 守 `ad_coins`);
+	#   入账同样走 Economy.grant(金币上限那条铁律)。每店计数在这里恒 0:一店只进一次。
+	if bool(cfg.get("ads", false)) and run != null \
+			and Economy.ad_coins_allowed(run.ad_used, 0, coins, slots):
+		coins = Economy.grant(coins, Economy.ad_coins(), slots)
+		run.ad_used += 1
 	coins = _consumables_in_shop(run, coins, slots)
 	var want := "target" if slots[0] == null else "support"
 	var owned: Array = []

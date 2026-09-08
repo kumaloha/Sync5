@@ -26,6 +26,8 @@ ENTRIES = [
     # 两侧都只剩定义 —— 留着会让「0 vs 0」被读成「对齐」(同 slots_rule_guaranteed)。
     "slots_coin_cap", "slots_odds_mult", "due_consumables",
     "take_consumable", "add_wilds", "trim_low_ranks",
+    # 广告换金币(2026-09-08):游戏侧 phrase.gd 发奖、bot 侧 _draft 上界臂, 两边都要调 Economy.ad_coins
+    "ad_coins",
 ]
 # 这些只属于一侧, 有充分理由 —— 写清理由, 否则就是给例外开后门
 # ⚠ 空的。**别急着往里加** —— 2026-08-30 首版我凭记忆给 `slots_loan` 写了条豁免,

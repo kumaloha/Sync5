@@ -128,6 +128,12 @@ return {
 				"perkeo",
 			},
 		},
+		{
+			["name"] = "adaptive:twin+ads",
+			["bot"] = "adaptive",
+			["target"] = "twin",
+			["ads"] = true,
+		},
 	},
 	["kind_prior"] = {
 		["0"] = 0.35,
