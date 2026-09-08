@@ -1548,16 +1548,102 @@ func _begin_run() -> bool:
 	return true
 
 
-## 体力不足挡开局:回首页 + 浮字(2026-08-26 真闸门)。事实记 Tape(打点只在编排器;
-## 局外事件与首页 nav 同款, 不落 run 文件 —— 那是 Tape.begin 的既有口径)。
-## 浮字挂编排器的 fx 层(z=60), 盖在重开的首页上方。
-## TODO(商业化批, SDK 选型归用户):「看广告领体力」真入口 —— 本批只留桩:
-## 下面第二行浮字提一句, 不做任何 SDK 调用、不加任何按钮。
+## 体力墙(2026-08-26 真闸门 → 2026-09-08 二审:墙本身变成入口)。
+## 两条路(首页开始 / 结算屏再来一次)都先 `_open_home()`(首页是底), 有货且存档允许时在其上弹一层:
+## 「体力不足」+「看广告 +1⚡ · 马上开局」;看完 ⇒ 入账 ⇒ 关层 ⇒ **下一帧重放 start_run()** ——
+## 开局仍只有那一份入口(「第二条入口漏掉主路径的步骤」是这个项目最贵的形状), 多等一帧是让
+## Android 的 RESUMED 与 EGL surface 先回来。关掉没看完 / 失败 ⇒ 关层, 回到今天的浮字。
+## 首页体力胶囊**只显示, 不是入口**(二审删)。探针恒满 ⇒ 永远走今天的分支;
+## `SYNC5_PROBE_ENERGY_WALL=1` 让 adsprobe 在探针里也能把层打开(仅探针生效)。
+var _energy_layer: Control = null
+var _energy_ad_showing := false
+var _pending_start: Callable = Callable()   # 只活到这一层关闭;不落盘、不跨场景
+
+
+## 纯判定(t_ads 直打):有货 且 存档允许。
+static func energy_wall_ok(has_ad: bool, save_ok: bool) -> bool:
+	return has_ad and save_ok
+
+
 func _deny_no_energy() -> void:
 	Tape.on("deny", {"why": "energy"})
 	_open_home()
+	var save_ok := SaveState.can_add_energy_from_ad() \
+		or (SaveState.is_probe() and OS.get_environment("SYNC5_PROBE_ENERGY_WALL") == "1")
+	if energy_wall_ok(ads.has_ad("energy"), save_ok):
+		_pending_start = Callable(self, "start_run")
+		ads.load_ad("energy")
+		_open_energy_wall()
+		return
 	fx.float_text(Lingo.t("体力不足,明天回满"), Vector2(243.0, 986.0), Color("ff5f7e"), 90)
-	fx.float_text(Lingo.t("看广告补体力 · 敬请期待"), Vector2(228.0, 1026.0), StageTheme.GOLD, 90)
+
+
+func _open_energy_wall() -> void:
+	_close_energy_wall(false)
+	var layer := Control.new()
+	layer.position = Vector2.ZERO
+	layer.size = Vector2(720, 1280)
+	layer.z_index = 130
+	layer.mouse_filter = Control.MOUSE_FILTER_STOP
+	# 点空白处 = 关掉(不看):回到今天的浮字
+	layer.gui_input.connect(func(e: InputEvent) -> void:
+		if e is InputEventMouseButton and e.pressed and not _energy_ad_showing:
+			_close_energy_wall(false)
+			fx.float_text(Lingo.t("体力不足,明天回满"), Vector2(243.0, 986.0), Color("ff5f7e"), 90))
+	var dim := ColorRect.new()
+	dim.color = Color(0, 0, 0.02, 0.74)
+	dim.size = Vector2(720, 1280)
+	layer.add_child(dim)
+	var panel := Panel.new()
+	panel.add_theme_stylebox_override("panel",
+		StageTheme.box(Color(0.04, 0.05, 0.12, 0.96), StageTheme.GOLD, 1, 16))
+	panel.position = Vector2(150, 500)
+	panel.size = Vector2(420, 190)
+	layer.add_child(panel)
+	var title := StageTheme.label(Lingo.t("体力不足"), StageTheme.zh(), 23,
+		StageTheme.GOLD, HORIZONTAL_ALIGNMENT_CENTER)
+	title.position = Vector2(150, 524)
+	title.size = Vector2(420, 32)
+	layer.add_child(title)
+	var go := Button.new()
+	go.text = Lingo.t("看广告 +%d⚡ · 马上开局") % SaveState.ad_energy_amount()
+	go.add_theme_font_override("font", StageTheme.zh())
+	go.add_theme_font_size_override("font_size", 19)
+	go.focus_mode = Control.FOCUS_NONE
+	for st in ["normal", "hover", "pressed"]:
+		go.add_theme_stylebox_override(st,
+			StageTheme.box(Color(0.20, 0.14, 0.04, 0.95), StageTheme.GOLD, 1, 12))
+	go.add_theme_color_override("font_color", Color("ffe6b3"))
+	go.position = Vector2(186, 600)
+	go.size = Vector2(348, 46)
+	go.pressed.connect(func() -> void:
+		if _energy_ad_showing:
+			return
+		_energy_ad_showing = true
+		Tape.on("ad", {"k": "energy", "ev": "show"})
+		ads.show_ad("energy"))
+	layer.add_child(go)
+	add_child(layer)
+	_energy_layer = layer
+
+
+## 关层。`start` = 看完了要开局(下一帧重放 _pending_start);否则清掉意图。
+func _close_energy_wall(start: bool) -> void:
+	_energy_ad_showing = false
+	if _energy_layer != null and is_instance_valid(_energy_layer):
+		_energy_layer.queue_free()
+	_energy_layer = null
+	if start:
+		call_deferred("_replay_pending_start")
+	else:
+		_pending_start = Callable()
+
+
+func _replay_pending_start() -> void:
+	var c := _pending_start
+	_pending_start = Callable()
+	if c.is_valid():
+		c.call()
 
 
 ## 从快照恢复半局(2026-08-24)。恢复**不走开局三步** —— 掷脸/喂 Director/记局数
@@ -2002,15 +2088,28 @@ func _on_ad_closed(kind: String) -> void:
 
 
 func _on_energy_ad_rewarded() -> void:
-	pass
+	if not _energy_ad_showing:
+		return
+	# 入账失败(跨日已回满等)也照样开局 —— 玩家真看了, 而且此时体力本来就够
+	SaveState.add_energy_from_ad()
+	Tape.on("ad", {"k": "energy", "ev": "reward"})
+	fx.float_text("+%d⚡" % SaveState.ad_energy_amount(), Vector2(243.0, 986.0), StageTheme.GOLD, 90)
+	_close_energy_wall(true)
 
 
 func _on_energy_ad_failed() -> void:
-	pass
+	if not _energy_ad_showing:
+		return
+	_close_energy_wall(false)
+	fx.float_text(Lingo.t("广告暂时没有,稍后再试"), Vector2(243.0, 986.0), Color("ff5f7e"), 90)
 
 
+## 关掉没看完:发奖那条已经把层关了就是 no-op;层还在 = 没看完 ⇒ 回到今天的浮字。
 func _on_energy_ad_closed() -> void:
-	pass
+	if not _energy_ad_showing:
+		return
+	_close_energy_wall(false)
+	fx.float_text(Lingo.t("体力不足,明天回满"), Vector2(243.0, 986.0), Color("ff5f7e"), 90)
 
 
 ## 「继续 ▸」= 不买就走。2026-08-06 起**没有奖励**(用户拿掉了跳过机制),

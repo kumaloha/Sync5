@@ -331,8 +331,8 @@ func _draw_player_bar() -> void:
 
 	# ⚡ 体力(分享钮左侧;深底小胶囊, 与参考图同族)。2026-08-26 起是真值真闸门:
 	# 正式开局扣 1(SaveState.spend_energy_for_run), 读数就是存档余额, 不是推导占位。
-	# TODO(商业化批, SDK 选型归用户):「看广告领体力」入口落在这颗胶囊上(点它拉激励视频)——
-	# 本批只留桩, 不接任何 SDK、不加点击区;挡开局的浮字里已提了一句(view/phrase.gd::_deny_no_energy)。
+	# 入口不在这颗胶囊上(2026-09-08 二审:「没需求时囤体力只有计划型玩家会做」)—— 它只显示;
+	# 看广告换体力的入口是体力墙本身(view/phrase.gd::_deny_no_energy)。
 	var etxt := "%d/%d" % [SaveState.energy(), SaveState.energy_max()]
 	var ew := num.get_string_size(etxt, HORIZONTAL_ALIGNMENT_LEFT, -1, 20).x
 	var pill := Rect2(sc.x - 20.0 - 30.0 - (ew + 54.0), cy - 19.0, ew + 54.0, 38.0)

@@ -64,3 +64,8 @@ func run(t) -> void:
 	t.eq(PV.ad_reward_case(false, 4), "drop", "run 没了 ⇒ 丢")
 	t.eq(PV.ad_reward_case(true, 0), "drop", "FRONT ⇒ 丢(首页没有局)")
 	t.eq(PV.ad_reward_case(true, 5), "drop", "END ⇒ 丢(结算屏之后没有店可花)")
+	# 体力墙的纯判定:有货 且 存档允许(未满 + 今日未到顶)才把墙变成入口;探针强制开关只给 adsprobe 用
+	t.check(PV.energy_wall_ok(true, true), "有货 + 存档允许 ⇒ 墙变入口")
+	t.check(not PV.energy_wall_ok(false, true), "没货 ⇒ 今天的行为(明天回满)")
+	t.check(not PV.energy_wall_ok(true, false), "存档不许(满值/到顶)⇒ 今天的行为")
+	t.check(not DB.lingo()["table"].has("看广告补体力 · 敬请期待"), "「敬请期待」那句已删(表里没有)")
