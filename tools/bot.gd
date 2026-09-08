@@ -444,11 +444,16 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 	# cfg.ads 缺省关 = 零广告基线(所有既有读数逐位不动);开 = 每店只要还许就先领 ——
 	# 真人是「买不起才看」, 这里量的是上界。验收带:通关率 +≤5pt、每局多买 ≤2 张(用户喊了才跑)。
 	# ⚠ 与游戏侧 view/phrase.gd::_on_ad_rewarded **成对**(parity ENTRIES 守 `ad_coins`);
-	#   入账同样走 Economy.grant(金币上限那条铁律)。每店计数在这里恒 0:一店只进一次。
-	if bool(cfg.get("ads", false)) and run != null \
-			and Economy.ad_coins_allowed(run.ad_used, 0, coins, slots):
+	#   入账同样走 Economy.grant(金币上限那条铁律)。
+	# ⚠ 每店的账要**自己数**, 不许写死 0:游戏侧一店能看到 ad_coins_per_shop 次,
+	#   臂写死 0 等于把「每店上限」这条规则从模型里删掉 —— 上界会被量小(09-08 质量审查)。
+	var shop_ads := 0
+	while bool(cfg.get("ads", false)) and run != null \
+			and Economy.ad_coins_allowed(run.ad_used, shop_ads, coins, slots):
 		coins = Economy.grant(coins, Economy.ad_coins(), slots)
 		run.ad_used += 1
+		shop_ads += 1
+		_rep.eco_add("income_ad", Economy.ad_coins())
 	coins = _consumables_in_shop(run, coins, slots)
 	var want := "target" if slots[0] == null else "support"
 	var owned: Array = []

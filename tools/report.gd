@@ -96,6 +96,8 @@ var perkeo_copies := 0    # 帕奇欧:离店时白得一张消耗牌几次(零�
 #   spend_buy      买卡净支出◆(= 每次成交前后余额差:含换旗/替换的回收抵扣与上限修剪)
 #   spend_reroll   付费刷新支出◆
 #   income_kind    牌型金币总收入◆(**只看牌型** = res.coins, 不含小丑加成/系数 —— 健康带口径)
+#   income_ad      广告换金币总收入◆(bot.gd 的上界臂;cfg.ads 关的队列**读出 0**——
+#                  必须让它印出来, 否则「臂没开」与「开了但没影响」在报表上长得一模一样)
 #   deny_money     「想弃但金币不足」次数(bot 已定下要弃的张数, coins < 张数×单价;
 #                  ⚠ bot 的 κ 自我约束在这之前发生, 所以拒绝很少 ≠ 钱不紧, 要连 κ 一起读)
 #   kappa_cut      κ 门槛砍掉的弃牌张数(plan 增益 < κ×张数, 决策前的自我约束 —— 上一条的另一半)
@@ -388,6 +390,7 @@ func _print_economy() -> void:
 	var buy_ms := eco_mean_se(_eco_vals("spend_buy"))
 	var rr_ms := eco_mean_se(_eco_vals("spend_reroll"))
 	var inc_ms := eco_mean_se(_eco_vals("income_kind"))
+	var adinc_ms := eco_mean_se(_eco_vals("income_ad"))
 	var deny_ms := eco_mean_se(_eco_vals("deny_money"))
 	var kap_ms := eco_mean_se(_eco_vals("kappa_cut"))
 	print("  经济(◆/局, mean±SE, n=%d):" % n)
@@ -399,6 +402,8 @@ func _print_economy() -> void:
 		% [buy_ms[0], buy_ms[1], rr_ms[0], rr_ms[1]])
 	print("    牌型金币收入 %.1f±%.1f(%.2f◆/拍, 只看牌型不含小丑加成)"
 		% [inc_ms[0], inc_ms[1], inc / bdiv])
+	print("    广告金币收入 %.1f±%.1f(cfg.ads 关的队列恒 0 = 臂没开, 不是「开了没影响」)"
+		% [adinc_ms[0], adinc_ms[1]])
 	print("    金币不足拒弃 %.2f±%.2f 次/局(%.2f%% 拍)· κ 门槛砍弃 %.2f±%.2f 张/局"
 		% [deny_ms[0], deny_ms[1], 100.0 * deny / bdiv, kap_ms[0], kap_ms[1]])
 	print("    软破产拍(决策时 0◆)%.2f%%" % [100.0 * broke / bdiv])
