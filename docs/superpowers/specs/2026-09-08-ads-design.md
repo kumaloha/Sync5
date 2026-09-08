@@ -1,5 +1,7 @@
 # 激励视频变现(海外 Godot 版)· 设计 2026-09-08
 
+> 实施计划 = [plans/2026-09-08-ads.md](../plans/2026-09-08-ads.md)(方法名 / 环境变量优先级 / 体力墙的底 / ads.json 键,按计划自审同步过)。
+
 > **用户拍板(2026-09-08)**:渠道 = **B 海外 Godot 版**(TapMaker 国内版不管);
 > 形式 = **局外看广告买体力 · 局内看广告买金币**;**不做内购道具**;
 > 原「不做内购」整行按「赶紧删了」从 TODO 明确不做表删除(禁的是道具,不是内购这个词)。
@@ -68,7 +70,8 @@
 | `data/profile.json` | `ad_energy` | 1 | 一次广告给的体力 |
 | | `ad_energy_per_day` | 5 | 每日上限(= `energy_max`,一天最多 10 局) |
 | `data/ads.json`(新) | `test_mode` | true | 开发期恒用测试广告 ID;出正式包前由用户翻 false |
-| | `android.app_id` / `android.rewarded_coins` / `android.rewarded_energy` | 测试 ID 占位 | 真 ID 由用户填,**不进仓库注释以外的任何代码** |
+| | `test_unit` | 官方 Android 激励视频测试单元 ID | `test_mode` 为 true 时两个 kind 都用它 |
+| | `android.rewarded_coins` / `android.rewarded_energy` | ""(真 ID 由用户填) | `test_mode=false` 时不许为空。**App ID 不在这里** —— 它进 AndroidManifest,由插件设置管,放 JSON 是死数据 |
 | `data/ui.json` `shop` 节 | `ad_offer_text` | 「差 %d◆ · 看广告 +%d◆」 | 行内 offer 文案(缺口未知时用 `ad_offer_text_plain` 「看广告 +%d◆」) |
 | | `ad_offer_pos` | 现「买不起」浮字的位置 | offer 的锚点;两键布局零改动 |
 | 挡开局(`phrase.gd`) | 字面量包 `Lingo.t()` | 「看广告 +%d⚡ · 马上开局」·「广告暂时没有,稍后再试」 | home 既有做法(`ui.json` 没有 home 节,不新开) |
@@ -78,7 +81,7 @@
 所以缺省仍写「看广告」;要换只改 JSON,归用户。
 
 `core/db.gd` 校验:economy 三键 ≥ 0 且 `ad_coins_per_shop ≤ ad_coins_per_run`;profile 两键 ≥ 0;
-`ads.json` 三个 ID 非空字符串。缺键/坏值在 `tests/t_db` 直接红(测试期门禁,运行时不拒绝启动,沿用既有口径)。
+`ads.json` 的 `test_unit` 非空、`test_mode=false` 时两个单元 ID 非空。缺键/坏值在 `tests/t_db` 直接红(测试期门禁,运行时不拒绝启动,沿用既有口径)。
 `tools/luagen.py` 重生成 `lua/data/`(零成本)。
 
 ---
@@ -130,10 +133,11 @@ static func _ad_energy_in(d, day, cap, per_day, amount) -> bool   # 算术(测�
 signal rewarded(kind: String)          # 看完,该发奖了
 signal failed(kind: String, why: String)
 signal closed(kind: String)            # 关掉(含未看完)
-func ready(kind: String) -> bool       # 该种类有已加载的激励视频
-func show(kind: String) -> void
-func preload(kind: String) -> void
+func has_ad(kind: String) -> bool      # 该种类有已加载、未展示的激励视频
+func show_ad(kind: String) -> void
+func load_ad(kind: String) -> void
 ```
+(名字不叫 `ready / show / preload`:`preload` 是 GDScript 关键字,`show` 与 CanvasItem 撞名,`_ready` 是 Node 的。)
 
 `kind ∈ {"coins", "energy"}`,两种各一个广告位(AdMob 侧两个 rewarded unit)。
 
@@ -141,11 +145,12 @@ func preload(kind: String) -> void
 
 | 后端 | 何时 | 行为 |
 |---|---|---|
-| **Fake**(桌面 / 编辑器) | 非 Android,或 Android 上插件单例不存在 | `ready()` 恒 true;`show()` 下一帧 `call_deferred` 发 `rewarded`。环境变量 `SYNC5_ADS=fail` 改成发 `failed`,`SYNC5_ADS=off` 改成 `ready()` 恒 false —— 三条路径单测都打得到 |
-| **AdMob**(Android) | `OS.has_feature("android")` 且插件脚本在 `addons/` 里可加载、`MobileAds.initialize()` 成功 | 包插件;`ready()` = 持有已加载未展示的 `RewardedAd`(插件没有 `is_loaded`,见 §8.2);`test_mode` 为 true 时一律用测试 unit ID;`show` 之前必 `ready`;回调统一 `call_deferred` 回主线程再发信号 |
-| **探针** | `SaveState.is_probe()` | 强制 Fake 且 `ready()` 恒 false —— 探针日志与截图零广告痕迹(两台机器的日志必须长一样) |
+| **显式环境变量**(最优先) | `SYNC5_ADS=off\|fake\|fail\|dismiss` | off = `has_ad()` 恒 false(离线玩家看到的游戏);fake = 下一帧发奖;fail = 发 `failed`;dismiss = 只发 `closed`。四条路径单测都打得到;`tools/adsprobe.gd` 用 fake 驱动真流 |
+| **探针缺省** | `SaveState.is_probe()` 且没设环境变量 | off —— 探针日志与截图零广告痕迹(两台机器的日志必须长一样) |
+| **AdMob**(Android) | `OS.has_feature("android")` 且 `res://addons/admob/plugin.cfg` 存在 | `view/admob.gd`,**全动态查类**(插件不在时照常解析);`has_ad()` = 持有已加载未展示的 `RewardedAd`(插件没有 `is_loaded`,见 §8.2);`test_mode` 为 true 时一律用测试 unit ID;回调统一 `call_deferred` 回主线程再发信号 |
+| **Fake**(桌面 / 编辑器缺省) | 其余 | `has_ad()` 恒 true;`show_ad()` 下一帧发 `rewarded` 再 `closed`(与真 SDK 同序) |
 
-预加载时机:进商店时 `preload("coins")`;回首页 / 进结算屏时**体力为 0 才** `preload("energy")`;发奖或失败后立刻再 `preload`。
+预加载时机:进商店时 `load_ad("coins")`;体力墙开层时 `load_ad("energy")`;AdMob 后端在 dismiss / 失败后自己立刻重载。
 
 ### 4.2 商店(`view/shop.gd`)
 
@@ -160,10 +165,10 @@ func preload(kind: String) -> void
 
 - 新计数 `_shop_ads`(进店清零,与 `_shop_buys` 同款)。
 - `denied(why, need)` ⇒ 既有的 `Tape.on("deny", …)` 照打 ⇒ 若
-  `ads.ready("coins") and Economy.ad_coins_allowed(run.ad_used, _shop_ads) and not run.tutorial`
+  `ads.has_ad("coins") and Economy.ad_coins_allowed(run.ad_used, _shop_ads) and not run.tutorial`
   ⇒ `shop.show_ad_offer(need, Economy.ad_coins())`。offer 留到本店离开 / 成交 / 发奖为止。
 - `ad_requested` ⇒ 守 `state == St.DRAFT and replace.pick == null`(与买/刷同一把守门)⇒
-  `Tape.on("ad", {"k": "coins", "ev": "show"})` ⇒ `ads.show("coins")`。
+  `Tape.on("ad", {"k": "coins", "ev": "show"})` ⇒ `ads.show_ad("coins")`。
 - `rewarded("coins")` ⇒ 三种情形一份判定:
 
 | run 状态 | 做什么 | Tape |
@@ -182,12 +187,14 @@ func preload(kind: String) -> void
 首页体力胶囊**只显示,不是入口**(二审删)。入口 = 墙本身。
 
 - 开局与重开都走 `_begin_run()`,它返回 false 时调用方进 `_deny_no_energy()`。改这一个函数:
-  - 若 `ads.ready("energy") and SaveState.can_add_energy_from_ad()` ⇒ **不回首页**,在当前屏(首页或结算屏)之上弹一层:
-    一行「体力不足」+ 一枚键「看广告 +1⚡ · 马上开局」+ 点空白处关闭;记下**待重放的开局意图**(`_pending_start: Callable`,就是刚才那条调用)。
+  - 两条路都先 `_open_home()`(首页是底 —— 结算屏在 `_on_end_retry` 里已经关了,底只能是首页);
+    若 `ads.has_ad("energy") and SaveState.can_add_energy_from_ad()` ⇒ 在首页之上弹一层:
+    一行「体力不足」+ 一枚键「看广告 +1⚡ · 马上开局」+ 点空白处关闭;记下**待重放的开局意图**(`_pending_start = start_run`)。
+    玩家看到的仍是「看完不用再按任何键」;首页只是那一层的底。
   - 否则 ⇒ 今天的行为(回首页 + 「体力不足,明天回满」),「敬请期待」那行删。
-- 点键 ⇒ `Tape.on("ad", {"k":"energy","ev":"show"})` ⇒ `ads.show("energy")`。
-- `rewarded("energy")` ⇒ `SaveState.add_energy_from_ad()` ⇒ `Tape.on("ad", {"k":"energy","ev":"reward"})` ⇒ 关层 ⇒
-  **`call_deferred` 一帧后重放 `_pending_start`** —— 它会再走一遍 `_begin_run()` 三步,这次扣得起,run 开了。
+- 点键 ⇒ `Tape.on("ad", {"k":"energy","ev":"show"})` ⇒ `ads.show_ad("energy")`。探针恒满永远走今天的分支;`SYNC5_PROBE_ENERGY_WALL=1` 只在探针里把层打开(给 `tools/adsprobe.gd`)。
+- `rewarded("energy")` ⇒ `SaveState.add_energy_from_ad()`(入账失败 = 跨日已回满,照样开局)⇒ `Tape.on("ad", {"k":"energy","ev":"reward"})` ⇒ 关层 ⇒
+  **`call_deferred` 一帧后重放 `_pending_start`**(= `start_run()`,`_open_home` 已把闩锁复位)—— 它会再走一遍 `_begin_run()` 三步,这次扣得起,run 开了。
   开局仍只有那一份入口(「第二条入口漏掉主路径的步骤」是这个项目最贵的形状);多等一帧是让 Android 的 RESUMED 与 EGL surface 先回来。
 - `closed` 无 `rewarded`(关掉没看完)⇒ 关层,回首页 + 「体力不足,明天回满」,`_pending_start` 清空。
 - `failed` ⇒ 浮字「广告暂时没有,稍后再试」⇒ 同上回首页;只有 `reward` 计入每日次数。
