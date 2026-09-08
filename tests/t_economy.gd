@@ -61,3 +61,12 @@ func run(t) -> void:
 	var cap_p := Beat.begin(cap_run)
 	Beat.settle(cap_run, cap_p, {})
 	t.eq(cap_run.coins, cap, "settle income cannot push past the cap (core/beat.gd uses grant)")
+
+	# ---- 激励视频换金币(2026-09-08)—— 数从 JSON 推导, 不抄死 ----
+	t.eq(Economy.ad_coins(), int(DB.economy()["ad_coins"]), "ad_coins 读自 economy.json")
+	var ps: int = GameConfig.AD_COINS_PER_SHOP
+	var pr: int = GameConfig.AD_COINS_PER_RUN
+	t.check(Economy.ad_coins_allowed(0, 0), "开局第一店允许")
+	t.check(not Economy.ad_coins_allowed(0, ps), "每店上限到了就不许(同一店第二次)")
+	t.check(not Economy.ad_coins_allowed(pr, 0), "每局上限到了就不许(新店也不行)")
+	t.check(Economy.ad_coins_allowed(pr - 1, 0), "每局差一次仍许")

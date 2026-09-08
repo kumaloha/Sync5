@@ -145,3 +145,15 @@ static func _boosted(j, target_mult: float, rarity_mult: Dictionary, boost: Dict
 ## 游戏侧 `Shop._reroll_cost_now` 与 bot 侧刷新分支都走这里, 不许各算一份。
 static func reroll_cost(n: int, delta: int = 0) -> int:
 	return maxi(1, GameConfig.DRAFT_REROLL_BASE + n * GameConfig.DRAFT_REROLL_STEP + delta)
+
+
+## ---- 激励视频换金币(2026-09-08, 规格 docs/superpowers/specs/2026-09-08-ads-design.md)----
+## 数全部来自 economy.json;目标分与 bot 基线按**零广告**标定, 这里只管「给多少」与「还能不能给」。
+## ⚠ 两侧都要调(view/phrase.gd 与 tools/bot.gd)—— `tools/parity.py` 的 ENTRIES 守着 `ad_coins`。
+static func ad_coins() -> int:
+	return GameConfig.AD_COINS
+
+
+## 还能不能再发一次:每店与每局两个上限都没到。只数真发出去的钱(失败 / 关掉没看完不计)。
+static func ad_coins_allowed(run_used: int, shop_used: int) -> bool:
+	return shop_used < GameConfig.AD_COINS_PER_SHOP and run_used < GameConfig.AD_COINS_PER_RUN

@@ -109,4 +109,13 @@ function Economy.reroll_cost(n, delta)
 	return num.maxi(1, GameConfig.DRAFT_REROLL_BASE + n * GameConfig.DRAFT_REROLL_STEP + delta)
 end
 
+-- 激励视频换金币(2026-09-08):数在 economy.json;两个上限都没到才发。
+function Economy.ad_coins()
+	return GameConfig.AD_COINS
+end
+
+function Economy.ad_coins_allowed(run_used, shop_used)
+	return shop_used < GameConfig.AD_COINS_PER_SHOP and run_used < GameConfig.AD_COINS_PER_RUN
+end
+
 return Economy
