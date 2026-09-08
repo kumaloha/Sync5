@@ -248,6 +248,9 @@ func run(t) -> void:
 	var sp_raw: Dictionary = Consumable.sponsor_entry()
 	t.check(not sp_raw.is_empty(), "sponsor_entry() 找得到那一条(shelf: sponsor)")
 	t.eq(String(sp_raw.get("id", "")), "sponsorbreak", "找到的就是赞助插播这张")
+	# ⚑ 记一次就够(2026-09-09 审查):第二次问走的是缓存那条路, 答案必须一模一样。
+	t.eq(String(Consumable.sponsor_entry().get("id", "")), String(sp_raw.get("id", "")),
+		"sponsor_entry() 再问一次还是同一张(缓存路径)")
 	var sp := Consumable.new(sp_raw)
 	t.check(sp.is_sponsor(), "is_sponsor() 认得它")
 	t.check(sp.is_instant(), "fire = buy —— 拿下即播, 没有『哪一拍』可选")

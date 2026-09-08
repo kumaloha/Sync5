@@ -371,11 +371,18 @@ func _on_cshelf_pressed(i: int = 0) -> void:
 ## `effective` = 「买了有没有用」(砧座在 support ≤1 时买了等于白花钱), 门从
 ## 「点得动吗」搬到了「买得动吗」。
 func set_consumables(offer: Array, coins: int, effective: Array = []) -> void:
-	_coffer = offer
+	# ⚠ **拷一份** —— 编排器把同一个 `_coffer` 数组交给我们又接着改它(买走一张就地置 null、
+	# 赞助碟上下架 resize), 存引用等于两边看同一块内存, 视图的"当次货架"随时会在背后变形。
+	_coffer = offer.duplicate()
 	_coins = coins
-	_place_consumables(maxi(2, offer.size()))
+	# ⚑ 摆几个位按**碟数**算, 不按数组长度算:买走一张后编排器把那一格置 null 再刷新, 长度仍是 3,
+	# 按长度排就成了「三碟版式里空着一格」—— 版式无声换了一套(2026-09-09 审查)。
+	var n := _coffer.size()
+	while n > 0 and _coffer[n - 1] == null:
+		n -= 1
+	_place_consumables(maxi(2, n))
 	for i in range(_cshelf.size()):
-		var o = offer[i] if i < offer.size() else null
+		var o = _coffer[i] if i < _coffer.size() else null
 		var sp: bool = o != null and o.is_sponsor()
 		_cshelf[i].filled = o != null
 		_cshelf[i].label = o.display_name() if o != null else ""
@@ -395,7 +402,7 @@ func set_consumables(offer: Array, coins: int, effective: Array = []) -> void:
 		_cshelf[i].queue_redraw()
 		# 赞助碟的价签讲的是**两件事**:不花钱 + 给你几◆(数从卡上的 action 来, 不抄第二份)。
 		_cshelf_price[i].text = ("" if o == null
-			else ("%s ◆ +%d" % [Lingo.t(String(_cfg["sponsor_free_text"])), Economy.ad_coins()]) if sp
+			else ("%s ◆ +%d" % [String(_cfg["free_text"]), Economy.ad_coins()]) if sp
 			else ("◆ %d" % o.price))
 		_cshelf_price[i].add_theme_color_override("font_color",
 			StageTheme.CYAN if sp else Color(1, 1, 1, 1))
@@ -414,6 +421,14 @@ func set_sponsor_playing(on: bool) -> void:
 		if sh.sponsor:
 			sh.playing = on
 			sh.queue_redraw()
+
+
+## 赞助碟抖一下 —— 插播中再点它时编排器用这个回话(「听见了, 但现在不行」)。
+## ⚠ 零反馈的吞点与「没点」在玩家眼里长得一模一样, 而它恰好发生在最容易连点的那一刻。
+func shake_sponsor() -> void:
+	for sh in _cshelf:
+		if sh.sponsor:
+			sh.shake()
 
 
 func _button(text: String) -> Button:
@@ -502,6 +517,9 @@ func close() -> void:
 	_grant_extra_buys = 0
 	_grant_price = 0
 	_grant_free_reroll = 0
+	# ⚠ 插播态**不许跨店**(2026-09-09 审查):丢了 closed 回调、或玩家在放中离店时它会留在碟上,
+	# 而下一次上架走的是 `sp == true` 那条分支(它只清非赞助位)⇒ 新店的赞助碟一上架就是压暗的。
+	set_sponsor_playing(false)
 	_layer.visible = false
 
 

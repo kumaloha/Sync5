@@ -287,6 +287,7 @@ func _build_ui() -> void:
 	ads.rewarded.connect(_on_ad_rewarded)
 	ads.failed.connect(_on_ad_failed)
 	ads.closed.connect(_on_ad_closed)
+	ads.loaded.connect(_on_ad_loaded)
 
 	for i in range(joker_views.size()):
 		joker_views[i].tapped.connect(_on_slot_tapped.bind(i))  # only live in replace mode
@@ -1009,6 +1010,10 @@ func _on_consumable_bought(c, price: int) -> void:
 	# ⚠ 放中再点一次不许再叫一次 show(与体力墙 `_energy_ad_showing` 同款护栏)。
 	if c != null and c.is_sponsor():
 		if _coins_ad_showing:
+			# ⚠ 吞掉的这一点必须留下证据(2026-09-09 审查):日志里「点了但被吞」与「根本没点」
+			# 此前长得一模一样, 而玩家那边看到的也是**零反馈** —— 连点恰好最容易发生在这一刻。
+			Tape.on("deny", {"why": "ad_busy"})
+			shop.shake_sponsor()
 			return
 		Tape.on("ad", {"k": "coins", "ev": "show"})
 		shop.set_sponsor_playing(true)
@@ -1219,8 +1224,9 @@ func _consumable_effective(c) -> bool:
 
 ## ⚑⚑ 货架第三位:赞助碟(2026-09-09)。有广告可放 · 两级上限没到 · 不是教学关 · 本店没放失败过
 ## ⇒ 它在架上;否则 `_coffer` 就是今天的两张(**离线 = 今天的商店, 一像素不差**)。
-## ⚠ **每次刷新都重算** —— Android 的 `has_ad` 是异步变真的:进店那一刻没货、两秒后有了,
-##   只在进店算一次就等于永远不上架(而且不报错)。
+## ⚠ **每次刷新都重算, 而且到货会主动来敲门** —— Android 的 `has_ad` 是异步变真的:
+##   进店那一刻没货、两秒后有了。只靠「开店 / 买卖 / 广告回调」这几次刷新, 那家店就永远不上架
+##   (而且不报错)⇒ `ads.loaded` 信号在到货那一刻直接补一次刷新(见 `_on_ad_loaded`)。
 func _sponsor_slot():
 	if not ad_offer_ok(ads.has_ad("coins"), run.tutorial, run.ad_used, _shop_ads,
 			phrase.coins, run.joker_slots) or _shop_ad_failed:
@@ -2117,6 +2123,14 @@ static func ad_reward_case(run_alive: bool, st: int) -> String:
 ## 广告改成货架上的一张碟(赞助商是这个世界里的一个角色), **同一件事不许有第二套机制**。
 func _on_shop_denied(why: String) -> void:
 	Tape.on("deny", {"why": why})
+
+
+## 广告到货(Android 上 `has_ad` 是异步变真的):进店那一刻没货、两秒后有了, 这里把赞助碟补上架
+## (2026-09-09 审查抓的 —— 此前只在开店 / 买卖 / 广告回调时刷新, 到货那一刻没有任何人在看)。
+## ⚠ 放中不刷 —— 那一刻碟正在「插播中」, 重刷会把它拨回「在场」(而广告还在放)。
+func _on_ad_loaded(kind: String) -> void:
+	if kind == "coins" and state == St.DRAFT and not _coins_ad_showing:
+		_refresh_shop_consumables()
 
 
 ## 发奖 —— 一份判定三种情形(ad_reward_case)。⚠ 入账走 Economy.grant(金币上限那条铁律:所有入账都走它)。

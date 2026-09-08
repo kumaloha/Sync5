@@ -49,11 +49,20 @@ function Consumable:is_sponsor()
 end
 
 -- 表里那唯一一条赞助碟的原始数据行(找不到返回空表)。「恰好一条」由 db 校验守着。
+-- 记一次就够(与 GDScript 同款):表运行期不变、答案恰好一条, 而商店每次刷新都要问一遍。
+local _sponsor_cache = {}
+local _sponsor_cached = false
+
 function Consumable.sponsor_entry()
+	if _sponsor_cached then return _sponsor_cache end
 	for _, e in ipairs(DB.consumables()) do
-		if tostring(e.shelf or "") == "sponsor" then return e end
+		if tostring(e.shelf or "") == "sponsor" then
+			_sponsor_cache = e
+			break
+		end
 	end
-	return {}
+	_sponsor_cached = true
+	return _sponsor_cache
 end
 
 function Consumable:is_rule_card()

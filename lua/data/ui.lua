@@ -547,7 +547,6 @@ return {
 		["reroll_text"] = "刷新 · %d ◆",
 		["skip_text"] = "继续 ▸",
 		["free_text"] = "免费",
-		["sponsor_free_text"] = "免费",
 		["insufficient"] = "◆ 不足",
 		["replace_prompt"] = "拖或点要换掉的槽位 · ◆%d 买入 · 旧卡折半",
 		["replace_cancel_text"] = "✕ 不换了",

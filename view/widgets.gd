@@ -1440,6 +1440,12 @@ class SponsorWall:
 	const SIGN_R := 17.0        # 22px 图标 ⇒ 牌面 0.94r ≈ 16(画布 rect w=16)
 	const INK := Color(0.933, 0.945, 0.984)          # #eef1fb
 	const DIM := Color(0.604, 0.635, 0.784)          # #9aa2c8
+	## ⚑ 玻璃壳的染色是**中性偏冷**, 不是金(2026-09-09 审查, 渲染出来看到的):
+	## 画布给那张玻璃贴的是 `saturate(0) brightness(1.06)` —— 一块**灰**玻璃。
+	## 传 `GOLD` 进去会把整块壳染透, 读出来是一片土黄板;金只该从**外辉光 + 眉行 +
+	## 均衡带 + 主键**这四处发出来。⚠ 这是「指令外的加法比做少了贵得多」的同一形状:
+	## 主色不等于「所有东西都刷成主色」。
+	const PLATE := Color(0.86, 0.90, 1.0)
 
 	var _t := 0.0
 
@@ -1463,7 +1469,7 @@ class SponsorWall:
 		# 卡外那圈金辉光(画布 drop-shadow 26px)
 		draw_style_box(StageTheme.box(Color(0, 0, 0, 0), Color(0, 0, 0, 0), 0, 14,
 			Color(acc.r, acc.g, acc.b, 0.42), 26), CARD.grow(-StageCard.BLEED))
-		StageCard.draw_card(self, CARD, acc, 18.0, 34.0, true)
+		StageCard.draw_card(self, CARD, PLATE, 18.0, 34.0, true)
 		# 眉行:招牌 + S P O N S O R(整行居中;字距 4, 与画布同)
 		var f := StageTheme.num("SemiBold")
 		var sp := "SPONSOR"

@@ -91,11 +91,20 @@ func is_sponsor() -> bool:
 
 ## 表里那唯一一条赞助碟的原始数据行(找不到返回 `{}`)。
 ## ⚠ 「恰好一条」由 `DB.validate_consumables` 守着(零条 = 入口静默消失, 两条 = 上哪张成了抽签)。
+## ⚑ 记一次就够:这张表运行期不变、答案恰好一条 —— 而这个口在商店每次刷新、每张碟上都要问一遍
+##   (2026-09-09 审查:一次线性扫全表换一次「它是不是赞助碟」太贵了)。
+static var _sponsor_cache: Dictionary = {}
+static var _sponsor_cached := false
+
 static func sponsor_entry() -> Dictionary:
+	if _sponsor_cached:
+		return _sponsor_cache
 	for e in DB.consumables():
 		if String((e as Dictionary).get("shelf", "")) == "sponsor":
-			return e
-	return {}
+			_sponsor_cache = e
+			break
+	_sponsor_cached = true
+	return _sponsor_cache
 
 
 ## 规则牌 = 带 `deck_rule` 的消耗牌(2026-08-30 二批转生:近道/四指/黑调/红调)。

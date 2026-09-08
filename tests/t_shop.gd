@@ -104,7 +104,9 @@ func run(t) -> void:
 	t.check(not sh._cshelf[0].sponsor, "普通碟不是赞助碟")
 	t.eq(sh._cshelf[0].accent, StageTheme.GOLD, "普通碟仍是金(待售)")
 	var ptext: String = sh._cshelf_price[2].text
-	t.check(ptext.find(Lingo.t("免费")) != -1, "价签写「免费」")
+	# 「免费」这个词只有一家 —— 与刷新键同一个 `free_text`(ui.json 的叶子已经过语言层)
+	t.check(ptext.find(String(DB.ui()["shop"]["free_text"])) != -1,
+		"价签写「免费」(与刷新键共用 free_text)")
 	t.check(ptext.find("+%d" % Economy.ad_coins()) != -1, "价签写 +N◆(数从卡上来)")
 	# 价格 0 与金币无关:身无分文也拿得动
 	sh.set_consumables([cs[0], cs[1], sp], 0, [])
@@ -131,6 +133,18 @@ func run(t) -> void:
 	sh._on_cshelf_pressed(2)
 	t.eq(bought.size(), 1, "在架时点它发 consumable_bought")
 	t.eq(int(bought[0][1]), 0, "……价 0")
+	# ⚑ 货架数组**不别名**(2026-09-09 审查):编排器交出去之后还会就地改它(买走一张置 null、
+	# 赞助碟上下架 resize)—— 存引用等于视图的「当次货架」在背后跟着变形。
+	var mine: Array = [cs[0], cs[1], sp]
+	sh.set_consumables(mine, 5, [])
+	var kept: int = sh._coffer.size()
+	mine.clear()
+	t.eq(sh._coffer.size(), kept, "改回自己的数组不动商店那一份(set_consumables 拷了一份)")
+	# ⚑ 摆几个位按**碟数**算, 不按数组长度算:买走一张后编排器把那格置 null, 长度仍是 3。
+	sh.set_consumables([cs[0], cs[1], null], 5, [])
+	t.eq(sh._cshelf[0].position.x, 268.0, "末位空的三格货架按**两碟**排(第一碟仍是 268)")
+	t.eq(sh._cshelf[1].position.x, 482.0, "……第二碟 482")
+	t.check(not sh._cshelf[2].visible, "……空着的第三位藏起来")
 	# 反复排布不许再建节点(_layout / set_consumables 都会跑很多次)
 	var before := sh._layer.get_child_count()
 	sh._layout(3)

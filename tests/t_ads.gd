@@ -39,6 +39,15 @@ func run(t) -> void:
 	a._fake_finish("coins")
 	t.eq(rewards.size(), 1, "dismiss 模式不发奖")
 	t.eq(closes.size(), 3, "dismiss 模式只关")
+	# ⚑ **到货信号**(2026-09-09 审查):`has_ad` 只回答「此刻有没有」, 而 Android 上它是异步变真的
+	# ⇒ 只在进店那一刻问一次的界面永远等不到货。假后端也发它, 好让桌面走一遍编排器的补上架那条路。
+	t.check(a.has_signal("loaded"), "适配层有到货信号 loaded")
+	var loads: Array = []
+	a.loaded.connect(func(k: String) -> void: loads.append(k))
+	a._mode = "fake"
+	a.load_ad("coins")          # 排的是 call_deferred, 测试不等帧 ⇒ 紧接着直打一次
+	a._fake_loaded("coins")
+	t.eq(loads, ["coins"], "假后端 load_ad 也发 loaded(桌面照样走补上架那条路)")
 	t.eq(Ads.pick_mode_for(true, "", false, true), "off", "探针 + 无环境变量 = off")
 	t.eq(Ads.pick_mode_for(true, "fake", false, true), "fake", "显式 SYNC5_ADS=fake 盖过探针(adsprobe 用)")
 	t.eq(Ads.pick_mode_for(false, "", false, true), "fake", "debug 桌面缺省 fake")
@@ -68,6 +77,12 @@ func run(t) -> void:
 	t.eq(PV.ad_reward_case(false, PV.St.DRAFT), "drop", "run 没了 ⇒ 丢")
 	t.eq(PV.ad_reward_case(true, PV.St.FRONT), "drop", "FRONT ⇒ 丢(首页没有局)")
 	t.eq(PV.ad_reward_case(true, PV.St.END), "drop", "END ⇒ 丢(结算屏之后没有店可花)")
+	# ⚠ `Script.has_method()` 问的是 Script **这个 Resource 自己**的方法(实测恒 false),
+	#   脚本里定义的要走 `get_script_method_list()` —— 4.6 也没有 `has_script_method`。
+	var pv_methods := {}
+	for m in PV.get_script_method_list():
+		pv_methods[String(m["name"])] = true
+	t.check(pv_methods.has("_on_ad_loaded"), "编排器接到货那一刻的补上架口(ads.loaded → 赞助碟)")
 	# 体力墙的纯判定:有货 且 存档允许(未满 + 今日未到顶)才把墙变成入口;探针强制开关只给 adsprobe 用
 	t.check(PV.energy_wall_ok(true, true), "有货 + 存档允许 ⇒ 墙变入口")
 	t.check(not PV.energy_wall_ok(false, true), "没货 ⇒ 今天的行为(明天回满)")
@@ -83,7 +98,9 @@ func run(t) -> void:
 	t.check(not shop_cfg.has("ad_offer_text"), "ui.json 的 offer 文案键已删")
 	t.check(not shop_cfg.has("ad_offer_pos"), "ui.json 的 offer 位置键已删")
 	t.check(shop_cfg.has("cons_col_w_3"), "三碟排布的列宽在 ui.json(改布局 = 改 JSON)")
-	t.check(shop_cfg.has("sponsor_free_text"), "赞助碟价签的「免费」在 ui.json")
+	# 「免费」只有一家:赞助碟价签与刷新键共用 `free_text`(同一个词两个键 = 改一处漏一处)
+	t.check(not shop_cfg.has("sponsor_free_text"), "赞助专用的第二个「免费」键已删")
+	t.check(shop_cfg.has("free_text"), "……价签与刷新键共用 free_text 这一家")
 	# 卡面上的数 = 发出去的数(parity 第四层同一条账)
 	t.eq(Economy.ad_coins(), int(Consumable.sponsor_entry()["action"]["ad_coins"]),
 		"发几◆ 从赞助碟的 action 上读(数住在卡上)")

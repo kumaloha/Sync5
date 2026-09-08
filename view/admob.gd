@@ -15,6 +15,9 @@ extends Node
 signal rewarded(kind: String)
 signal failed(kind: String, why: String)
 signal closed(kind: String)
+## 到货(2026-09-09 审查):`has_ad` 在 Android 上是**异步变真**的, 只轮询一次的调用方
+## 会永远看不到那一刻。它与 rewarded/failed/closed 同样 call_deferred 回主线程再发。
+signal loaded(kind: String)
 
 var _ads := {}          # kind -> RewardedAd(已加载未展示)
 var _showing := {}      # kind -> RewardedAd(**正在放的那一个**:已从 _ads 里摘掉, 但不许被回收)
@@ -96,6 +99,7 @@ func _on_loaded(kind: String, ad) -> void:
 			_on_show_failed.call_deferred(kind, str(err.message) if err != null else "show")
 		ad.full_screen_content_callback = fsc
 	_ads[kind] = ad
+	loaded.emit(kind)
 
 
 func _on_load_failed(kind: String, why: String) -> void:
