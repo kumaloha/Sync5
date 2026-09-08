@@ -1380,6 +1380,135 @@ class BlindBoard:
 					rx += zh.get_string_size(sep, HORIZONTAL_ALIGNMENT_LEFT, -1, rfs).x
 
 
+## 赞助商的霓虹招牌 —— 广告在这个世界里的样子(画布 SponsorDisc/EnergyWall.dc.html)。
+## ⚑ **一枚几何两处用**:货架赞助碟的中心(`ConsumableSlot._sign`)与体力墙的眉行
+## (`SponsorWall`)。60×42 圆角 7 描边 2 + 两根吊线 + 播放三角, 全部写成半径 `r` 的比例,
+## 所以 22px 的小图标与碟里的大招牌是同一块牌子 —— 尺寸一改两处一起走。
+## ⚠ 抄成两份不会报错, 但下一次改招牌只会改到一处(t_ads 锁着这条共用)。
+class SponsorSign:
+	extends RefCounted
+
+	## 牌面那块发光的矩形 —— 几何的**唯一定义**在这, 画法与测试都从这里取。
+	static func box_rect(c: Vector2, r: float) -> Rect2:
+		return Rect2(c - Vector2(r * 0.94, r * 0.66) * 0.5, Vector2(r * 0.94, r * 0.66))
+
+	## `paused` = 三角换暂停双杠(同一块招牌, 换一个符号 = 换一个状态, 不另画一层)。
+	## `stroke` = 牌面描边宽(碟里 2, 眉行 1.4);吊线按 0.7 跟着走。`col.a` 是整体透明度。
+	static func draw(ci: CanvasItem, c: Vector2, r: float, col: Color,
+			paused := false, stroke := 2.0) -> void:
+		# 吊线:招牌顶上那两根(它是挂着的, 不是贴上去的)
+		for sx in [-0.28, 0.28]:
+			ci.draw_line(c + Vector2(r * sx, -r * 0.50), c + Vector2(r * sx, -r * 0.34),
+				Color(col.r, col.g, col.b, col.a * 0.55), stroke * 0.7, true)
+		ci.draw_style_box(StageTheme.box(Color(col.r, col.g, col.b, col.a * 0.06),
+			Color(col.r, col.g, col.b, col.a * 0.92), int(round(stroke)),
+			int(round(r * 0.11))), box_rect(c, r))
+		if paused:
+			# 暂停双杠:静态(广告在放, 商店等它)
+			for bx in [-0.141, 0.047]:
+				ci.draw_rect(Rect2(c + Vector2(r * bx, -r * 0.156),
+					Vector2(r * 0.094, r * 0.3125)),
+					Color(col.r, col.g, col.b, col.a * 0.6))
+		else:
+			ci.draw_colored_polygon(PackedVector2Array([
+				c + Vector2(-r * 0.094, -r * 0.156),
+				c + Vector2(r * 0.172, 0.0),
+				c + Vector2(-r * 0.094, r * 0.156)]),
+				Color(col.r, col.g, col.b, col.a * 0.95))
+
+
+## 体力墙的赞助商卡(2026-09-09, 画布 EnergyWall.dc.html;取代 09-08 的系统面板)。
+## ⚑ 用户拍板:「画布和续玩的提示很像, 整体就是质感不如我们的玻璃板」——
+## 所以它就是**首页大卡那块玻璃**:`StageCard.draw_card(tail=true)` 的整图玻璃壳
+## (含烘焙倒影, 挂在卡下面)+ 金色辉光 + 均衡器带 + 首页开始键同款霓虹主键。
+## 广告在这个世界里是赞助商, 不是一个系统弹窗 —— 这张卡是那句话的画法。
+##
+## ⚠ **只管画**:主键与「不看了」仍是层上的真 `Button` 节点(透明皮, 探针按第一枚),
+## 这里画的是它们底下那层。两处的矩形共用 `CTA` / `SKIP` 两个常量, 不许各写一份。
+class SponsorWall:
+	extends Control
+
+	## 画布坐标(720×1280 原生, 逐个抄自 EnergyWall.dc.html)。
+	const CARD := Rect2(120.0, 430.0, 480.0, 384.0)   # 外框:玻璃壳整图贴这里
+	const BAND := Rect2(170.0, 585.0, 380.0, 44.0)    # 均衡器带(比内容区宽, 居中溢出)
+	const CTA := Rect2(179.0, 645.0, 362.0, 75.0)     # 主键
+	## 「不看了」:画的是 y 732..762 那一行字, 但热区拉到 44 —— 拇指够得着才算出口。
+	const SKIP := Rect2(179.0, 725.0, 362.0, 44.0)
+	const TITLE_Y := 541.0
+	const SUB_Y := 566.0
+	const EYEBROW_Y := 492.0    # 招牌与 SPONSOR 那一行的中线
+	const SIGN_R := 17.0        # 22px 图标 ⇒ 牌面 0.94r ≈ 16(画布 rect w=16)
+	const INK := Color(0.933, 0.945, 0.984)          # #eef1fb
+	const DIM := Color(0.604, 0.635, 0.784)          # #9aa2c8
+
+	var _t := 0.0
+
+	func _init() -> void:
+		position = CARD.position
+		size = CARD.size
+		# 卡上点击不关层(与旧写法的 Panel 同语义);空白处的点击照旧落到 layer.gui_input
+		mouse_filter = Control.MOUSE_FILTER_STOP
+		set_process(true)
+
+	func _process(delta: float) -> void:
+		_t += delta
+		queue_redraw()          # 均衡器带是这张卡最大的一块视觉, 它得动(与首页同一支笔)
+
+	func _draw() -> void:
+		# 画布坐标直接落笔 —— 位置常量与 phrase.gd 摆按钮用的是同一组数
+		draw_set_transform(-CARD.position)
+		var acc := StageTheme.GOLD
+		var zh := StageTheme.zh()
+		var med := StageTheme.num("Medium")
+		# 卡外那圈金辉光(画布 drop-shadow 26px)
+		draw_style_box(StageTheme.box(Color(0, 0, 0, 0), Color(0, 0, 0, 0), 0, 14,
+			Color(acc.r, acc.g, acc.b, 0.42), 26), CARD.grow(-StageCard.BLEED))
+		StageCard.draw_card(self, CARD, acc, 18.0, 34.0, true)
+		# 眉行:招牌 + S P O N S O R(整行居中;字距 4, 与画布同)
+		var f := StageTheme.num("SemiBold")
+		var sp := "SPONSOR"
+		var tw := 0.0
+		for i in range(sp.length()):
+			tw += f.get_string_size(sp[i], HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x + 4.0
+		tw -= 4.0
+		var x0: float = CARD.get_center().x - (22.0 + 8.0 + tw) * 0.5
+		SponsorSign.draw(self, Vector2(x0 + 11.0, EYEBROW_Y), SIGN_R,
+			Color(acc.r, acc.g, acc.b, 0.85), false, 1.4)
+		var cx := x0 + 30.0
+		for i in range(sp.length()):
+			draw_string(f, Vector2(cx, EYEBROW_Y + 4.7), sp[i], HORIZONTAL_ALIGNMENT_LEFT,
+				-1, 13, Color(acc.r, acc.g, acc.b, 0.85))
+			cx += f.get_string_size(sp[i], HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x + 4.0
+		# 标题 + 副行
+		draw_string(zh, Vector2(CARD.position.x, TITLE_Y), Lingo.t("今天的场次演完了"),
+			HORIZONTAL_ALIGNMENT_CENTER, CARD.size.x, 26, INK)
+		draw_string(zh, Vector2(CARD.position.x, SUB_Y),
+			Lingo.t("明天回满 · ⚡ %d/%d") % [SaveState.energy(), SaveState.energy_max()],
+			HORIZONTAL_ALIGNMENT_CENTER, CARD.size.x, 14, DIM)
+		StageCard.eq_band(self, BAND, acc, _t, 0, 34)
+		# 主键 = 首页「开始游戏」同一支笔(暗金底 + 金边 + 辉光 + 顶白线 + 霓虹字)。
+		# ⚠ 辉光比首页收了一档(0.34/18 → 0.16/14):`StyleBoxFlat` 的 shadow 在**框内也是实心的**,
+		#   半透底盖不住它 —— 金比青亮, 照抄首页的数会让键内糊成一块土黄板(渲染出来看到的)。
+		draw_style_box(StageTheme.box(Color(acc.r * 0.28, acc.g * 0.28, acc.b * 0.28, 0.40),
+			Color(acc.r, acc.g, acc.b, 0.7), 2, 14, Color(acc.r, acc.g, acc.b, 0.16), 14), CTA)
+		# 顶白线两端渐隐(画布的 linear-gradient) —— 首页那条是实心的, 实心在这块宽键上会读成「盖子」
+		draw_polyline_colors(PackedVector2Array([
+			CTA.position + Vector2(14.0, 1.0),
+			CTA.position + Vector2(CTA.size.x * 0.3, 1.0),
+			CTA.position + Vector2(CTA.size.x * 0.7, 1.0),
+			CTA.position + Vector2(CTA.size.x - 14.0, 1.0)]),
+			PackedColorArray([Color(1, 1, 1, 0.0), Color(1, 1, 1, 0.85),
+				Color(1, 1, 1, 0.7), Color(1, 1, 1, 0.0)]), 1.5)
+		Chrome.neon(self, zh, Lingo.t("赞助商加一场"), CTA.position + Vector2(0.0, 38.0), 26,
+			Color(1, 1, 1, 1), acc, CTA.size.x)
+		draw_string(med, CTA.position + Vector2(0.0, 60.0),
+			Lingo.t("看一段广告 · +%d⚡") % SaveState.ad_energy_amount(),
+			HORIZONTAL_ALIGNMENT_CENTER, CTA.size.x, 14, Color(acc.r, acc.g, acc.b, 0.72))
+		# 拒绝口:一行字, 不做框(它不该和主键抢注意力)
+		draw_string(zh, Vector2(SKIP.position.x, SKIP.position.y + 27.0), Lingo.t("不看了"),
+			HORIZONTAL_ALIGNMENT_CENTER, SKIP.size.x, 14, Color(DIM.r, DIM.g, DIM.b, 0.85))
+
+
 ## ⚑ 消耗品格(2026-08-29 开轴)。两格, 摆在**手牌区上方那条 66px 空带**
 ## (y 672..738, 原本只有装饰轨道)——用户提的位置, 而它恰好是最省认知的一处:
 ## 玩家判断手牌时视线本来就扫过那里, 不像顶栏那样要额外抬眼。
@@ -1495,29 +1624,10 @@ class ConsumableSlot:
 			draw_string(f, sc + Vector2(-w * 0.5, fs * 0.36), st,
 				HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(1, 1, 1, a))
 
-	## 霓虹招牌 —— 赞助商在这个世界里的样子(画布 SponsorDisc.dc.html 的 r=64 剖面,
-	## 全部写成 r 的比例, 碟径一改就跟着走)。60×42 圆角 7 描边 2 + 两根吊线 + 播放三角;
-	## 插播中时三角换成暂停双杠(同一块招牌, 换一个符号 = 换一个状态, 不另画一层)。
+	## 霓虹招牌 —— 几何在 `SponsorSign`(2026-09-09 搬家:体力墙的眉行要用同一块牌子)。
+	## 这里只负责「碟里的那一枚」:碟径 r、描边 2、插播中换暂停双杠。画法逐像素不变。
 	func _sign(c: Vector2, r: float, a: float) -> void:
-		var col := Color(accent.r, accent.g, accent.b, a)
-		# 吊线:招牌顶上那两根(它是挂着的, 不是贴上去的)
-		for sx in [-0.28, 0.28]:
-			draw_line(c + Vector2(r * sx, -r * 0.50), c + Vector2(r * sx, -r * 0.34),
-				Color(col.r, col.g, col.b, 0.55 * a), 1.4, true)
-		var box := Rect2(c - Vector2(r * 0.94, r * 0.66) * 0.5, Vector2(r * 0.94, r * 0.66))
-		draw_style_box(StageTheme.box(Color(col.r, col.g, col.b, 0.06 * a),
-			Color(col.r, col.g, col.b, 0.92 * a), 2, int(round(r * 0.11))), box)
-		if playing:
-			# 暂停双杠:静态(广告在放, 商店等它)
-			for bx in [-0.141, 0.047]:
-				draw_rect(Rect2(c + Vector2(r * bx, -r * 0.156), Vector2(r * 0.094, r * 0.3125)),
-					Color(col.r, col.g, col.b, 0.6 * a))
-		else:
-			draw_colored_polygon(PackedVector2Array([
-				c + Vector2(-r * 0.094, -r * 0.156),
-				c + Vector2(r * 0.172, 0.0),
-				c + Vector2(-r * 0.094, r * 0.156)]),
-				Color(col.r, col.g, col.b, 0.95 * a))
+		SponsorSign.draw(self, c, r, Color(accent.r, accent.g, accent.b, a), playing, 2.0)
 
 
 class DJKey:

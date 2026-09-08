@@ -1604,7 +1604,8 @@ func _begin_run() -> bool:
 
 ## 体力墙(2026-08-26 真闸门 → 2026-09-08 二审:墙本身变成入口)。
 ## 两条路(首页开始 / 结算屏再来一次)都先 `_open_home()`(首页是底), 有货且存档允许时在其上弹一层:
-## 「体力不足」+「看广告 +1⚡ · 马上开局」;看完 ⇒ 入账 ⇒ 关层 ⇒ **下一帧重放 start_run()** ——
+## **赞助商的玻璃卡**(2026-09-09 二版, `Widgets.SponsorWall`;09-08 那块系统面板已退役)——
+## 广告在这个世界里是个角色, 不是一个系统弹窗;看完 ⇒ 入账 ⇒ 关层 ⇒ **下一帧重放 start_run()** ——
 ## 开局仍只有那一份入口(「第二条入口漏掉主路径的步骤」是这个项目最贵的形状), 多等一帧是让
 ## Android 的 RESUMED 与 EGL surface 先回来。关掉没看完 / 失败 ⇒ 关层, 回到今天的浮字。
 ## 首页体力胶囊**只显示, 不是入口**(二审删)。探针恒满 ⇒ 永远走今天的分支;
@@ -1670,28 +1671,16 @@ func _open_energy_wall() -> void:
 	dim.size = Vector2(720, 1280)
 	dim.mouse_filter = Control.MOUSE_FILTER_IGNORE   # 空白点击要落到 layer.gui_input 上(与 view/intro.gd 的 scrim 同一个坑)
 	layer.add_child(dim)
-	var panel := Panel.new()
-	panel.add_theme_stylebox_override("panel",
-		StageTheme.box(Color(0.04, 0.05, 0.12, 0.96), StageTheme.GOLD, 1, 16))
-	panel.position = Vector2(150, 500)
-	panel.size = Vector2(420, 210)   # 两个按钮(600+46 / 652+34)都要落在 500..710 里
-	layer.add_child(panel)
-	var title := StageTheme.label(Lingo.t("体力不足"), StageTheme.zh(), 23,
-		StageTheme.GOLD, HORIZONTAL_ALIGNMENT_CENTER)
-	title.position = Vector2(150, 524)
-	title.size = Vector2(420, 32)
-	layer.add_child(title)
+	# 卡体 + 全部 chrome 由 SponsorWall 画(玻璃壳/辉光/均衡器带/主键的皮);
+	# ⚠ 按钮**必须是 layer 的直接子节点** —— adsprobe 流 B 按的是层里的第一枚 Button。
+	layer.add_child(Widgets.SponsorWall.new())
 	var go := Button.new()
-	go.text = Lingo.t("看广告 +%d⚡ · 马上开局") % SaveState.ad_energy_amount()
-	go.add_theme_font_override("font", StageTheme.zh())
-	go.add_theme_font_size_override("font_size", 19)
+	go.flat = true
 	go.focus_mode = Control.FOCUS_NONE
-	for st in ["normal", "hover", "pressed"]:
-		go.add_theme_stylebox_override(st,
-			StageTheme.box(Color(0.20, 0.14, 0.04, 0.95), StageTheme.GOLD, 1, 12))
-	go.add_theme_color_override("font_color", Color("ffe6b3"))
-	go.position = Vector2(186, 600)
-	go.size = Vector2(348, 46)
+	for st in ["normal", "hover", "pressed", "focus"]:
+		go.add_theme_stylebox_override(st, StyleBoxEmpty.new())
+	go.position = Widgets.SponsorWall.CTA.position
+	go.size = Widgets.SponsorWall.CTA.size
 	go.pressed.connect(func() -> void:
 		if _energy_ad_showing:
 			return
@@ -1702,16 +1691,12 @@ func _open_energy_wall() -> void:
 	layer.add_child(go)
 	# 明确的拒绝口(2026-09-08 质量审查):点空白也能关, 但「关」不该只有一个猜出来的手势。
 	var no := Button.new()
-	no.text = Lingo.t("不看了")
-	no.add_theme_font_override("font", StageTheme.zh())
-	no.add_theme_font_size_override("font_size", 15)
+	no.flat = true
 	no.focus_mode = Control.FOCUS_NONE
-	for st in ["normal", "hover", "pressed"]:
-		no.add_theme_stylebox_override(st,
-			StageTheme.box(Color(0.06, 0.07, 0.14, 0.9), StageTheme.rim(0.35), 1, 10))
-	no.add_theme_color_override("font_color", StageTheme.rim(0.8))
-	no.position = Vector2(186, 652)
-	no.size = Vector2(348, 34)
+	for st in ["normal", "hover", "pressed", "focus"]:
+		no.add_theme_stylebox_override(st, StyleBoxEmpty.new())
+	no.position = Widgets.SponsorWall.SKIP.position
+	no.size = Widgets.SponsorWall.SKIP.size
 	no.pressed.connect(func() -> void:
 		if _energy_ad_showing:
 			return

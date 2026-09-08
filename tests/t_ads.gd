@@ -87,3 +87,18 @@ func run(t) -> void:
 	# 卡面上的数 = 发出去的数(parity 第四层同一条账)
 	t.eq(Economy.ad_coins(), int(Consumable.sponsor_entry()["action"]["ad_coins"]),
 		"发几◆ 从赞助碟的 action 上读(数住在卡上)")
+
+	# ---- ⑤ 体力墙 = 赞助商的玻璃卡(2026-09-09)----
+	# 招牌是**一枚几何两处用**(碟中心 + 墙的眉行)。锁的是这条共用, 不是像素:
+	# 抄成两份不会报错, 但下一次改招牌只会改到一处 —— 那正是这个项目最贵的形状。
+	t.check(Callable(Widgets.SponsorSign, "draw").is_valid(), "招牌小件有静态画法(碟与眉行共用)")
+	var sign_box: Rect2 = Widgets.SponsorSign.box_rect(Vector2(100.0, 100.0), 20.0)
+	t.eq(sign_box.size, Vector2(18.8, 13.2), "招牌牌面 = 0.94r × 0.66r(画布剖面)")
+	t.eq(sign_box.get_center(), Vector2(100.0, 100.0), "……居中在给的圆心上")
+	# 墙的文案换成赞助商口径:旧的两句必须**从表里消失**(留着不报错, 但下一个人会以为两套并存)
+	t.check(not DB.lingo()["table"].has("体力不足"), "旧墙标题「体力不足」已删")
+	t.check(not DB.lingo()["table"].has("看广告 +%d⚡ · 马上开局"), "旧墙主键文案已删")
+	t.check(DB.lingo()["table"].has("今天的场次演完了"), "新墙标题在表里")
+	t.check(DB.lingo()["table"].has("明天回满 · ⚡ %d/%d"), "新墙副行在表里")
+	t.check(DB.lingo()["table"].has("赞助商加一场"), "新墙主键在表里")
+	t.check(DB.lingo()["table"].has("看一段广告 · +%d⚡"), "新墙主键小字在表里")
