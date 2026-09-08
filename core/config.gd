@@ -121,6 +121,10 @@ static var JOKER_PRICE_OVERRIDES: Dictionary = _eco["joker_price_overrides"]
 # 顺带拆掉了 from_section 这颗地雷(它是按段号写死的绝对值, 改段数会静默漂到末段)。
 static var DRAFT_REROLL_BASE: int = int(_eco["reroll"]["base"])
 static var DRAFT_REROLL_STEP: int = int(_eco["reroll"]["step"])
+## 激励视频换金币(2026-09-08;规格 docs/superpowers/specs/2026-09-08-ads-design.md §2)
+static var AD_COINS: int = int(_eco["ad_coins"])
+static var AD_COINS_PER_SHOP: int = int(_eco["ad_coins_per_shop"])
+static var AD_COINS_PER_RUN: int = int(_eco["ad_coins_per_run"])
 
 
 static func phrase_duration(section_idx: int) -> float:

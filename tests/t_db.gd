@@ -136,3 +136,23 @@ func run(t) -> void:
 		"families": {"repeat_factor": {"soft": "s", "hard": "h"}}})
 	t.check(arc_err.contains("教学弧"),
 		"hard 最早出现在 soft 之前被拒, 且是因为教学弧而不是别的规则(got: %s)" % arc_err)
+
+	# ---- 激励视频(2026-09-08, 规格 docs/superpowers/specs/2026-09-08-ads-design.md)----
+	t.eq(int(DB.economy()["ad_coins"]), int(DB.economy()["joker_prices"]["common"]),
+		"一次广告给的金币 = 一张卡的钱(economy.json 平价)")
+	var eco_bad: Dictionary = DB.economy().duplicate(true)
+	eco_bad["ad_coins_per_shop"] = 3
+	eco_bad["ad_coins_per_run"] = 2
+	t.check(DB.validate_economy(eco_bad) != "", "每店上限大于每局上限被拒(每店那条会是死数据)")
+	t.check(DB.validate_profile({"energy_max": 5, "xp_per_level": 4}) != "",
+		"profile 缺 ad_energy / ad_energy_per_day 被拒")
+	t.check(DB.validate_profile({"energy_max": 5, "xp_per_level": 4, "ad_energy": -1, "ad_energy_per_day": 5}) != "",
+		"ad_energy 负数被拒")
+	t.eq(DB.validate_ads(DB.ads()), "", "ads.json 干净")
+	t.check(DB.validate_ads({"test_mode": false, "test_unit": "x",
+		"android": {"rewarded_coins": "", "rewarded_energy": ""}}) != "",
+		"test_mode=false 时空 unit ID 被拒(真 ID 归用户填)")
+	t.check(DB.validate_ads({"test_mode": true, "test_unit": "",
+		"android": {"rewarded_coins": "", "rewarded_energy": ""}}) != "",
+		"test_unit 不许为空")
+	t.check(bool(DB.ads()["test_mode"]), "仓库里的 ads.json 恒 test_mode=true(出正式包才翻)")

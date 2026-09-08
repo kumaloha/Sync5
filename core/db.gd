@@ -37,7 +37,7 @@ const _RUN_KEYS := ["phrases_per_section", "phrases_per_shop", "sections_per_gig
 	"s1_face_min_run", "s1_easy_chance"]
 const _ECO_KEYS := ["starting_coins", "discard_cost", "section_clear_reward",
 	"draft_rarity_weights", "joker_prices", "joker_price_overrides",
-	"reroll", "kind_coins"]
+	"reroll", "kind_coins", "ad_coins", "ad_coins_per_shop", "ad_coins_per_run"]
 const _TAPE_KEYS := ["enabled", "to_file", "dir", "max_events", "mute"]   # upload 是可选节, 另查
 
 
@@ -116,12 +116,41 @@ static func profile() -> Dictionary:
 
 
 static func validate_profile(d: Dictionary) -> String:
-	var e := _keys_ok(d, ["energy_max", "xp_per_level"])
+	var e := _keys_ok(d, ["energy_max", "xp_per_level", "ad_energy", "ad_energy_per_day"])
 	if e != "":
 		return e
 	# 0 或负数不是「关掉」而是静默除零/恒零 —— 要关体力显示去改 view, 别改成 0
 	if int(d["energy_max"]) < 1 or int(d["xp_per_level"]) < 1:
 		return "energy_max / xp_per_level 必须 >= 1"
+	# 看广告换体力(2026-09-08):两键 ≥ 0(0 = 入口永远不出现, 允许, 但不许负)
+	if int(d["ad_energy"]) < 0 or int(d["ad_energy_per_day"]) < 0:
+		return "ad_energy / ad_energy_per_day 必须 >= 0"
+	return ""
+
+
+## 激励视频 SDK 配置(2026-09-08;`view/ads.gd` / `view/admob.gd` 是它唯一的消费者)。
+static func ads() -> Dictionary:
+	return _load("ads", func(d): return validate_ads(d))
+
+
+static func validate_ads(d: Dictionary) -> String:
+	var e := _keys_ok(d, ["test_mode", "test_unit", "android"])
+	if e != "":
+		return e
+	if typeof(d["test_mode"]) != TYPE_BOOL:
+		return "test_mode 必须是 bool"
+	if String(d["test_unit"]) == "":
+		return "test_unit 不许为空(开发期一律用官方测试单元 ID)"
+	if not d["android"] is Dictionary:
+		return "android 必须是对象"
+	var a: Dictionary = d["android"]
+	var ea := _keys_ok(a, ["rewarded_coins", "rewarded_energy"])
+	if ea != "":
+		return "android: " + ea
+	if not bool(d["test_mode"]):
+		for k in ["rewarded_coins", "rewarded_energy"]:
+			if String(a[k]) == "":
+				return "test_mode=false 时 android.%s 不许为空(真 ID 归用户填)" % k
 	return ""
 
 
@@ -389,6 +418,12 @@ static func validate_economy(d: Dictionary) -> String:
 			"FLUSH", "FULL_HOUSE", "FOUR_KIND", "STRAIGHT_FLUSH", "ROYAL_FLUSH"]:
 		if not kc.has(kn):
 			return "kind_coins 缺牌型 '%s'(那个牌型会静默给 0◆)" % kn
+	# 激励视频换金币(2026-09-08):三个数 ≥ 0, 每店上限不许超过每局上限(否则每店那条是死数据)。
+	for k in ["ad_coins", "ad_coins_per_shop", "ad_coins_per_run"]:
+		if int(d[k]) < 0:
+			return "%s 必须 >= 0" % k
+	if int(d["ad_coins_per_shop"]) > int(d["ad_coins_per_run"]):
+		return "ad_coins_per_shop 不许大于 ad_coins_per_run"
 	return ""
 
 

@@ -45,6 +45,10 @@ GameConfig.JOKER_PRICES = _eco.joker_prices
 GameConfig.JOKER_PRICE_OVERRIDES = _eco.joker_price_overrides
 GameConfig.DRAFT_REROLL_BASE = num.int(_eco.reroll.base)
 GameConfig.DRAFT_REROLL_STEP = num.int(_eco.reroll.step)
+-- 激励视频换金币(2026-09-08)
+GameConfig.AD_COINS = num.int(_eco.ad_coins)
+GameConfig.AD_COINS_PER_SHOP = num.int(_eco.ad_coins_per_shop)
+GameConfig.AD_COINS_PER_RUN = num.int(_eco.ad_coins_per_run)
 
 function GameConfig.is_wall(section_idx)
 	return (section_idx + 1) % GameConfig.SECTIONS_PER_GIG == 0

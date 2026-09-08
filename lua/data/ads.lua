@@ -1,0 +1,10 @@
+-- 由 tools/luagen.py 从 data/ads.json 生成 —— 仪器输出, 手改无效(docs/design/mirror.md §4)
+return {
+	["_comment"] = "激励视频 SDK 配置(2026-09-08;view/ads.gd + view/admob.gd 是它唯一的消费者)。test_mode=true 时两个 kind 一律用 Google 官方 Android 激励视频测试单元 ID(不用测试 ID 可能封号), 只在出正式包那一步由用户翻 false 并填真 ID。AdMob App ID 不在这里 —— 它按插件文档填在插件自己的设置里(进 AndroidManifest meta-data), 归用户。",
+	["test_mode"] = true,
+	["test_unit"] = "ca-app-pub-3940256099942544/5224354917",
+	["android"] = {
+		["rewarded_coins"] = "",
+		["rewarded_energy"] = "",
+	},
+}
