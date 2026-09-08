@@ -54,7 +54,7 @@
 | `ad` | 激励视频(2026-09-08) | `k`(coins/energy), `ev`(show=开始放 / reward=真发奖 / fail=失败+`why` / drop=run 没了丢弃), `coins?`(发奖后余额), `late?`(店关了才到的奖)。只记发生过的判定;「有没有货」是特征不记 |
 | `settle` | 结算 | `kind`, `chips`, `base`, `mult`, `bonus`, `score`, `coin`, `total`, `disc`, `late`, `act`, `mod`, `cards[5]`, `fired[]` |
 | `sec_end` | 段末判定 | `i`, `score`, `target`, `ok`, `coins`, `beats` |
-| `shop` | 开店 | `mid`, `sec`, `coins`, `offer[{id,kind,rarity,price,aff}]`, `slots[4]`, `left`, `need` |
+| `shop` | 开店 | `mid`, `sec`, `coins`, `offer[{id,kind,rarity,price,aff}]`, `slots[4]`, `left`, `need`, `ad`(赞助碟在不在架上, 2026-09-09 —— 拿取率的分母;有没有货/上限到没到/教学关三件事都折在这一位里) |
 | `buy` | 买入 | `id`, `kind`, `price`, `coins` |
 | `repl_open` | 进入替换 | `id`, `price`, `coins`, `slots[4]` |
 | `repl_off` | 取消替换 | `id`, `coins` |
