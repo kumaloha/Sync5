@@ -221,6 +221,7 @@ else
 	step "文档卡数一致" python3 tools/counts.py --check
 	step "流程回归" godot --headless --path . --script res://tools/flow_probe.gd
 	step "打点回归" godot --headless --path . --script res://tools/tapeprobe.gd
+	SYNC5_ADS=fake SYNC5_PROBE_ENERGY_WALL=1 step "广告回归" godot --headless --path . --script res://tools/adsprobe.gd
 	step "决策重放" godot --headless --path . --script res://tools/replay.gd
 	step "尺子自检" godot --headless --path . --script res://tools/sim.gd
 	if [[ $INCREMENTAL -eq 1 ]]; then

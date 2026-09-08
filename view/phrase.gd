@@ -1555,6 +1555,11 @@ func _begin_run() -> bool:
 ## Android 的 RESUMED 与 EGL surface 先回来。关掉没看完 / 失败 ⇒ 关层, 回到今天的浮字。
 ## 首页体力胶囊**只显示, 不是入口**(二审删)。探针恒满 ⇒ 永远走今天的分支;
 ## `SYNC5_PROBE_ENERGY_WALL=1` 让 adsprobe 在探针里也能把层打开(仅探针生效)。
+## ⚠ 「拆层节点」与「结算意图」必须是两个函数(2026-09-08 adsprobe 抓到的真 bug):
+## `_open_energy_wall()` 开新层前要先清掉可能残留的旧层, 但那一步**不该**碰 `_pending_start`——
+## 旧写法直接调 `_close_energy_wall(false)` 复用关层逻辑, 结果把刚设好的开局意图当场清空,
+## 玩家看完广告后 `_replay_pending_start()` 拿到空 Callable, 永远不开局。
+## `_drop_energy_layer()` 只管节点, `_close_energy_wall()` 只管意图 + 调它拆节点。
 var _energy_layer: Control = null
 var _energy_ad_showing := false
 var _pending_start: Callable = Callable()   # 只活到这一层关闭;不落盘、不跨场景
@@ -1578,8 +1583,16 @@ func _deny_no_energy() -> void:
 	fx.float_text(Lingo.t("体力不足,明天回满"), Vector2(243.0, 986.0), Color("ff5f7e"), 90)
 
 
+## 只拆层节点, 不碰 _pending_start —— 开层前的防御性清理必须走这个, 否则会把刚设的开局意图一起清掉
+## (2026-09-08 adsprobe 抓到的真 bug:看完广告永远不开局)。
+func _drop_energy_layer() -> void:
+	if _energy_layer != null and is_instance_valid(_energy_layer):
+		_energy_layer.queue_free()
+	_energy_layer = null
+
+
 func _open_energy_wall() -> void:
-	_close_energy_wall(false)
+	_drop_energy_layer()
 	var layer := Control.new()
 	layer.position = Vector2.ZERO
 	layer.size = Vector2(720, 1280)
@@ -1630,9 +1643,7 @@ func _open_energy_wall() -> void:
 ## 关层。`start` = 看完了要开局(下一帧重放 _pending_start);否则清掉意图。
 func _close_energy_wall(start: bool) -> void:
 	_energy_ad_showing = false
-	if _energy_layer != null and is_instance_valid(_energy_layer):
-		_energy_layer.queue_free()
-	_energy_layer = null
+	_drop_energy_layer()
 	if start:
 		call_deferred("_replay_pending_start")
 	else:
