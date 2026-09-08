@@ -990,6 +990,7 @@ func _on_quit_run() -> void:
 ## 商店, 没有「哪一拍」可选);其余 4 张排进待播队列, 到自己的拍号自己打。
 ## ⚠ 栏位满的拒绝分支一并删除 —— 队列没有硬上限(理由见 `Run.consumables`)。
 func _on_consumable_bought(c, price: int) -> void:
+	shop.hide_ad_offer()   # 成交 = 缺口不存在了, offer 收起(spec §4.3)
 	phrase.coins -= price
 	run.coins = phrase.coins
 	var from := shop.cshelf_center(c)
@@ -1606,6 +1607,7 @@ func _open_energy_wall() -> void:
 	var dim := ColorRect.new()
 	dim.color = Color(0, 0, 0.02, 0.74)
 	dim.size = Vector2(720, 1280)
+	dim.mouse_filter = Control.MOUSE_FILTER_IGNORE   # 空白点击要落到 layer.gui_input 上(与 view/intro.gd 的 scrim 同一个坑)
 	layer.add_child(dim)
 	var panel := Panel.new()
 	panel.add_theme_stylebox_override("panel",
@@ -1797,6 +1799,7 @@ func _open_draft() -> void:
 	blind_card.z_index = 61   # 抬过商店内容层(shop 内浮字 60)—— 停靠是为了「看得见」
 	_shop_buys = 0        # 联票的续买配额按「一次进店」计
 	_shop_ads = 0          # 广告的每店账(2026-09-08)
+	_shop_ad_failed = false
 	ads.load_ad("coins")   # 进店就预载, 点 offer 时才有货
 	_pause_btn_visible(false)   # 商店 / 结算屏上暂停无效, 键不该悬在那(2026-09-06)
 	_perkeo_fired = false # 帕奇欧每次进店只复制一次(替换流可能中途藏板再回来, 离店点不止一个)
@@ -1867,6 +1870,8 @@ func _shop_route() -> Array:
 var _shop_buys := 0
 ## 本店已发的换金币广告次数(每店上限的账;每局的账在 run.ad_used)。进店归零, 与 _shop_buys 同款。
 var _shop_ads := 0
+## 本店广告放失败过 ⇒ 本店不再弹, 下家店再试(spec §4.3)
+var _shop_ad_failed := false
 var _perkeo_fired := false
 
 
@@ -1881,6 +1886,7 @@ func _on_shop_bought(j, price: int) -> void:
 	if price < 0 or phrase.coins < price:
 		Tape.on("deny", {"why": "buy_stale"})
 		return
+	shop.hide_ad_offer()   # 成交 = 缺口不存在了, offer 收起(spec §4.3)
 	phrase.coins -= price
 	Tape.on("buy", {"id": String(j.id), "kind": String(j.kind),
 		"price": price, "coins": phrase.coins})
@@ -2041,7 +2047,10 @@ func _on_shop_denied(why: String, need: int) -> void:
 	Tape.on("deny", {"why": why})
 	if state != St.DRAFT:
 		return
-	if ad_offer_ok(ads.has_ad("coins"), run.tutorial, run.ad_used, _shop_ads, phrase.coins, run.joker_slots):
+	if why == "consumable" and need == 0:
+		return   # 压暗的碟(买了没用)不是钱的事 —— 弹金币 offer 买不到任何东西
+	if ad_offer_ok(ads.has_ad("coins"), run.tutorial, run.ad_used, _shop_ads, phrase.coins, run.joker_slots) \
+			and not _shop_ad_failed:
 		shop.show_ad_offer(need, Economy.ad_coins())
 
 
@@ -2075,6 +2084,8 @@ func _on_ad_rewarded(kind: String) -> void:
 		shop.hide_ad_offer()
 		shop.set_buys_left(shop._buys_left, phrase.coins)   # 副标题的余额跟上;货架不重掷
 		shop._render(false)                                 # 价签的可购性按新余额重算
+		# 碟的 armed 只在 set_consumables 里算 —— 不刷, 为它看的广告就白看了(2026-09-08 spec 审查)
+		_refresh_shop_consumables()
 	else:
 		ev["late"] = true
 	Tape.on("ad", ev)
@@ -2086,6 +2097,7 @@ func _on_ad_failed(kind: String, why: String) -> void:
 	if kind == "energy":
 		_on_energy_ad_failed()
 		return
+	_shop_ad_failed = true
 	shop.hide_ad_offer()
 	if state == St.DRAFT:
 		var at: Array = DB.ui()["shop"]["ad_offer_pos"]

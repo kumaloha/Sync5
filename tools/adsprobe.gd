@@ -7,7 +7,10 @@ extends SceneTree
 ##   下一店再来一次 ⇒ ad_used 2;第三店 ⇒ 不弹(每局上限)。
 ## 流 B(体力墙):局中直接调 _deny_no_energy()(它自己先 _open_home() —— 首页是底,
 ##   与真人「开始 → 体力不够」同序;探针恒满, 靠 SYNC5_PROBE_ENERGY_WALL 开层)
-##   ⇒ 层在 ⇒ 点键 ⇒ 发奖 ⇒ 层没了 ⇒ **run 开了**(state 离开 FRONT = _pending_start 兑现了)。
+##   ⇒ 层在 ⇒ **先点空白处**(真输入路径 push_input)⇒ 层关、意图清空、还在首页
+##   ⇒ 再撞一次墙重开层 ⇒ 点键 ⇒ 发奖 ⇒ 层没了 ⇒ **run 开了**(state 离开 FRONT = _pending_start 兑现了)。
+## ⚠ 空白点击这条断言锁的是暗幕的 `mouse_filter` —— 缺省 STOP 会把点击吞掉,
+##   `layer.gui_input` 永远收不到(2026-09-08 spec 审查抓到)。
 ## ⚠ 靠 SYNC5_ADS=fake 显式盖过探针的 off(view/ads.gd::pick_mode_for)—— 不设就全是 no-op, 探针会红。
 ## ⚠ 改这个探针要做 A/B 验证(注入假 bug 确认它真报警), 项目铁律。
 ##
@@ -100,11 +103,24 @@ func _process(_delta: float) -> bool:
 				_stage = 1
 		5:
 			# 流 B:撞墙。`_deny_no_energy` 自己先开首页(首页是底), 与真人同序。
-			_scene._deny_no_energy()
+			if not _wall_up():
+				return _finish()
+			# 出口一:点空白处(面板在 150..570 × 500..690, 取左上角一定在外面)。
+			# ⚠ 走真输入路径 —— 直接调 _close_energy_wall 会**空绿**(暗幕吞点击这个 bug 照样过)。
+			_tap(Vector2(30, 30))
+			_wait = 2
+			_stage = 6
+		6:
+			if _scene._energy_layer != null:
+				_bug("点空白处没关层(暗幕 mouse_filter 吞了点击?)")
 			if _scene.state != ST_FRONT:
-				_bug("撞墙后没回首页(state=%d)" % _scene.state)
-			if _scene._energy_layer == null:
-				_bug("体力墙没开层(SYNC5_PROBE_ENERGY_WALL 没生效?)")
+				_bug("点空白关层后不该开局(state=%d)" % _scene.state)
+			if _scene._pending_start.is_valid():
+				_bug("点空白关层后 _pending_start 没清")
+			if _bugs == 0:
+				print("adsprobe: blank-tap closed wall")
+			# 出口二:重开层 → 点键 → 发奖
+			if not _wall_up():
 				return _finish()
 			var pressed := false
 			for c in _scene._energy_layer.get_children():
@@ -115,14 +131,39 @@ func _process(_delta: float) -> bool:
 				_bug("体力墙层里没有按钮")
 				return _finish()
 			_wait = 3
-			_stage = 6
-		6:
+			_stage = 7
+		7:
 			if _scene._energy_layer != null:
 				_bug("发奖后层没关")
 			if _scene.state == ST_FRONT:
 				_bug("发奖后没开局(_pending_start 没兑现)")
 			return _finish()
 	return false
+
+
+## 撞一次墙并确认层开了。返回 false = 已经报过 bug, 调用方该收工。
+func _wall_up() -> bool:
+	_scene._deny_no_energy()
+	if _scene.state != ST_FRONT:
+		_bug("撞墙后没回首页(state=%d)" % _scene.state)
+	if _scene._energy_layer == null:
+		_bug("体力墙没开层(SYNC5_PROBE_ENERGY_WALL 没生效?)")
+		return false
+	return true
+
+
+## 一次真点击(按下 + 抬起)喂给根视口 —— 让 GUI 自己去做命中测试, 探针不认识那一层的回调。
+## ⚠ **必须 in_local_coords = true**:无头窗口只有 64×64, 而 stretch=canvas_items 会把窗口
+## 坐标按 0.05 的比例映射回 720×1280 —— (30,30) 传进去落在 (320,600), 正好在面板里,
+## 于是「点空白」变成了「点面板」, 断言恒红且理由完全看不出来(踩过, 2026-09-08)。
+func _tap(at: Vector2) -> void:
+	for down in [true, false]:
+		var ev := InputEventMouseButton.new()
+		ev.button_index = MOUSE_BUTTON_LEFT
+		ev.pressed = down
+		ev.position = at
+		ev.global_position = at
+		get_root().push_input(ev, true)
 
 
 ## 把钱清成 0。⚠ **两处都要清**:`phrase.coins` 是真账, `shop._coins` 是商店进店时拷的那一份 ——
