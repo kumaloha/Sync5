@@ -24,6 +24,8 @@ const DOMAINS := [
 	"t_save",
 	# t_eco:sim 经济收支账本(tools/report.gd, 2026-08-27)。纯算术, 不碰共享状态。
 	"t_eco",
+	# t_ads:激励视频适配层 + 商店/体力两条流的契约(2026-09-08)。不碰共享状态, 追加安全。
+	"t_ads",
 ]
 
 var _pass := 0
