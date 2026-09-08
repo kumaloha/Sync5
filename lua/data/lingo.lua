@@ -76,8 +76,6 @@ return {
 		["%d 张万能牌进了牌堆"] = "%d wild cards joined the deck",
 		["牌堆里的 2 和 3 已移除"] = "All 2s and 3s trimmed from the deck",
 		["◆ 不足"] = "Not enough ◆",
-		["差 %d◆ · 看广告 +%d◆"] = "Short %d◆ · Watch an ad +%d◆",
-		["看广告 +%d◆"] = "Watch an ad +%d◆",
 		["广告暂时没有,稍后再试"] = "No ad available right now — try again later",
 		["拖或点要换掉的槽位 · ◆%d 买入 · 旧卡折半"] = "Drag or tap a slot to replace · buy ◆%d · old refunds half",
 		["✕ 不换了"] = "✕ Never mind",

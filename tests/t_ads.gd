@@ -73,3 +73,17 @@ func run(t) -> void:
 	t.check(not PV.energy_wall_ok(false, true), "没货 ⇒ 今天的行为(明天回满)")
 	t.check(not PV.energy_wall_ok(true, false), "存档不许(满值/到顶)⇒ 今天的行为")
 	t.check(not DB.lingo()["table"].has("看广告补体力 · 敬请期待"), "「敬请期待」那句已删(表里没有)")
+
+	# ---- ④ 赞助碟取代了 offer 按钮(2026-09-09)——「同一件事只留一套机制」的机械锁 ----
+	# ⚠ 反向断言(表里/配置里**没有**)是这条替换唯一守得住的形状:留着旧文案不报错,
+	#   下一个人会以为两套并存(t_lingo 的孤儿检查会红, 但它说不出为什么该删)。
+	t.check(not DB.lingo()["table"].has("差 %d◆ · 看广告 +%d◆"), "offer 的缺口文案已删")
+	t.check(not DB.lingo()["table"].has("看广告 +%d◆"), "offer 的无缺口文案已删")
+	var shop_cfg: Dictionary = DB.ui()["shop"]
+	t.check(not shop_cfg.has("ad_offer_text"), "ui.json 的 offer 文案键已删")
+	t.check(not shop_cfg.has("ad_offer_pos"), "ui.json 的 offer 位置键已删")
+	t.check(shop_cfg.has("cons_col_w_3"), "三碟排布的列宽在 ui.json(改布局 = 改 JSON)")
+	t.check(shop_cfg.has("sponsor_free_text"), "赞助碟价签的「免费」在 ui.json")
+	# 卡面上的数 = 发出去的数(parity 第四层同一条账)
+	t.eq(Economy.ad_coins(), int(Consumable.sponsor_entry()["action"]["ad_coins"]),
+		"发几◆ 从赞助碟的 action 上读(数住在卡上)")

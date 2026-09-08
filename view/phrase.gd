@@ -150,7 +150,7 @@ func _ad_watchdog() -> void:
 	if _energy_ad_showing:
 		get_tree().create_timer(2.0).timeout.connect(_energy_cancel_if_unrewarded)
 	if _coins_ad_showing:
-		get_tree().create_timer(2.0).timeout.connect(func() -> void: _coins_ad_showing = false)
+		get_tree().create_timer(2.0).timeout.connect(_coins_cancel_if_unrewarded)
 
 
 ## The front page (docs/mockups/home.html). Like the picker it holds the clock —
@@ -304,7 +304,6 @@ func _build_ui() -> void:
 	shop.skipped.connect(_on_shop_skipped)
 	shop.reroll_paid.connect(_on_shop_reroll)
 	shop.denied.connect(_on_shop_denied)
-	shop.ad_requested.connect(_on_shop_ad_requested)
 	shop.consumable_bought.connect(_on_consumable_bought)
 	settle_fx.burst_started.connect(_on_settle_burst)
 	run_end.next_pressed.connect(_on_end_next)
@@ -1004,7 +1003,19 @@ func _on_quit_run() -> void:
 ## 商店, 没有「哪一拍」可选);其余 4 张排进待播队列, 到自己的拍号自己打。
 ## ⚠ 栏位满的拒绝分支一并删除 —— 队列没有硬上限(理由见 `Run.consumables`)。
 func _on_consumable_bought(c, price: int) -> void:
-	shop.hide_ad_offer()   # 成交 = 缺口不存在了, offer 收起(spec §4.3)
+	# ⚑⚑ 赞助碟(2026-09-09):点它 = 放一段插播, 播完场馆付钱。它**不是一笔买卖** ——
+	# 不扣钱(免费)、不进队列(它没有「哪一拍」)、**不占 5 选 1 的名额**(`_shop_buys` 不动),
+	# 所以整条成交路径在这里就分岔走开。发奖在 `_on_ad_rewarded`, 那里才动钱。
+	# ⚠ 放中再点一次不许再叫一次 show(与体力墙 `_energy_ad_showing` 同款护栏)。
+	if c != null and c.is_sponsor():
+		if _coins_ad_showing:
+			return
+		Tape.on("ad", {"k": "coins", "ev": "show"})
+		shop.set_sponsor_playing(true)
+		_coins_ad_showing = true
+		_coins_ad_rewarded = false
+		ads.show_ad("coins")
+		return
 	phrase.coins -= price
 	run.coins = phrase.coins
 	var from := shop.cshelf_center(c)
@@ -1080,6 +1091,11 @@ func _apply_shop_action(id: String, act: Dictionary) -> void:
 		shop.grant_free_reroll(int(act["free_reroll"]))
 	if act.has("min_rarity"):                  # 挑高:下次货架没有普通卡
 		shop.grant_min_rarity(String(act["min_rarity"]))
+	if act.has("ad_coins"):                  # 赞助插播:看完一段广告, 场馆付钱
+		# ⚠ 走 `Economy.grant` 收口(所有入账都走它 —— 穷开心的 coin_cap 要吃得到);
+		# 与 loan 的 borrow 同一条路。**只有这一处发这笔钱**:发奖(店内)与晚到回调共用它。
+		phrase.coins = Economy.grant(phrase.coins, int(act["ad_coins"]), run.joker_slots)
+		run.coins = phrase.coins
 	if act.has("loan"):                      # 预支:当场借, 下一个段边界还
 		var ln: Dictionary = act["loan"]
 		# ⚠ 走 `Economy.grant` 收口 —— 与旧的循环贷同一条(要吃穷开心的 coin_cap)。
@@ -1201,10 +1217,33 @@ func _consumable_effective(c) -> bool:
 	return true
 
 
+## ⚑⚑ 货架第三位:赞助碟(2026-09-09)。有广告可放 · 两级上限没到 · 不是教学关 · 本店没放失败过
+## ⇒ 它在架上;否则 `_coffer` 就是今天的两张(**离线 = 今天的商店, 一像素不差**)。
+## ⚠ **每次刷新都重算** —— Android 的 `has_ad` 是异步变真的:进店那一刻没货、两秒后有了,
+##   只在进店算一次就等于永远不上架(而且不报错)。
+func _sponsor_slot():
+	if not ad_offer_ok(ads.has_ad("coins"), run.tutorial, run.ad_used, _shop_ads,
+			phrase.coins, run.joker_slots) or _shop_ad_failed:
+		return null
+	var e := Consumable.sponsor_entry()
+	return null if e.is_empty() else Consumable.new(e)
+
+
+## 把第三位与当刻条件对齐(挂上 / 摘下)。`_coffer` 因此恒是 2 张或 3 张且末位是赞助碟。
+func _sync_sponsor_slot() -> void:
+	var sp = _sponsor_slot()
+	if _coffer.size() >= 3:
+		if sp == null:
+			_coffer.resize(2)
+	elif sp != null:
+		_coffer.append(sp)
+
+
 ## ⚑ `_consumable_effective` 的门从「点得动吗」搬到了「**买得动吗**」(2026-09-01)。
 ## 自动触发之后没有「点」这一步, 而砧座在 support ≤1 时买了等于白花 4◆ ——
 ## 与其让它静默浪费, 不如在货架上就压暗。判据一字未改, 只是位置换了。
 func _refresh_shop_consumables() -> void:
+	_sync_sponsor_slot()
 	var eff: Array = []
 	for c in _coffer:
 		eff.append(c != null and _consumable_effective(c))
@@ -1841,8 +1880,9 @@ func _open_draft() -> void:
 	_shop_buys = 0        # 联票的续买配额按「一次进店」计
 	_shop_ads = 0          # 广告的每店账(2026-09-08)
 	_shop_ad_failed = false
-	_coins_ad_showing = false   # 丢掉的 closed/failed 回调不许把 offer 永久锁死(与体力墙 _open_energy_wall 同款)
-	ads.load_ad("coins")   # 进店就预载, 点 offer 时才有货
+	_coins_ad_showing = false   # 丢掉的 closed/failed 回调不许把赞助碟永久锁死(与体力墙 _open_energy_wall 同款)
+	_coins_ad_rewarded = false
+	ads.load_ad("coins")   # 进店就预载 —— 有货才上架赞助碟(碟是「能放」的证据, 不是一个会失败的按钮)
 	_pause_btn_visible(false)   # 商店 / 结算屏上暂停无效, 键不该悬在那(2026-09-06)
 	_perkeo_fired = false # 帕奇欧每次进店只复制一次(替换流可能中途藏板再回来, 离店点不止一个)
 	# a mid-section shop opens with the blind's counter part-way through; a
@@ -1872,7 +1912,7 @@ func _open_draft() -> void:
 	# 已持有的不再上架, 免得开局就撞见两张一样的。
 	_coffer = _roll_consumables()
 	_coffer_used = false
-	_refresh_shop_consumables()
+	_refresh_shop_consumables()   # 赞助碟(第三位)在这里面按当刻条件挂上/摘下
 	# 分镜 D(v6):教学商店自己带条 —— 锚在商店盲注板下, focus 指货架价签行,
 	# 货架操作面(卡/价签/按钮)进常亮洞(玩家要挑的卡不许黑)。必须在 shop.open
 	# **之后**:价签行的矩形是 _layout 按当拍货架数摆出来的, 开店前是空的。
@@ -1914,6 +1954,8 @@ var _shop_buys := 0
 var _shop_ads := 0
 ## 正在放换金币的广告(与体力那边的 _energy_ad_showing 同款护栏):放中再点一次不许再叫一次 show。
 var _coins_ad_showing := false
+## 这一次放映发过奖没有 —— closed / 看门狗要靠它决定碟是「离架了」还是「该回到在场」。
+var _coins_ad_rewarded := false
 ## 本店广告放失败过 ⇒ 本店不再弹, 下家店再试(spec §4.3)
 var _shop_ad_failed := false
 var _perkeo_fired := false
@@ -1930,7 +1972,6 @@ func _on_shop_bought(j, price: int) -> void:
 	if price < 0 or phrase.coins < price:
 		Tape.on("deny", {"why": "buy_stale"})
 		return
-	shop.hide_ad_offer()   # 成交 = 缺口不存在了, offer 收起(spec §4.3)
 	phrase.coins -= price
 	Tape.on("buy", {"id": String(j.id), "kind": String(j.kind),
 		"price": price, "coins": phrase.coins})
@@ -2072,7 +2113,8 @@ func _on_shop_replace(j) -> void:
 	replace.enter(j, shop.price_of(j))   # 含赞助折扣(展示价与成交价同源)
 
 
-## 能不能弹广告 offer(纯判定, t_ads 直打):有货 · 不是教学关 · 两级上限没到 · 发了真能入账(金币上限护栏在 Economy 里)。
+## 赞助碟能不能上架(纯判定, t_ads 直打):有货 · 不是教学关 · 两级上限没到 · 发了真能入账(金币上限护栏在 Economy 里)。
+## ⚠ 名字沿用 `ad_offer_ok`(体力墙那边的 `energy_wall_ok` 与它成对);「offer」现在指的是货架第三位, 不再是一个按钮。
 static func ad_offer_ok(has_ad: bool, tutorial: bool, run_used: int, shop_used: int, coins: int, slots: Array) -> bool:
 	return has_ad and not tutorial and Economy.ad_coins_allowed(run_used, shop_used, coins, slots)
 
@@ -2085,28 +2127,11 @@ static func ad_reward_case(run_alive: bool, st: int) -> String:
 	return "store" if st == St.DRAFT else "late"
 
 
-## 商店里「想要但拿不到」那一刻(2026-09-08 二审:广告 offer 只长在这里)。
-## 打点照旧;视图只画, 判断只在这里(经济动作只发生在编排器)。
-func _on_shop_denied(why: String, need: int) -> void:
+## 商店里「想要但拿不到」那一刻 —— **只记事实**(口径铁律)。
+## ⚑ 2026-09-09:这里原本会弹一个「看广告 +3◆」的系统按钮, 整套删了 ——
+## 广告改成货架上的一张碟(赞助商是这个世界里的一个角色), **同一件事不许有第二套机制**。
+func _on_shop_denied(why: String) -> void:
 	Tape.on("deny", {"why": why})
-	if state != St.DRAFT:
-		return
-	if why == "consumable" and need == 0:
-		return   # 压暗的碟(买了没用)不是钱的事 —— 弹金币 offer 买不到任何东西
-	if ad_offer_ok(ads.has_ad("coins"), run.tutorial, run.ad_used, _shop_ads, phrase.coins, run.joker_slots) \
-			and not _shop_ad_failed:
-		shop.show_ad_offer(need, Economy.ad_coins())
-
-
-func _on_shop_ad_requested() -> void:
-	if state != St.DRAFT or replace.pick != null or _coins_ad_showing:
-		return
-	if not ad_offer_ok(ads.has_ad("coins"), run.tutorial, run.ad_used, _shop_ads, phrase.coins, run.joker_slots):
-		shop.hide_ad_offer()
-		return
-	Tape.on("ad", {"k": "coins", "ev": "show"})
-	_coins_ad_showing = true
-	ads.show_ad("coins")
 
 
 ## 发奖 —— 一份判定三种情形(ad_reward_case)。⚠ 入账走 Economy.grant(金币上限那条铁律:所有入账都走它)。
@@ -2125,17 +2150,25 @@ func _on_ad_rewarded(kind: String) -> void:
 	if not Economy.ad_coins_allowed(run.ad_used, shop_used, phrase.coins, run.joker_slots):
 		Tape.on("ad", {"k": "coins", "ev": "drop"})   # 重复回调 / 双击:上限在发钱那一刻再守一次
 		return
-	phrase.coins = Economy.grant(phrase.coins, Economy.ad_coins(), run.joker_slots)
 	run.ad_used += 1
-	var ev := {"k": "coins", "ev": "reward", "coins": phrase.coins}
+	_coins_ad_rewarded = true
+	var ev := {"k": "coins", "ev": "reward"}
 	if c == "store":
+		# ⚠ **两级上限先记账再刷货架** —— 反过来的话 `_refresh_shop_consumables()` 会拿旧计数
+		# 重算第三位, 把刚播完的赞助碟又挂回去(同店无限看广告, 而且不报错)。
 		_shop_ads += 1
-		shop.hide_ad_offer()
-		shop.refresh_coins(phrase.coins)   # 副标题的余额与价签的可购性跟上;货架不重掷
-		# 碟的 armed 只在 set_consumables 里算 —— 不刷, 为它看的广告就白看了(2026-09-08 spec 审查)
+		# 发钱走消耗牌的共用执行口(Tape 会记一条 consumable why=ad)—— 它就是一张消耗牌,
+		# 不该有第二条发钱路径;数从卡上的 action 来, 不抄第二份。
+		_apply_consumable({"id": "sponsorbreak", "action": {"ad_coins": Economy.ad_coins()}}, "ad")
+		if _coffer.size() >= 3:
+			_coffer.resize(2)      # 碟像卖出的商品一样离架
 		_refresh_shop_consumables()
+		shop.refresh_coins(phrase.coins)   # 副标题的余额与价签的可购性跟上;货架不重掷
 	else:
+		# 晚到(店已关):只发钱, 一寸商店都不碰 —— 那家店已经不在屏幕上了。
+		_apply_shop_action("sponsorbreak", {"ad_coins": Economy.ad_coins()})
 		ev["late"] = true
+	ev["coins"] = phrase.coins
 	Tape.on("ad", ev)
 	_refresh()
 
@@ -2147,18 +2180,27 @@ func _on_ad_failed(kind: String, why: String) -> void:
 	Tape.on("ad", {"k": kind, "ev": "fail", "why": why})
 	_coins_ad_showing = false
 	_shop_ad_failed = true
-	shop.hide_ad_offer()
+	shop.set_sponsor_playing(false)
 	if state == St.DRAFT:
-		var at: Array = DB.ui()["shop"]["ad_offer_pos"]
-		fx.float_text(Lingo.t("广告暂时没有,稍后再试"), Vector2(float(at[0]), float(at[1])), Color("ff5f7e"), 90)
+		# 放不成 ⇒ 碟当场离架(本店不再上架, 下家店再试)。留一张点了没反应的碟比不给更糟。
+		if _coffer.size() >= 3:
+			_coffer.resize(2)
+		_refresh_shop_consumables()
+		var sc: Dictionary = DB.ui()["shop"]
+		fx.float_text(Lingo.t("广告暂时没有,稍后再试"),
+			Vector2(float(sc.get("cons_left", 190)), float(sc.get("cons_y", 912)) - 40.0),
+			Color("ff5f7e"), 90)
 
 
-## 关掉(含没看完):金币那支只解掉放中护栏 —— offer 还在(若仍有货), 上限只数真发出去的钱。
+## 关掉(含没看完):金币那支只解掉放中护栏 —— 碟还在(若仍有货), 上限只数真发出去的钱。
 func _on_ad_closed(kind: String) -> void:
 	if kind == "energy":
 		_on_energy_ad_closed()
 		return
 	_coins_ad_showing = false
+	# 没发奖就关掉 = 没看完 ⇒ 碟回到「在场」。发过奖的那张碟此刻已经离架, 不必收态。
+	if not _coins_ad_rewarded:
+		shop.set_sponsor_playing(false)
 
 
 func _on_energy_ad_rewarded() -> void:
@@ -2196,6 +2238,16 @@ func _energy_cancel_if_unrewarded() -> void:
 		return
 	_close_energy_wall(false)
 	fx.float_text(Lingo.t("体力不足,明天回满"), Vector2(243.0, 986.0), Color("ff5f7e"), 90)
+
+
+## 金币那支的看门狗(与上面同一条理由:真 SDK 的 dismiss 回调若丢失, 放中护栏会把碟锁死)。
+## ⚠ 除了解锁, 还要把碟从「插播中」放回「在场」—— 只解锁的话屏幕上留着一张永远在转的碟。
+func _coins_cancel_if_unrewarded() -> void:
+	if not _coins_ad_showing:
+		return
+	_coins_ad_showing = false
+	if not _coins_ad_rewarded:
+		shop.set_sponsor_playing(false)
 
 
 ## 「继续 ▸」= 不买就走。2026-08-06 起**没有奖励**(用户拿掉了跳过机制),

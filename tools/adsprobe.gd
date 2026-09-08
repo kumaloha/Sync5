@@ -2,9 +2,10 @@ extends SceneTree
 
 ## 激励视频两条流的无头回归(2026-09-08)。假后端驱动, 退出码非 0 = 有违规:
 ##   SYNC5_ADS=fake SYNC5_PROBE_ENERGY_WALL=1 godot --headless --path . --script res://tools/adsprobe.gd
-## 流 A(商店):进店 → 把钱清零 → 点刷新(买不起 ⇒ denied ⇒ offer)→ 点 offer → 下一帧发奖
-##   ⇒ 金币 +ad_coins、run.ad_used +1、offer 收起;同店再点刷新 ⇒ **不再弹**(每店上限);
-##   下一店再来一次 ⇒ ad_used 2;第三店 ⇒ 不弹(每局上限)。
+## 流 A(商店, 2026-09-09 赞助商版):进店 ⇒ 货架第三位是赞助碟 → 点它 → 下一帧发奖
+##   ⇒ 金币 +ad_coins、run.ad_used +1、**碟离架**(_coffer 回到 2);同店再点第三位 ⇒ **无操作**
+##   (每店上限 1);下一店再来一次 ⇒ ad_used 2;第三店 ⇒ **不上架**(每局上限 2)。
+## ⚠ 钱不再是这条流的变量 —— 碟是免费的。断言只看「在不在架上」与「发没发钱」。
 ## 流 B(体力墙):局中直接调 _deny_no_energy()(它自己先 _open_home() —— 首页是底,
 ##   与真人「开始 → 体力不够」同序;探针恒满, 靠 SYNC5_PROBE_ENERGY_WALL 开层)
 ##   ⇒ 层在 ⇒ **先点空白处**(真输入路径 push_input)⇒ 层关、意图清空、还在首页
@@ -63,37 +64,36 @@ func _process(_delta: float) -> bool:
 			# 等一家店开
 			if _scene.state == ST_DRAFT:
 				_shops += 1
-				if _scene.shop.ad_offer_visible():
-					_bug("第 %d 店刚开就挂着 offer(close 没收起?)" % _shops)
-				_broke()
-				_coins_before = _scene.phrase.coins
-				_scene.shop._on_reroll()      # 买不起 ⇒ denied ⇒ offer
-				_stage = 2
+				var want: bool = _shops <= GameConfig.AD_COINS_PER_RUN
+				if _sponsor_on_shelf() != want:
+					_bug("第 %d 店赞助碟在架=%s, 应为 %s(每局上限 %d)"
+						% [_shops, _sponsor_on_shelf(), want, GameConfig.AD_COINS_PER_RUN])
+				if not want:
+					_stage = 4
+				else:
+					_coins_before = _scene.phrase.coins
+					_scene.shop._on_cshelf_pressed(2)     # 点第三张碟 = 放一段插播
+					_wait = 2
+					_stage = 3
 			else:
 				_drive_beat()
-		2:
-			var expect_offer: bool = _shops <= GameConfig.AD_COINS_PER_RUN
-			if _scene.shop.ad_offer_visible() != expect_offer:
-				_bug("第 %d 店 offer 可见=%s, 应为 %s"
-					% [_shops, _scene.shop.ad_offer_visible(), expect_offer])
-			if expect_offer:
-				_scene.shop._on_ad_offer()
-				_wait = 2
-				_stage = 3
-			else:
-				_stage = 4
 		3:
 			if _scene.phrase.coins != _coins_before + Economy.ad_coins():
 				_bug("发奖后金币 %d, 应为 %d"
 					% [_scene.phrase.coins, _coins_before + Economy.ad_coins()])
 			if _scene.run.ad_used != _shops:
 				_bug("run.ad_used=%d, 应为 %d" % [_scene.run.ad_used, _shops])
-			if _scene.shop.ad_offer_visible():
-				_bug("发奖后 offer 没收起")
-			_broke()
-			_scene.shop._on_reroll()       # 同店第二次:每店上限 ⇒ 不弹
-			if _scene.shop.ad_offer_visible():
-				_bug("同一店第二次弹了(每店上限失效)")
+			if _scene._coffer.size() != 2:
+				_bug("发奖后碟没离架(_coffer=%d, 应为 2)" % _scene._coffer.size())
+			if _sponsor_on_shelf():
+				_bug("发奖后赞助碟还在架上(每店上限失效?)")
+			# 同店第二次点第三位:碟已离架 ⇒ 必须是**无操作**(不再发一次奖)
+			var coins_now: int = _scene.phrase.coins
+			var used_now: int = _scene.run.ad_used
+			_scene.shop._on_cshelf_pressed(2)
+			if _scene.phrase.coins != coins_now or _scene.run.ad_used != used_now:
+				_bug("同一店第二次点第三位又发了一次(金币 %d→%d, ad_used %d→%d)"
+					% [coins_now, _scene.phrase.coins, used_now, _scene.run.ad_used])
 			_stage = 4
 		4:
 			_scene._on_shop_skipped()      # 「继续 ▸」离店
@@ -169,12 +169,10 @@ func _tap(at: Vector2) -> void:
 		get_root().push_input(ev, true)
 
 
-## 把钱清成 0。⚠ **两处都要清**:`phrase.coins` 是真账, `shop._coins` 是商店进店时拷的那一份 ——
-## 只清前者的话 `_on_reroll()` 拿旧余额判、根本不发 `denied`, 整条 offer 路径一步都没走到
-## (而探针会因此「绿得像对了」)。走 `refresh_coins` 是因为游戏侧同步余额用的就是它。
-func _broke() -> void:
-	_scene.phrase.coins = 0
-	_scene.shop.refresh_coins(0)
+## 赞助碟此刻在不在货架第三位。⚠ 查的是**编排器的 `_coffer`**(货架的真相), 不是屏幕上那个按钮 ——
+## 视图的碟位恒建 3 个, 只是藏起来, 问它「有没有」会恒真。
+func _sponsor_on_shelf() -> bool:
+	return _scene._coffer.size() == 3 and _scene._coffer[2] != null and _scene._coffer[2].is_sponsor()
 
 
 ## 推进一拍(与 flow_probe 同款:强行过关 + 把钟拨到锁定, 让被测代码自己走结算)。

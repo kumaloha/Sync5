@@ -1416,6 +1416,13 @@ class ConsumableSlot:
 	var stamp := ""          # 碟标上刻的那个字:拍号, 或 ▸(下一拍), 或空(买入即触发)
 	var filled := false
 	var armed := true        # 买得起 **且** 买了有用
+	## ⚑ 赞助碟(2026-09-09):货架第三位那张「赞助插播」。**只换三件事** ——
+	## 颜色青(舞台自己的光, 与货架金环分得开)· 中心画霓虹招牌而不是插画(它没有插画,
+	## 广告是个角色不是一件商品)· 右下刻印刻「AD」而不是拍号(它买下即播, 没有拍号可刻)。
+	## 盘/环/齿/发光**逐项与普通碟相同** —— 它是这个世界里的一张碟, 不是一块系统横幅。
+	var sponsor := false
+	## 插播中:全屏广告盖在上面, 这一态只在回来的一瞬看得到(环压暗 + 一段亮弧 + 暂停双杠)。
+	var playing := false
 	var _shake_t := 0.0
 
 	func _init() -> void:
@@ -1444,7 +1451,7 @@ class ConsumableSlot:
 		if _shake_t > 0.0:
 			c.x += sin(_shake_t * 60.0) * _shake_t * 12.0
 		var r := minf(size.x, size.y) * 0.5 - 2.0
-		var a := 1.0 if armed else 0.34
+		var a := 1.0 if (armed and not playing) else 0.34
 		# 外发光三层 + 盘 + 描边
 		for i in range(3):
 			draw_circle(c, r + 2.0 + float(i) * 2.0,
@@ -1458,24 +1465,59 @@ class ConsumableSlot:
 			var d := Vector2(cos(ang), sin(ang))
 			draw_line(c + d * (r - 1.0), c + d * (r - r * 0.09),
 				Color(accent.r, accent.g, accent.b, 0.42 * a), 1.4, true)
+		# 插播中的那段亮弧:从正上方顺时针 270°(画布 SponsorDisc.dc.html 02 态)。
+		# ⚠ **不转** —— 广告盖在上面时没人看得到动画, 回来的一瞬要的是「它正在忙」这一个事实。
+		if playing:
+			draw_arc(c, r, -PI * 0.5, PI, 48, Color(accent.r, accent.g, accent.b, 0.95), 2.5, true)
+		# 赞助碟的中心 = 霓虹招牌(它没有插画);其余碟走插画那条路
+		if sponsor:
+			_sign(c, r, a)
 		# 插画:走小丑牌那条唯一加载路径(别抄第二份), 按内容包围盒 contain 进内圈
-		if _art != null and _art_src.size.x > 0.0:
+		elif _art != null and _art_src.size.x > 0.0:
 			var box := Rect2(c - Vector2(r, r) * 0.62, Vector2(r, r) * 1.24)
 			var k := minf(box.size.x / _art_src.size.x, box.size.y / _art_src.size.y)
 			var dst := Rect2(box.position + (box.size - _art_src.size * k) * 0.5,
 				_art_src.size * k)
 			draw_texture_rect_region(_art, dst, _art_src, Color(1, 1, 1, a))
-		# 拍号刻印:右下角一枚小圆 —— 「它在第几拍自己打」写在脸上
-		if stamp != "":
+		# 拍号刻印:右下角一枚小圆 —— 「它在第几拍自己打」写在脸上。
+		# ⚑ 赞助碟刻的是「AD」(同一枚刻印, 同一个位置):它买下即播, 没有拍号可刻,
+		#   而这个位置本来就是「这张碟什么时候发生」的那一格。
+		var st := "AD" if sponsor else stamp
+		if st != "":
 			var sc := c + Vector2(r * 0.62, r * 0.62)
 			var sr := r * 0.30
 			draw_circle(sc, sr, Color(0.02, 0.02, 0.05, 0.95 * a))
 			draw_arc(sc, sr, 0, TAU, 24, Color(accent.r, accent.g, accent.b, 0.9 * a), 1.5)
 			var f: Font = StageTheme.num("Bold")
-			var fs := int(sr * 1.25)
-			var w := f.get_string_size(stamp, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
-			draw_string(f, sc + Vector2(-w * 0.5, fs * 0.36), stamp,
+			# 两个字母要窄一号才不顶到环上(画布刻的就是 18/19.2 ≈ 0.94)
+			var fs := int(sr * (0.94 if sponsor else 1.25))
+			var w := f.get_string_size(st, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+			draw_string(f, sc + Vector2(-w * 0.5, fs * 0.36), st,
 				HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(1, 1, 1, a))
+
+	## 霓虹招牌 —— 赞助商在这个世界里的样子(画布 SponsorDisc.dc.html 的 r=64 剖面,
+	## 全部写成 r 的比例, 碟径一改就跟着走)。60×42 圆角 7 描边 2 + 两根吊线 + 播放三角;
+	## 插播中时三角换成暂停双杠(同一块招牌, 换一个符号 = 换一个状态, 不另画一层)。
+	func _sign(c: Vector2, r: float, a: float) -> void:
+		var col := Color(accent.r, accent.g, accent.b, a)
+		# 吊线:招牌顶上那两根(它是挂着的, 不是贴上去的)
+		for sx in [-0.28, 0.28]:
+			draw_line(c + Vector2(r * sx, -r * 0.50), c + Vector2(r * sx, -r * 0.34),
+				Color(col.r, col.g, col.b, 0.55 * a), 1.4, true)
+		var box := Rect2(c - Vector2(r * 0.94, r * 0.66) * 0.5, Vector2(r * 0.94, r * 0.66))
+		draw_style_box(StageTheme.box(Color(col.r, col.g, col.b, 0.06 * a),
+			Color(col.r, col.g, col.b, 0.92 * a), 2, int(round(r * 0.11))), box)
+		if playing:
+			# 暂停双杠:静态(广告在放, 商店等它)
+			for bx in [-0.141, 0.047]:
+				draw_rect(Rect2(c + Vector2(r * bx, -r * 0.156), Vector2(r * 0.094, r * 0.3125)),
+					Color(col.r, col.g, col.b, 0.6 * a))
+		else:
+			draw_colored_polygon(PackedVector2Array([
+				c + Vector2(-r * 0.094, -r * 0.156),
+				c + Vector2(r * 0.172, 0.0),
+				c + Vector2(-r * 0.094, r * 0.156)]),
+				Color(col.r, col.g, col.b, 0.95 * a))
 
 
 class DJKey:

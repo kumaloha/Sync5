@@ -11,8 +11,7 @@ signal bought(j, price: int)          # affordable pick — orchestrator deducts
 signal replace_requested(j)           # full slots: orchestrator runs the replace flow
 signal skipped()                      # orchestrator pays the skip reward
 signal reroll_paid(cost: int)         # orchestrator deducts, then calls redeal()
-signal denied(why: String, need: int)  # 想买/想刷但钱不够 — 编排器打点;need = 差几◆(算不出 0), 广告 offer 的触发点(2026-09-08)
-signal ad_requested()                 # 玩家点了广告 offer — 编排器放广告、发奖、计数(视图不碰钱不数次数)
+signal denied(why: String)            # 想买/想刷但钱不够 — 编排器打点
 signal consumable_bought(c, price: int)   # 买下货架上那张消耗牌 — 编排器扣钱并收进栏位
 var _cfg: Dictionary = DB.ui()["shop"]
 var _layer: Control
@@ -24,7 +23,6 @@ var _kind_label: Label
 var _blind_board: Widgets.BlindBoard
 var _reroll_btn: Button
 var _skip_btn: Button
-var _ad_btn: Button = null      # 广告 offer 小键(2026-09-08):只在编排器 show_ad_offer 时可见
 var _candidates: Array = []
 var _reroll_count := 0
 ## 联票续买态:还能再买几张(0 = 普通态)。只由 `sold()` 写, `_deal()` 归零。
@@ -54,11 +52,11 @@ func set_shelf_rarity_mult(m: Dictionary) -> void:
 
 
 var _slots: Array = []
-var _cshelf: Array = []         # 货架上的消耗牌按钮 ×2(2026-08-31:1 → 2)
+var _cshelf: Array = []         # 货架上的消耗牌按钮 ×3(2026-09-09:2 → 3, 第三位是赞助碟)
 var _cshelf_price: Array = []
 var _cshelf_name: Array = []
 var _cshelf_desc: Array = []
-var _coffer: Array = []         # 当前货架上的 Consumable ×2(可含 null)
+var _coffer: Array = []         # 当前货架上的 Consumable(2 张, 或 3 张且末位是赞助碟;可含 null)
 # ---- 消耗牌授予的一次性商店改动(2026-08-29)。⚠ 全部**用完即清**:
 # 「这次商店」类在 close() 清, 「下次货架」类在 _deal() 消费后清 —— 忘了清
 # 就等于把一次性效果做成了永久 buff, 而那正是这些牌当初该被挪出小丑牌的理由。
@@ -148,18 +146,6 @@ func _layout(count: int) -> void:
 		_skip_btn = _button(String(_cfg["skip_text"]))
 		_skip_btn.pressed.connect(_on_skip)
 		_layer.add_child(_skip_btn)
-	# 广告 offer(2026-09-08 二审:长在「想要但拿不到」那一刻)。**只建一次**(同上那条泄漏教训),
-	# 缺省藏着 —— 没 offer 时商店与今天一像素不差(离线玩家的红线)。
-	if _ad_btn == null:
-		_ad_btn = _button("")
-		_ad_btn.custom_minimum_size = Vector2(348, 40)
-		_ad_btn.add_theme_font_size_override("font_size", 17)
-		_ad_btn.add_theme_color_override("font_color", StageTheme.GOLD)
-		_ad_btn.visible = false
-		_ad_btn.pressed.connect(_on_ad_offer)
-		_layer.add_child(_ad_btn)
-	_ad_btn.position = _v2(_cfg["ad_offer_pos"])
-	_ad_btn.size = Vector2(348, 40)
 	# ⚠ **只建一次** —— `_layout()` 每次 `_render` 都会跑, 不守就会每刷一次货架
 	# 就多出一对格子叠在原处(实测第二次开店时货架格变成 4 个, 而
 	# `set_consumables` 只更新前两个 ⇒ 屏幕上是新旧混着的错乱)。
@@ -198,26 +184,22 @@ func _build_consumable_row() -> void:
 	# ⇒ 碟径 84 → **132(= 局内唱片 `VinylDeck` 的尺寸)**, 两列在
 	#   「盲注卡右缘 → 右边距」这段里**居中**, 而不是贴着左边挤成一堆。
 	# ⚠ 坐标全部搬进 `data/ui.json` 的 shop 节(cons_*)—— 改布局 = 改 JSON。
-	var cy: float = float(_cfg.get("cons_y", 912))
+	# ⚑⚑ **2 → 3 格**(2026-09-09 赞助商版):第三位留给「赞助插播」那张碟(有广告可放、
+	# 两级上限未到、非教学关时才上架)。⚠ **节点恒建 3 个、摆位按当次货架数算**(`_place_consumables`)
+	# —— 与小丑牌那 4 位同一条纪律:建到上限、坐标交给排布函数, 否则「有广告的店多一格」
+	# 就会变成「每开一次店多建一格」(_layout 泄漏那条教训的第三次)。
 	var dd: float = float(_cfg.get("cons_disc", 132))
 	var cw: float = float(_cfg.get("cons_col_w", 190))
-	var cg: float = float(_cfg.get("cons_gap", 24))
-	var lx: float = float(_cfg.get("cons_left", 190))
-	var rx: float = float(_cfg.get("cons_right", 692))
-	var x0: float = lx + ((rx - lx) - (cw * 2.0 + cg)) * 0.5
-	for i in range(2):
-		var col := x0 + float(i) * (cw + cg)
+	for i in range(3):
 		var sh := Widgets.ConsumableSlot.new()
-		sh.idx = -1 - i                   # -1/-2 = 货架位(买;栏位那两格已退役)
+		sh.idx = -1 - i                   # -1/-2/-3 = 货架位(买;栏位那两格已退役)
 		sh.size = Vector2(dd, dd)
-		sh.position = Vector2(col + (cw - dd) * 0.5, cy)
 		sh.pressed.connect(_on_cshelf_pressed.bind(i))
 		_layer.add_child(sh)
 		_cshelf.append(sh)
 		# 碟上不写名字(84px 的圆里放了插画就没地方了), 名字单独一行 ——
 		# ⚑ 名字是玩家**记得住、说得出**的把手, 描述是「它干什么」, 两者都要。
 		var nl := Label.new()
-		nl.position = Vector2(col, cy + dd + 12.0)
 		nl.size = Vector2(cw, 20)
 		nl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		nl.add_theme_font_override("font", StageTheme.zh())
@@ -226,7 +208,6 @@ func _build_consumable_row() -> void:
 		_layer.add_child(nl)
 		_cshelf_name.append(nl)
 		var dl := Label.new()
-		dl.position = Vector2(col, cy + dd + 36.0)
 		dl.size = Vector2(cw, 36)
 		dl.custom_minimum_size = Vector2(cw, 36)
 		dl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -237,13 +218,45 @@ func _build_consumable_row() -> void:
 		_layer.add_child(dl)
 		_cshelf_desc.append(dl)
 		var pl := Label.new()
-		pl.position = Vector2(col, cy + dd + 76.0)
 		pl.size = Vector2(cw, 22)
 		pl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		pl.add_theme_font_override("font", StageTheme.num("SemiBold"))
 		pl.add_theme_font_size_override("font_size", 17)
 		_layer.add_child(pl)
 		_cshelf_price.append(pl)
+	_place_consumables(2)
+
+
+## 碟位按当次货架数摆(2 = 今天的样子;3 = 第三位是赞助碟)。
+## ⚑ **一条居中公式** —— 列宽换 `cons_col_w` / `cons_col_w_3`, 起点恒是
+## 「[cons_left, cons_right] 这段里居中」:2 张 ⇒ x0 239(碟位 268/482),
+## 3 张 ⇒ x0 192(碟位 201/375/549, 画布 Main.dc.html)。间距两态共用 `cons_gap`。
+## ⚠ 多出来的那位**藏起来**(不是靠内容为空来隐身)—— 「离线 = 今天的商店, 一像素不差」
+##   是这次的红线, 而「看不看得见」这件事不该取决于「有没有人记得把文本清空」。
+func _place_consumables(n: int) -> void:
+	var cy: float = float(_cfg.get("cons_y", 912))
+	var dd: float = float(_cfg.get("cons_disc", 132))
+	var cw: float = float(_cfg.get("cons_col_w", 190)) if n <= 2 \
+		else float(_cfg.get("cons_col_w_3", 150))
+	var cg: float = float(_cfg.get("cons_gap", 24))
+	var lx: float = float(_cfg.get("cons_left", 190))
+	var rx: float = float(_cfg.get("cons_right", 692))
+	var x0: float = lx + ((rx - lx) - (cw * float(n) + cg * float(n - 1))) * 0.5
+	for i in range(_cshelf.size()):
+		var on: bool = i < n
+		var col := x0 + float(i) * (cw + cg)
+		_cshelf[i].position = Vector2(col + (cw - dd) * 0.5, cy)
+		_cshelf[i].visible = on
+		_cshelf_name[i].position = Vector2(col, cy + dd + 12.0)
+		_cshelf_name[i].size = Vector2(cw, 20)
+		_cshelf_name[i].visible = on
+		_cshelf_desc[i].position = Vector2(col, cy + dd + 36.0)
+		_cshelf_desc[i].size = Vector2(cw, 36)
+		_cshelf_desc[i].custom_minimum_size = Vector2(cw, 36)
+		_cshelf_desc[i].visible = on
+		_cshelf_price[i].position = Vector2(col, cy + dd + 76.0)
+		_cshelf_price[i].size = Vector2(cw, 22)
+		_cshelf_price[i].visible = on
 
 
 ## ---- 消耗牌的授予口(编排器调用, 见 phrase.gd::_apply_shop_action) ----
@@ -341,13 +354,13 @@ func _on_cshelf_pressed(i: int = 0) -> void:
 	if _c == null:
 		return
 	if _coins < _c.price:
-		denied.emit("consumable", maxi(0, int(_c.price) - _coins))
+		denied.emit("consumable")
 		_cshelf[i].shake()
 		return
 	# 压暗的碟(买了没用, 例如砧座在 support ≤1 时)不许成交(2026-09-06 code review):此前只压暗不拦,
 	# 4◆ 打水漂还吃掉 5 选 1 的唯一名额, 而且不报错。armed 的判据在 set_consumables。
 	if i < _cshelf.size() and not _cshelf[i].armed:
-		denied.emit("consumable", 0)     # 压暗不是钱的事, 缺口 0
+		denied.emit("consumable")   # 压暗不是钱的事(编排器只记事实)
 		_cshelf[i].shake()
 		return
 	consumable_bought.emit(_c, _c.price)
@@ -360,24 +373,47 @@ func _on_cshelf_pressed(i: int = 0) -> void:
 func set_consumables(offer: Array, coins: int, effective: Array = []) -> void:
 	_coffer = offer
 	_coins = coins
+	_place_consumables(maxi(2, offer.size()))
 	for i in range(_cshelf.size()):
 		var o = offer[i] if i < offer.size() else null
+		var sp: bool = o != null and o.is_sponsor()
 		_cshelf[i].filled = o != null
 		_cshelf[i].label = o.display_name() if o != null else ""
-		_cshelf[i].art_id = String(o.id) if o != null else ""
+		# ⚑ 赞助碟不贴插画(它中心画霓虹招牌)—— art_id 留空, 别去 assets 里找一张不存在的图。
+		_cshelf[i].art_id = "" if o == null or sp else String(o.id)
+		_cshelf[i].sponsor = sp
+		# 插播态跟着那张碟走:碟一离架(发奖 / 换店 / 换成别的卡)就清, 不许留到下一次上架。
+		if not sp:
+			_cshelf[i].playing = false
 		# 碟标上刻的字 = 它在第几拍自己打;`buy` 类不刻(它买下就打完了)。
 		_cshelf[i].stamp = "" if o == null or o.is_instant() else o.fire_label()
 		var ok: bool = true if i >= effective.size() else bool(effective[i])
-		_cshelf[i].armed = o != null and coins >= o.price and ok
-		# ⚑ 货架位用**金**(它是"待售"), 栏位用**卡牌红**(它是"我的") —— 两者要分得开。
-		_cshelf[i].accent = StageTheme.GOLD
+		# ⚑ 赞助碟 **armed 与金币无关** —— 它免费, 「买不起」这个状态在它身上不存在。
+		_cshelf[i].armed = o != null and (sp or (coins >= o.price and ok))
+		# ⚑ 货架位用**金**(它是"待售"), 赞助碟用**青**(舞台自己的光:它不是商品, 是赞助商)。
+		_cshelf[i].accent = StageTheme.CYAN if sp else StageTheme.GOLD
 		_cshelf[i].queue_redraw()
-		_cshelf_price[i].text = ("◆ %d" % o.price) if o != null else ""
+		# 赞助碟的价签讲的是**两件事**:不花钱 + 给你几◆(数从卡上的 action 来, 不抄第二份)。
+		_cshelf_price[i].text = ("" if o == null
+			else ("%s ◆ +%d" % [Lingo.t(String(_cfg["sponsor_free_text"])), Economy.ad_coins()]) if sp
+			else ("◆ %d" % o.price))
+		_cshelf_price[i].add_theme_color_override("font_color",
+			StageTheme.CYAN if sp else Color(1, 1, 1, 1))
 		# 文案优先 ui.json consumablecard(游戏文案归游戏数据, 与小丑牌 jokercard 同一条路),
 		# 缺了退卡面英文 fx_text。⚠ 不许在这里写中文字面量(`t_lingo` 会红)。
 		_cshelf_name[i].text = o.display_name() if o != null else ""
 		_cshelf_desc[i].text = (String(DB.ui().get("consumablecard", {})
 			.get(String(o.id), {}).get("trigger", o.fx_text)) if o != null else "")
+
+
+## 赞助碟的「插播中」——编排器在 `ads.show_ad("coins")` 前后开关(视图不知道广告是什么)。
+## 全屏广告盖在上面, 这一态只在回来的一瞬看得到;它存在的理由是**丢回调时不许骗人**:
+## 广告没放成时碟要回到「在场」, 而不是永远转着。
+func set_sponsor_playing(on: bool) -> void:
+	for sh in _cshelf:
+		if sh.sponsor:
+			sh.playing = on
+			sh.queue_redraw()
 
 
 func _button(text: String) -> Button:
@@ -466,7 +502,6 @@ func close() -> void:
 	_grant_extra_buys = 0
 	_grant_price = 0
 	_grant_free_reroll = 0
-	hide_ad_offer()          # offer 跟着这家店走
 	_layer.visible = false
 
 
@@ -636,7 +671,7 @@ func _on_pick(i: int) -> void:
 	var j = _candidates[i]
 	if not _affordable(j):
 		_float(String(_cfg["insufficient"]), _views[i].get_global_position() + Vector2(70, 40))
-		denied.emit("price", maxi(0, _price(j) - _coins))
+		denied.emit("price")
 		return
 	# ⚠⚠ **满不满要按 kind 问**(2026-08-16 真人试玩报的 bug:「第五个小丑牌来的时候,
 	# 点替换会失效」)。0 号是 **Target 专用**槽, Support 只能进 1..3 ——
@@ -675,36 +710,10 @@ func _on_reroll() -> void:
 	var cost := _reroll_cost_now()
 	if _coins < cost:
 		_float(String(_cfg["insufficient"]), _reroll_btn.get_global_position() + Vector2(84, 8))
-		denied.emit("reroll", maxi(0, cost - _coins))
+		denied.emit("reroll")
 		return
 	_reroll_count += 1
 	reroll_paid.emit(cost)
-
-
-## 广告 offer(2026-09-08 二审)。何时能弹由编排器判(有货 / 两级上限 / 不是教学关),
-## 视图只管画与转发点击;need = 差几◆(0 = 算不出, 用无缺口文案)。
-func show_ad_offer(need: int, amount: int) -> void:
-	if _ad_btn == null:
-		return
-	_ad_btn.text = (String(_cfg["ad_offer_text"]) % [need, amount]) if need > 0 \
-		else (String(_cfg["ad_offer_text_plain"]) % amount)
-	_ad_btn.visible = true
-	_pop(_ad_btn)
-
-
-func hide_ad_offer() -> void:
-	if _ad_btn != null:
-		_ad_btn.visible = false
-
-
-func ad_offer_visible() -> bool:
-	return _ad_btn != null and _ad_btn.visible
-
-
-func _on_ad_offer() -> void:
-	if not _layer.visible or not ad_offer_visible():
-		return
-	ad_requested.emit()
 
 
 func _on_skip() -> void:
