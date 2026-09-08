@@ -440,13 +440,19 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 			if not shop_act.is_empty():
 				_apply_bot_action(run, slots, {"id": String(cid), "action": shop_act})
 			break
-	# ⚑ 广告换金币的**上界臂**(2026-09-08, 规格 docs/superpowers/specs/2026-09-08-ads-design.md §6)。
+	# ⚑ 广告换金币的**上界臂**(2026-09-08 开轴, 2026-09-09 赞助商版改写语义,
+	# 规格 docs/superpowers/specs/2026-09-09-sponsor-design.md §5)。
+	# 现在的语义 = **每店拿一次赞助碟**(货架第三位, 免费 price 0, 拿下即触发 +ad_coins) ——
+	# 不再是一个抽象的「换金币」动作, 而是 bot 在这个店把那张碟买了。
 	# cfg.ads 缺省关 = 零广告基线(所有既有读数逐位不动);开 = 每店只要还许就先领 ——
 	# 真人是「买不起才看」, 这里量的是上界。验收带:通关率 +≤5pt、每局多买 ≤2 张(用户喊了才跑)。
 	# ⚠ 与游戏侧 view/phrase.gd::_on_ad_rewarded **成对**(parity ENTRIES 守 `ad_coins`);
 	#   入账同样走 Economy.grant(金币上限那条铁律)。
 	# ⚠ 每店的账要**自己数**, 不许写死 0:游戏侧一店能看到 ad_coins_per_shop 次,
 	#   臂写死 0 等于把「每店上限」这条规则从模型里删掉 —— 上界会被量小(09-08 质量审查)。
+	# ⚠ 这条臂不会与 bot 随机货架的赞助碟撞车 —— 赞助碟 `shelf: sponsor` 的那一条被
+	#   `Consumable.roll_shelf` 显式跳过(不是随机货), bot 的随机货架(`_consumables_in_shop`
+	#   下面调用 `Consumable.roll_shelf`)结构上摇不出它, 这里是它进 bot 经济的唯一入口。
 	var shop_ads := 0
 	while bool(cfg.get("ads", false)) and run != null \
 			and Economy.ad_coins_allowed(run.ad_used, shop_ads, coins, slots):
@@ -1008,6 +1014,11 @@ func _apply_bot_action(run, slots: Array, used: Dictionary) -> void:
 		var ln: Dictionary = act["loan"]
 		_pending_borrow += int(ln.get("borrow", 0))
 		run.debt += int(ln.get("repay", 0))
+	if act.has("ad_coins"):
+		# ⚑ 赞助碟(2026-09-09):正常路径**不经这里** —— bot 的广告收入走 `_draft` 里的上界臂
+		# (每店拿一次赞助碟), 这一支只为 parity 第二层(动作键两侧对齐)与 kit 钉卡路径存在。
+		# 与 loan 同一形状:这里改不了调用方的局部 coins, 只记待领额, 由各调用点就近兑现(_take_borrow)。
+		_pending_borrow += int(act["ad_coins"])
 	# ---- 商店类六键(2026-08-30 补齐;此前只在游戏侧实现)----
 	if act.has("shelf_slots"):
 		_g_shelf = maxi(_g_shelf, int(act["shelf_slots"]))
