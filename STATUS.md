@@ -336,6 +336,8 @@ price 里 ration/trilogy/trilogy4 三个放置要用 `SYNC5_PRICE_ONLY` 单独�
 用户拍板「手工镜像 + 机械门」并要求一口气做完。`lua/` 长成:`core/` 21 个类的逐文件孪生(+ 新抽出的 `core/shelf.gd` ↔ `shelf.lua`)· PCG32 复刻(32 位肢体, 5.1/LuaJIT/5.3+ 通吃)·
 `lua/data/`(生成)· `lua/golden/` 五族 27397 条(5.5 与 LuaJIT 双绿)· `lua/app/phrase.lua` + `shop.lua` 编排层 + `CONTRACT.md` + `README.md` · `tools/drive.lua` 无头整局。
 Godot 侧:四处手抄数字搬 JSON(截图前后逐件对照不动)· 货架组装抽成 `core/shelf.gd`。⚠ 商店授予记账仍三份(view / golden ShopSim / lua), 见 mirror.md §12。
+**本地启动**:`lua/web/index.html`(Fengari 在浏览器里跑 Lua, JS 只画)—— `python3 tools/webbundle.py && python3 -m http.server 8771 --directory lua/web`;教学关 → 商店 → 买 Target → 回拍点通。
+第三个运行时掀出两条并已落成机械:Fengari 整数 32 位(垫片分宽度 / 记忆键浮点)· 切后台一帧吞整拍(编排层 dt 限幅 0.5 s)。全部 push, 末 `a30f3d5`。
 
 - **2026-09-06 · 全项目 code review**(细账 CHANGELOG 09-06):五线并行审 → 修 36 处 bug(重开不清债/碟/掷点 CRITICAL · 秒表死卡 · 替换流吞名额 · 压暗砧座可买 …)·
   模型侧 14 处对齐(客串离场 / 掷骰种子 / 一局一把尺 / 随机源统一)· parity 第 ⑧ 层 · 删 36 条孤儿文案 + 5 死探针 + 十余处死码 · 文档 34 处。

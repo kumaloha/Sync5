@@ -20,6 +20,11 @@
 视图契约 `app/CONTRACT.md`(拉模型:每帧读 `view()` 画、手势翻意图、`events()` 一次性动画;索引 0 基);`tools/drive.lua` 无头整局两种 Lua 各 4 局跑通。**渲染不写**(urhox-libs 接口不公开, 盲写验不了), 她按契约接。
 认下的代价:改规则付两份(门守着不会忘)· 商店授予记账三份(view / `golden.gd::ShopSim` / lua;组装已收一份, 记账收口记 TODO)· 渲染只能靠她的截图验。
 
+**同晚追加:本地启动**(用户:「能在本地启动一下 lua 版本吗」)。LÖVE 的 Homebrew cask 被停用(Gatekeeper)⇒ 用 Fengari(浏览器里的 Lua 5.3):`tools/webbundle.py` 把 `lua/` 打成模块表,
+`lua/web/index.html` 用它跑全部逻辑、JS 只画画布与接鼠标 —— 既是「本地启动」, 也是契约 `CONTRACT.md` 的可运行范例。内置浏览器里点通:教学关四拍 → 选牌弃牌 → 拖拽对调 → 教学商店免费三选一 → 回拍。
+第三个运行时掀出两条静默错并落成机械:Fengari 整数只有 32 位(`4294967295` 是浮点, 进 `&` 就炸;`rk * 2^30` 回绕撞记忆键)⇒ 垫片按 `math.maxinteger` 分宽度、记忆键浮点;
+页面切后台再回来一帧把整拍烧掉 ⇒ 编排层 dt 限幅 0.5 s。`check.lua` 同时改成纯 `require`(沙箱无 io/arg/dofile 也能 `require("sync5.check").run()`), 她那边跑绿 = 真机验完逻辑层。
+
 ---
 
 ## 2026-09-06(一)· 全项目 code review:五条线并行审, 修 bug · 清过期重复文档 · 精简代码

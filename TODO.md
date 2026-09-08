@@ -15,6 +15,7 @@
 ## ⭐⭐ 从哪接(**2026-09-06 刷新** —— 全项目 code review 四批修完, 细账 CHANGELOG 09-06)
 
 ### 现状一句话
+**09-06 晚:Lua 镜像五段 + 浏览器参考渲染器全部落地并 push(`a30f3d5`), 见下面第 0 条。**
 估值这条线**收工**(重放 + kit 地板, lift 相关性三步单调抬升);七条红全部处置;price 全表与 `ranking.json` 已重生成;
 求解器有了结算记忆(单局 45 → ~10 s)。**本地 main 领先远端未 push。** 机器空闲。
 **09-05 晚**:用户试玩三报全部闭环 —— 三张「本店」消耗牌(加急/赞助/挑高)5 选 1 下买了当场关店 = 空白卡(修 + 价值重标:加急 3 次免费、赞助折扣含刷新)·
@@ -27,7 +28,12 @@
 **code review 剩下的三条模型缺口**(不急):5 张时间闸门脸 bot 无时钟 · bot 早收掷点不看动作 · 求解器看不见 cache_rank_sum(回收)。
 
 ### 接下来按序(不许跳)
-0. ✅ **TapMaker Lua 镜像五段做完**(2026-09-06 晚, CHANGELOG 09-06 二):`lua/` 可交付, 她从 GitHub 拉、读 `lua/README.md` + `lua/app/CONTRACT.md` 接渲染。**接下来**:她那边跑起来的截图对 `docs/mockups/*.html`(渲染这半只能她验)· 商店授予记账三份收口(抽成 `core/shelf.gd` 的实例态, mirror.md §12)· 图鉴 v2 · 改 `core/` 的纪律 = 重生成金样 + `mirror.py`(CLAUDE.md 预检行)。
+0. ✅ **TapMaker Lua 镜像五段做完 + 浏览器参考渲染器**(2026-09-06 晚, CHANGELOG 09-06 二;全部已 push, 末 `a30f3d5`):
+   `lua/` 可交付, 她从 GitHub 拉、读 `lua/README.md` + `lua/app/CONTRACT.md` 接渲染;`lua/web/index.html` 是契约的可运行范例(Fengari 跑 Lua, JS 只画),
+   本地启动 = `python3 tools/webbundle.py && python3 -m http.server 8771 --directory lua/web` → http://localhost:8771。
+   **接下来(按序)**:① 她那边 `require("sync5.check").run()` 全绿 = 真机验完逻辑层;渲染截图对 `docs/mockups/*.html`(只能她验)· ② 商店授予记账三份收口(view / `golden.gd::ShopSim` / `lua/app/shop.lua`, 抽成 `core/shelf.gd` 的实例态, mirror.md §12)·
+   ③ 图鉴 v2 · ④ 改 `core/` 的纪律 = 改孪生 + `golden.gd` 重生成 + `mirror.py`(全在 CLAUDE.md 预检行)。
+   ⚠ 顺带发现未修:`Run.snapshot` 存的 64 位 RNG 状态经 Godot JSON 读回是浮点, 2^53 以上低位丢 ⇒ 续玩后牌堆后续洗牌与未中断局不一致(玩家察觉不到, 只影响 Tape 跨断点重放)。
 1. ✅ **唱片位视觉批**(09-05 晚做完, CHANGELOG ④):碟从货架飞入唱片位, 到点的落进队列、即生效的转一圈溶掉, 牌堆类有浮字。
    ⚠ 若用户其实指「碟面要看出是哪张卡」(碟上现在只刻拍号), 另议。
 2. **`bot_targets` 重标 + `curve`**(numbers.md §2.4:卡先定稿, 关卡分最后)—— 攒成一批, 一次单测 + 一次门。
