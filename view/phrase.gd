@@ -283,7 +283,8 @@ func _build_ui() -> void:
 	shop.replace_requested.connect(_on_shop_replace)
 	shop.skipped.connect(_on_shop_skipped)
 	shop.reroll_paid.connect(_on_shop_reroll)
-	shop.denied.connect(func(why: String) -> void: Tape.on("deny", {"why": why}))
+	shop.denied.connect(_on_shop_denied)
+	shop.ad_requested.connect(_on_shop_ad_requested)
 	shop.consumable_bought.connect(_on_consumable_bought)
 	settle_fx.burst_started.connect(_on_settle_burst)
 	run_end.next_pressed.connect(_on_end_next)
@@ -1912,6 +1913,14 @@ func _on_shop_replace(j) -> void:
 	# UI 那摊(提示条带价、新卡钉出来、四个槽开始接手势)在 view/replace.gd
 	# 价从编排器传进去 —— 赞助的折扣价要和成交价同源(replace.gd 不认识槽位)
 	replace.enter(j, shop.price_of(j))   # 含赞助折扣(展示价与成交价同源)
+
+
+func _on_shop_denied(why: String, _need: int) -> void:
+	Tape.on("deny", {"why": why})
+
+
+func _on_shop_ad_requested() -> void:
+	pass
 
 
 ## 「继续 ▸」= 不买就走。2026-08-06 起**没有奖励**(用户拿掉了跳过机制),

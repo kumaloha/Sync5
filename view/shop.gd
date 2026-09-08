@@ -11,7 +11,8 @@ signal bought(j, price: int)          # affordable pick — orchestrator deducts
 signal replace_requested(j)           # full slots: orchestrator runs the replace flow
 signal skipped()                      # orchestrator pays the skip reward
 signal reroll_paid(cost: int)         # orchestrator deducts, then calls redeal()
-signal denied(why: String)            # 想买/想刷但钱不够 — 编排器打点(购买力压力)
+signal denied(why: String, need: int)  # 想买/想刷但钱不够 — 编排器打点;need = 差几◆(算不出 0), 广告 offer 的触发点(2026-09-08)
+signal ad_requested()                 # 玩家点了广告 offer — 编排器放广告、发奖、计数(视图不碰钱不数次数)
 signal consumable_bought(c, price: int)   # 买下货架上那张消耗牌 — 编排器扣钱并收进栏位
 var _cfg: Dictionary = DB.ui()["shop"]
 var _layer: Control
@@ -23,6 +24,7 @@ var _kind_label: Label
 var _blind_board: Widgets.BlindBoard
 var _reroll_btn: Button
 var _skip_btn: Button
+var _ad_btn: Button = null      # 广告 offer 小键(2026-09-08):只在编排器 show_ad_offer 时可见
 var _candidates: Array = []
 var _reroll_count := 0
 ## 联票续买态:还能再买几张(0 = 普通态)。只由 `sold()` 写, `_deal()` 归零。
@@ -146,6 +148,18 @@ func _layout(count: int) -> void:
 		_skip_btn = _button(String(_cfg["skip_text"]))
 		_skip_btn.pressed.connect(_on_skip)
 		_layer.add_child(_skip_btn)
+	# 广告 offer(2026-09-08 二审:长在「想要但拿不到」那一刻)。**只建一次**(同上那条泄漏教训),
+	# 缺省藏着 —— 没 offer 时商店与今天一像素不差(离线玩家的红线)。
+	if _ad_btn == null:
+		_ad_btn = _button("")
+		_ad_btn.custom_minimum_size = Vector2(348, 40)
+		_ad_btn.add_theme_font_size_override("font_size", 17)
+		_ad_btn.add_theme_color_override("font_color", StageTheme.GOLD)
+		_ad_btn.visible = false
+		_ad_btn.pressed.connect(_on_ad_offer)
+		_layer.add_child(_ad_btn)
+	_ad_btn.position = _v2(_cfg["ad_offer_pos"])
+	_ad_btn.size = Vector2(348, 40)
 	# ⚠ **只建一次** —— `_layout()` 每次 `_render` 都会跑, 不守就会每刷一次货架
 	# 就多出一对格子叠在原处(实测第二次开店时货架格变成 4 个, 而
 	# `set_consumables` 只更新前两个 ⇒ 屏幕上是新旧混着的错乱)。
@@ -320,13 +334,13 @@ func _on_cshelf_pressed(i: int = 0) -> void:
 	if _c == null:
 		return
 	if _coins < _c.price:
-		denied.emit("consumable")
+		denied.emit("consumable", maxi(0, int(_c.price) - _coins))
 		_cshelf[i].shake()
 		return
 	# 压暗的碟(买了没用, 例如砧座在 support ≤1 时)不许成交(2026-09-06 code review):此前只压暗不拦,
 	# 4◆ 打水漂还吃掉 5 选 1 的唯一名额, 而且不报错。armed 的判据在 set_consumables。
 	if i < _cshelf.size() and not _cshelf[i].armed:
-		denied.emit("consumable")
+		denied.emit("consumable", 0)     # 压暗不是钱的事, 缺口 0
 		_cshelf[i].shake()
 		return
 	consumable_bought.emit(_c, _c.price)
@@ -445,6 +459,7 @@ func close() -> void:
 	_grant_extra_buys = 0
 	_grant_price = 0
 	_grant_free_reroll = 0
+	hide_ad_offer()          # offer 跟着这家店走
 	_layer.visible = false
 
 
@@ -614,7 +629,7 @@ func _on_pick(i: int) -> void:
 	var j = _candidates[i]
 	if not _affordable(j):
 		_float(String(_cfg["insufficient"]), _views[i].get_global_position() + Vector2(70, 40))
-		denied.emit("price")
+		denied.emit("price", maxi(0, _price(j) - _coins))
 		return
 	# ⚠⚠ **满不满要按 kind 问**(2026-08-16 真人试玩报的 bug:「第五个小丑牌来的时候,
 	# 点替换会失效」)。0 号是 **Target 专用**槽, Support 只能进 1..3 ——
@@ -653,10 +668,36 @@ func _on_reroll() -> void:
 	var cost := _reroll_cost_now()
 	if _coins < cost:
 		_float(String(_cfg["insufficient"]), _reroll_btn.get_global_position() + Vector2(84, 8))
-		denied.emit("reroll")
+		denied.emit("reroll", maxi(0, cost - _coins))
 		return
 	_reroll_count += 1
 	reroll_paid.emit(cost)
+
+
+## 广告 offer(2026-09-08 二审)。何时能弹由编排器判(有货 / 两级上限 / 不是教学关),
+## 视图只管画与转发点击;need = 差几◆(0 = 算不出, 用无缺口文案)。
+func show_ad_offer(need: int, amount: int) -> void:
+	if _ad_btn == null:
+		return
+	_ad_btn.text = (String(_cfg["ad_offer_text"]) % [need, amount]) if need > 0 \
+		else (String(_cfg["ad_offer_text_plain"]) % amount)
+	_ad_btn.visible = true
+	_pop(_ad_btn)
+
+
+func hide_ad_offer() -> void:
+	if _ad_btn != null:
+		_ad_btn.visible = false
+
+
+func ad_offer_visible() -> bool:
+	return _ad_btn != null and _ad_btn.visible
+
+
+func _on_ad_offer() -> void:
+	if not _layer.visible or not ad_offer_visible():
+		return
+	ad_requested.emit()
 
 
 func _on_skip() -> void:

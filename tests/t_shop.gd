@@ -58,3 +58,49 @@ func run(t) -> void:
 	# (−2◆, 用户:「−1 好抠」), 断言见 t_consumable。这里只留不依赖它的价格基线。
 	t.eq(Economy.shelf_price(Joker.by_id("neonsign"), plain), 3, "no sponsor: base price 3(经济 v2)")
 	t.eq(Economy.shelf_price(Joker.by_id("twin"), plain), 0, "first target stays free")
+
+	# ---- 广告 offer(2026-09-08 二审:长在「想要但拿不到」那一刻)----
+	var sh := Shop.new()
+	t.get_root().add_child(sh)
+	# ⚠ runner 在 `_initialize()` 里跑, 那一刻 root 还没 inside_tree ⇒ add_child **不会**触发
+	# `_ready`(实测), 而测试不许 await 帧 ⇒ 手动打一次(t_ads 同款)。
+	sh._ready()
+	var reroll_pos: Vector2 = sh._reroll_btn.position
+	var skip_pos: Vector2 = sh._skip_btn.position
+	var skip_text: String = sh._skip_btn.text
+	t.check(not sh.ad_offer_visible(), "缺省没有 offer(离线 = 今天的商店)")
+	# ⚠ 计数用数组不用 int:GDScript 的 lambda **按值捕获**, `got += 1` 只改闭包里的那份。
+	var got: Array = []
+	sh.ad_requested.connect(func() -> void: got.append(1))
+	sh.show_ad_offer(2, 3)
+	t.check(sh.ad_offer_visible(), "show 之后可见")
+	t.check(sh._ad_btn.text.find("2") != -1 and sh._ad_btn.text.find("3") != -1, "文案带缺口与数额")
+	t.eq(sh._reroll_btn.position, reroll_pos, "刷新键位置不动")
+	t.eq(sh._skip_btn.position, skip_pos, "继续键位置不动")
+	t.eq(sh._skip_btn.text, skip_text, "继续键文案不动")
+	sh._layer.visible = true
+	sh._on_ad_offer()
+	t.eq(got.size(), 1, "点 offer 发 ad_requested")
+	sh.hide_ad_offer()
+	t.check(not sh.ad_offer_visible(), "hide 之后不可见")
+	sh._on_ad_offer()
+	t.eq(got.size(), 1, "藏着时点不发")
+	sh.show_ad_offer(0, 3)
+	t.check(sh._ad_btn.text.find("差") == -1, "缺口 0 用无缺口文案")
+	sh.close()
+	t.check(not sh.ad_offer_visible(), "close 收掉 offer")
+	var before := sh._layer.get_child_count()
+	sh._layout(3)
+	sh._layout(4)
+	t.eq(sh._layer.get_child_count(), before, "反复 _layout 不再建节点(offer 只建一次)")
+	# denied 带缺口(need = 差几◆)
+	var needs: Array = []
+	sh.denied.connect(func(why: String, need: int) -> void: needs.append([why, need]))
+	sh._coins = 1
+	sh._reroll_count = 0
+	sh._layer.visible = true
+	sh._on_reroll()
+	t.eq(needs.size(), 1, "刷不起发 denied")
+	t.eq(needs[0][0], "reroll", "……why = reroll")
+	t.eq(needs[0][1], Economy.reroll_cost(0) - 1, "……need = 刷新价 − 金币")
+	sh.queue_free()
