@@ -93,6 +93,9 @@ func is_sponsor() -> bool:
 ## ⚠ 「恰好一条」由 `DB.validate_consumables` 守着(零条 = 入口静默消失, 两条 = 上哪张成了抽签)。
 ## ⚑ 记一次就够:这张表运行期不变、答案恰好一条 —— 而这个口在商店每次刷新、每张碟上都要问一遍
 ##   (2026-09-09 审查:一次线性扫全表换一次「它是不是赞助碟」太贵了)。
+## ⚠ **前提写在这**(2026-09-09 终审):这份缓存的正确性只靠一条 —— **数据表运行期不重载**
+##   (`DB` 加载一次就不再变)。将来若真长出重载路径(热更 / 编辑器里改 JSON 就生效),
+##   **必须在那条路径里调 `_clear_sponsor_cache()`** —— 否则整局都会拿着旧的一行, 而且不报错。
 static var _sponsor_cache: Dictionary = {}
 static var _sponsor_cached := false
 
@@ -105,6 +108,12 @@ static func sponsor_entry() -> Dictionary:
 			break
 	_sponsor_cached = true
 	return _sponsor_cache
+
+
+## 给上面那条前提留的口(现在没人调 —— 它是给未来的重载路径准备的两行)。
+static func _clear_sponsor_cache() -> void:
+	_sponsor_cache = {}
+	_sponsor_cached = false
 
 
 ## 规则牌 = 带 `deck_rule` 的消耗牌(2026-08-30 二批转生:近道/四指/黑调/红调)。

@@ -1235,13 +1235,24 @@ func _sponsor_slot():
 	return null if e.is_empty() else Consumable.new(e)
 
 
-## 把第三位与当刻条件对齐(挂上 / 摘下)。`_coffer` 因此恒是 2 张或 3 张且末位是赞助碟。
+## 赞助碟在不在架上 —— **按末位判, 不按长度判**(2026-09-09 终审)。
+## `size() >= 3` 只在底座恰好两张时才等价于这句话, 而底座是 `_roll_consumables()` 掷出来的
+##(池被队列抽干就会短)⇒ 长度口径会在那一刻把一张随机碟错认成赞助碟, 而且不报错。
+func _has_sponsor_slot() -> bool:
+	return not _coffer.is_empty() and _coffer[-1] != null and _coffer[-1].is_sponsor()
+
+
+## 把第三位与当刻条件对齐(挂上 / 摘下)。`_coffer` 因此是底座那两张, 末位可能再多一张赞助碟。
 func _sync_sponsor_slot() -> void:
 	var sp = _sponsor_slot()
-	if _coffer.size() >= 3:
+	if _has_sponsor_slot():
 		if sp == null:
-			_coffer.resize(2)
+			_coffer.pop_back()
 	elif sp != null:
+		# 底座恒两张随机碟, 赞助只加在**末位** —— 底座短了(池被队列抽干)这句会当场炸,
+		# 而不是让「末位 = 赞助」这条口径悄悄失真。⚠ 断言文案走 ASCII:view/ 里的中文
+		# 字面量一律要进 lingo 表(t_lingo 的裸中文扫描), 而这句给的是开发者不是玩家。
+		assert(_coffer.size() >= 2, "coffer base must stay 2 (consumable pool drained?)")
 		_coffer.append(sp)
 
 
@@ -1916,10 +1927,14 @@ func _open_draft() -> void:
 			shop.board_rect().end.y + 12.0)
 	# 段中/段末两态要分开统计:段中是「已知缺口下的解题」, 段末是「对下一场下注」,
 	# 购买行为本来就不该混在一起看(docs/design/levels.md 的核心论证)
+	# ⚑ `ad` = 赞助碟这一店在不在架上(2026-09-09)—— **拿取率的分母**:没有它, 日志里
+	#   「没人点」与「根本没上架」长得一模一样。⚠ 必须在 `_refresh_shop_consumables()`
+	#   **之后**读(上面那一行才刚把第三位挂上/摘下)。
 	Tape.on("shop", {"mid": mid, "sec": run.section_idx, "coins": phrase.coins,
 		"offer": shop.offers(), "slots": Tape.slots(run.joker_slots),
 		"left": run.phrases_left() if mid else -1,
-		"need": run.deficit() if mid else -1})
+		"need": run.deficit() if mid else -1,
+		"ad": _has_sponsor_slot()})
 
 
 ## 商店盲注板的巡演路线行(journey #4)—— 与开局特写的 `_route_text()` 同一份事实
@@ -1945,7 +1960,8 @@ var _shop_buys := 0
 var _shop_ads := 0
 ## 正在放换金币的广告(与体力那边的 _energy_ad_showing 同款护栏):放中再点一次不许再叫一次 show。
 var _coins_ad_showing := false
-## 这一次放映发过奖没有 —— closed / 看门狗要靠它决定碟是「离架了」还是「该回到在场」。
+## 这一次放映发过奖没有(**或发不出去而当场离架**)—— closed / 看门狗靠它决定碟是
+## 「已经离架」还是「该回到在场」。
 var _coins_ad_rewarded := false
 ## 本店广告放失败过 ⇒ 本店不再弹, 下家店再试(spec §4.3)
 var _shop_ad_failed := false
@@ -2148,24 +2164,42 @@ func _on_ad_rewarded(kind: String) -> void:
 	var shop_used := _shop_ads if c == "store" else 0
 	if not Economy.ad_coins_allowed(run.ad_used, shop_used, phrase.coins, run.joker_slots):
 		Tape.on("ad", {"k": "coins", "ev": "drop"})   # 重复回调 / 双击:上限在发钱那一刻再守一次
+		# ⚠⚠ **发不出去也得让碟离架**(2026-09-09 终审)。此前这一支只记一条 drop 就 return,
+		#   碟原样留在架上、照旧点得动 ⇒ 店里金币涨到上限(穷开心的 coin_cap)之后
+		#   **每点一次就放完一整支广告, 一分钱不发、屏幕上零反馈**。
+		# ⚑ 还要**明说为什么** —— 这一刻不是「没广告」, 是「有广告但入不了账」,
+		#   拿失败那句「稍后再试」糊过去等于骗玩家再看一次。
+		_coins_ad_rewarded = true   # 碟这就不在架上了 ⇒ closed 不许再把它拨回「在场」
+		if c == "store" and phrase != null:
+			if _has_sponsor_slot():
+				_coffer.pop_back()
+			_refresh_shop_consumables()   # `ad_offer_ok` 此刻为假 ⇒ 第三位不会再挂回来
+			var fc: Dictionary = DB.ui()["shop"]
+			fx.float_text(Lingo.t("这次没法入账,金币已到上限"),
+				Vector2(float(fc.get("cons_left", 190)), float(fc.get("cons_y", 912)) - 40.0),
+				Color("ff5f7e"), 90)
 		return
 	run.ad_used += 1
 	_coins_ad_rewarded = true
 	var ev := {"k": "coins", "ev": "reward"}
 	if c == "store":
-		# ⚠ **两级上限先记账再刷货架** —— 反过来的话 `_refresh_shop_consumables()` 会拿旧计数
-		# 重算第三位, 把刚播完的赞助碟又挂回去(同店无限看广告, 而且不报错)。
+		# ⚠ **`_shop_ads += 1` 必须在 refresh 之前** —— refresh 里的 `ad_offer_ok` 读的就是它。
+		# 每店上限 1 时碟因此离架, 上限 >1 时按新计数重新上架, **两种都是对的**:
+		# 记账在前, 货架才是照**当刻**条件算的;反过来则是拿旧计数算新货架。
 		_shop_ads += 1
 		# 发钱走消耗牌的共用执行口(Tape 会记一条 consumable why=ad)—— 它就是一张消耗牌,
 		# 不该有第二条发钱路径;数从卡上的 action 来, 不抄第二份。
 		_apply_consumable({"id": "sponsorbreak", "action": {"ad_coins": Economy.ad_coins()}}, "ad")
-		if _coffer.size() >= 3:
-			_coffer.resize(2)      # 碟像卖出的商品一样离架
+		if _has_sponsor_slot():
+			_coffer.pop_back()     # 碟像卖出的商品一样离架
 		_refresh_shop_consumables()
 		shop.refresh_coins(phrase.coins)   # 副标题的余额与价签的可购性跟上;货架不重掷
 	else:
 		# 晚到(店已关):只发钱, 一寸商店都不碰 —— 那家店已经不在屏幕上了。
-		_apply_shop_action("sponsorbreak", {"ad_coins": Economy.ad_coins()})
+		# ⚑ 但走的仍是**同一个共用口**(2026-09-09 终审):`act` 只有 `ad_coins`,
+		#   `_apply_shop_action` 的商店键一个都不命中 ⇒ 行为逐字不变, 换来的是
+		#   telemetry.md 承诺的那条 `consumable why=ad`(此前晚到的发奖在日志里是隐形的)。
+		_apply_consumable({"id": "sponsorbreak", "action": {"ad_coins": Economy.ad_coins()}}, "ad")
 		ev["late"] = true
 	ev["coins"] = phrase.coins
 	Tape.on("ad", ev)
@@ -2182,8 +2216,8 @@ func _on_ad_failed(kind: String, why: String) -> void:
 	shop.set_sponsor_playing(false)
 	if state == St.DRAFT:
 		# 放不成 ⇒ 碟当场离架(本店不再上架, 下家店再试)。留一张点了没反应的碟比不给更糟。
-		if _coffer.size() >= 3:
-			_coffer.resize(2)
+		if _has_sponsor_slot():
+			_coffer.pop_back()
 		_refresh_shop_consumables()
 		var sc: Dictionary = DB.ui()["shop"]
 		fx.float_text(Lingo.t("广告暂时没有,稍后再试"),

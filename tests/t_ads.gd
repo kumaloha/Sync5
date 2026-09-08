@@ -83,6 +83,11 @@ func run(t) -> void:
 	for m in PV.get_script_method_list():
 		pv_methods[String(m["name"])] = true
 	t.check(pv_methods.has("_on_ad_loaded"), "编排器接到货那一刻的补上架口(ads.loaded → 赞助碟)")
+	# 赞助碟在不在架 = **按末位判**(2026-09-09 终审):`_coffer.size() >= 3` 只在底座恰好两张时
+	# 才等价, 而底座是掷出来的(池抽干就会短)⇒ 那一刻长度口径会把随机碟错认成赞助碟, 不报错。
+	t.check(pv_methods.has("_has_sponsor_slot"), "第三位按末位判的那个口(不拿长度当身份)")
+	# 「发钱那一刻上限变假」得有话说 —— 那一刻不是「没广告」, 拿失败那句糊过去等于骗玩家再看一次
+	t.check(DB.lingo()["table"].has("这次没法入账,金币已到上限"), "入不了账时的那句在表里")
 	# 体力墙的纯判定:有货 且 存档允许(未满 + 今日未到顶)才把墙变成入口;探针强制开关只给 adsprobe 用
 	t.check(PV.energy_wall_ok(true, true), "有货 + 存档允许 ⇒ 墙变入口")
 	t.check(not PV.energy_wall_ok(false, true), "没货 ⇒ 今天的行为(明天回满)")

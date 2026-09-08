@@ -1448,10 +1448,16 @@ class SponsorWall:
 	const PLATE := Color(0.86, 0.90, 1.0)
 
 	var _t := 0.0
+	## 副行那句话 —— **开层时算一次**(2026-09-09 终审)。`_draw` 每帧跑(均衡带在动),
+	## 而这句要读存档(`SaveState.energy()`)⇒ 原写法是每帧一次存档访问, 换来的信息一帧都不会变:
+	## 层是每次撞墙新建的(`_open_energy_wall` 先 `_drop_energy_layer`), 而墙开着时体力不会变
+	##(看完广告那一支直接关层)。
+	var _sub := ""
 
 	func _init() -> void:
 		position = CARD.position
 		size = CARD.size
+		_sub = Lingo.t("明天回满 · ⚡ %d/%d") % [SaveState.energy(), SaveState.energy_max()]
 		# 卡上点击不关层(与旧写法的 Panel 同语义);空白处的点击照旧落到 layer.gui_input
 		mouse_filter = Control.MOUSE_FILTER_STOP
 		set_process(true)
@@ -1488,8 +1494,7 @@ class SponsorWall:
 		# 标题 + 副行
 		draw_string(zh, Vector2(CARD.position.x, TITLE_Y), Lingo.t("今天的场次演完了"),
 			HORIZONTAL_ALIGNMENT_CENTER, CARD.size.x, 26, INK)
-		draw_string(zh, Vector2(CARD.position.x, SUB_Y),
-			Lingo.t("明天回满 · ⚡ %d/%d") % [SaveState.energy(), SaveState.energy_max()],
+		draw_string(zh, Vector2(CARD.position.x, SUB_Y), _sub,
 			HORIZONTAL_ALIGNMENT_CENTER, CARD.size.x, 14, DIM)
 		StageCard.eq_band(self, BAND, acc, _t, 0, 34)
 		# 主键 = 首页「开始游戏」同一支笔(暗金底 + 金边 + 辉光 + 顶白线 + 霓虹字)。

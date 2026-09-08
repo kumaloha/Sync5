@@ -20,6 +20,12 @@ def main():
     if not quiet:
         print("真值:", " · ".join("%s %d 张" % kv for kv in truth.items()))
     bad = []
+    # ⚑ **名册标题是个漏网**(2026-09-09 终审):`docs/design/consumables.md` 的
+    #   「## 5. 名册(18 张)」不带实体名 ⇒ 下面那条按名扫的正则**永远看不见它**,
+    #   而它恰恰是那张表的总数断言(名册多一行少一行, 先漂的就是这个数)。
+    #   ⇒ 判据按**文件**给:这一篇讲的就是消耗牌, 「名册」后面那个数只能是它的张数。
+    #   ⚠ `docs/design/jokers.md` 今天没有同形标题(grep 过);哪天有了, 在这里加一行。
+    roster = {"consumables.md": "消耗牌"}
     # 扫 md 里形如「小丑牌 … NN 张」「消耗牌 … NN 张」的断言(同一行内, 允许中间有格式符)
     for md in list((ROOT / "docs/design").glob("*.md")) + [ROOT / "STATUS.md", ROOT / "CLAUDE.md"]:
         for ln, line in enumerate(md.read_text(encoding="utf-8").splitlines(), 1):
@@ -38,6 +44,12 @@ def main():
                     got = int(m.group(1))
                     if got != n and got not in (4,):     # 4 槽位那种无关数字
                         bad.append((md.relative_to(ROOT), ln, name, got, n, line.strip()[:70]))
+                if roster.get(md.name) == name and line.lstrip().startswith("#"):
+                    for m in re.finditer(r"名册[^\n]{0,8}?(?<![\d.])(\d{2,3})\s*张", line):
+                        got = int(m.group(1))
+                        if got != n:
+                            bad.append((md.relative_to(ROOT), ln, name + "名册",
+                                        got, n, line.strip()[:70]))
     for b in bad:
         print("✗ %s:%d  %s 写着 %d 张, 真值 %d\n    %s" % b)
     if bad:
