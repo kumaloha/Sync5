@@ -435,6 +435,7 @@ func _t_fork_complete(t) -> void:
 	sr.joker_slots[2].state = {"n": 7}
 	for _i in range(5):
 		sr.deck.discard(sr.deck.draw())   # 两堆都攒点内容, 顺序才有的可验
+	sr.ad_used = 1
 	var snap: Dictionary = sr.snapshot(9)
 	snap = JSON.parse_string(JSON.stringify(snap))
 	var rr := Run.new()
@@ -446,6 +447,17 @@ func _t_fork_complete(t) -> void:
 		t.eq(rr.get(k2), sr.get(k2), "restore 还原 %s" % k2)
 	t.eq(rr.run_faces, sr.run_faces, "restore 还原 run_faces(int 键从 JSON 字符串键转回)")
 	t.eq(rr.section_kinds, sr.section_kinds, "restore 还原 section_kinds(集合语义原样)")
+	t.eq(rr.ad_used, 1, "restore 还原 ad_used(广告换金币的每局账, 2026-09-08)")
+	var snap_old: Dictionary = snap.duplicate(true)
+	snap_old.erase("ad_used")
+	var r_old := Run.new()
+	r_old.reset(1)
+	r_old.ad_used = 5
+	t.check(r_old.restore(snap_old), "缺 ad_used 的旧快照照样读得回来(v 不变)")
+	t.eq(r_old.ad_used, 0, "旧快照缺键 = 0 次")
+	r_old.ad_used = 2
+	r_old.reset(1)
+	t.eq(r_old.ad_used, 0, "reset 清零(新局从 0 数)")
 	t.eq(rr.cache.size(), 3, "缓存三张都在")
 	t.eq(rr.cache[1].label(), sr.cache[1].label(), "缓存的牌面一致")
 	t.eq(int(rr.cache_meta["ages"][rr.cache[0]]), 4, "缓存年龄按下标重挂到新实例上")

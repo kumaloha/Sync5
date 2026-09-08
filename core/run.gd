@@ -95,6 +95,10 @@ var _roll_seed: int = 0
 ## exactly how the six copies of the phrase loop drifted apart (docs/design/tech.md).
 var coins: int = 0
 
+## 本局已看的换金币广告次数(每局上限的账;每店计数在编排器 `_shop_ads`, 与 `_shop_buys` 同归属)。
+## 2026-09-08 规格 docs/superpowers/specs/2026-09-08-ads-design.md §3.2。
+var ad_used := 0
+
 ## Where this run stands INSIDE a phrase. `Beat` refuses to run a step out of
 ## order — see core/beat.gd. Only a state machine can catch "I forgot to call
 ## it": a merely-available shared function does not (tools/sim.gd read the target
@@ -115,6 +119,7 @@ func reset(face_seed: int = -1) -> void:
 	cache_meta = {"ages": {}, "next": 0}
 	previous_raw_score = 0
 	coins = GameConfig.STARTING_COINS
+	ad_used = 0
 	stage = Stage.DECISION
 	# ⚠ **`tutorial` 自己不在这里清**(调用方 reset 之后才设它, 见 roll_faces 那条注释),
 	# 但**进度必须清** —— 否则重开会带着上一次的步骤下标继续走。
@@ -280,7 +285,7 @@ func snapshot(run_index: int) -> Dictionary:
 		"mod_roll": mod_roll.duplicate(), "shelf_bonus": shelf_bonus, "roll_seed": _roll_seed,
 		"first_kind": first_kind,
 		"previous_raw_score": previous_raw_score, "request_last": request_last,
-		"boon": run_boon, "coins": coins, "faces": faces_out,
+		"boon": run_boon, "coins": coins, "ad_used": ad_used, "faces": faces_out,
 		"kinds": kinds_out, "cache": Deck.cards_out(cache),
 		"cache_ages": ages_out, "cache_next": int(cache_meta.get("next", 0)),
 		"slots": slots_out, "deck": deck.snapshot(),
@@ -358,6 +363,7 @@ func restore(d: Dictionary) -> bool:
 	request_last = String(d.get("request_last", ""))
 	run_boon = String(d.get("boon", ""))
 	coins = int(d.get("coins", 0))
+	ad_used = int(d.get("ad_used", 0))     # 旧快照没有这个键 ⇒ 0, 不需要升版(与 debt 同款)
 	tutorial = false
 	tutorial_step = 0
 	stage = Stage.DECISION

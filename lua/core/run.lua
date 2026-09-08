@@ -55,6 +55,7 @@ function Run.new()
 	self._roll_rng = Rng.new():seed(rnd_seed() + 7)
 	self._roll_seed = 0
 	self.coins = 0
+	self.ad_used = 0
 	self.stage = Run.Stage.DECISION
 	self.tutorial = false
 	self.face_ranking = {}
@@ -89,6 +90,7 @@ function Run:reset(face_seed)
 	self.cache_meta = { ages = {}, next = 0 }
 	self.previous_raw_score = 0
 	self.coins = GameConfig.STARTING_COINS
+	self.ad_used = 0
 	self.stage = Run.Stage.DECISION
 	self.tutorial_step = 0
 	self._tutorial_acted = {}
@@ -187,7 +189,7 @@ function Run:snapshot(run_index)
 		mod_roll = num.shallow(self.mod_roll), shelf_bonus = self.shelf_bonus, roll_seed = self._roll_seed,
 		first_kind = self.first_kind,
 		previous_raw_score = self.previous_raw_score, request_last = self.request_last,
-		boon = self.run_boon, coins = self.coins, faces = faces_out,
+		boon = self.run_boon, coins = self.coins, ad_used = self.ad_used, faces = faces_out,
 		kinds = kinds_out, cache = Deck.cards_out(self.cache),
 		cache_ages = ages_out, cache_next = num.int(self.cache_meta.next or 0),
 		slots = slots_out, deck = self.deck:snapshot(),
@@ -254,6 +256,7 @@ function Run:restore(d)
 	self.request_last = tostring(num.get(d, "request_last", ""))
 	self.run_boon = tostring(num.get(d, "boon", ""))
 	self.coins = num.int(num.get(d, "coins", 0))
+	self.ad_used = num.int(num.get(d, "ad_used", 0))
 	self.tutorial = false
 	self.tutorial_step = 0
 	self.stage = Run.Stage.DECISION
