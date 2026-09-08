@@ -272,6 +272,51 @@ function SaveState.spend_energy_for_run(tutorial)
 	return true
 end
 
+-- 看广告换体力(2026-09-08):未满才许 · 每日上限 · 入账不超满值 · 只有真发奖才计数。
+function SaveState.ad_energy_amount()
+	return num.int(num.get(DB.profile(), "ad_energy", 1))
+end
+
+function SaveState.ad_energy_per_day()
+	return num.int(num.get(DB.profile(), "ad_energy_per_day", 0))
+end
+
+function SaveState._ad_energy_used_in(d, day)
+	if tostring(num.get(d, "ad_energy_day", "")) ~= day then return 0 end
+	return num.maxi(0, num.int(num.get(d, "ad_energy_used", 0)))
+end
+
+function SaveState._ad_energy_can_in(d, day, cap, per_day)
+	return SaveState._energy_in(d, day, cap) < cap and SaveState._ad_energy_used_in(d, day) < per_day
+end
+
+function SaveState._ad_energy_in(d, day, cap, per_day, amount)
+	if not SaveState._ad_energy_can_in(d, day, cap, per_day) then return false end
+	local cur = SaveState._energy_in(d, day, cap)
+	local used = SaveState._ad_energy_used_in(d, day)
+	d.energy_day = day
+	d.energy = num.mini(cap, cur + num.maxi(0, amount))
+	d.ad_energy_day = day
+	d.ad_energy_used = used + 1
+	return true
+end
+
+function SaveState.can_add_energy_from_ad()
+	if is_probe() then return false end
+	return SaveState._ad_energy_can_in(SaveState._data(), SaveState.day_key(),
+		SaveState.energy_max(), SaveState.ad_energy_per_day())
+end
+
+function SaveState.add_energy_from_ad()
+	if is_probe() then return false end
+	if not SaveState._ad_energy_in(SaveState._data(), SaveState.day_key(), SaveState.energy_max(),
+			SaveState.ad_energy_per_day(), SaveState.ad_energy_amount()) then
+		return false
+	end
+	SaveState._flush()
+	return true
+end
+
 function SaveState.profile()
 	local per = num.maxi(1, num.int(num.get(DB.profile(), "xp_per_level", 4)))
 	local xp = is_probe() and 0 or num.int(num.get(SaveState._data(), "sections_total", 0))

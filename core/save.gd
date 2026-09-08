@@ -360,6 +360,64 @@ static func _spend_in(d: Dictionary, n: int, day: String, cap: int) -> bool:
 	return true
 
 
+## ---- 看广告换体力(2026-09-08 用户拍板「局外看广告买体力」;规格 docs/superpowers/specs/2026-09-08-ads-design.md §3.3)----
+##
+## 入口 = **体力墙本身**(view/phrase.gd::_deny_no_energy), 首页胶囊只显示(二审删了胶囊入口)。
+## 规则:未满才许(不能囤)· 每日次数上限(profile.json ad_energy_per_day)· 入账不超满值 ·
+## **只有真发奖才计数** —— 由调用方保证:它只在 `rewarded` 信号里调 `add_energy_from_ad`。
+## 存档新键 `ad_energy_day` / `ad_energy_used`;跨日清零;旧档缺键 = 今天 0 次(不需要升版)。
+## 探针:`can_add` 恒 false(探针恒满 ⇒ 画面上永远没有这个入口, 截图稳定), `add` no-op false。
+## 算术仍拆成纯函数层(`_ad_energy_*_in`), 与体力那一节同一理由:测试自己就是探针。
+
+static func ad_energy_amount() -> int:
+	return int(DB.profile().get("ad_energy", 1))
+
+
+static func ad_energy_per_day() -> int:
+	return int(DB.profile().get("ad_energy_per_day", 0))
+
+
+static func can_add_energy_from_ad() -> bool:
+	if _is_probe():
+		return false
+	return _ad_energy_can_in(_data(), _day_key(), energy_max(), ad_energy_per_day())
+
+
+## 看完入账 + 落盘。false = 不许(满值 / 次数到顶)且什么都没发生。
+static func add_energy_from_ad() -> bool:
+	if _is_probe():
+		return false
+	if not _ad_energy_in(_data(), _day_key(), energy_max(), ad_energy_per_day(), ad_energy_amount()):
+		return false
+	_flush()
+	return true
+
+
+## 今日已看几次(纯函数):日期章不是今天 = 0。
+static func _ad_energy_used_in(d: Dictionary, day: String) -> int:
+	if String(d.get("ad_energy_day", "")) != day:
+		return 0
+	return maxi(0, int(d.get("ad_energy_used", 0)))
+
+
+## 还能不能看(纯函数):未满 且 今日次数未到。
+static func _ad_energy_can_in(d: Dictionary, day: String, cap: int, per_day: int) -> bool:
+	return _energy_in(d, day, cap) < cap and _ad_energy_used_in(d, day) < per_day
+
+
+## 入账(纯函数):不许 = false 且**不动 d**;许 = 加 min(amount, 缺口)、次数 +1、两处盖日期章。
+static func _ad_energy_in(d: Dictionary, day: String, cap: int, per_day: int, amount: int) -> bool:
+	if not _ad_energy_can_in(d, day, cap, per_day):
+		return false
+	var cur := _energy_in(d, day, cap)
+	var used := _ad_energy_used_in(d, day)
+	d["energy_day"] = day
+	d["energy"] = mini(cap, cur + maxi(0, amount))
+	d["ad_energy_day"] = day
+	d["ad_energy_used"] = used + 1
+	return true
+
+
 ## 参与度等级(EXP = 累计通关段数, 不挂分数)。返回 {level, xp, xp_max}。
 ## 探针 = 新玩家同值(LV.1 · 0/x)。
 static func profile() -> Dictionary:

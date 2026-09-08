@@ -71,3 +71,31 @@ func run(t) -> void:
 	t.eq(FileAccess.file_exists(SaveState.PATH), existed, "探针 spend 不落盘:文件存在与否没变")
 	if existed:
 		t.eq(FileAccess.get_modified_time(SaveState.PATH), mtime, "探针 spend 不落盘:修改时间没动")
+
+	# ---- ⑤ 看广告换体力(2026-09-08 用户拍板「局外看广告买体力」)—— 纯函数层, 数从 profile.json 推导 ----
+	var per_day := SaveState.ad_energy_per_day()
+	var amt := SaveState.ad_energy_amount()
+	t.check(per_day >= 1 and amt >= 1, "profile.json 广告体力两键 ≥ 1(否则入口永远不出现)")
+	var a := {"energy": 0, "energy_day": day}
+	t.check(SaveState._ad_energy_can_in(a, day, cap, per_day), "0 体力今天没看过 ⇒ 可以看")
+	t.check(SaveState._ad_energy_in(a, day, cap, per_day, amt), "看完入账")
+	t.eq(SaveState._energy_in(a, day, cap), mini(cap, amt), "入账 = min(amount, 缺口)")
+	t.eq(int(a["ad_energy_used"]), 1, "只有真发奖才计数, 计 1 次")
+	t.eq(String(a["ad_energy_day"]), day, "次数盖今天的日期章")
+	var full := {"energy": cap, "energy_day": day}
+	t.check(not SaveState._ad_energy_can_in(full, day, cap, per_day), "满值不许看(不能囤)")
+	t.check(not SaveState._ad_energy_in(full, day, cap, per_day, amt), "满值入账被拒")
+	t.eq(int(full["energy"]), cap, "被拒时字典原样")
+	t.check(not full.has("ad_energy_used"), "被拒不计数")
+	var near := {"energy": cap - 1, "energy_day": day}
+	t.check(SaveState._ad_energy_in(near, day, cap, per_day, amt + 5), "差 1 点时看一次")
+	t.eq(SaveState._energy_in(near, day, cap), cap, "永不超满值")
+	var maxed := {"energy": 0, "energy_day": day, "ad_energy_day": day, "ad_energy_used": per_day}
+	t.check(not SaveState._ad_energy_can_in(maxed, day, cap, per_day), "今日次数到顶不许")
+	var tomorrow := {"energy": 0, "energy_day": next_day, "ad_energy_day": day, "ad_energy_used": per_day}
+	t.check(SaveState._ad_energy_can_in(tomorrow, next_day, cap, per_day), "跨日次数清零")
+	var legacy2 := {"seen_tutorial": true, "energy": 0, "energy_day": day}
+	t.check(SaveState._ad_energy_can_in(legacy2, day, cap, per_day), "旧档缺广告键 = 今天 0 次")
+	# 探针闸(公开口):测试自己就是探针 —— 探针恒满 ⇒ 永远不许, 画面上永远没有这个入口
+	t.check(not SaveState.can_add_energy_from_ad(), "探针 can_add 恒 false")
+	t.check(not SaveState.add_energy_from_ad(), "探针 add 恒 false 且不落盘")
