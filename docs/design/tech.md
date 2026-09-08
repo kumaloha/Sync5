@@ -207,7 +207,7 @@ apply sites (`Settle.run`, `view/phrase.gd`) read accessors on `SectionMod`.
 ### economy.json
 
 **权威 = 文件本身 + `core/db.gd::validate_economy`**(2026-08-21:原 08-05 示例块含已删的 `target_swap`,整块删除)。
-现行顶层键:`starting_coins` · `discard_cost`(1◆/张, 经济 v2)· `section_clear_reward` · `draft_rarity_weights` · `joker_prices` · `joker_price_overrides` · `reroll` · `kind_coins`(每拍按牌型发钱, 主收入)(`joker_upgrade` 随升级系统 08-26 删;`reshuffle_cost` 随付费洗牌 09-01 删)。
+现行顶层键:`starting_coins` · `discard_cost`(1◆/张, 经济 v2)· `section_clear_reward` · `draft_rarity_weights` · `joker_prices` · `joker_price_overrides` · `reroll` · `kind_coins`(每拍按牌型发钱, 主收入)· `ad_coins` / `ad_coins_per_shop` / `ad_coins_per_run`(2026-09-08 激励视频换金币:数额 = 一张卡的钱;两级上限只数真发出去的钱;目标分按零广告标定, 校验锁 `per_shop ≤ per_run`)(`joker_upgrade` 随升级系统 08-26 删;`reshuffle_cost` 随付费洗牌 09-01 删)。
 规则(去掉数字仍成立的部分):弃牌收费 · 标价不保底 · 刷新递增 ·
 `prices`/`weights` 键集必须相等(校验锁着)。数字与推导见 [`levels.md`](levels.md) §经济。
 
@@ -392,6 +392,8 @@ _advance/_next_section` 编排、run_end/banner/picker 接线、settle 演出
   角标/点阵/渐变分隔/均衡器带/档位配色/难度星),`Widgets.BlindBoard` 是它的
   局内尺寸。用户拍板「关卡就是盲注」,所以两者必须是同一个对象。
 - 局外成长(META)已于 2026-08-24 用户拍板整体删除;局外只剩体力/经验容量(`data/profile.json`)与图鉴。
+  `profile.json` 另有 `ad_energy` / `ad_energy_per_day`(2026-09-08 看广告换体力:未满才许、每日上限、入口 = 体力墙本身);
+  `ads.json` = 激励视频 SDK 配置(`test_mode` 恒 true 直到出正式包;两个 rewarded 单元 ID 归用户填;消费者只有 `view/ads.gd` / `view/admob.gd`)。
 
 ### Non-goals
 

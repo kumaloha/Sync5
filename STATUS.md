@@ -122,6 +122,7 @@ tools/bot.gd                   玩家策略(完美玩家 / 规则 bot)
 | **`gate.sh`** ⚑ | **加了内容就要过的门**(测试+脸覆盖自证+**小丑牌覆盖自证**+单调性+哨兵+流程+打点+重放+尺子) | ⚠⚠ **实测 ~4.5 小时**(2026-08-15 逐步计时,见下)。~~15 分钟~~ 那个数是 **S10 之前**的,**过期了一个数量级** |
 | **`unittest.sh`** | 全量单测 + **四判据唯一一份**(exit 0 · 0 failed · SCRIPT ERROR 0 · 非白名单 ^ERROR 0 · 通过数 ≥ 2400);gate.sh 与 CI 都调它 | ~13 分钟 |
 | `pair.gd` | 守「求解器 = 游戏代码」,三关递进 | ~3 分钟 |
+| `adsprobe.gd` | 激励视频两条流的无头回归(商店三店的每店/每局上限 + 体力墙看完真开局);**要显式 `SYNC5_ADS=fake SYNC5_PROBE_ENERGY_WALL=1`**(探针缺省无货);已进 `gate.sh` 流程回归行。09-08 首跑就抓到一个真 bug | 秒级 |
 | `curve.gd` | 生成器:录分 → 反解目标分 | — |
 | **`prior.gd`** ⚑ | **先验层(2026-08-14 新)· 三个模式**:①(默认)牌型分布 / 谓词 `p̂` / **规则牌 Δp**;② `SYNC5_PRIOR_MODE=discard` **弃牌兑换率**(b=0→4 期望分 +82%)+ 求解器弃牌盲区;③ `SYNC5_PRIOR_MODE=shelf` **货架曝光**(解析零采样)。判定/谓词/抽卡**一律不重写**,全部调 `core/pattern.gd` + `core/fx.gd`,或对实现做解析求解。自带闭式自检、快慢路径逐次对账、跨模式交叉自检。规格 = [`docs/design/prior.md`](docs/design/prior.md) | ①~440s @20万 · ②~150s @400手 · ③ 秒级 |
 | `sim.gd` | 全队列通关率,**自带尺子自检**(非零退出)+ **卡面覆盖率四道闸门**(见下行) | **~275s**(14 队列 × 1000 局;~~107s~~ 已过期) |
@@ -475,6 +476,10 @@ Godot 侧:四处手抄数字搬 JSON(截图前后逐件对照不动)· 货架组
   "Android" build/sync5-dev.apk` → 115MB,arm64-v8a、minSdk 24 / targetSdk 35、
   **零权限**、竖屏。⚠ **1.0 实际以 debug 签名 + 占位包名 `com.sync5.dev` + `0.1.0-dev` 出货**(`build/sync5-taptap.apk`,08-19);
   传 TapTap 前必须换 release keystore(凭据操作归用户)+ 正式包名 + 版本号 —— **包名上传后不可改**。
+  **2026-09-08 起 Android 导出走 Gradle 构建**(`gradle_build/use_gradle_build=true`;AdMob 插件是 Godot 4.2+ 的 v2 Android 插件, 官方写明 requires the Gradle build process):
+  编辑器先 `Project → Install Android Build Template`;插件 `addons/admob/`(Poing Studios `godot-admob-plugin` v5.0.0, AssetLib「AdMob by Poing Studios」)**归用户装**,
+  App ID 填插件设置(进 AndroidManifest)、两个 rewarded 单元 ID 填 `data/ads.json`,`test_mode` 出正式包那一步才翻 false。插件不在时 `view/admob.gd` 照常解析(全动态查类), 桌面/Web 导出与 `--import` 不受影响。
+  真机冒烟清单 + Play 后台三件(数据安全表单补 Ads SDK 采集项 / 发行国家排除 EEA·UK·瑞士, 本批不做 UMP / 隐私页补广告段)在 `docs/superpowers/plans/2026-09-08-ads.md` Task 11。
   **发行口径(2026-08-17/19 拍板,取代 taptap.md 旧结论)**:TapTap 只是**给朋友试玩**的渠道,正式发行走**美国**;
   **防沉迷 SDK 不做**;国内试玩需要 **App 备案**(用户自办)+ 软著(材料包我可出),版号不需要(免费试玩、无内购)。
   工具链四处修正已留注释(editor_settings 两处路径、project.godot 的 `handheld/orientation` 与 `import_etc2_astc`)。
