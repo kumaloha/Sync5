@@ -23,9 +23,9 @@
 
 | 文件 | 改动 |
 |---|---|
-| `data/consumables.json` | 新条目 `{"id":"sponsor","cn":"赞助插播","name":"Sponsor Break","price":0,"fire":"buy","fx":"Watch an ad, venue pays 3◆","action":{"ad_coins":3},"shelf":"sponsor","proof":"shop"}` + `_comment_sponsor` 说明「不进池、第三位、不占名额、数住在这里」 |
+| `data/consumables.json` | 新条目 `{"id":"sponsorbreak","cn":"赞助插播","name":"Sponsor Break","price":0,"fire":"buy","fx":"Watch an ad, venue pays 3◆","action":{"ad_coins":3},"shelf":"sponsor","proof":"shop"}` + `_comment_sponsor`。⚠ id 不能叫 `sponsor` —— 那是 08-29 的折扣消耗牌「赞助」(price_delta);**身份靠 `shelf == "sponsor"`,不靠 id**(Task 1 落地时改的) |
 | `data/economy.json` | 删 `ad_coins`(数搬家);留 `ad_coins_per_shop` / `ad_coins_per_run`,`_comment_ads` 改写 |
-| `data/ui.json` | `shop` 节:删 `ad_offer_text` / `ad_offer_text_plain` / `ad_offer_pos` / `_comment_ad_offer`;加 `cons_col_w_3: 150`(三碟时的列宽,间距仍用 `cons_gap`)与 `sponsor_free_text: "免费"`;`consumablecard.sponsor.trigger: "播一段广告,场馆付你 3◆"` |
+| `data/ui.json` | `shop` 节:删 `ad_offer_text` / `ad_offer_text_plain` / `ad_offer_pos` / `_comment_ad_offer`;加 `cons_col_w_3: 150`(三碟时的列宽,间距仍用 `cons_gap`)与 `sponsor_free_text: "免费"`;`consumablecard.sponsorbreak.trigger: "播一段广告,场馆付你 3◆"`(Task 1 已落) |
 | `data/lingo.json` | 加:「免费」「插播中…」「今天的场次演完了」「明天回满 · ⚡ %d/%d」「赞助商加一场」「看一段广告 · +%d⚡」「播一段广告,场馆付你 3◆」;删:「差 %d◆ · 看广告 +%d◆」「看广告 +%d◆」「体力不足」「看广告 +%d⚡ · 马上开局」(「不看了」「体力不足,明天回满」「广告暂时没有,稍后再试」保留) |
 | `data/sim.json` | 不动(ads 臂仍按需临时加 cohort) |
 
@@ -49,7 +49,7 @@
   - `_coffer` = `_roll_consumables()`(2 张)+ 第三位:`ad_offer_ok(ads.has_ad("coins"), run.tutorial, run.ad_used, _shop_ads, phrase.coins, run.joker_slots) and not _shop_ad_failed` ⇒ `Consumable.new(Consumable.sponsor_entry())`,否则不append(offer 长度 2)。进店算一次,`_refresh_shop_consumables()` 时重算第三位(Android 的 `has_ad` 是异步变真的)。
   - `_on_consumable_bought(c, price)`:`c.is_sponsor()` ⇒ 不扣钱、不 `take`、不计 `_shop_buys`;若 `_coins_ad_showing` 直接返回;`Tape.on("ad", {"k":"coins","ev":"show"})`;`shop.set_sponsor_playing(true)`;`_coins_ad_showing = true`;`ads.show_ad("coins")`;返回。
   - `_apply_shop_action` 加一支:`if act.has("ad_coins"): phrase.coins = Economy.grant(phrase.coins, int(act["ad_coins"]), run.joker_slots); run.coins = phrase.coins`。
-  - `_on_ad_rewarded("coins")`:`store` ⇒ 发钱那一刻再守一次 `ad_coins_allowed`(不许 ⇒ Tape drop)⇒ `_apply_consumable({"id":"sponsor","action":{"ad_coins":N}}, "ad")`(走共用口,Tape 会记 `consumable why=ad`)⇒ `_shop_ads += 1; run.ad_used += 1` ⇒ 第三位置 null(碟像卖出的商品离架)⇒ `_refresh_shop_consumables(); shop.refresh_coins(phrase.coins)` ⇒ `Tape.on("ad", reward)`;`late` ⇒ 只发钱 + Tape late;`drop` 照旧。
+  - `_on_ad_rewarded("coins")`:`store` ⇒ 发钱那一刻再守一次 `ad_coins_allowed`(不许 ⇒ Tape drop)⇒ `_apply_consumable({"id":"sponsorbreak","action":{"ad_coins":N}}, "ad")`(走共用口,Tape 会记 `consumable why=ad`)⇒ `_shop_ads += 1; run.ad_used += 1` ⇒ 第三位置 null(碟像卖出的商品离架)⇒ `_refresh_shop_consumables(); shop.refresh_coins(phrase.coins)` ⇒ `Tape.on("ad", reward)`;`late` ⇒ 只发钱 + Tape late;`drop` 照旧。
   - `_on_ad_failed("coins")`:`shop.set_sponsor_playing(false)`;`_shop_ad_failed = true`;第三位置 null + 刷新;浮字「广告暂时没有,稍后再试」。
   - `_on_ad_closed("coins")`:`_coins_ad_showing = false`;若这次没发奖 ⇒ `shop.set_sponsor_playing(false)`(碟回到在场)。
   - **删掉** `_on_shop_denied` 里的 offer 判定(只留 `Tape.on("deny")`)、`_on_shop_ad_requested`;`ad_offer_ok` / `ad_reward_case` 保留。
@@ -66,7 +66,7 @@
 ## 5. 仪器与门
 
 - `tools/bot.gd`:ads 上界臂不变(语义 = 每店都拿赞助碟);`_apply_bot_action` 加 `ad_coins` 分支(`_pending_borrow += int(act["ad_coins"])`,与 loan 同一形状,注释写明:正常路径不经这里,只为 parity 第二层与 kit 钉卡)。
-- `tools/parity.py`:ENTRIES 的 `ad_coins` 保留;第二层 `action_keys` 自动把 `ad_coins` 纳入两侧检查;第四层 `card_face` 读 `consumablecard.sponsor.trigger` 里的 3 与 `action.ad_coins` 对上。
+- `tools/parity.py`:ENTRIES 的 `ad_coins` 保留;第二层 `action_keys` 自动把 `ad_coins` 纳入两侧检查;第四层 `card_face` 读 `consumablecard.sponsorbreak.trigger` 里的 3 与 `action.ad_coins` 对上。
 - 秒级六门 + `t_db/t_consumable/t_economy/t_shop/t_ads/t_lingo` + adsprobe;收尾跑一次全量单测。
 
 ## 6. 不做 / 认下
