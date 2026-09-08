@@ -42,6 +42,20 @@ function Consumable:fire_label()
 	return num.itos(num.int(self.fire))
 end
 
+-- 赞助碟 = 带 shelf: "sponsor" 的那一条(2026-09-09):货架第三位、price 0、fire buy、
+-- action.ad_coins 就是播完场馆付的钱。⚠ 判据是 shelf 不是 id(id `sponsor` 归折扣卡「赞助」)。
+function Consumable:is_sponsor()
+	return tostring(self._raw.shelf or "") == "sponsor"
+end
+
+-- 表里那唯一一条赞助碟的原始数据行(找不到返回空表)。「恰好一条」由 db 校验守着。
+function Consumable.sponsor_entry()
+	for _, e in ipairs(DB.consumables()) do
+		if tostring(e.shelf or "") == "sponsor" then return e end
+	end
+	return {}
+end
+
 function Consumable:is_rule_card()
 	return self.action.deck_rule ~= nil
 end
@@ -61,7 +75,10 @@ end
 function Consumable.roll_shelf(held, rule_first, n, pick)
 	local pool = {}
 	for _, e in ipairs(DB.consumables()) do
-		if held[tostring(e.id)] == nil then pool[#pool + 1] = e end
+		-- 赞助碟不是随机货(2026-09-09):它免费, 进池就是白送 —— 由编排器按条件摆到第三位。
+		if tostring(e.shelf or "") ~= "sponsor" and held[tostring(e.id)] == nil then
+			pool[#pool + 1] = e
+		end
 	end
 	local out = {}
 	for i = 0, n - 1 do

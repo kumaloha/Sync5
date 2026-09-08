@@ -23,7 +23,7 @@ Lumines 的节奏推进 + Balatro 的构筑。一局 4 段 × 6 拍 × 8 秒 ≈
 | 单元测试 | **3330 passed / 0 failed**(2026-08-31 平衡批后)。⚠ 耗时 ~31 分钟 | `./tools/unittest.sh`。⚑ 跑之前先跑四条秒级检查:`parity.py --check && evsync.py --check && counts.py --check && docscan.py` |
 | 单元测试 | **3172 passed / 0 failed**(2026-08-30:消耗牌开轴 + 经济收口 + code review 15 个 bug;含 `t_consumable` **119 条**)。⚠ **耗时 ~31 分钟**(从 12 分涨上来)—— 08-29 删掉 goldenvoice 的 SOLVER_BLIND 豁免后 `t_draft` 要真跑一次求解器推演。⚠⚠ 那条豁免 **08-30 又加回来了**(收入重构后金币贴地, 「持币 ≥6」再次不成立)—— **它的成立与否取决于经济参数**, 别当永久声明 | `./tools/unittest.sh`(四判据唯一一份)。⚑ **跑之前先跑三条秒级检查**:`parity.py --check && evsync.py --check && counts.py --check` |
 | CI | `.github/workflows/tests.yml`(push/PR 跑 `--import` + `unittest.sh`;**尚未在 GitHub 上验证过一次**,首跑可能要调 Godot 下载链接) | 推送即触发 |
-| 小丑牌覆盖门 | **64 张**(2026-08-30 三批转生:首批 9 张 +帕奇欧 · 二批 4 张规则牌 · 三批预支);单卡 kit 直跑 ~10 秒(不含单测)。✅ **kit 已认识消耗牌**(现 17 张) | `SYNC5_KIT_ID=<id> godot --headless --path . --script res://tools/kit.gd` |
+| 小丑牌覆盖门 | **64 张**(2026-08-30 三批转生:首批 9 张 +帕奇欧 · 二批 4 张规则牌 · 三批预支);单卡 kit 直跑 ~10 秒(不含单测)。✅ **kit 已认识消耗牌**(现 18 张) | `SYNC5_KIT_ID=<id> godot --headless --path . --script res://tools/kit.gd` |
 | 内容门 | **08-26 全量门跑完**(4.9h,对抗批新基线):五红三过期全部尸检处置(声明/仪器层,内容零改;细账 CHANGELOG 08-26b),ranking 已由 rankgen 重刷 | `./tools/gate.sh`(增量 = `--changed`) |
 | 求解器一致性 | **三关配对差 +0.0**(08-16 分级门) | `godot --headless --path . --script res://tools/pair.gd` |
 | 流程/打点/重放 | 0 违规 | 已并进 `gate.sh` |
@@ -41,7 +41,7 @@ Lumines 的节奏推进 + Balatro 的构筑。一局 4 段 × 6 拍 × 8 秒 ≈
 
 | | 现役 |
 |---|---|
-| 小丑牌 | **64 张** · **消耗牌 17 张**(2026-08-30 开轴 + 二批四张规则牌 + 三批预支, 见 [consumables](docs/design/consumables.md))。⚠ 这一行历史上写错过多次(23/61/63/76 都出现过)—— **一律以 `data/*.json` 的计数为准, 别手抄** |
+| 小丑牌 | **64 张** · **消耗牌 18 张**(2026-08-30 开轴 + 二批四张规则牌 + 三批预支 + 2026-09-09 赞助碟(不进随机池), 见 [consumables](docs/design/consumables.md))。⚠ 这一行历史上写错过多次(23/61/63/76 都出现过)—— **一律以 `data/*.json` 的计数为准, 别手抄** |
 | Boss 脸 | **52 张在池**(按 `tier` 计 10/16/21/5,以 `faces.json` 有无 `tier` 为准;09-06 code review 实数)+ 7 张无 tier 未入池(unplugged/static/rotation/cover/freshsheet/redlight/patchin)。⚠ 以 `faces.json` 为准, 这一行的数会过期 |
 | 主角 | ~~8 个~~ **已删除**(2026-08-24 局外 build 整体删除,含被动层与全部立绘素材) |
 | 结构 | 4 段 × 6 拍 × 8 秒,每 3 拍一次商店 |
@@ -308,7 +308,7 @@ price 里 ration/trilogy/trilogy4 三个放置要用 `SYNC5_PRICE_ONLY` 单独�
 
 ## ⚑ 2026-08-31 快照(交接用;⚠ 试玩批之前)
 
-**小丑牌 64 张 · 消耗牌 17 张**(三批转生:首批 9+帕奇欧 · 二批四张规则牌 · 三批预支)。
+**小丑牌 64 张 · 消耗牌 18 张**(三批转生:首批 9+帕奇欧 · 二批四张规则牌 · 三批预支;+ 09-09 赞助碟, 它不进随机池)。
 覆盖率**自然口径 64/64 = 100%**(「上架但没人装」0/64), 消耗牌 17/17 全部用到;
 尺子自检 ✅(random 2.0% ≤ 5%);各路线通关率 17~46%, 地形极差 **44.4 pt**;
 局末余额中位 10◆;消耗牌这一层值 **+18.8pt**。

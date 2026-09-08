@@ -37,7 +37,7 @@ const _RUN_KEYS := ["phrases_per_section", "phrases_per_shop", "sections_per_gig
 	"s1_face_min_run", "s1_easy_chance"]
 const _ECO_KEYS := ["starting_coins", "discard_cost", "section_clear_reward",
 	"draft_rarity_weights", "joker_prices", "joker_price_overrides",
-	"reroll", "kind_coins", "ad_coins", "ad_coins_per_shop", "ad_coins_per_run"]
+	"reroll", "kind_coins", "ad_coins_per_shop", "ad_coins_per_run"]
 const _TAPE_KEYS := ["enabled", "to_file", "dir", "max_events", "mute"]   # upload 是可选节, 另查
 
 
@@ -422,8 +422,10 @@ static func validate_economy(d: Dictionary) -> String:
 			"FLUSH", "FULL_HOUSE", "FOUR_KIND", "STRAIGHT_FLUSH", "ROYAL_FLUSH"]:
 		if not kc.has(kn):
 			return "kind_coins 缺牌型 '%s'(那个牌型会静默给 0◆)" % kn
-	# 激励视频换金币(2026-09-08):三个数 ≥ 0, 每店上限不许超过每局上限(否则每店那条是死数据)。
-	for k in ["ad_coins", "ad_coins_per_shop", "ad_coins_per_run"]:
+	# 激励视频换金币的两级上限(2026-09-08):两个数 ≥ 0, 每店上限不许超过每局上限
+	# (否则每店那条是死数据)。⚑ **一次给多少不在这里** —— 2026-09-09 搬到赞助碟的
+	# `action.ad_coins` 上(卡面上的数住在卡上), 由 validate_consumables 守着。
+	for k in ["ad_coins_per_shop", "ad_coins_per_run"]:
 		if int(d[k]) < 0:
 			return "%s 必须 >= 0" % k
 	if int(d["ad_coins_per_shop"]) > int(d["ad_coins_per_run"]):
@@ -1205,7 +1207,7 @@ static func _validate_effects(effects: Array, owner: String, counters: Dictionar
 ## · `tools/bot.gd::_apply_bot_action`。`tools/parity.py` 会机械核对后两处。
 const _CONSUMABLE_ACTIONS := ["wilds", "trim_low", "deck_rule", "shelf_slots",
 	"extra_buys", "price_delta", "rule_guaranteed", "free_reroll", "min_rarity",
-	"copy_one_destroy_rest", "loan"]
+	"copy_one_destroy_rest", "loan", "ad_coins"]
 ## 当拍加成的通道 —— 键名与 `core/settle.gd` 里 phrase_boosts 那段消费的一致;⚠ 语义由 settle 那段
 ## 手写解释(不经过 Fx), 2026-09-06 起 `bonus_target_pct` 与小丑牌同口径 = **每拍**目标分的百分比。
 const _CONSUMABLE_BOOSTS := ["bonus_pct", "mult", "bonus", "bonus_target_pct",
@@ -1215,10 +1217,11 @@ static func validate_consumables(d: Dictionary) -> String:
 	if not d.has("consumables"):
 		return "wants 'consumables'"
 	var ids := {}
+	var sponsors := 0
 	for e in d["consumables"]:
 		for k in e:
 			if not ["id", "name", "cn", "price", "fire", "fx", "action", "boost",
-					"proof"].has(k) \
+					"shelf", "proof"].has(k) \
 					and not String(k).begins_with("_"):
 				return "consumable unknown key '%s' (%s)" % [k, e.get("id", "?")]
 		var cid := String(e.get("id", ""))
@@ -1255,18 +1258,43 @@ static func validate_consumables(d: Dictionary) -> String:
 				return "consumable '%s' 的 deck_rule '%s' 不认识, 只能是 %s" % [cid, e["action"][ak], str(_DECK_RULES)]
 			if String(ak) == "wilds" and (int(e["action"][ak]) < 2 or int(e["action"][ak]) > 6):
 				return "consumable '%s' 的 wilds 必须在 2..6" % cid
+			# ⚠ 看完给 0◆ 还烧掉一次上限额度 —— 与 profile 那条 `ad_energy = 0` 同形的坑。
+			if String(ak) == "ad_coins" and int(e["action"][ak]) < 1:
+				return "consumable '%s' 的 ad_coins 必须 >= 1(看完给 0◆ 还烧一次上限)" % cid
 		# boost 走的是 Fx 的通道名, 与小丑牌同一批 —— 这里只挡明显的手滑。
 		for bk in e.get("boost", {}):
 			if not _CONSUMABLE_BOOSTS.has(String(bk)):
 				return "consumable '%s' 的 boost 通道 '%s' 不认识, 只能是 %s" \
 					% [cid, bk, str(_CONSUMABLE_BOOSTS)]
-		if int(e.get("price", 0)) <= 0:
-			return "consumable '%s' 价格必须为正" % cid
+		# ⚑⚑ 赞助碟(2026-09-09 赞助商版, 规格 specs/2026-09-09-sponsor-design.md §1):
+		# `shelf: "sponsor"` 是**货架第三位**那张碟的身份标记 —— 它不进随机池、不占 5 选 1 的名额、
+		# 拿它 = 播一段插播, 播完场馆付钱。四条契约在这里落成机械, 每条都堵一种「不报错的错」。
+		var shelf := String(e.get("shelf", ""))
+		if e.has("shelf") and shelf != "sponsor":
+			# 写别的值 = 它悄悄退出第三位, 而且既不报错也不进随机池 ⇒ 一张谁也见不到的卡。
+			return "consumable '%s' 的 shelf '%s' 不认识, 只能是 sponsor" % [cid, shelf]
+		if shelf == "sponsor":
+			sponsors += 1
+			if String(e.get("fire", "")) != "buy":
+				return "consumable '%s' 是赞助碟, 必须 fire: buy(拿下即播, 不进待播队列)" % cid
+			var sact: Dictionary = e.get("action", {})
+			if sact.size() != 1 or not sact.has("ad_coins"):
+				return "consumable '%s' 是赞助碟, action 只能有 ad_coins(它不占名额也不带商店授予)" % cid
+		# ⚠ 0 价**只属于赞助碟这一个特例** —— 别的卡写 0 会混进「免费」的打点与文案分支
+		# (与 Economy.shelf_price 的地板 1◆ 同一条:折扣折不到 0)。
+		if int(e.get("price", 0)) <= 0 and shelf != "sponsor":
+			return "consumable '%s' 价格必须为正(0 价只属于赞助碟)" % cid
+		if shelf == "sponsor" and int(e.get("price", 0)) != 0:
+			return "consumable '%s' 是赞助碟, 价格必须是 0(它的代价是一段广告不是钱)" % cid
 		# ⚠ `proof` 必填 —— 与小丑牌同一条锁:没声明 = 这张牌可以悄悄绕过 kit 那道门,
 		# 而 2026-08-30 正是三张「游戏里是空白的」消耗牌没被任何单卡门抓到。
 		if not ["score", "shop"].has(String(e.get("proof", ""))):
 			return "consumable '%s' 的 proof '%s' 不认识, 只能是 score / shop" \
 				% [cid, e.get("proof", "")]
+	# ⚑ **恰好一条**赞助碟:零条 ⇒ 货架第三位永远空着(广告入口静默消失);
+	# 两条 ⇒ `Consumable.sponsor_entry()` 变成按表序抽签, 上哪张碟成了运气。
+	if sponsors != 1:
+		return "shelf: sponsor 的消耗牌必须恰好一条(现在 %d 条)—— 它是货架第三位那张碟" % sponsors
 	return ""
 
 

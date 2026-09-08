@@ -63,7 +63,12 @@ func run(t) -> void:
 	t.eq(cap_run.coins, cap, "settle income cannot push past the cap (core/beat.gd uses grant)")
 
 	# ---- 激励视频换金币(2026-09-08)—— 数从 JSON 推导, 不抄死 ----
-	t.eq(Economy.ad_coins(), int(DB.economy()["ad_coins"]), "ad_coins 读自 economy.json")
+	# ⚑ 2026-09-09 赞助商版:那个数**搬到了赞助碟上** —— 卡面上写着「场馆付你 N◆」,
+	# 那 N 就该住在这张卡的 action 里(parity 第四层 card_face 由此查得到)。
+	t.eq(Economy.ad_coins(), int(Consumable.sponsor_entry().get("action", {}).get("ad_coins", 0)),
+		"ad_coins 读自赞助碟的 action(数住在卡上, economy.json 只留两个上限)")
+	t.eq(Economy.ad_coins(), int(DB.economy()["joker_prices"]["common"]),
+		"一次广告给的金币 = 一张 common 卡的钱(平价, 与 08-09 定的量纲一致)")
 	var ps: int = GameConfig.AD_COINS_PER_SHOP
 	var pr: int = GameConfig.AD_COINS_PER_RUN
 	t.check(Economy.ad_coins_allowed(0, 0, 0, []), "开局第一店允许")
@@ -74,7 +79,7 @@ func run(t) -> void:
 	# ⚑ 金币上限护栏(2026-09-08 审查修补):两个次数上限都没到, 但 grant 一分不加时也不许
 	# —— 与体力那边「未满才许看, 不能囤」同一个洞(ad_coins_allowed 现在必须自己查 grant)。
 	# 复用上面的 skint_slots/cap(同一张 skint、同一个金币上限), 不必再声明一份。
-	t.check(cap < GameConfig.AD_COINS + cap, "skint 有金币上限(否则下面两条是空转)")
+	t.check(cap < Economy.ad_coins() + cap, "skint 有金币上限(否则下面两条是空转)")
 	t.check(not Economy.ad_coins_allowed(0, 0, cap, skint_slots), "坐在金币上限上 ⇒ 发了也入不了账 ⇒ 不许")
 	t.check(Economy.ad_coins_allowed(0, 0, maxi(0, cap - 1), skint_slots), "上限之下差 1 ⇒ 仍能入账一点 ⇒ 许")
 	t.check(Economy.ad_coins_allowed(0, 0, 999, []), "没有上限卡时余额再多也许(上限不是「有钱就不许」)")

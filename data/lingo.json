@@ -254,6 +254,7 @@
   "打满 4 种牌型,每缺一种目标分+25%": "Need 4 hand types; missing: +25% target",
   "前三拍得分 ×0.7,后三拍 ×1.3": "Early ×0.7, late ×1.3",
   "每段借 10◆ 还 12◆;欠款=失败": "Borrow 10 each section, repay 12 at its end; default = show over",
+  "播一段广告,场馆付你 3◆": "Watch an ad, the venue pays you 3◆",
   "预支": "Advance",
   "预支违约：还不上 %d◆": "Advance defaulted: can't repay %d◆",
   "体力不足,明天回满": "Out of energy — refills tomorrow",

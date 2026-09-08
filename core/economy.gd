@@ -149,11 +149,14 @@ static func reroll_cost(n: int, delta: int = 0) -> int:
 
 
 ## ---- 激励视频换金币(2026-09-08, 规格 docs/superpowers/specs/2026-09-08-ads-design.md)----
-## 数全部来自 economy.json;目标分与 bot 基线按**零广告**标定, 这里只管「给多少」与「还能不能给」。
+## 目标分与 bot 基线按**零广告**标定, 这里只管「给多少」与「还能不能给」。
 ## ⚠ 两侧都要调(view/phrase.gd 与 tools/bot.gd)—— `tools/parity.py` 的 ENTRIES 守着 `ad_coins`。
 ## 入账必须走 Economy.grant(金币上限那条铁律;grant 的注释列了入账点, 广告是第五处)。
+## ⚑⚑ **给多少住在赞助碟上**(2026-09-09 赞助商版):卡面写着「场馆付你 N◆」, 那 N 就该
+## 住在那张卡的 `action.ad_coins` 里, 而不是 economy.json 的一个远处的键 —— 玩家看到的是碟,
+## parity 第四层 card_face 也从那里对账。economy.json 只留**两级上限**(还能不能再来一次)。
 static func ad_coins() -> int:
-	return GameConfig.AD_COINS
+	return int(Consumable.sponsor_entry().get("action", {}).get("ad_coins", 0))
 
 
 ## 还能不能再发一次:每店与每局两个上限都没到, **且发了真能入账** —— 穷开心(skint)的金币上限

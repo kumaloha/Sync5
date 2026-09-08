@@ -138,8 +138,14 @@ func run(t) -> void:
 		"hard 最早出现在 soft 之前被拒, 且是因为教学弧而不是别的规则(got: %s)" % arc_err)
 
 	# ---- 激励视频(2026-09-08, 规格 docs/superpowers/specs/2026-09-08-ads-design.md)----
-	t.eq(int(DB.economy()["ad_coins"]), int(DB.economy()["joker_prices"]["common"]),
-		"一次广告给的金币 = 一张卡的钱(economy.json 平价)")
+	# ⚑ 2026-09-09 赞助商版:那 3◆ **搬到了赞助碟上**(卡面上的数就该住在卡上)。
+	# economy.json 只剩两个上限 —— 再写一个 ad_coins 回来 = 同一个数有两个家, 直接拒。
+	t.check(not DB.economy().has("ad_coins"),
+		"ad_coins 已从 economy.json 搬到赞助碟的 action 上(数只有一个家)")
+	var eco_moved: Dictionary = DB.economy().duplicate(true)
+	eco_moved["ad_coins"] = 3
+	t.check(DB.validate_economy(eco_moved) != "",
+		"economy.json 里再写 ad_coins 被拒(unknown key —— 否则两份数会静默分叉)")
 	var eco_bad: Dictionary = DB.economy().duplicate(true)
 	eco_bad["ad_coins_per_shop"] = 3
 	eco_bad["ad_coins_per_run"] = 2
@@ -162,3 +168,66 @@ func run(t) -> void:
 	var _ads_cfg: Dictionary = DB.ads()
 	var _ship_ready: bool = String(_ads_cfg["android"]["rewarded_coins"]) != "" and String(_ads_cfg["android"]["rewarded_energy"]) != ""
 	t.check(bool(_ads_cfg["test_mode"]) or _ship_ready, "ads.json 要么 test_mode=true(开发期), 要么两个真 unit ID 都填了(出包期)—— 不许半截")
+
+	# ---- 赞助碟的四条校验(2026-09-09, 规格 docs/superpowers/specs/2026-09-09-sponsor-design.md §1)----
+	# ⚑ 赞助碟是**唯一**允许 price 0 的消耗牌 —— 它不花钱, 花的是一段广告。
+	#   那四条契约每一条都堵一种「不报错的错」:
+	#   ① 恰好一条 —— 零条 ⇒ 货架第三位永远空着;两条 ⇒ `sponsor_entry()` 随表序抽签。
+	#   ② 只有它能 price 0 —— 别的卡写 0 会混进「免费」的打点与文案分支(同 shelf_price 地板 1◆ 那条)。
+	#   ③ 它的 action 只能有 ad_coins —— 混进 shelf_slots 之类等于让一张不占名额的免费卡带商店授予。
+	#   ④ ad_coins ≥ 1 —— 看完给 0◆ 还烧掉一次上限额度, 与 profile 那条 ad_energy = 0 同形。
+	t.eq(DB.validate_consumables({"consumables": DB.consumables().duplicate(true)}), "",
+		"现表(含赞助碟)过校验")
+	var sp_row: Dictionary = Consumable.sponsor_entry()
+	t.check(not sp_row.is_empty(), "表里找得到 shelf: sponsor 那一条")
+	t.eq(String(sp_row.get("fire", "")), "buy", "赞助碟是 fire: buy(拿下即播)")
+
+	var two_rows: Array = DB.consumables().duplicate(true)
+	var sp_dup: Dictionary = sp_row.duplicate(true)
+	sp_dup["id"] = "sponsorbreak2"
+	two_rows.append(sp_dup)
+	t.check(DB.validate_consumables({"consumables": two_rows}) != "",
+		"两条 shelf: sponsor 被拒(第三位该上哪一张成了抽签)")
+
+	var no_rows: Array = []
+	for e in DB.consumables():
+		if String(e.get("shelf", "")) != "sponsor":
+			no_rows.append((e as Dictionary).duplicate(true))
+	t.check(DB.validate_consumables({"consumables": no_rows}) != "",
+		"一条 shelf: sponsor 都没有被拒(第三位会静默空着)")
+
+	var free_rows: Array = DB.consumables().duplicate(true)
+	for e in free_rows:
+		if String(e.get("shelf", "")) != "sponsor":
+			e["price"] = 0
+			break
+	t.check(DB.validate_consumables({"consumables": free_rows}) != "",
+		"price 0 但不是赞助碟被拒(0 价只属于赞助碟这一个特例)")
+
+	var mixed_rows: Array = DB.consumables().duplicate(true)
+	for e in mixed_rows:
+		if String(e.get("shelf", "")) == "sponsor":
+			(e["action"] as Dictionary)["extra_buys"] = 1
+	t.check(DB.validate_consumables({"consumables": mixed_rows}) != "",
+		"赞助碟的 action 混了 ad_coins 以外的键被拒")
+
+	var zero_rows: Array = DB.consumables().duplicate(true)
+	for e in zero_rows:
+		if String(e.get("shelf", "")) == "sponsor":
+			(e["action"] as Dictionary)["ad_coins"] = 0
+	t.check(DB.validate_consumables({"consumables": zero_rows}) != "",
+		"ad_coins = 0 被拒(看完给 0◆ 还烧一次上限)")
+
+	var shelf_rows: Array = DB.consumables().duplicate(true)
+	for e in shelf_rows:
+		if String(e.get("shelf", "")) == "sponsor":
+			e["shelf"] = "vip"
+	t.check(DB.validate_consumables({"consumables": shelf_rows}) != "",
+		"shelf 只认 'sponsor' 这一个值(写别的 = 悄悄退出第三位)")
+
+	var late_rows: Array = DB.consumables().duplicate(true)
+	for e in late_rows:
+		if String(e.get("shelf", "")) == "sponsor":
+			e["fire"] = "next"
+	t.check(DB.validate_consumables({"consumables": late_rows}) != "",
+		"赞助碟必须 fire: buy(排进歌单 = 广告播完了钱要等到下一拍)")

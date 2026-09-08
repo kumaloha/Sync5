@@ -78,6 +78,26 @@ func fire_label() -> String:
 	return str(int(fire))
 
 
+## 赞助碟 = 带 `shelf: "sponsor"` 的那一条(2026-09-09 赞助商版)。
+## ⚑ 「广告是世界里的一个角色, 赞助商」—— 这个游戏里凡是能拿的只有卡和碟, 所以广告入口
+## 不是一个系统按钮, 是**货架第三位**那张碟:price 0、`fire: "buy"`、`action.ad_coins` 就是
+## 播完场馆付的钱。它**不进随机池**(见 `roll_shelf`), 由编排器在「有广告可放 + 两级上限未到 +
+## 非教学关」时摆上去。
+## ⚠ 判据是 `shelf` **不是 id** —— `sponsor` 这个 id 早被 08-29 转生的折扣卡「赞助」占了,
+##   赞助碟的 id 是 `sponsorbreak`。按 id 认会把那张折扣卡错当成广告碟(而且不报错)。
+func is_sponsor() -> bool:
+	return String(_raw.get("shelf", "")) == "sponsor"
+
+
+## 表里那唯一一条赞助碟的原始数据行(找不到返回 `{}`)。
+## ⚠ 「恰好一条」由 `DB.validate_consumables` 守着(零条 = 入口静默消失, 两条 = 上哪张成了抽签)。
+static func sponsor_entry() -> Dictionary:
+	for e in DB.consumables():
+		if String((e as Dictionary).get("shelf", "")) == "sponsor":
+			return e
+	return {}
+
+
 ## 规则牌 = 带 `deck_rule` 的消耗牌(2026-08-30 二批转生:近道/四指/黑调/红调)。
 ## ⚑ **「规则牌」这个概念整体搬到了消耗牌这一侧** —— 它此前的机械判据是
 ## 「小丑牌带 `acquire` 键」, 而转生之后**没有任何小丑牌还带 `acquire`**
@@ -106,6 +126,10 @@ func clone() -> Consumable:
 static func roll_shelf(held: Dictionary, rule_first: bool, n: int, pick: Callable) -> Array:
 	var pool: Array = []
 	for e in DB.consumables():
+		# ⚑ 赞助碟不是随机货(2026-09-09):它免费, 进了池就是白送 —— 两张随机碟里迟早掷出它。
+		# 它由编排器按「有广告 + 上限未到」摆到货架第三位, 那是条件而不是运气。
+		if String((e as Dictionary).get("shelf", "")) == "sponsor":
+			continue
 		if not held.has(String(e["id"])):
 			pool.append(e)
 	var out: Array = []

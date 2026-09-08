@@ -21,7 +21,11 @@ func run(t) -> void:
 	for e in raw:
 		var c := Consumable.new(e)
 		by_id[c.id] = c
-		t.check(c.price > 0, "%s 有正价格" % c.id)
+		# ⚑ 赞助碟(shelf: sponsor)是**唯一**的 0 价卡 —— 它不花钱, 花的是一段广告。
+		if c.is_sponsor():
+			t.eq(c.price, 0, "%s 是赞助碟, 价格恒 0(它的代价是时间不是钱)" % c.id)
+		else:
+			t.check(c.price > 0, "%s 有正价格" % c.id)
 		t.check(not c.action.is_empty() or not c.boost.is_empty(),
 			"%s 至少有 action 或 boost(否则用了什么都不发生)" % c.id)
 		# ⚑ `fire` 取代 `when`(2026-09-01 全部自动触发):"buy" / "next" / 拍号 1..6。
@@ -96,7 +100,7 @@ func run(t) -> void:
 	# (后两处由 `tools/parity.py` 第 ② 层机械核对)。
 	var known := ["wilds", "trim_low", "deck_rule", "shelf_slots", "extra_buys",
 		"price_delta", "rule_guaranteed", "free_reroll", "min_rarity",
-		"copy_one_destroy_rest", "loan"]
+		"copy_one_destroy_rest", "loan", "ad_coins"]
 	for e in raw:
 		for k in Consumable.new(e).action:
 			t.check(known.has(String(k)),
@@ -234,3 +238,35 @@ func run(t) -> void:
 	t.eq(fresh.shelf_bonus, 0, "新局不带点名奖励的货架位")
 	t.eq(fresh.mod_roll.size(), 0, "新局不带上一局的掷点(否则死在 S1 重开, S1 的掷类脸沿用旧掷点)")
 	t.check(int(ln["repay"]) > int(ln["borrow"]), "还 > 借")
+
+	# ---- ⑦ 赞助碟(2026-09-09 赞助商版, 规格 specs/2026-09-09-sponsor-design.md §1 §2)----
+	# ⚑ 「广告是世界里的一个角色, 赞助商」—— 这个游戏里凡是能拿的只有卡和碟, 赞助商就是一张碟。
+	#   它是一条 `shelf: "sponsor"` 的消耗牌:**不进随机池**(由编排器放到货架第三位)、
+	#   price 0、`fire: "buy"`(拿下即播)、`action: {"ad_coins": N}`(那个数住在卡上)。
+	# ⚠ 它的 id 是 `sponsorbreak` 而**不是** `sponsor` —— 后者早就被 08-29 转生的
+	#   折扣卡「赞助」占了。身份判据因此是 `shelf`, 不是 id(下面最后一条锁着这个区别)。
+	var sp_raw: Dictionary = Consumable.sponsor_entry()
+	t.check(not sp_raw.is_empty(), "sponsor_entry() 找得到那一条(shelf: sponsor)")
+	t.eq(String(sp_raw.get("id", "")), "sponsorbreak", "找到的就是赞助插播这张")
+	var sp := Consumable.new(sp_raw)
+	t.check(sp.is_sponsor(), "is_sponsor() 认得它")
+	t.check(sp.is_instant(), "fire = buy —— 拿下即播, 没有『哪一拍』可选")
+	t.eq(sp.price, 0, "价 0(它是唯一的免费碟)")
+	t.check(int(sp.action.get("ad_coins", 0)) >= 1,
+		"数住在卡上:action.ad_coins = %d" % int(sp.action.get("ad_coins", 0)))
+	t.eq(sp.action.size(), 1, "它只有 ad_coins 这一个动作(不占名额也不带商店授予)")
+	t.check(not by_id["sponsor"].is_sponsor(),
+		"折扣卡「赞助」(id = sponsor)不是赞助碟 —— 身份看 shelf 不看 id")
+
+	# ⚑ **不进随机池** —— 免费的东西一旦进池, 两张随机碟里迟早掷出它, 那就成了白送。
+	#   200 次 × 2 张是把「偶尔不出」和「从不出」分开的那道量:池里 18 张里若真有它,
+	#   400 次抽取一次都不中的概率约 e^-44。
+	var sp_rng := RandomNumberGenerator.new()
+	sp_rng.seed = 20260909
+	var saw_sponsor := false
+	for i in range(200):
+		for r in Consumable.roll_shelf({}, i % 2 == 0, 2,
+				func(n): return sp_rng.randi_range(0, n - 1)):
+			if r != null and Consumable.new(r).is_sponsor():
+				saw_sponsor = true
+	t.check(not saw_sponsor, "roll_shelf 掷 200 次(400 张)一次都掷不出赞助碟")

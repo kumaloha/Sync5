@@ -698,5 +698,8 @@ return {
 		["advance"] = {
 			["trigger"] = "每段借 10◆ 还 12◆;欠款=失败",
 		},
+		["sponsorbreak"] = {
+			["trigger"] = "播一段广告,场馆付你 3◆",
+		},
 	},
 }

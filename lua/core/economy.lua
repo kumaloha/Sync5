@@ -5,6 +5,7 @@ local num = require(R .. "num")
 local Rng = require(R .. "rng")
 local GameConfig = require(P .. "config")
 local Joker = require(P .. "joker")
+local Consumable = require(P .. "consumable")   -- ad_coins 住在赞助碟上(2026-09-09)
 
 local Economy = {}
 local _fallback_rng = nil   -- Godot 侧 rng == null 时走全局 randi_range;镜像用一条随机种子流替代
@@ -109,9 +110,11 @@ function Economy.reroll_cost(n, delta)
 	return num.maxi(1, GameConfig.DRAFT_REROLL_BASE + n * GameConfig.DRAFT_REROLL_STEP + delta)
 end
 
--- 激励视频换金币(2026-09-08):数在 economy.json;两个上限都没到才发。
+-- 激励视频换金币(2026-09-08):两个上限都没到才发。
+-- ⚑ 给多少住在赞助碟上(2026-09-09):卡面写着「场馆付你 N◆」, 那个 N 就该住在卡的 action 里;
+-- economy.json 只留两级上限。
 function Economy.ad_coins()
-	return GameConfig.AD_COINS
+	return num.int((Consumable.sponsor_entry().action or {}).ad_coins or 0)
 end
 
 function Economy.ad_coins_allowed(run_used, shop_used, coins, slots)
