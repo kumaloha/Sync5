@@ -126,12 +126,6 @@
     "blindplay",
     "perkeo"
    ]
-  },
-  {
-   "name": "adaptive:twin+ads",
-   "bot": "adaptive",
-   "target": "twin",
-   "ads": true
   }
  ],
  "kind_prior": {

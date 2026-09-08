@@ -450,10 +450,13 @@ func _draft(slots: Array, cfg: Dictionary, deck: Deck, coins: int, st: Dictionar
 	var shop_ads := 0
 	while bool(cfg.get("ads", false)) and run != null \
 			and Economy.ad_coins_allowed(run.ad_used, shop_ads, coins, slots):
+		# ⚠ 记**实际入账**而不是名义额(2026-09-08 终审):`grant` 会被金币上限削,
+		#   记名义额会让账本收入端虚高、与余额对不上(封顶那几次尤甚)。
+		var before := coins
 		coins = Economy.grant(coins, Economy.ad_coins(), slots)
 		run.ad_used += 1
 		shop_ads += 1
-		_rep.eco_add("income_ad", Economy.ad_coins())
+		_rep.eco_add("income_ad", coins - before)
 	coins = _consumables_in_shop(run, coins, slots)
 	var want := "target" if slots[0] == null else "support"
 	var owned: Array = []

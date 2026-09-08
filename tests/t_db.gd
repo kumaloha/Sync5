@@ -157,4 +157,8 @@ func run(t) -> void:
 	t.check(DB.validate_ads({"test_mode": true, "test_unit": "",
 		"android": {"rewarded_coins": "", "rewarded_energy": ""}}) != "",
 		"test_unit 不许为空")
-	t.check(bool(DB.ads()["test_mode"]), "仓库里的 ads.json 恒 test_mode=true(出正式包才翻)")
+	# 出包那一步是**文档写着要做**的(把 test_mode 翻成 false + 填两个真 unit ID);
+	# 旧断言恒要求 test_mode=true, 等于让这道门在出包当天必红 —— 改成守「不许半截」。
+	var _ads_cfg: Dictionary = DB.ads()
+	var _ship_ready: bool = String(_ads_cfg["android"]["rewarded_coins"]) != "" and String(_ads_cfg["android"]["rewarded_energy"]) != ""
+	t.check(bool(_ads_cfg["test_mode"]) or _ship_ready, "ads.json 要么 test_mode=true(开发期), 要么两个真 unit ID 都填了(出包期)—— 不许半截")

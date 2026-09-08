@@ -23,14 +23,22 @@ var _loaders := {}      # kind -> RewardedAdLoader(加载期间持有 —— 局
 var _listeners := {}    # kind -> OnUserEarnedRewardListener(展示期间持有, 同上)
 var _cfg: Dictionary = DB.ads()
 var _classes := {}      # 类名 -> Script(查过的缓存, null = 不存在)
+## 每种广告连续失败几次了(加载成功即归零)—— 退避重试的次数, 见 _on_load_failed。
+var _attempts := {}
+
+## 重试退避:第 n 次失败等 n × RETRY_SECONDS 秒;封顶 RETRY_MAX 次(不无限打, 无 fill 是常态)。
+const RETRY_SECONDS := 5.0
+const RETRY_MAX := 6
 
 
 func _ready() -> void:
 	var mobile_ads = _cls("MobileAds")
 	if mobile_ads != null:
 		mobile_ads.initialize()
+	# ⚠ `initialize()` 是**异步**的(2026-09-08 终审):同一帧发出去的 load 可能被 SDK 直接拒掉,
+	#   而首帧那一发失败就没有第二次机会 —— 延后一帧发, 剩下的交给 _on_load_failed 的退避重试。
 	for k in Ads.KINDS:
-		load_ad(k)
+		load_ad.call_deferred(k)
 
 
 func _cls(cls_name: String):
@@ -78,6 +86,7 @@ func load_ad(kind: String) -> void:
 func _on_loaded(kind: String, ad) -> void:
 	_loading[kind] = false
 	_loaders.erase(kind)
+	_attempts[kind] = 0   # 拿到货 = 这一串失败结束, 下次再失败从头退避
 	var fsc_cls = _cls("FullScreenContentCallback")
 	if fsc_cls != null:
 		var fsc = fsc_cls.new()
@@ -94,6 +103,12 @@ func _on_load_failed(kind: String, why: String) -> void:
 	_loaders.erase(kind)
 	_ads[kind] = null
 	push_warning("[Ads] %s 加载失败:%s" % [kind, why])
+	# 退避重试(2026-09-08 终审):没有重试的话, 一次失败 = 这一种广告这一整局都没货,
+	# 而首帧被 initialize() 异步拒掉、以及临时无 fill, 都是必然会发生的失败。
+	var n: int = int(_attempts.get(kind, 0)) + 1
+	_attempts[kind] = n
+	if n <= RETRY_MAX:
+		get_tree().create_timer(RETRY_SECONDS * n).timeout.connect(func() -> void: load_ad(kind))
 
 
 func show_ad(kind: String) -> void:

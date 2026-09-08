@@ -122,11 +122,14 @@ func _process(_delta: float) -> bool:
 			# 出口二:重开层 → 点键 → 发奖
 			if not _wall_up():
 				return _finish()
+			# ⚠ 只按**第一枚**(「看广告」)—— 层里的第二枚是「不看了」, 按下去会当场关层,
+			#   发奖那一支就再也走不到了(而断言会红得看不出理由)。
 			var pressed := false
 			for c in _scene._energy_layer.get_children():
 				if c is Button:
 					c.pressed.emit()
 					pressed = true
+					break
 			if not pressed:
 				_bug("体力墙层里没有按钮")
 				return _finish()

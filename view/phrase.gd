@@ -137,6 +137,20 @@ func _notification(what: int) -> void:
 			Tape.flush()
 		NOTIFICATION_APPLICATION_FOCUS_IN:
 			Tape.on("focus", {"on": true, "at": elapsed})
+			_ad_watchdog()
+		NOTIFICATION_APPLICATION_RESUMED:
+			_ad_watchdog()
+
+
+## 看门狗(2026-09-08 终审):真 SDK 的 dismiss 回调若丢失, 三个出口都被 showing 锁死, 玩家只能杀进程 —— 焦点回来两秒后仍没发奖就当关掉
+## (两秒是留给晚到的 rewarded 落地的窗口:回调只是慢, 不该被当成没看)。
+func _ad_watchdog() -> void:
+	if get_tree() == null:
+		return
+	if _energy_ad_showing:
+		get_tree().create_timer(2.0).timeout.connect(_energy_cancel_if_unrewarded)
+	if _coins_ad_showing:
+		get_tree().create_timer(2.0).timeout.connect(func() -> void: _coins_ad_showing = false)
 
 
 ## The front page (docs/mockups/home.html). Like the picker it holds the clock —
@@ -1577,11 +1591,13 @@ static func energy_wall_ok(has_ad: bool, save_ok: bool) -> bool:
 func _deny_no_energy() -> void:
 	Tape.on("deny", {"why": "energy"})
 	_open_home()
+	# ⚠ 预载要在判「有没有货」**之前**(2026-09-08 终审):原来它写在 if 里面 = 只有已经有货才去载,
+	#   而没货正是唯一需要重载的情形 —— 那一行是死代码, 首次加载失败后墙就再也开不出来了。
+	ads.load_ad("energy")
 	var save_ok := SaveState.can_add_energy_from_ad() \
 		or (SaveState.is_probe() and OS.get_environment("SYNC5_PROBE_ENERGY_WALL") == "1")
 	if energy_wall_ok(ads.has_ad("energy"), save_ok):
 		_pending_start = start_run
-		ads.load_ad("energy")
 		_open_energy_wall()
 		return
 	fx.float_text(Lingo.t("体力不足,明天回满"), Vector2(243.0, 986.0), Color("ff5f7e"), 90)
@@ -1825,6 +1841,7 @@ func _open_draft() -> void:
 	_shop_buys = 0        # 联票的续买配额按「一次进店」计
 	_shop_ads = 0          # 广告的每店账(2026-09-08)
 	_shop_ad_failed = false
+	_coins_ad_showing = false   # 丢掉的 closed/failed 回调不许把 offer 永久锁死(与体力墙 _open_energy_wall 同款)
 	ads.load_ad("coins")   # 进店就预载, 点 offer 时才有货
 	_pause_btn_visible(false)   # 商店 / 结算屏上暂停无效, 键不该悬在那(2026-09-06)
 	_perkeo_fired = false # 帕奇欧每次进店只复制一次(替换流可能中途藏板再回来, 离店点不止一个)
@@ -2124,10 +2141,10 @@ func _on_ad_rewarded(kind: String) -> void:
 
 
 func _on_ad_failed(kind: String, why: String) -> void:
-	Tape.on("ad", {"k": kind, "ev": "fail", "why": why})
 	if kind == "energy":
-		_on_energy_ad_failed()
+		_on_energy_ad_failed(why)   # 打点搬进去了 —— 没开墙时的预载失败不是「玩家看广告失败」
 		return
+	Tape.on("ad", {"k": kind, "ev": "fail", "why": why})
 	_coins_ad_showing = false
 	_shop_ad_failed = true
 	shop.hide_ad_offer()
@@ -2155,9 +2172,12 @@ func _on_energy_ad_rewarded() -> void:
 	_close_energy_wall(true)
 
 
-func _on_energy_ad_failed() -> void:
+func _on_energy_ad_failed(why: String) -> void:
 	if not _energy_ad_showing:
 		return
+	# ⚠ 打点在护栏**之后**(2026-09-08 终审):`load_ad` 失败也走同一条 failed 信号,
+	#   在护栏之前记会给每次预载失败都补一条 ad/fail —— 日志只记发生过的事实(口径铁律)。
+	Tape.on("ad", {"k": "energy", "ev": "fail", "why": why})
 	_close_energy_wall(false)
 	fx.float_text(Lingo.t("广告暂时没有,稍后再试"), Vector2(243.0, 986.0), Color("ff5f7e"), 90)
 
