@@ -27,7 +27,7 @@ Lumines 的节奏推进 + Balatro 的构筑。一局 4 段 × 6 拍 × 8 秒 ≈
 | 内容门 | **08-26 全量门跑完**(4.9h,对抗批新基线):五红三过期全部尸检处置(声明/仪器层,内容零改;细账 CHANGELOG 08-26b),ranking 已由 rankgen 重刷 | `./tools/gate.sh`(增量 = `--changed`) |
 | 求解器一致性 | **三关配对差 +0.0**(08-16 分级门) | `godot --headless --path . --script res://tools/pair.gd` |
 | 流程/打点/重放 | 0 违规 | 已并进 `gate.sh` |
-| 广告两条流 | **adsprobe 0 违规**(2026-09-08:商店三店的每店/每局上限 · 空白点击关墙 · 看完真开局;首跑抓到一个真 bug 已修) | `SYNC5_ADS=fake SYNC5_PROBE_ENERGY_WALL=1 godot --headless --path . --script res://tools/adsprobe.gd`(已并进 `gate.sh`) |
+| 广告两条流 | **adsprobe 0 违规**(2026-09-09 赞助商版:商店三店点赞助碟 → 发奖 +3◆ → 离架, 每店/每局上限 · 体力墙空白点击关 · 看完真开局;09-08 首跑抓到一个真 bug 已修) | `SYNC5_ADS=fake SYNC5_PROBE_ENERGY_WALL=1 godot --headless --path . --script res://tools/adsprobe.gd`(已并进 `gate.sh`) |
 
 ---
 
@@ -124,7 +124,7 @@ tools/bot.gd                   玩家策略(完美玩家 / 规则 bot)
 | **`gate.sh`** ⚑ | **加了内容就要过的门**(测试+脸覆盖自证+**小丑牌覆盖自证**+单调性+哨兵+流程+打点+重放+尺子) | ⚠⚠ **实测 ~4.5 小时**(2026-08-15 逐步计时,见下)。~~15 分钟~~ 那个数是 **S10 之前**的,**过期了一个数量级** |
 | **`unittest.sh`** | 全量单测 + **四判据唯一一份**(exit 0 · 0 failed · SCRIPT ERROR 0 · 非白名单 ^ERROR 0 · 通过数 ≥ 2400);gate.sh 与 CI 都调它 | ~13 分钟 |
 | `pair.gd` | 守「求解器 = 游戏代码」,三关递进 | ~3 分钟 |
-| `adsprobe.gd` | 激励视频两条流的无头回归(商店三店的每店/每局上限 + 体力墙看完真开局);**要显式 `SYNC5_ADS=fake SYNC5_PROBE_ENERGY_WALL=1`**(探针缺省无货);已进 `gate.sh` 流程回归行。09-08 首跑就抓到一个真 bug | 秒级 |
+| `adsprobe.gd` | 激励视频两条流的无头回归(商店三店点赞助碟:发奖 / 离架 / 每店每局上限 + 体力墙看完真开局);**要显式 `SYNC5_ADS=fake SYNC5_PROBE_ENERGY_WALL=1`**(探针缺省无货);已进 `gate.sh` 流程回归行。09-08 首跑就抓到一个真 bug | 秒级 |
 | `curve.gd` | 生成器:录分 → 反解目标分 | — |
 | **`prior.gd`** ⚑ | **先验层(2026-08-14 新)· 三个模式**:①(默认)牌型分布 / 谓词 `p̂` / **规则牌 Δp**;② `SYNC5_PRIOR_MODE=discard` **弃牌兑换率**(b=0→4 期望分 +82%)+ 求解器弃牌盲区;③ `SYNC5_PRIOR_MODE=shelf` **货架曝光**(解析零采样)。判定/谓词/抽卡**一律不重写**,全部调 `core/pattern.gd` + `core/fx.gd`,或对实现做解析求解。自带闭式自检、快慢路径逐次对账、跨模式交叉自检。规格 = [`docs/design/prior.md`](docs/design/prior.md) | ①~440s @20万 · ②~150s @400手 · ③ 秒级 |
 | `sim.gd` | 全队列通关率,**自带尺子自检**(非零退出)+ **卡面覆盖率四道闸门**(见下行) | **~275s**(14 队列 × 1000 局;~~107s~~ 已过期) |
