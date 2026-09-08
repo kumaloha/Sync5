@@ -139,7 +139,8 @@ TODO 原来写的「偏高」没有依据)。
      (每店 1 / 每局 2, 金币上限卡住时不弹)· 体力为 0 时开局的墙变「看广告 +1⚡ · 马上开局」, 看完直接进局。目标分按零广告标定, 离线 = 今天的游戏原样。
      **明确不做**:常驻第三键 · 首页胶囊入口 · 开局卡入口 · **失败屏续命**(生死线软了, 倍率奖励波动性那套逻辑失去根基)。
      **欠用户侧四件**:装插件 + App ID / 两个 rewarded 单元 ID 填 `data/ads.json` / Play 后台三件(数据安全表单 · 发行国家排除 EEA·UK·瑞士 · 隐私页补广告段)/ 真机冒烟(测试 ID)。
-     sim 的 `adaptive:twin+ads` cohort **未跑**(验收带:通关率 +≤5pt、每局多买 ≤2 张, 用户喊了才跑);自然不自然用真人 Tape 的 `deny→ad show` 转化率量。
+     sim 的 ads 臂**不在 sim.json 里**(终审:cohort 会进所有队列, 污染零广告基线与经济带);要量时临时加一条
+     `{"name": "adaptive:twin+ads", "bot": "adaptive", "target": "twin", "ads": true}` 跑完删掉。验收带:通关率 +≤5pt、每局多买 ≤2 张(`income_ad` 列证明臂开了);自然不自然用真人 Tape 的 `deny→ad show` 转化率量。
 
 -1. **⚑⚑ 对抗批已实装未量**(细账 CHANGELOG 08-25b;设计总纲 = docs/design/versus.md):
    - **仪器统跑进行中**(08-26 全量门在跑):跑完 `tools/rankgen.py` 重生成 ranking →

@@ -50,7 +50,7 @@
 | `swap` | 对调 | `h`, `c`, `at` |
 | `sort` | 理牌 | `at` |
 | `disc` | 弃牌 | `k`(张数), `h`, `c`, `cost`, `coins`, **`cards`(弃掉的)**, **`got`(补进来的)**, `at` |
-| `deny` | 动作被拒 | `why`(empty/coins/price/reroll/replace/consumable/energy), `k?`, `at?` |
+| `deny` | 动作被拒 | `why`(empty/coins/price/reroll/replace/consumable/energy/buy_stale/reroll_stale/blind_swap/blind_discard), `k?`, `at?` |
 | `ad` | 激励视频(2026-09-08) | `k`(coins/energy), `ev`(show=开始放 / reward=真发奖 / fail=失败+`why` / drop=run 没了丢弃), `coins?`(发奖后余额), `late?`(店关了才到的奖)。只记发生过的判定;「有没有货」是特征不记 |
 | `settle` | 结算 | `kind`, `chips`, `base`, `mult`, `bonus`, `score`, `coin`, `total`, `disc`, `late`, `act`, `mod`, `cards[5]`, `fired[]` |
 | `sec_end` | 段末判定 | `i`, `score`, `target`, `ok`, `coins`, `beats` |
