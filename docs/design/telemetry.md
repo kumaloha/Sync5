@@ -314,7 +314,7 @@ Record:
 | 事件 | payload | 记的是什么事实 |
 |---|---|---|
 | `cbuy` | id · price · coins | 买下一张消耗牌(**买了**才记, 看得起买不起是 `deny`) |
-| `consumable` | id · why · phrase | 打出一张。`why` = `buy`(买下即触发) / `due`(到了它的拍号) / `perkeo`(被复制出来的那张当场触发) |
+| `consumable` | id · why · phrase | 打出一张。`why` = `buy`(买下即触发) / `due`(到了它的拍号) / `perkeo`(被复制出来的那张当场触发) / `ad`(赞助碟:看完广告发奖那一刻, 2026-09-09;它不记 `cbuy` —— 价格 0 不是购买, `ad` 事件的 show/reward 才是它的账) |
 | `anvil` | kept | 砧座留下了哪张小丑牌(其余被毁 —— 局面重塑, 重放要靠它) |
 | `perkeo` | id | 帕奇欧离店时复制了哪张 |
 
