@@ -47,3 +47,20 @@ func run(t) -> void:
 	t.eq(Ads.pick_mode_for(false, "", true), "admob", "android 且插件在 = admob")
 	t.eq(Ads.pick_mode_for(false, "banana", false), "fake", "未知环境值当没设")
 	a.queue_free()
+
+	# ---- ③ 编排器的纯判定(view/phrase.gd 静态函数, 流本身由 tools/adsprobe.gd 驱动)----
+	var PV = load("res://view/phrase.gd")
+	t.check(PV.ad_offer_ok(true, false, 0, 0, 0, []), "有货 + 非教学 + 零次 ⇒ 弹")
+	t.check(not PV.ad_offer_ok(false, false, 0, 0, 0, []), "没货不弹")
+	t.check(not PV.ad_offer_ok(true, true, 0, 0, 0, []), "教学关不弹")
+	t.check(not PV.ad_offer_ok(true, false, 0, GameConfig.AD_COINS_PER_SHOP, 0, []), "本店到顶不弹")
+	t.check(not PV.ad_offer_ok(true, false, GameConfig.AD_COINS_PER_RUN, 0, 0, []), "本局到顶不弹")
+	var capped: Array = [null, Joker.by_id("skint"), null, null]
+	t.check(not PV.ad_offer_ok(true, false, 0, 0, Joker.slots_coin_cap(capped), capped),
+		"坐在金币上限上不弹(发了也入不了账, Economy.ad_coins_allowed 的护栏)")
+	# 发奖三情形:store / late / drop(规格 §4.3 表)
+	t.eq(PV.ad_reward_case(true, 4), "store", "run 活着且在 DRAFT(4)⇒ 店内入账")
+	t.eq(PV.ad_reward_case(true, 2), "late", "run 活着但在拍中(DECISION)⇒ 晚到照发")
+	t.eq(PV.ad_reward_case(false, 4), "drop", "run 没了 ⇒ 丢")
+	t.eq(PV.ad_reward_case(true, 0), "drop", "FRONT ⇒ 丢(首页没有局)")
+	t.eq(PV.ad_reward_case(true, 5), "drop", "END ⇒ 丢(结算屏之后没有店可花)")

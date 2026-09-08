@@ -91,6 +91,7 @@ var pause_layer: Control = null
 var intro: BlindIntro
 var music: Music             # 每段一首的 8 秒循环(view/music.gd, 2026-08-18)
 var beacon: Beacon           # Tape 回传(view/beacon.gd, 1.1;配置关着时自睡)
+var ads: Ads                 # 激励视频适配层(view/ads.gd, 2026-09-08;探针缺省无货)
 var fx: StageFeedback        # 屏震/弹跳/飘字 —— 纯表现, view/feedback.gd
 var burst: FxBurst           # A 级触发特效(预支/百搭/谢幕/规则宣告), view/fxburst.gd
 var _shown_score := 0        # what the HUD prints; counts up to run.section_score
@@ -267,6 +268,11 @@ func _build_ui() -> void:
 	add_child(music)
 	beacon = Beacon.new()   # Tape 回传(1.1;缺省配置下自睡, 见 view/beacon.gd)
 	add_child(beacon)
+	ads = Ads.new()
+	add_child(ads)
+	ads.rewarded.connect(_on_ad_rewarded)
+	ads.failed.connect(_on_ad_failed)
+	ads.closed.connect(_on_ad_closed)
 
 	for i in range(joker_views.size()):
 		joker_views[i].tapped.connect(_on_slot_tapped.bind(i))  # only live in replace mode
@@ -1693,6 +1699,8 @@ func _open_draft() -> void:
 	blind_card.position = Vector2(float(bcp[0]), float(bcp[1]))
 	blind_card.z_index = 61   # 抬过商店内容层(shop 内浮字 60)—— 停靠是为了「看得见」
 	_shop_buys = 0        # 联票的续买配额按「一次进店」计
+	_shop_ads = 0          # 广告的每店账(2026-09-08)
+	ads.load_ad("coins")   # 进店就预载, 点 offer 时才有货
 	_pause_btn_visible(false)   # 商店 / 结算屏上暂停无效, 键不该悬在那(2026-09-06)
 	_perkeo_fired = false # 帕奇欧每次进店只复制一次(替换流可能中途藏板再回来, 离店点不止一个)
 	# a mid-section shop opens with the blind's counter part-way through; a
@@ -1760,6 +1768,8 @@ func _shop_route() -> Array:
 ## 一次进店已成交几张(联票 extra_buys 的计数;每次 _open_draft 归零)。
 ## ⚠ **联票自己也算一张** —— 它给的是「额外 2 次」, 不是豁免自己(2026-09-02)。
 var _shop_buys := 0
+## 本店已发的换金币广告次数(每店上限的账;每局的账在 run.ad_used)。进店归零, 与 _shop_buys 同款。
+var _shop_ads := 0
 var _perkeo_fired := false
 
 
@@ -1915,11 +1925,91 @@ func _on_shop_replace(j) -> void:
 	replace.enter(j, shop.price_of(j))   # 含赞助折扣(展示价与成交价同源)
 
 
-func _on_shop_denied(why: String, _need: int) -> void:
+## 能不能弹广告 offer(纯判定, t_ads 直打):有货 · 不是教学关 · 两级上限没到 · 发了真能入账(金币上限护栏在 Economy 里)。
+static func ad_offer_ok(has_ad: bool, tutorial: bool, run_used: int, shop_used: int, coins: int, slots: Array) -> bool:
+	return has_ad and not tutorial and Economy.ad_coins_allowed(run_used, shop_used, coins, slots)
+
+
+## 发奖落在哪种情形(纯判定, t_ads 直打;规格 §4.3 表):
+## store = run 活着且在店里 · late = run 活着但店关了(回调晚到, 照发)· drop = 没有局可发。
+static func ad_reward_case(run_alive: bool, st: int) -> String:
+	if not run_alive or st == St.FRONT or st == St.END:
+		return "drop"
+	return "store" if st == St.DRAFT else "late"
+
+
+## 商店里「想要但拿不到」那一刻(2026-09-08 二审:广告 offer 只长在这里)。
+## 打点照旧;视图只画, 判断只在这里(经济动作只发生在编排器)。
+func _on_shop_denied(why: String, need: int) -> void:
 	Tape.on("deny", {"why": why})
+	if state != St.DRAFT:
+		return
+	if ad_offer_ok(ads.has_ad("coins"), run.tutorial, run.ad_used, _shop_ads, phrase.coins, run.joker_slots):
+		shop.show_ad_offer(need, Economy.ad_coins())
 
 
 func _on_shop_ad_requested() -> void:
+	if state != St.DRAFT or replace.pick != null:
+		return
+	if not ad_offer_ok(ads.has_ad("coins"), run.tutorial, run.ad_used, _shop_ads, phrase.coins, run.joker_slots):
+		shop.hide_ad_offer()
+		return
+	Tape.on("ad", {"k": "coins", "ev": "show"})
+	ads.show_ad("coins")
+
+
+## 发奖 —— 一份判定三种情形(ad_reward_case)。⚠ 入账走 Economy.grant(金币上限那条铁律:所有入账都走它)。
+## energy 那一支在体力墙那节(_on_energy_ad_rewarded)。
+func _on_ad_rewarded(kind: String) -> void:
+	if kind == "energy":
+		_on_energy_ad_rewarded()
+		return
+	if kind != "coins":
+		return
+	var c := ad_reward_case(phrase != null, state)
+	if c == "drop":
+		Tape.on("ad", {"k": "coins", "ev": "drop"})
+		return
+	phrase.coins = Economy.grant(phrase.coins, Economy.ad_coins(), run.joker_slots)
+	run.ad_used += 1
+	var ev := {"k": "coins", "ev": "reward", "coins": phrase.coins}
+	if c == "store":
+		_shop_ads += 1
+		shop.hide_ad_offer()
+		shop.set_buys_left(shop._buys_left, phrase.coins)   # 副标题的余额跟上;货架不重掷
+		shop._render(false)                                 # 价签的可购性按新余额重算
+	else:
+		ev["late"] = true
+	Tape.on("ad", ev)
+	_refresh()
+
+
+func _on_ad_failed(kind: String, why: String) -> void:
+	Tape.on("ad", {"k": kind, "ev": "fail", "why": why})
+	if kind == "energy":
+		_on_energy_ad_failed()
+		return
+	shop.hide_ad_offer()
+	if state == St.DRAFT:
+		var at: Array = DB.ui()["shop"]["ad_offer_pos"]
+		fx.float_text(Lingo.t("广告暂时没有,稍后再试"), Vector2(float(at[0]), float(at[1])), Color("ff5f7e"), 90)
+
+
+## 关掉(含没看完):金币那支什么都不做 —— offer 还在(若仍有货), 上限只数真发出去的钱。
+func _on_ad_closed(kind: String) -> void:
+	if kind == "energy":
+		_on_energy_ad_closed()
+
+
+func _on_energy_ad_rewarded() -> void:
+	pass
+
+
+func _on_energy_ad_failed() -> void:
+	pass
+
+
+func _on_energy_ad_closed() -> void:
 	pass
 
 
