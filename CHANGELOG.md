@@ -20,6 +20,10 @@ TODO 明确不做表里「内购」整行按「赶紧删了」删除, 换成「�
 `view/ads.gd` 适配层(假后端;`SYNC5_ADS=off|fake|fail|dismiss` 显式优先, 探针缺省 off)· `view/admob.gd`(Poing godot-admob-plugin v5, **全动态查类**, 插件不在时照常解析)·
 Tape `ad` 事实四种 · bot `ads` 上界臂 + parity `ad_coins` · `tools/adsprobe.gd`(首跑抓到真 bug:开层前的防御性关层把刚设的 `_pending_start` 清掉 ⇒ 看完广告永远不开局;已修并进 gate.sh)· Android 导出切 Gradle。
 Lua 镜像补孪生只为门绿(用户:TapMaker 不管)。
+**审查真抓到东西**(每批 spec 审查 + 质量审查, 四次修补 4b/8b/8c/8d+9b):金币上限护栏(穷开心下 grant 一分不加就不许 offer)· 开层前的防御性关层清掉 `_pending_start`(探针抓到)·
+暗幕 ColorRect 缺省 `mouse_filter=STOP` 让「点空白关闭」永远触发不了(玩家没有退路;顺手加了「不看了」键)· **`ResourceLoader.exists()` 对 `.cfg` 恒 false ⇒ 真机会静默落到假后端不放广告就发奖**
+(改按全局类表探测, 且导出包绝不落到 fake)· closed 早于 rewarded 不吃奖 · 发钱那一刻再守一次上限 · bot 每店上限读数据不写死。
+判据留一条:**能进 gate 的探针才算回归** —— adsprobe 已挂进 gate.sh。
 
 ## 2026-09-06(二)· Lua 镜像(TapMaker 版):手工镜像 + 机械门,一口气五段
 
