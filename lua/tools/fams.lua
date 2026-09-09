@@ -1,4 +1,4 @@
--- 五族金样的重放器(check.lua 调)。每个 fam(g, eq) 用镜像重放 golden 的输入, 逐字段 eq。
+-- 六族金样的重放器(check.lua 调)。每个 fam(g, eq) 用镜像重放 golden 的输入, 逐字段 eq。
 local P = (...):match("^(.-)[^%.]+$") or ""
 local R = (P:gsub("tools%.$", ""))
 local num = require(R .. "num")
@@ -14,6 +14,7 @@ local Consumable = require(R .. "core.consumable")
 local BlindBoon = require(R .. "core.blind_boon")
 local GameConfig = require(R .. "core.config")
 local Fx = require(R .. "core.fx")
+local Shelf = require(R .. "core.shelf")
 
 local fams = {}
 local fmt = string.format
@@ -401,6 +402,56 @@ function fams.run(g, eq)
 		local ok, err = pcall(runloop.replay, case, eq)
 		if not ok then
 			eq("crash: " .. tostring(err), "", string.format("run seed=%d replay", case.seed))
+		end
+	end
+end
+
+-- ---------------------------------------------------------------- visit(一次进店的记账)
+-- ⚑ `Shelf.Visit` 是内部类, `tools/mirror.py` 只查顶层 func ⇒ 查不到它;
+--   这一族**就是**那个孪生的唯一机械证据(tools/golden.gd::_fam_visit 同一套 op)。
+local function visit_digest(v)
+	return table.concat({
+		fmt("rc=%d", v.reroll_count), fmt("bl=%d", v.buys_left), fmt("sb=%d", v.shelf_bonus),
+		fmt("gs=%d", v.grant_shelf), fmt("geb=%d", v.grant_extra_buys), fmt("gp=%d", v.grant_price),
+		fmt("gfr=%d", v.grant_free_reroll), "gmr=" .. v.grant_min_rarity,
+		fmt("buys=%d", v.shop_buys), "cu=" .. (v.coffer_used and "T" or "F"),
+		"pf=" .. (v.perkeo_fired and "T" or "F"), "cl=" .. (v.closed and "T" or "F"),
+	}, "|")
+end
+
+-- 槽位规格(4 个 id 字符串, "" = 空)→ 真槽。Lua 侧空位是 false。
+local function visit_slots(spec)
+	local out = {}
+	for i = 1, #spec do
+		out[i] = (spec[i] == "") and false or Joker.by_id(spec[i])
+	end
+	return out
+end
+
+function fams.visit(g, eq)
+	for ci, case in ipairs(g) do
+		local v = Shelf.Visit.new()
+		local slots = visit_slots(case.slots)
+		for i, op in ipairs(case.ops) do
+			local k = op[1]
+			local ret = nil
+			if k == "open" then v:open(op[2])
+			elseif k == "act" then ret = v:apply_action(op[2])
+			elseif k == "price" then ret = v:price(Joker.by_id(op[2]), slots)
+			elseif k == "afford" then ret = v:affordable(Joker.by_id(op[2]), slots, op[3])
+			elseif k == "rcost" then ret = v:reroll_cost_now()
+			elseif k == "free" then ret = v:take_free_reroll()
+			elseif k == "nroll" then v:note_reroll()
+			elseif k == "limit" then ret = v:buy_limit(slots)
+			elseif k == "nbuy" then v:note_buy()
+			elseif k == "stay" then ret = v:stay(slots)
+			elseif k == "close" then v:close()
+			elseif k == "slots" then slots = visit_slots(op[2])
+			elseif k == "cused" then v.coffer_used = op[2]
+			elseif k == "pfired" then v.perkeo_fired = op[2]
+			else error("visit: 未知 op " .. tostring(k)) end
+			eq(visit_digest(v) .. "|ret=" .. canon(ret), case.trail[i],
+				fmt("visit #%d step=%d %s", ci - 1, i, tostring(k)))
 		end
 	end
 end

@@ -2,7 +2,7 @@ extends SceneTree
 
 ## 金样生成器(docs/design/mirror.md §6)—— Godot 侧算出「期望」, 写成 lua/golden/<族>.lua,
 ## Lua 镜像用 lua/check.lua 重放比对。**生成物手改无效**;改了 core/ 就重跑本脚本。
-##   godot --headless --path . --script res://tools/golden.gd            # 全部五族
+##   godot --headless --path . --script res://tools/golden.gd            # 全部六族
 ##   SYNC5_GOLDEN=rng,pattern godot --headless --path . --script res://tools/golden.gd
 ## ⚠ 浮点一律写成 H"<f64hex>"(IEEE 位串), 不写十进制 —— 两边 printf 的最后一位不可信。
 
@@ -16,6 +16,7 @@ func _initialize() -> void:
 		"settle": Callable(self, "_fam_settle"),
 		"fx": Callable(self, "_fam_fx"),
 		"run": Callable(self, "_fam_run"),
+		"visit": Callable(self, "_fam_visit"),
 	}
 	var n := 0
 	for name in fams:
@@ -1116,3 +1117,138 @@ func _fam_run() -> String:
 	for i in range(30):
 		runs.append(_play_run(100000 + i * 7, i % 10 == 0))
 	return "return " + lua(runs) + "\n"
+
+
+# ---------------------------------------------------------------- visit 族(一次进店的记账)
+
+## `Shelf.Visit` 的字段快照 —— lua/tools/fams.lua::visit_digest 同一定义。
+## ⚠ `tools/mirror.py` 只查顶层 func ⇒ 查不到内部类;这一族**就是** Visit 孪生的唯一机械证据。
+static func visit_digest(v) -> String:
+	return "|".join([
+		"rc=%d" % v.reroll_count, "bl=%d" % v.buys_left, "sb=%d" % v.shelf_bonus,
+		"gs=%d" % v.grant_shelf, "geb=%d" % v.grant_extra_buys, "gp=%d" % v.grant_price,
+		"gfr=%d" % v.grant_free_reroll, "gmr=" + v.grant_min_rarity,
+		"buys=%d" % v.shop_buys, "cu=" + ("T" if v.coffer_used else "F"),
+		"pf=" + ("T" if v.perkeo_fired else "F"), "cl=" + ("T" if v.closed else "F"),
+	])
+
+
+## 槽位规格(4 个 id 字符串, "" = 空)→ 真槽。Lua 侧空位是 false, 这里是 null。
+static func visit_slots(spec: Array) -> Array:
+	var out: Array = []
+	for id in spec:
+		out.append(null if String(id) == "" else Joker.by_id(String(id)))
+	return out
+
+
+## 一条脚本化序列:每一步之后记下**全部字段**与这一步的返回值。
+func _visit_case(slots_spec: Array, ops: Array) -> Dictionary:
+	var v := Shelf.Visit.new()
+	var slots := visit_slots(slots_spec)
+	var trail: Array = []
+	for op in ops:
+		var k := String(op[0])
+		var ret = null
+		match k:
+			"open": v.open(int(op[1]))
+			"act": ret = v.apply_action(op[1])
+			"price": ret = v.price(Joker.by_id(String(op[1])), slots)
+			"afford": ret = v.affordable(Joker.by_id(String(op[1])), slots, int(op[2]))
+			"rcost": ret = v.reroll_cost_now()
+			"free": ret = v.take_free_reroll()
+			"nroll": v.note_reroll()
+			"limit": ret = v.buy_limit(slots)
+			"nbuy": v.note_buy()
+			"stay": ret = v.stay(slots)
+			"close": v.close()
+			"slots": slots = visit_slots(op[1])
+			"cused": v.coffer_used = bool(op[1])
+			"pfired": v.perkeo_fired = bool(op[1])
+			_:
+				push_error("golden visit: 未知 op " + k)
+				quit(1)
+		trail.append(visit_digest(v) + "|ret=" + canon(ret))
+	return {"slots": slots_spec, "ops": ops, "trail": trail}
+
+
+func _fam_visit() -> String:
+	var cases: Array = []
+	# ① 授予的累加口径 + 离店/进店各清什么
+	cases.append(_visit_case(["", "encore", "", ""], [
+		["open", 0],
+		["act", {"shelf_slots": 4, "extra_buys": 2}],   # 联票:货架取大 · 名额加法
+		["limit"],
+		["act", {"shelf_slots": 3}],                    # 取大 ⇒ 仍是 4(不叠成 7)
+		["act", {"extra_buys": 1}],                     # 加法 ⇒ 3
+		["limit"],
+		["act", {"price_delta": -2}],
+		["rcost"],
+		["act", {"price_delta": -9}],                   # 折扣可以叠到负很多, 地板在 Economy
+		["rcost"],
+		["act", {"free_reroll": 3}],
+		["act", {}],                                    # 空 action ⇒ 不重掷、什么都不动
+		["act", {"min_rarity": "uncommon"}],
+		["close"],                                      # 四个「本店」授予清零, 挑高留着
+		["limit"],
+		["open", 2],                                    # 进店:挑高清零 + 灌入点名奖励
+		["limit"],
+	]))
+	# ② 5 选 1 的计数与去留
+	cases.append(_visit_case(["", "encore", "finale", "turnover"], [
+		["open", 1],
+		["limit"],
+		["nbuy"],
+		["stay"],                                       # 基础名额 1 ⇒ 买一张就走
+		["open", 0],
+		["act", {"extra_buys": 2}],
+		["limit"],
+		["nbuy"], ["stay"],                             # 还能再选 2 张
+		["nbuy"], ["stay"],                             # 还能再选 1 张
+		["nbuy"], ["stay"],                             # 满额 ⇒ 关店 + 授予清零
+		["limit"],
+		["cused", true], ["pfired", true],
+		["close"],                                      # close **不**清这两个
+		["open", 0],                                    # open 清
+	]))
+	# ③ 价格:免费首张 Target · 折扣 · 地板 1
+	cases.append(_visit_case(["", "", "", ""], [
+		["open", 0],
+		["price", "twin"], ["afford", "twin", 0],       # 首张 Target 免费, 身无分文也拿得动
+		["price", "encore"],
+		["afford", "encore", 2], ["afford", "encore", 3],
+		["act", {"price_delta": -2}],
+		["price", "encore"], ["price", "twin"],         # 折扣不许把免费打成 −2
+		["act", {"price_delta": -9}],
+		["price", "encore"], ["price", "perkeo"],       # 地板 1◆
+		["afford", "encore", 1], ["afford", "encore", 0],
+		["act", {"price_delta": 4}],                    # 正的增量也走同一条
+		["price", "encore"], ["price", "perkeo"],
+	]))
+	# ④ 满槽的回收预算(Support 只在 1..3;换旗没有退款 ⇒ Target 只看现钱)
+	cases.append(_visit_case(["twin", "encore", "finale", "turnover"], [
+		["open", 0],
+		["price", "perkeo"],
+		["afford", "perkeo", 0],                        # 预算 = 现钱 + 最好的一张 Support 回收
+		["afford", "perkeo", 1], ["afford", "perkeo", 5],
+		["price", "lonewolf"], ["afford", "lonewolf", 0], ["afford", "lonewolf", 9],
+		["slots", ["", "encore", "finale", "turnover"]],  # 没有 Target + 三个 Support 满
+		["afford", "perkeo", 0], ["afford", "lonewolf", 0],
+		["slots", ["twin", "encore", "", ""]],          # 有空位 ⇒ 不算回收
+		["afford", "perkeo", 0], ["afford", "perkeo", 9],
+	]))
+	# ⑤ 刷新:阶梯 · 折扣 · 免费刷新不推阶梯
+	cases.append(_visit_case(["", "encore", "", ""], [
+		["open", 0],
+		["rcost"], ["free"],                            # 没授予 ⇒ 免费刷新拿不到
+		["nroll"], ["rcost"],
+		["nroll"], ["rcost"],
+		["nroll"], ["rcost"],
+		["act", {"price_delta": -2}], ["rcost"],
+		["act", {"free_reroll": 2}],
+		["free"], ["rcost"],                            # 免费一次:阶梯不动
+		["free"], ["rcost"],
+		["free"],                                       # 用完
+		["nroll"], ["rcost"],
+		["close"], ["rcost"],                           # 离店清折扣 ⇒ 阶梯回到原价
+	]))
+	return "return " + lua(cases) + "\n"

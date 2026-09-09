@@ -165,3 +165,133 @@ func run(t) -> void:
 	t.eq(whys.size(), 1, "刷不起发 denied")
 	t.eq(whys[0], "reroll", "……why = reroll(单参签名)")
 	sh.queue_free()
+
+	# ---- Shelf.Visit(2026-09-09 商店记账收口:一次进店 = 一份记账)----
+	# ⚑ 联票名额 / 免费刷新 / 折扣 / 挑高 / 5 选 1 计数 / 离店清零此前住在**三处**
+	#   (view · tools/golden.gd::ShopSim · lua/app/shop.lua),现在是 `core/shelf.gd` 的一份。
+	#   逐字段对拍在金样第六族 `visit`;这里锁的是**契约**(每个方法一条)。
+	# ⚠ 数一律从 `Joker.slots_buy_limit` / `Economy.reroll_cost` / `Economy.shelf_price` 推导 ——
+	#   写死等于把平衡表抄了第二份(runner 顶上那条纪律)。
+	var vslots: Array = [null, Joker.by_id("encore"), null, null]
+	var v := Shelf.Visit.new()
+	# open:进店归零 + 灌入点名的解除奖励;「本店」授予**不**清(上一店 close 清过)
+	v.grant_shelf = 4
+	v.grant_extra_buys = 2
+	v.grant_min_rarity = "uncommon"
+	v.shop_buys = 3
+	v.reroll_count = 5
+	v.buys_left = 2
+	v.coffer_used = true
+	v.perkeo_fired = true
+	v.closed = true
+	v.open(1)
+	t.eq([v.shop_buys, v.reroll_count, v.buys_left], [0, 0, 0], "open 归零成交/刷新/续买三个计数")
+	t.eq(v.grant_min_rarity, "", "open 清挑高 —— 它是「下次货架」类, 进店这一刻消费掉")
+	t.eq(v.shelf_bonus, 1, "open 灌入点名的解除奖励")
+	t.check(not v.coffer_used and not v.perkeo_fired and not v.closed, "open 复位三个布尔")
+	t.eq(v.grant_shelf, 4, "open **不**清「本店」授予(那是 close 的活)")
+
+	# apply_action:只认五个记账键, 返回值说要不要当场重掷
+	v = Shelf.Visit.new()
+	v.open(0)
+	t.check(bool(v.apply_action({"shelf_slots": 4})["redeal"]), "联票改了货架构成 ⇒ 当场重掷")
+	v.apply_action({"shelf_slots": 3})
+	t.eq(v.grant_shelf, 4, "shelf_slots 取大(一店两张联票不叠成 7)")
+	t.check(not bool(v.apply_action({"extra_buys": 2})["redeal"]), "给名额不顺手送一次免费刷新")
+	v.apply_action({"extra_buys": 1})
+	t.eq(v.grant_extra_buys, 3, "extra_buys 是加法 —— 取大时联票买掉的正是它要给的那次成交")
+	v.apply_action({"price_delta": -2})
+	v.apply_action({"price_delta": -1})
+	t.eq(v.grant_price, -3, "price_delta 累加(含负数)")
+	v.apply_action({"free_reroll": 2})
+	v.apply_action({"free_reroll": 1})
+	t.eq(v.grant_free_reroll, 3, "free_reroll 累加")
+	t.check(bool(v.apply_action({"min_rarity": "uncommon"})["redeal"]), "挑高当场重发一次")
+	t.eq(v.grant_min_rarity, "uncommon", "min_rarity 是覆盖, 不是累加")
+	var untouched: Array = [v.grant_shelf, v.grant_extra_buys, v.grant_price, v.grant_free_reroll]
+	t.check(not bool(v.apply_action({"loan": {"borrow": 5, "repay": 7}, "wilds": 4,
+		"deck_rule": "shortcut", "rule_guaranteed": true, "copy_one_destroy_rest": true,
+		"ad_coins": 3})["redeal"]), "碰钱/碰牌堆/跨店的键不归 Visit —— 留在调用方")
+	t.eq([v.grant_shelf, v.grant_extra_buys, v.grant_price, v.grant_free_reroll], untouched,
+		"……而且一个记账字段都不动")
+
+	# price:展示价与成交价共用一份;折扣的地板是 1◆, 免费保 0
+	v = Shelf.Visit.new()
+	v.open(0)
+	var enc := Joker.by_id("encore")
+	var twin := Joker.by_id("twin")
+	t.eq(v.price(enc, vslots), Economy.shelf_price(enc, vslots), "无折扣时 = Economy.shelf_price")
+	t.eq(v.price(twin, vslots), 0, "首张 Target 免费")
+	v.apply_action({"price_delta": -1})
+	t.eq(v.price(enc, vslots), maxi(1, Economy.shelf_price(enc, vslots) - 1), "赞助的本店折扣")
+	v.apply_action({"price_delta": -99})
+	t.eq(v.price(enc, vslots), 1, "折扣的地板是 1◆(0 会混进「免费」的打点与文案分支)")
+	t.eq(v.price(twin, vslots), 0, "……免费那一档仍是 0, 不吃地板")
+
+	# affordable:满槽时最好的一张 Support 回收算进预算;换旗没有退款
+	v = Shelf.Visit.new()
+	v.open(0)
+	var p_enc := Economy.shelf_price(enc, vslots)
+	t.check(v.affordable(enc, vslots, p_enc), "钱刚好 = 买得起")
+	t.check(not v.affordable(enc, vslots, p_enc - 1), "差一枚就买不起")
+	t.check(v.affordable(twin, vslots, 0), "免费的首张 Target 身无分文也拿得动")
+	var full: Array = [Joker.by_id("twin"), Joker.by_id("encore"),
+		Joker.by_id("finale"), Joker.by_id("turnover")]
+	var best := 0
+	for k in range(1, full.size()):
+		best = maxi(best, Economy.sell_value(full[k]))
+	t.check(best > 0, "前提:满槽里的 Support 回收值不为 0")
+	var pk := Joker.by_id("perkeo")
+	var p_pk := Economy.shelf_price(pk, full)
+	t.check(v.affordable(pk, full, p_pk - best), "满槽 Support:旧卡的回收算进预算")
+	t.check(not v.affordable(pk, full, p_pk - best - 1), "……只算最好的那一张")
+	var lw := Joker.by_id("lonewolf")
+	t.check(not v.affordable(lw, full, Economy.shelf_price(lw, full) - 1),
+		"换旗不退款 ⇒ Target 只看现钱")
+
+	# reroll:阶梯 · 本店折扣 · 免费刷新不推阶梯
+	v = Shelf.Visit.new()
+	v.open(0)
+	t.eq(v.reroll_cost_now(), Economy.reroll_cost(0), "首刷 = 阶梯第 0 级")
+	v.note_reroll()
+	t.eq(v.reroll_cost_now(), Economy.reroll_cost(1), "刷一次推一级")
+	v.apply_action({"price_delta": -2})
+	t.eq(v.reroll_cost_now(), Economy.reroll_cost(1, -2), "刷新价也吃本店折扣")
+	t.check(not v.take_free_reroll(), "没授予就没有免费刷新")
+	v.apply_action({"free_reroll": 2})
+	t.check(v.take_free_reroll(), "加急:第一次免费")
+	t.eq(v.reroll_count, 1, "免费刷新**不推阶梯** —— 用完后首刷跳价就是卡面说谎")
+	t.check(v.take_free_reroll(), "第二次也免费")
+	t.check(not v.take_free_reroll(), "两次用完就没了")
+
+	# buy_limit / note_buy / stay:5 选 1 的计数与去留
+	v = Shelf.Visit.new()
+	v.open(0)
+	var base_limit := Joker.slots_buy_limit(vslots)
+	t.eq(v.buy_limit(vslots), base_limit, "基础名额 = Joker.slots_buy_limit")
+	v.apply_action({"extra_buys": 2})
+	t.eq(v.buy_limit(vslots), base_limit + 2, "授予的名额加在基础之上")
+	for i in range(base_limit + 1):
+		v.note_buy()
+		t.check(v.stay(vslots), "名额没用完就留在店里(第 %d 张)" % (i + 1))
+		t.eq(v.buys_left, base_limit + 2 - v.shop_buys, "……副标题的「还能再选 N 张」")
+	v.note_buy()
+	t.check(not v.stay(vslots), "满额 ⇒ 离店")
+	t.check(v.closed, "……stay 判满额时顺手 close")
+	t.eq(v.buy_limit(vslots), base_limit, "……授予清零后名额回到基础")
+
+	# close:清「这次商店」类的四个, 不清挑高与两个布尔
+	v = Shelf.Visit.new()
+	v.open(0)
+	v.apply_action({"shelf_slots": 4, "extra_buys": 1, "price_delta": -2,
+		"free_reroll": 1, "min_rarity": "uncommon"})
+	v.coffer_used = true
+	v.perkeo_fired = true
+	v.close()
+	t.eq([v.grant_shelf, v.grant_extra_buys, v.grant_price, v.grant_free_reroll], [0, 0, 0, 0],
+		"close 清四个「本店」授予 —— 一次性就是一次性")
+	t.eq(v.grant_min_rarity, "uncommon", "……但不清挑高(「下次货架」类, 清零点在 open)")
+	t.check(v.coffer_used and v.perkeo_fired, "……也不清这两个布尔(它们跟着 open 复位)")
+	t.check(v.closed, "close 之后 closed")
+	v.open(0)
+	t.eq(v.grant_min_rarity, "", "下一次 open 才清挑高")

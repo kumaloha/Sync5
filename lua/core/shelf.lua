@@ -104,4 +104,124 @@ function Shelf.refill(slots, on_shelf, min_rarity, rng, rarity_mult, boost)
 	return picked[1]
 end
 
+
+-- ⚑⚑ core/shelf.gd 的 `Shelf.Visit` 孪生 —— 一次进店的记账(view / ShopSim / lua/app/shop.lua
+-- 共用的一份, 2026-09-09 收 mirror.md §12 的第二个代价)。字段与方法名逐字相同;
+-- 它**不拥有** coins / joker_slots / deck / rule_next / loan —— 那些留在调用方。
+-- ⚠ `tools/mirror.py` 只查顶层 `func` ⇒ **它查不到内部类**;这个孪生由金样的 `visit` 族
+--   逐字段对拍(`tools/golden.gd::_fam_visit` → `lua/tools/fams.lua::fams.visit`), 不是靠覆盖门。
+-- ⚠ 槽位空位在 Lua 侧是 `false`(镜像通例), 在 Godot 侧是 `null`。
+Shelf.Visit = {}
+Shelf.Visit.__index = Shelf.Visit
+
+function Shelf.Visit.new()
+	local self = setmetatable({}, Shelf.Visit)
+	self.reroll_count = 0
+	self.buys_left = 0
+	self.shelf_bonus = 0
+	self.grant_shelf = 0
+	self.grant_extra_buys = 0
+	self.grant_price = 0
+	self.grant_free_reroll = 0
+	self.grant_min_rarity = ""
+	self.shop_buys = 0
+	self.coffer_used = false
+	self.perkeo_fired = false
+	self.closed = false
+	return self
+end
+
+-- 进店归零(其余授予不清 —— 上一店 close() 已经清过)
+function Shelf.Visit:open(run_shelf_bonus)
+	self.shop_buys = 0
+	self.perkeo_fired = false
+	self.reroll_count = 0
+	self.buys_left = 0
+	self.grant_min_rarity = ""
+	self.coffer_used = false
+	self.closed = false
+	self.shelf_bonus = num.int(run_shelf_bonus)
+end
+
+function Shelf.Visit:price(j, slots)
+	local sp = Economy.shelf_price(j, slots)
+	if sp > 0 then return num.maxi(1, sp + self.grant_price) end
+	return 0
+end
+
+function Shelf.Visit:affordable(j, slots, coins)
+	local p = self:price(j, slots)
+	if p == 0 then return true end
+	if j.kind == "target" then return coins >= p end
+	local budget = coins
+	if not Joker.has_room_for(slots, tostring(j.kind)) then
+		local best_sell = 0
+		for k = 2, #slots do
+			if slots[k] then best_sell = num.maxi(best_sell, Economy.sell_value(slots[k])) end
+		end
+		budget = budget + best_sell
+	end
+	return budget >= p
+end
+
+function Shelf.Visit:reroll_cost_now()
+	return Economy.reroll_cost(self.reroll_count, self.grant_price)
+end
+
+-- 免费刷新不推阶梯(不调 note_reroll)
+function Shelf.Visit:take_free_reroll()
+	if self.grant_free_reroll <= 0 then return false end
+	self.grant_free_reroll = self.grant_free_reroll - 1
+	return true
+end
+
+function Shelf.Visit:note_reroll()
+	self.reroll_count = self.reroll_count + 1
+end
+
+function Shelf.Visit:buy_limit(slots)
+	return Joker.slots_buy_limit(slots) + self.grant_extra_buys
+end
+
+function Shelf.Visit:note_buy()
+	self.shop_buys = self.shop_buys + 1
+end
+
+-- 一次成交之后还留在店里吗(离店的其它副作用由调用方在此之前跑)
+function Shelf.Visit:stay(slots)
+	local limit = self:buy_limit(slots)
+	if self.shop_buys < limit then
+		self.buys_left = limit - self.shop_buys
+		return true
+	end
+	self:close()
+	return false
+end
+
+-- 只认属于记账的五个键;返回 { redeal = bool }
+function Shelf.Visit:apply_action(act)
+	local redeal = false
+	if act.shelf_slots ~= nil then
+		self.grant_shelf = num.maxi(self.grant_shelf, num.int(act.shelf_slots))
+		redeal = true
+	end
+	if act.extra_buys ~= nil then self.grant_extra_buys = self.grant_extra_buys + num.int(act.extra_buys) end
+	if act.price_delta ~= nil then self.grant_price = self.grant_price + num.int(act.price_delta) end
+	if act.free_reroll ~= nil then self.grant_free_reroll = self.grant_free_reroll + num.int(act.free_reroll) end
+	if act.min_rarity ~= nil then
+		self.grant_min_rarity = tostring(act.min_rarity)
+		redeal = true
+	end
+	return { redeal = redeal }
+end
+
+-- 离店:清「这次商店」类的四个授予(grant_min_rarity 是「下次货架」类, 清零点在 open)
+function Shelf.Visit:close()
+	self.grant_shelf = 0
+	self.grant_extra_buys = 0
+	self.grant_price = 0
+	self.grant_free_reroll = 0
+	self.closed = true
+end
+
 return Shelf

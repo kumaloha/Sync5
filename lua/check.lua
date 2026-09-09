@@ -50,7 +50,7 @@ local function run(opts)
 		return g
 	end
 
-	local ORDER = { "rng", "pattern", "settle", "fx", "run" }
+	local ORDER = { "rng", "pattern", "settle", "fx", "run", "visit" }
 	local only = opts.only or (os and os.getenv and os.getenv("SYNC5_CHECK")) or nil
 	local clock = (os and os.clock) or function() return 0 end
 	for _, name in ipairs(ORDER) do
