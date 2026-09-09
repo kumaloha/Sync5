@@ -1148,6 +1148,7 @@ func _fam_visit() -> String:
 		["act", {"free_reroll": 3}],
 		["act", {}],                                    # 空 action ⇒ 不重掷、什么都不动
 		["act", {"min_rarity": "uncommon"}],
+		["act", {"min_rarity": "rare"}],                # 覆盖, 不是取大也不是先到先得
 		["close"],                                      # 四个「本店」授予清零, 挑高留着
 		["limit"],
 		["open", 2],                                    # 进店:挑高清零 + 灌入点名奖励

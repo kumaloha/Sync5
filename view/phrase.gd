@@ -1054,9 +1054,10 @@ func _on_consumable_bought(c, price: int) -> void:
 			if _coffer[i] != null and String(_coffer[i].id) == String(c.id):
 				_coffer[i] = null
 		_refresh_shop_consumables()
-		# ⚠ 这条路径不经过 `shop.sold()` ⇒ 副标题得由编排器直接喂
-		#(配额对了但玩家看不见, 等于没做 —— 见 `Shop.set_buys_left`)。
-		shop.set_buys_left(_visit.buys_left, phrase.coins)
+		# ⚠ 这条路径不经过 `shop.sold()` ⇒ 副标题得由编排器直接叫一次
+		#(配额对了但玩家看不见, 等于没做 —— 见 `Shop.refresh_buys_left`)。
+		#   剩余次数视图自己从 `visit.buys_left` 读 —— `stay()` 刚写过它, 这里不传第二遍。
+		shop.refresh_buys_left(phrase.coins)
 		return
 	_refresh_shop_consumables()
 	_perkeo_on_exit()
@@ -1079,10 +1080,15 @@ func _apply_shop_action(id: String, act: Dictionary) -> void:
 	#   和直接点刷新没区别」)—— 5 选 1 下它们买下即占掉唯一一次成交, 不还回来就是空白卡。
 	# ⚠ 下面这一半是**视图跟进**, 不是记账:货架构成变了(联票 / 挑高)要当场重掷,
 	#   只改价与按钮的(赞助 / 加急)重画即可。两个 `refresh_*` 的语义与今天逐字相同。
+	# ⚑⚑ **两个分支都读返回值, 不许在这里认键名**(2026-09-09 审查):此前 `elif` 写的是
+	#   `act.has("price_delta") or act.has("free_reroll")` —— 那两个键名于是在游戏侧有了
+	#   第二份住址, 而 `parity.py` 第二层扫的正是函数体里的键名字符串 ⇒ 把它们从
+	#   `Shelf.Visit.apply_action` 里删掉, 这道尺**仍然是绿的**(假绿第 N 种)。
+	#   现在键名只住在 `apply_action` 一处, 尺子咬得回去。
 	var r: Dictionary = _visit.apply_action(act)
 	if bool(r.get("redeal", false)):
 		shop.refresh_shelf()
-	elif act.has("price_delta") or act.has("free_reroll"):
+	elif bool(r.get("reprice", false)):
 		shop.refresh_prices()
 	if act.has("rule_guaranteed"):           # 点唱机:下次商店的**消耗牌位**必出规则牌
 		# ⚠⚠ 2026-08-30 二批转生后**目标换了** —— 规则牌全部搬到消耗牌一侧,
@@ -1175,8 +1181,11 @@ func _roll_consumables() -> Array:
 	return out
 
 
-## 帕奇欧:离店时复制一张消耗牌。**三个 close 点都要走** —— 「第二条入口漏掉
+## 帕奇欧:离店时复制一张消耗牌。**五个离店点都要走** —— 「第二条入口漏掉
 ## 主路径的步骤」是这个项目最贵的形状之一(CLAUDE.md 开局三步那条)。
+## 点位:`_on_consumable_bought` · `_on_shop_bought`(教学分支与正常出口)·
+## `_on_shop_skipped` · `_on_slot_tapped` —— **每一处都以 `shop.close()` 收尾**,
+## 那句才是不变量:它保证这里复制出来的「本店」授予一定被清掉(见 `Shelf.Visit` 类头)。
 ## ⚠ 栏位满就不复制(静默跳过, 不是报错):那是玩家自己没腾位置。
 func _perkeo_on_exit() -> void:
 	if _visit.perkeo_fired:
@@ -2058,12 +2067,14 @@ func _on_shop_bought(j, price: int) -> void:
 	# ⚑ 联票(消耗牌)的本店限额叠在小丑牌的之上(2026-08-30 code review 补:
 	# `grant_extra_buys`(当时叫 `_grant_buy_limit`)此前**只被写入和清零, 从没被读过**
 	# —— 那张卡在游戏里是空白的)。名额与去留的算法在 `Shelf.Visit.stay`(三方共用)。
-	# ⚠ 帕奇欧必须跑在 `stay()` **之后**才对得上今天:它只发生在**离店**那一支,
-	#   而 `stay()` 判满额时顺手 `close()` 清授予 —— 顺序反了会把复制出来的授予漏进下一店。
+	# ⚠ 帕奇欧跑在 `stay()` **之后** —— 而 `stay()` 判满额时已经顺手 `close()` 过一次。
+	#   之所以不漏,是因为这一支**以再一句 `shop.close()` 收尾**:那句才是不变量
+	#   (「离店路径以 `close()` 收尾」,五个离店点同一形状,写在 `Shelf.Visit` 类头)。
+	#   ⇒ 删掉结尾那句 `shop.close()` 才是 bug,顺序本身不是。
 	if _visit.stay(run.joker_slots):
-		# 剩余配额由**这里**算并传下去 —— 视图不自己数(经济动作只发生在编排器),
-		# 它只拿这个数去写副标题的「还能再选 N 张」。
-		shop.sold(j, run.joker_slots, phrase.coins, _visit.buys_left)
+		# 剩余配额是 `stay()` 刚写进 `visit.buys_left` 的账 —— 视图从那里读, 编排器不传第二遍
+		#(同一个数两个写者 = 抄了半份规则)。它只用来写副标题的「还能再选 N 张」。
+		shop.sold(j, run.joker_slots, phrase.coins)
 		return
 	_perkeo_on_exit()
 	shop.close()
@@ -2364,7 +2375,7 @@ func _on_slot_tapped(k: int) -> void:
 	# 买走的那张从货架摘掉;用完 ⇒ 走离店(帕奇欧复制 + close 清授予)再开拍。
 	_visit.note_buy()
 	if _visit.stay(run.joker_slots):
-		shop.sold(new_j, run.joker_slots, phrase.coins, _visit.buys_left)
+		shop.sold(new_j, run.joker_slots, phrase.coins)
 		shop.show_board()
 		return
 	_perkeo_on_exit()

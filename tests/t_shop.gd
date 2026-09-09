@@ -54,7 +54,7 @@ func run(t) -> void:
 	t.eq(n_rule, 4, "四张规则牌都在消耗牌里(近道/四指/黑调/红调)")
 	for j in Joker.pool():
 		t.check(not j.is_rule_card(), "%s 不该是规则牌 —— 转生后小丑牌侧一张都不剩" % j.id)
-	# ⚑ 赞助 2026-08-29 转生为消耗牌 —— 折扣改由 `Shop.grant_price_delta` 授予
+	# ⚑ 赞助 2026-08-29 转生为消耗牌 —— 折扣改由 `Shelf.Visit.apply_action` 的 `price_delta` 授予
 	# (−2◆, 用户:「−1 好抠」), 断言见 t_consumable。这里只留不依赖它的价格基线。
 	t.eq(Economy.shelf_price(Joker.by_id("neonsign"), plain), 3, "no sponsor: base price 3(经济 v2)")
 	t.eq(Economy.shelf_price(Joker.by_id("twin"), plain), 0, "first target stays free")
@@ -213,20 +213,30 @@ func run(t) -> void:
 	v.apply_action({"shelf_slots": 3})
 	t.eq(v.grant_shelf, 4, "shelf_slots 取大(一店两张联票不叠成 7)")
 	t.check(not bool(v.apply_action({"extra_buys": 2})["redeal"]), "给名额不顺手送一次免费刷新")
-	v.apply_action({"extra_buys": 1})
+	t.check(not bool(v.apply_action({"extra_buys": 1})["reprice"]), "……也不重画价签")
 	t.eq(v.grant_extra_buys, 3, "extra_buys 是加法 —— 取大时联票买掉的正是它要给的那次成交")
-	v.apply_action({"price_delta": -2})
+	# ⚑ `reprice` = 「只动价签与刷新键 ⇒ 重画不重掷」。这条知识只许住在 `apply_action` 里:
+	#   调用方(view/phrase.gd::_apply_shop_action)照返回值走, 不许自己认键名。
+	var rp: Dictionary = v.apply_action({"price_delta": -2})
+	t.check(bool(rp["reprice"]) and not bool(rp["redeal"]), "赞助:重画价签, 不重掷货架")
 	v.apply_action({"price_delta": -1})
 	t.eq(v.grant_price, -3, "price_delta 累加(含负数)")
-	v.apply_action({"free_reroll": 2})
+	rp = v.apply_action({"free_reroll": 2})
+	t.check(bool(rp["reprice"]) and not bool(rp["redeal"]), "加急:刷新键换成「免费」, 也不重掷")
 	v.apply_action({"free_reroll": 1})
 	t.eq(v.grant_free_reroll, 3, "free_reroll 累加")
 	t.check(bool(v.apply_action({"min_rarity": "uncommon"})["redeal"]), "挑高当场重发一次")
 	t.eq(v.grant_min_rarity, "uncommon", "min_rarity 是覆盖, 不是累加")
+	# ⚑ **覆盖语义真的走一遍**(2026-09-09 审查):此前只赋过一次值, 于是「覆盖」这条
+	#   契约其实没被执行过 —— 改成取大 / 先到先得都不会红。第二张挑高必须盖掉第一张。
+	v.apply_action({"min_rarity": "rare"})
+	t.eq(v.grant_min_rarity, "rare", "……第二张挑高**覆盖**前一张(不是取大, 也不是先到先得)")
 	var untouched: Array = [v.grant_shelf, v.grant_extra_buys, v.grant_price, v.grant_free_reroll]
 	t.check(not bool(v.apply_action({"loan": {"borrow": 5, "repay": 7}, "wilds": 4,
 		"deck_rule": "shortcut", "rule_guaranteed": true, "copy_one_destroy_rest": true,
 		"ad_coins": 3})["redeal"]), "碰钱/碰牌堆/跨店的键不归 Visit —— 留在调用方")
+	t.check(not bool(v.apply_action({"loan": {"borrow": 5}, "wilds": 4})["reprice"]),
+		"……它们也不该让屏幕重画")
 	t.eq([v.grant_shelf, v.grant_extra_buys, v.grant_price, v.grant_free_reroll], untouched,
 		"……而且一个记账字段都不动")
 

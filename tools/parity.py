@@ -66,6 +66,12 @@ def _fn_body(path, fn):
         if inside:
             if re.match(r"^" + indent + r"(static\s+)?func\s", line):
                 break
+            # ⚑ 缩进更浅的实语句也是边界(2026-09-09)。只认同缩进的 `func` 时,
+            #   **内部类里最后一个方法**后面跟的是顶层语句而不是 `\tfunc ` ⇒ 一路吃到 EOF,
+            #   把整份文件的尾巴都算进函数体。那正是「范围看着收窄了、其实没收」。
+            if line.strip() and not line.strip().startswith("#") \
+                    and len(line) - len(line.lstrip()) < len(indent):
+                break
             # ⚠⚠ **必须剥注释**(2026-09-03, 自验时当场照出来的):
             # 我在 `_apply_bot_action` 里写了一段解释 `loan` 的注释, 于是即便把真正的
             # `act.has("loan")` 分支删掉, 这道检查**仍然找得到 "loan" 而放行**。
@@ -127,7 +133,10 @@ def write_only():
     for sub in ("view", "core"):
         for f in sorted((ROOT / sub).glob("*.gd")):
             txt = f.read_text(encoding="utf-8", errors="ignore")
-            for m in re.finditer(r"^var (_g?rant?_\w+|_g_\w+)\s*(?::=|:|=)", txt, re.M):
+            # ⚑ 缩进 + 可选下划线(2026-09-09):`Shelf.Visit` 的 `grant_*` 是**内部类字段**
+            #   —— 顶格且必须带 `_` 前缀的旧式恰好一个都扫不到它们, 而收口之后
+            #   「写了没人读」的风险正好全搬进了那个内部类。
+            for m in re.finditer(r"^\s*var (_?g?rant?_\w+|_g_\w+)\s*(?::=|:|=)", txt, re.M):
                 n = m.group(1)
                 uses = len(re.findall(r"\b" + re.escape(n) + r"\b", txt))
                 writes = len(re.findall(re.escape(n) + r"\s*(?:=|\+=|-=|\*=)", txt))

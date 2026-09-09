@@ -280,15 +280,13 @@ func refresh_prices() -> void:
 	_render(false)   # 刷新键当场换成「免费」/ 新价(此前这里调 _draw_refill —— 抽一张扔掉, 什么都不画)
 
 
-## ---- 消耗牌的授予口 —— **名字保留, 内部是对 `visit` 的委托**(测试与探针照旧调它们)。
-## ⚠ 生产路径不经过这里:编排器 `_apply_shop_action` 一次 `visit.apply_action(act)` 记完全部五个键,
-## 再调上面那两个跟进口 ——「哪五个键属于记账」这条知识只许有一份。
-func grant_shelf(n: int) -> void:
-	# ⚠ 货架取大(一店两张联票不叠成 5 张);名额走 `grant_extra_buys`(独立键, 独立累加)。
-	visit.apply_action({"shelf_slots": n})
-	refresh_shelf()
-
-
+## ---- 消耗牌的授予口 —— 只剩 `grant_extra_buys` 一个(tests/t_consumable.gd 用它)。
+## ⚑ 2026-09-09 审查删掉了 `grant_shelf` / `grant_price_delta` / `grant_free_reroll` /
+##   `grant_min_rarity` 四个:**一个调用者都没有**(view/ tools/ tests/ 全零)——
+##   收口那一批把它们留成「名字保留的委托」是想给测试留口,而测试早已直接读写 `shop.visit`。
+##   没有调用者的委托 = 第二条入口的种子:它看起来能记账,却绕过了 `refresh_*` 之外的一切。
+## ⚠ 生产路径本来就不经过这里:编排器 `_apply_shop_action` 一次 `visit.apply_action(act)`
+##   记完全部五个键, 再按返回值调上面那两个跟进口 ——「哪五个键属于记账」只许有一份。
 ## 本店额外成交名额 —— **独立的键、独立累加**(bot 侧 `_g_extra_buys +=` 同款, parity)。
 ## ⚑⚑ 2026-09-05 从 `grant_shelf` 里拆出来:此前只有联票分支读 `extra_buys`, 于是
 ## 加急/赞助/挑高这三张「本店」卡就算带上 `extra_buys: 1` 也没人读 —— 而它们在 5 选 1 下
@@ -298,29 +296,14 @@ func grant_extra_buys(n: int) -> void:
 	visit.apply_action({"extra_buys": n})
 
 
-func grant_price_delta(d: int) -> void:
-	visit.apply_action({"price_delta": d})
-	refresh_prices()
-
-
-func grant_free_reroll(n: int) -> void:
-	visit.apply_action({"free_reroll": n})
-	refresh_prices()
-
-
-## 挑高:**当场重发一次**, 之后整次进店(含刷新)都保持过滤。
-func grant_min_rarity(r: String) -> void:
-	visit.apply_action({"min_rarity": r})
-	refresh_shelf()
-
-
-## 续买态的剩余次数 —— **消耗牌路径专用**。
+## 续买态的副标题跟上 —— **消耗牌路径专用**。
 ##
-## ⚠ 联票自己是从**消耗牌货架**买走的, 那条路径不经过 `sold()`, 而 `_buys_left`
-## 只在 `sold()` 里写过 ⇒ 买完联票副标题还念着「SUPPORT · ◆ N」, **玩家看不到
-## 「还能再选 2 张」**。配额对了但没人告诉他, 等于没做(2026-09-02)。
-func set_buys_left(left: int, coins: int) -> void:
-	visit.buys_left = left
+## ⚠ 联票自己是从**消耗牌货架**买走的, 那条路径不经过 `sold()`, 而副标题只在 `sold()`
+## 里重画过 ⇒ 买完联票它还念着「SUPPORT · ◆ N」, **玩家看不到「还能再选 2 张」**。
+## 配额对了但没人告诉他, 等于没做(2026-09-02)。
+## ⚑ 2026-09-09:剩余次数**不再由视图传入** —— `visit.buys_left` 是 `Shelf.Visit.stay()`
+## 写的那一份账, 视图只读不写(写第二遍就等于把「还能再选几张」这条规则抄了半份)。
+func refresh_buys_left(coins: int) -> void:
 	_coins = coins
 	_refresh_kind_line()
 
@@ -500,13 +483,13 @@ func redeal(slots: Array, coins: int, section_idx: int) -> void:
 ## ⚠ 补的牌从同一个候选池按同一套权重抽(不重复已在架/已持有),用**当前**槽位重算
 ## —— 刚买的那张若改了货架规则(联票/赞助/点唱机), 补货立刻按新规则走。
 ##
-## `left` = **还能再买几张**(配额是编排器的账, 视图不自己算 —— 经济动作只发生在
-## 编排器)。它只喂副标题那一行:续买态要明说「还能选几张 · 不想买就点继续」
+## 「还能再买几张」由 `visit.buys_left` 读 —— 那是 `Shelf.Visit.stay()` 写的账,
+## **视图只读不写**(2026-09-09:此前编排器算完再传进来一遍, 于是同一个数有两个写者)。
+## 它只喂副标题那一行:续买态要明说「还能选几张 · 不想买就点继续」
 ## (2026-08-28 用户:「至多可以选 2 个, 如果钱只够选 1 个或者没有, 要点跳过」)。
-func sold(j, slots: Array, coins: int, left: int = 0) -> void:
+func sold(j, slots: Array, coins: int) -> void:
 	_slots = slots
 	_coins = coins
-	visit.buys_left = left
 	var at: int = _candidates.find(j)
 	_candidates.erase(j)
 	var refill = _draw_refill()

@@ -187,7 +187,9 @@ function Shelf.Visit:note_buy()
 	self.shop_buys = self.shop_buys + 1
 end
 
--- 一次成交之后还留在店里吗(离店的其它副作用由调用方在此之前跑)
+-- 一次成交之后还留在店里吗。⚠ 判满额时顺手 close() —— 帕奇欧那种「离店时还会再发授予」
+-- 的钩子跑在它之前或之后都行, **前提是离店路径以再一次 close() 收尾**(不变量写在
+-- core/shelf.gd 的类头;Lua 侧 lua/app/shop.lua 走的是 perkeo → close 那一种)。
 function Shelf.Visit:stay(slots)
 	local limit = self:buy_limit(slots)
 	if self.shop_buys < limit then
@@ -198,21 +200,29 @@ function Shelf.Visit:stay(slots)
 	return false
 end
 
--- 只认属于记账的五个键;返回 { redeal = bool }
+-- 只认属于记账的五个键;返回 { redeal = bool, reprice = bool }
+-- (redeal = 货架构成变了要当场重掷;reprice = 只动价签与刷新键 ⇒ 重画不重掷)
 function Shelf.Visit:apply_action(act)
 	local redeal = false
+	local reprice = false
 	if act.shelf_slots ~= nil then
 		self.grant_shelf = num.maxi(self.grant_shelf, num.int(act.shelf_slots))
 		redeal = true
 	end
 	if act.extra_buys ~= nil then self.grant_extra_buys = self.grant_extra_buys + num.int(act.extra_buys) end
-	if act.price_delta ~= nil then self.grant_price = self.grant_price + num.int(act.price_delta) end
-	if act.free_reroll ~= nil then self.grant_free_reroll = self.grant_free_reroll + num.int(act.free_reroll) end
+	if act.price_delta ~= nil then
+		self.grant_price = self.grant_price + num.int(act.price_delta)
+		reprice = true
+	end
+	if act.free_reroll ~= nil then
+		self.grant_free_reroll = self.grant_free_reroll + num.int(act.free_reroll)
+		reprice = true
+	end
 	if act.min_rarity ~= nil then
 		self.grant_min_rarity = tostring(act.min_rarity)
 		redeal = true
 	end
-	return { redeal = redeal }
+	return { redeal = redeal, reprice = reprice }
 end
 
 -- 离店:清「这次商店」类的四个授予(grant_min_rarity 是「下次货架」类, 清零点在 open)

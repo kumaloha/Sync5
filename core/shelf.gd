@@ -124,10 +124,23 @@ static func refill(slots: Array, on_shelf: Array, min_rarity: String,
 ## `Shelf.deal/refill`,持有在调用方)· 渲染。⇒ `apply_action()` 只认那五个记账键,
 ## 其余键留给调用方。
 ##
-## ⚠ **离店副作用的顺序**:`stay()` 判满额时会 `close()`,而 `close()` 清的正是那四个
-## 「本店」授予 —— 所以帕奇欧那种「离店时还会再发授予」的动作必须跑在 `stay()`
-## **之前**(今天三处都是 `perkeo_on_exit()` 再 `close()`)。反过来写不会报错,
-## 只会把复制出来的授予**漏进下一店**(下一次 `open()` 只清 `grant_min_rarity`)。
+## ⚠ **离店副作用的顺序 —— 真正的不变量是「以 `close()` 收尾」,不是「帕奇欧在前」**
+## (2026-09-09 审查改写:原文写的「必须跑在 `stay()` 之前」对 view 是**假的**,
+##  而 view 恰恰是三方里唯一反着跑的那一方)。
+## `stay()` 判满额时会顺手 `close()`,清掉那四个「本店」授予;帕奇欧那种
+## 「离店时还会再发授予」的动作**可以跑在它之后** —— 前提是**离店路径以再一次
+## `close()` 收尾**。今天两种顺序都在跑,两种都对:
+##   · view:`stay()` 已经 close 过一次 → `_perkeo_on_exit()` → `shop.close()` 收尾。
+##     五个离店点全是这个形状:`_on_consumable_bought` · `_on_shop_bought`(教学分支
+##     与正常出口两处)· `_on_shop_skipped` · `_on_slot_tapped`。
+##   · ShopSim(`tools/golden.gd`)/ Lua(`lua/app/shop.lua`):`perkeo_on_exit()` 再
+##     `visit.close()`,一次就够。
+## ⇒ 会漏的只有一种写法:帕奇欧跑在**最后一次** `close()` 之后 —— 那时复制出来的授予
+##   没人清,下一次 `open()` 只清 `grant_min_rarity`,其余四个**漏进下一店**。
+##
+## ⚠ **残余风险(认下,别单边修)**:view 的店内重掷没有 `not closed` 这道闸,
+## 而 ShopSim / Lua 有(它们的 `apply_action` 跟着一句 `and not closed`)。
+## **不要只给 view 补这道闸** —— 不同时把帕奇欧的顺序也改齐,三方就会在这里静默分叉。
 class Visit extends RefCounted:
 	var reroll_count := 0
 	## 联票续买态:还能再买几张(0 = 普通态)。只由 `stay()` 写,`open()` 归零。
@@ -219,12 +232,17 @@ class Visit extends RefCounted:
 		close()
 		return false
 
-	## 消耗牌 action 里**属于记账**的那五个键。返回 `{"redeal": bool}` ——
-	## 改了货架构成(联票撑大 / 挑高过滤)就要在店内当场重掷,由调用方执行。
+	## 消耗牌 action 里**属于记账**的那五个键。返回 `{"redeal": bool, "reprice": bool}` ——
+	## 改了货架构成(联票撑大 / 挑高过滤)要在店内当场重掷;只动价签与刷新键的
+	## (赞助 / 加急)重画即可。两个都由调用方执行(记账在这里,屏幕跟上在视图)。
+	## ⚑ `reprice` 2026-09-09 补:此前调用方是靠 `act.has("price_delta")` 自己判的 ——
+	## 于是「哪些键属于记账」这条知识在 `view/phrase.gd` 又有了半份,而 `parity.py`
+	## 第二层扫的正是函数体里的键名字符串:两处都写着,把这两个键从这里删掉也不会红。
 	## ⚠ `rule_guaranteed`(跨店)/ `loan` / `wilds` / `trim_low` / `deck_rule` /
 	## `copy_one_destroy_rest` / `ad_coins` **不归它**(碰 deck、coins 或跨店),留在调用方。
 	func apply_action(act: Dictionary) -> Dictionary:
 		var redeal := false
+		var reprice := false
 		if act.has("shelf_slots"):
 			# ⚠ 货架取大(一店两张联票不叠成 5 张);名额走 `extra_buys`(独立键,独立累加)。
 			grant_shelf = maxi(grant_shelf, int(act["shelf_slots"]))
@@ -233,14 +251,16 @@ class Visit extends RefCounted:
 			grant_extra_buys += int(act["extra_buys"])
 		if act.has("price_delta"):
 			grant_price += int(act["price_delta"])
+			reprice = true
 		if act.has("free_reroll"):
 			grant_free_reroll += int(act["free_reroll"])
+			reprice = true
 		if act.has("min_rarity"):
 			# 挑高:**当场重发一次**,之后整次进店(含刷新)都保持过滤 ——
 			# 只设标志位不重发,等于「这张卡什么都没发生」。
 			grant_min_rarity = String(act["min_rarity"])
 			redeal = true
-		return {"redeal": redeal}
+		return {"redeal": redeal, "reprice": reprice}
 
 	## 离店:清「这次商店」类的四个授予 —— 一次性就是一次性。
 	## ⚠ `grant_min_rarity` **不清**:它是「下次货架」类,清零点在 `open()`。
