@@ -85,3 +85,24 @@ func run(t) -> void:
 	t.eq(ad.total(), 56, "超级百搭注入四张万能")
 	ad.add_wilds("superwild", 4)
 	t.eq(ad.total(), 56, "注入两次 = 一次(deck 侧来源记账挡)")
+
+	# 断点续玩 RNG 状态(2026-09-09):int64 经 JSON.stringify/parse_string 读回是 double,
+	# 2^53 以上丢低位 ⇒ snapshot 必须把 rng 存成十六进制串, 不能直接塞 _rng.state。
+	var rd := Deck.new(31)
+	rd._rng.state = -0x7fedcba987654321
+	var rsnap := rd.snapshot()
+	t.check(rsnap["rng"] is String and String(rsnap["rng"]).length() == 16,
+		"rng 快照是 16 位十六进制串")
+	var rparsed = JSON.parse_string(JSON.stringify(rsnap))
+	var rback := Deck.from_snapshot(rparsed)
+	t.eq(rback._rng.state, rd._rng.state, "RNG 状态过 JSON 往返精确复原(高位样本一)")
+
+	var rd2 := Deck.new(32)
+	rd2._rng.state = 0x7ff0000000000123
+	var rparsed2 = JSON.parse_string(JSON.stringify(rd2.snapshot()))
+	var rback2 := Deck.from_snapshot(rparsed2)
+	t.eq(rback2._rng.state, rd2._rng.state, "RNG 状态过 JSON 往返精确复原(高位样本二)")
+
+	# 旧存档(改十六进制串之前)留下的数字形状仍要照读兼容(有损, 但不报错)
+	var legacy := Deck.from_snapshot({"rng": 12345})
+	t.eq(legacy._rng.state, 12345, "旧存档的数字 rng 字段照读兼容")

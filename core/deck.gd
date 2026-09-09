@@ -169,7 +169,7 @@ func snapshot() -> Dictionary:
 	return {
 		"draw": cards_out(draw_pile), "disc": cards_out(discard_pile),
 		"wildx": wild_extra.duplicate(true), "trim": trim_low,
-		"rules": rules.duplicate(true), "rng": _rng.state,
+		"rules": rules.duplicate(true), "rng": _rng_hex(_rng.state),
 	}
 
 
@@ -179,6 +179,14 @@ static func cards_out(arr) -> Array:
 	for c in arr:
 		out.append([c.rank, c.suit])
 	return out
+
+
+## RNG 状态存 16 位十六进制串(2026-09-09):int64 经 JSON.stringify/parse_string 读回是
+## double, 2^53 以上丢低位 ⇒ 续玩后洗牌与未中断局分叉(Tape 回放能看见, 玩家肉眼看不见)。
+## 与 lua/core/deck.lua 的 set_state_hex 同一口径(它一直等的就是字符串);格式沿用
+## tools/golden.gd 的 state_hex(高 32 位在前), 别再造第二种编码。
+static func _rng_hex(st: int) -> String:
+	return "%08x%08x" % [(st >> 32) & 0xFFFFFFFF, st & 0xFFFFFFFF]
 
 
 static func from_snapshot(d: Dictionary) -> Deck:
@@ -192,7 +200,22 @@ static func from_snapshot(d: Dictionary) -> Deck:
 	deck.wild_extra = d.get("wildx", {}).duplicate(true)
 	deck.trim_low = bool(d.get("trim", false))
 	deck.rules = d.get("rules", {}).duplicate(true)
-	deck._rng.state = int(d.get("rng", 0))
+	var rng_val = d.get("rng", 0)
+	if rng_val is String:
+		# is_valid_hex_number 本身放行前导 "-"/"+", 但 _rng_hex 从不产出带符号的串
+		# (先掩码成无符号 32 位肢体再格式化), 所以额外挡掉符号字符, 别被伪造的负号串混过去。
+		if rng_val.length() == 16 and rng_val.is_valid_hex_number(false) \
+				and not rng_val.contains("-") and not rng_val.contains("+"):
+			var hi: int = rng_val.substr(0, 8).hex_to_int()
+			var lo: int = rng_val.substr(8, 8).hex_to_int()
+			deck._rng.state = (hi << 32) | lo
+		else:
+			push_warning("[Deck] 存档 rng 字段不是合法的 16 位十六进制串, 状态归零: " + rng_val)
+			deck._rng.state = 0
+	else:
+		# 旧存档(改十六进制串之前)留下的数字形状:JSON 读回的 double, 2^53 以上本就有损,
+		# 但照读能兼容那批旧档, 不让它们直接报错。
+		deck._rng.state = int(rng_val)
 	return deck
 
 
