@@ -1425,6 +1425,30 @@ static func validate_sim(d: Dictionary) -> String:
 				return "support '%s' 走重放估值, ev.cards 里的条目没人读 —— 删掉它" % e["id"]
 		elif proof in ["score", "solver"] and not d["ev"]["cards"].has(e["id"]):
 			return "support '%s'(proof=%s)在 ev.cards 里没有条目 —— bot 估值恒 0, 永远不买" % [e["id"], proof]
+	# discard_bias 交叉校验(2026-08-26 抓到手抄漂移:卡改弃 6 后 sim.json 还是 3,
+	# 触发恒 0% —— 「两个家」第 N 例)。值必须等于该卡 effects.when.discards_gte,
+	# 不一致 ⇒ bot 凑的张数与卡的条件不一致 ⇒ 触发率读数无效。
+	for did in d["ev"].get("discard_bias", {}):
+		if String(did).begins_with("_"):
+			continue
+		if not jids.has(did):
+			return "ev.discard_bias 里的 '%s' 不是牌(拼错了, 或者退役了没清)" % did
+		var want := -1
+		for e in jokers():
+			if String(e["id"]) != String(did):
+				continue
+			for fx in e.get("effects", []):
+				var w = fx.get("when", {})
+				if w.has("discards_gte"):
+					want = int(w["discards_gte"])
+					break
+			break
+		if want < 0:
+			return "ev.discard_bias 里的 '%s' 没有 discards_gte 条件 —— bot 凑的张数没有对应的卡面条件" % did
+		var got := int(d["ev"]["discard_bias"][did])
+		if got != want:
+			return "ev.discard_bias['%s'] = %d 与该卡 effects.when.discards_gte = %d 不一致 ⇒ bot 凑的张数与卡的条件不一致 ⇒ 触发率读数无效" \
+				% [did, got, want]
 	return ""
 
 

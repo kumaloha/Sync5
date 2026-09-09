@@ -231,3 +231,38 @@ func run(t) -> void:
 			e["fire"] = "next"
 	t.check(DB.validate_consumables({"consumables": late_rows}) != "",
 		"赞助碟必须 fire: buy(排进歌单 = 广告播完了钱要等到下一拍)")
+
+	# ---- discard_bias 交叉校验(TODO:2026-08-26 抓到手抄漂移,卡改弃 6 后 sim.json 还是 3)----
+	# 值必须等于该卡 effects.when.discards_gte —— 不一致 ⇒ bot 凑的张数与卡的条件对不上 ⇒
+	# 触发率读数无效。夹具一律从 DB.sim().duplicate(true) 改, 不手写整张表。
+	var bias_drift: Dictionary = DB.sim().duplicate(true)
+	bias_drift["ev"] = (bias_drift["ev"] as Dictionary).duplicate(true)
+	bias_drift["ev"]["discard_bias"] = (bias_drift["ev"]["discard_bias"] as Dictionary).duplicate(true)
+	bias_drift["ev"]["discard_bias"]["wrecker"] = 3
+	t.check(DB.validate_sim(bias_drift) != "",
+		"discard_bias['wrecker'] = 3 与卡的 discards_gte = 4 不一致被拒(手抄漂移)")
+
+	var bias_unknown: Dictionary = DB.sim().duplicate(true)
+	bias_unknown["ev"] = (bias_unknown["ev"] as Dictionary).duplicate(true)
+	bias_unknown["ev"]["discard_bias"] = (bias_unknown["ev"]["discard_bias"] as Dictionary).duplicate(true)
+	bias_unknown["ev"]["discard_bias"]["nosuchcard"] = 4
+	t.check(DB.validate_sim(bias_unknown) != "",
+		"discard_bias 里的未知牌 id 被拒")
+
+	var no_gte_id := ""
+	for e in DB.jokers():
+		var has_gte := false
+		for fx in e.get("effects", []):
+			if (fx.get("when", {}) as Dictionary).has("discards_gte"):
+				has_gte = true
+				break
+		if not has_gte:
+			no_gte_id = String(e["id"])
+			break
+	t.check(no_gte_id != "", "样本库里存在一张没有 discards_gte 条件的牌(夹具前提)")
+	var bias_no_gte: Dictionary = DB.sim().duplicate(true)
+	bias_no_gte["ev"] = (bias_no_gte["ev"] as Dictionary).duplicate(true)
+	bias_no_gte["ev"]["discard_bias"] = (bias_no_gte["ev"]["discard_bias"] as Dictionary).duplicate(true)
+	bias_no_gte["ev"]["discard_bias"][no_gte_id] = 4
+	t.check(DB.validate_sim(bias_no_gte) != "",
+		"discard_bias 里挂了一张没有 discards_gte 条件的牌('%s')被拒" % no_gte_id)
