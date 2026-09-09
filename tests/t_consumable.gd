@@ -139,7 +139,7 @@ func run(t) -> void:
 	# ⚑ `parity.py` 查不出这个 —— 它查「两侧都有没有写」, 而这三个两侧都写了。
 	# ⇒ 这几条断言守的是「写了之后有人读」, 不是「实现存在」。
 	var sh := Shop.new()
-	sh._grant_extra_buys = 2
+	sh.visit.grant_extra_buys = 2
 	t.eq(sh.granted_extra_buys(), 2, "联票:授予的**额外**成交张数读得到(编排器靠它算配额)")
 	# ⚑⚑ **净效果才是契约**(2026-09-02 用户报的问题):此前算式是
 	# `maxi(基础, 授予)` ⇒ 联票买掉的正是它要给的那次成交, 买它等于白花 3◆。
@@ -150,14 +150,14 @@ func run(t) -> void:
 	t.eq(quota - 1, 2,
 		"联票:买下它之后**还能再选 2 张**(它自己占第 1 次 —— 名额是加法不是取大)")
 	# 累加:一店买到第二张联票要再给一次(与 bot 的 `_g_extra_buys +=` 同款)
-	sh._grant_extra_buys += 2
+	sh.visit.grant_extra_buys += 2
 	t.eq(sh.granted_extra_buys(), 4, "联票:一店买到第二张要**再给一次**, 不是覆盖")
-	sh._grant_extra_buys = 0
-	sh._grant_free_reroll = 1
+	sh.visit.grant_extra_buys = 0
+	sh.visit.grant_free_reroll = 1
 	t.check(sh.consume_free_reroll(), "加急:免费刷新**消费得掉**")
 	t.check(not sh.consume_free_reroll(), "加急:只有一次(消费即清)")
-	sh._grant_min_rarity = "uncommon"
-	t.eq(sh._grant_min_rarity, "uncommon", "挑高:授予落在稀有度门槛上(不是牌面点数)")
+	sh.visit.grant_min_rarity = "uncommon"
+	t.eq(sh.visit.grant_min_rarity, "uncommon", "挑高:授予落在稀有度门槛上(不是牌面点数)")
 
 	# ---- ④e 本店类卡自带名额(2026-09-05 用户:「加急卖 3◆ 和直接点刷新没区别」)----
 	# 5 选 1 下买它本身占掉本店唯一一次成交 ⇒ 编排器当场关店、`close()` 清零授予 ⇒ 卡是空白的

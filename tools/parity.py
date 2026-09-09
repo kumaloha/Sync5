@@ -54,13 +54,17 @@ def _fn_body(path, fn):
       不是静默的。(今天的教训:查不到不许翻译成一个看起来正常的值。)
     """
     txt = path.read_text(encoding="utf-8", errors="ignore")
-    out, inside = [], False
+    out, inside, indent = [], False, ""
     for line in txt.splitlines():
-        if re.match(r"^(static\s+)?func\s+" + re.escape(fn) + r"\b", line):
+        # ⚑ 缩进也认(2026-09-09):`Shelf.Visit.apply_action` 是**内部类**的方法, 顶格
+        # 那条正则找不到它 ⇒ 会把它实现的键全报成「游戏侧缺」。边界跟着定义行的缩进走。
+        m = re.match(r"^(\s*)(static\s+)?func\s+" + re.escape(fn) + r"\b", line)
+        if m and not inside:
             inside = True
+            indent = m.group(1)
             continue
         if inside:
-            if re.match(r"^(static\s+)?func\s", line):
+            if re.match(r"^" + indent + r"(static\s+)?func\s", line):
                 break
             # ⚠⚠ **必须剥注释**(2026-09-03, 自验时当场照出来的):
             # 我在 `_apply_bot_action` 里写了一段解释 `loan` 的注释, 于是即便把真正的
@@ -91,8 +95,16 @@ def action_keys():
     # 帕奇欧复制)借款**静默不发生**, `advance` 在 kit 里恒 `0.0 ±0.0`。
     # 这一层当时是绿的, 因为它扫的是整个文件。
     # ⇒ **静态尺查得到「有没有」, 查不到「在不在对的地方」** —— 除非把范围收到那个地方。
+    # ⚑⚑ 2026-09-09:五个**记账**键(shelf_slots / extra_buys / price_delta / free_reroll /
+    # min_rarity)的游戏侧实现搬进了 `core/shelf.gd::Shelf.Visit.apply_action`
+    # (商店记账三份收口 —— view / 金样 ShopSim / Lua 三方共用一份)。
+    # ⇒ **尺子跟着搬**:`_apply_shop_action` 现在只剩一行 `_visit.apply_action(act)`,
+    #   不把那份函数体算进来, 这一层会把三个键报成「游戏侧缺」——
+    #   而那正是「规则搬了家, 探针还站在旧地址」那个形状(LESSONS 假绿)。
+    # ⚠ 范围仍然是**函数体**而不是整份文件 —— 2026-09-03 收窄的那条纪律不许退回去。
     game = _fn_body(ROOT / "view/phrase.gd", "_apply_shop_action") \
-        + _fn_body(ROOT / "view/phrase.gd", "_apply_consumable")
+        + _fn_body(ROOT / "view/phrase.gd", "_apply_consumable") \
+        + _fn_body(ROOT / "core/shelf.gd", "apply_action")
     bot = _fn_body(ROOT / "tools/bot.gd", "_apply_bot_action")
     bad = []
     for a in sorted(acts):

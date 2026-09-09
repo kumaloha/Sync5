@@ -159,11 +159,26 @@ func run(t) -> void:
 	var whys: Array = []
 	sh.denied.connect(func(why: String) -> void: whys.append(why))
 	sh._coins = 1
-	sh._reroll_count = 0
+	sh.visit.reroll_count = 0
 	sh._layer.visible = true
 	sh._on_reroll()
 	t.eq(whys.size(), 1, "刷不起发 denied")
 	t.eq(whys[0], "reroll", "……why = reroll(单参签名)")
+	# ---- 视图是 `Shelf.Visit` 的**消费者**(2026-09-09 商店记账收口 2/4)----
+	# ⚑ 视图不再自己存记账字段;`Shop.new()` 自带一份默认 Visit(测试/探针直接 new 得能用),
+	#   编排器每次进店 `set_visit()` 换一份新的。
+	t.check(sh.visit != null, "Shop.new() 自带一份默认 Visit(直接 new 也能用)")
+	var v2 := Shelf.Visit.new()
+	v2.open(0)
+	sh.set_visit(v2)
+	t.check(sh.visit == v2, "set_visit 换掉那一份")
+	t.eq(sh._reroll_cost_now(), Economy.reroll_cost(0), "换进来的是新的一次进店 ⇒ 刷新价回到阶梯第 0 级")
+	v2.note_reroll()
+	t.eq(sh._reroll_cost_now(), Economy.reroll_cost(1),
+		"视图读的就是那一份 —— 记账走 Visit, 视图没有第二本账")
+	t.eq(sh.reroll_count(), v2.reroll_count, "reroll_count() 是委托, 不是副本")
+	v2.apply_action({"price_delta": -2})
+	t.eq(sh._reroll_cost_now(), Economy.reroll_cost(1, -2), "本店折扣也从那一份来")
 	sh.queue_free()
 
 	# ---- Shelf.Visit(2026-09-09 商店记账收口:一次进店 = 一份记账)----

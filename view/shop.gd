@@ -24,16 +24,27 @@ var _blind_board: Widgets.BlindBoard
 var _reroll_btn: Button
 var _skip_btn: Button
 var _candidates: Array = []
-var _reroll_count := 0
-## 联票续买态:还能再买几张(0 = 普通态)。只由 `sold()` 写, `_deal()` 归零。
-var _buys_left := 0
-## 点名的解除奖励:本次开店 +1 货架位(编排器在 open 前灌入并清源, 联票封顶 4)。
-var shelf_bonus := 0
+## ⚑⚑ 一次进店的**记账** = `core/shelf.gd::Shelf.Visit`(2026-09-09 收口)——
+## 刷新次数 / 续买名额 / 四个「本店」授予 / 挑高 / 点名的货架奖励此前是这里的
+## 七个私有字段, 而 `tools/golden.gd::ShopSim` 与 `lua/app/shop.lua` 各抄了一份
+## ⇒ 改一条商店规则要三处同改, 整局金样只能证「ShopSim = Lua」, 证不了「= view」。
+## 现在三方消费同一个类, 金样的 `visit` 族替它对拍。
+##
+## ⚠ **谁 open 它**:编排器(`view/phrase.gd::_open_draft`)—— 一次进店一份记账,
+## 而「这次进店」这件事只有编排器知道边界。`Shop.open()` 因此**不再自己归零**;
+## 视图拿到的是一份已经 open 过的 Visit。默认值让 `Shop.new()` 在测试里照样能用。
+## ⚠ 视图仍然只读它 + 走它的口, **不碰钱不装卡**(经济动作只发生在编排器)。
+var visit: Shelf.Visit = Shelf.Visit.new()
 ## Director 的稀有度乘数 —— 编排器开店时注入(探针一律 {} = 中性, 掷法逐字节不变)。
 var _rarity_mult: Dictionary = {}
 ## 探索型货架用的「玩家用过的 Target」—— 编排器开店时注入(探针 / 零历史 = {} ⇒ 不偏置)。
 ## ⚠ shop 自己不读存档(2026-08-21 评审:此前在 _weighted_pick 里直接读 SaveState, 破了注入制)。
 var _explore_used: Dictionary = {}
+
+
+## 编排器注入这次进店的记账(`_open_draft` 里 `Shelf.Visit.new()` + `open()` 之后)。
+func set_visit(v: Shelf.Visit) -> void:
+	visit = v
 
 
 func set_explore_used(used: Dictionary) -> void:
@@ -57,14 +68,8 @@ var _cshelf_price: Array = []
 var _cshelf_name: Array = []
 var _cshelf_desc: Array = []
 var _coffer: Array = []         # 当前货架上的 Consumable(2 张, 或 3 张且末位是赞助碟;可含 null)
-# ---- 消耗牌授予的一次性商店改动(2026-08-29)。⚠ 全部**用完即清**:
-# 「这次商店」类在 close() 清, 「下次货架」类在 _deal() 消费后清 —— 忘了清
-# 就等于把一次性效果做成了永久 buff, 而那正是这些牌当初该被挪出小丑牌的理由。
-var _grant_shelf := 0           # 联票:本店货架张数(0 = 无授予)
-var _grant_extra_buys := 0      # 联票:本店**额外**成交张数(叠在基础名额之上)
-var _grant_price := 0           # 赞助:本店全场价格增量(负数 = 便宜)
-var _grant_free_reroll := 0     # 加急:免费刷新次数
-var _grant_min_rarity := ""       # 挑高:下次货架的最低稀有度("" = 无授予)
+# ---- 消耗牌授予的一次性商店改动(2026-08-29 起):字段与清零规则全在 `Shelf.Visit`
+# (2026-09-09 搬家), 这里只剩读它的调用点。
 var _coins := 0
 
 
@@ -169,7 +174,7 @@ func _build_consumable_row() -> void:
 	# ⚑ 货架 **1 → 2 格**(2026-08-31 用户:「每次出 3 小丑 2 消耗给用户选」)。
 	# ⚠⚠ **5 选 1**(2026-08-31 用户拍板):这两张与三张小丑牌是**同一个池子**,
 	# 一次进店只成交 1 张 —— 消耗牌**不再有专属名额**, 它和小丑牌抢同一次购买。
-	# 计数在编排器的 `_shop_buys`(经济动作只发生在编排器), 视图不自己数。
+	# 计数在编排器手里的 `Shelf.Visit.shop_buys`(经济动作只发生在编排器), 视图不自己数。
 	# ⚑ 这是**收紧**:此前消耗牌每店白送一格, 而这一层实测值 **+18.8pt 通关率**。
 	# ⚑ 联票(本店 4 选 2)因此变成「买完还能再挑」——用户:「点完那个 4 选 2, 可以直接再选 2 张」。
 	# ⚠ 卡形与局内一致(62×104 的红卡), 不再是 88×88 的方块。
@@ -259,12 +264,29 @@ func _place_consumables(n: int) -> void:
 		_cshelf_price[i].visible = on
 
 
-## ---- 消耗牌的授予口(编排器调用, 见 phrase.gd::_apply_shop_action) ----
-func grant_shelf(n: int) -> void:
-	# ⚠ 货架取大(一店两张联票不叠成 5 张);名额走 `grant_extra_buys`(独立键, 独立累加)。
-	_grant_shelf = maxi(_grant_shelf, n)
+## ---- 视图跟进口(编排器在 `_apply_shop_action` 记完账之后调) ----
+## ⚑ 记账与「屏幕跟上」自 2026-09-09 分家:前者在 `Shelf.Visit.apply_action`(三方共用),
+## 后者是视图自己的事, 所以留在这里。两个口的语义按今天逐字保留:
+##   货架构成变了(联票 / 挑高)⇒ **当场重掷 + 弹入**;只改价与按钮(赞助 / 加急)⇒ 重画不重掷。
+## ⚠ 重掷不收费也不计刷新次数:钱在买那张卡的时候已经付过了。
+## ⚠⚠ 挑高只设标志位是不够的 —— 玩家点它的时候货架**已经发过了**, 不重发就等于
+##    「这张卡什么都没发生」, 而它正是因为这个而输给「直接刷新」(用户 2026-08-30)。
+func refresh_shelf() -> void:
 	_deal()
 	_render(true)
+
+
+func refresh_prices() -> void:
+	_render(false)   # 刷新键当场换成「免费」/ 新价(此前这里调 _draw_refill —— 抽一张扔掉, 什么都不画)
+
+
+## ---- 消耗牌的授予口 —— **名字保留, 内部是对 `visit` 的委托**(测试与探针照旧调它们)。
+## ⚠ 生产路径不经过这里:编排器 `_apply_shop_action` 一次 `visit.apply_action(act)` 记完全部五个键,
+## 再调上面那两个跟进口 ——「哪五个键属于记账」这条知识只许有一份。
+func grant_shelf(n: int) -> void:
+	# ⚠ 货架取大(一店两张联票不叠成 5 张);名额走 `grant_extra_buys`(独立键, 独立累加)。
+	visit.apply_action({"shelf_slots": n})
+	refresh_shelf()
 
 
 ## 本店额外成交名额 —— **独立的键、独立累加**(bot 侧 `_g_extra_buys +=` 同款, parity)。
@@ -273,27 +295,23 @@ func grant_shelf(n: int) -> void:
 ## 买下即占掉唯一一次成交 ⇒ 编排器当场 `close()` ⇒ 授予清零 ⇒ 买了什么都不发生
 ## (data/consumables.json `_comment_own_quota`)。不重掷、不重画:给名额不该顺手送一次免费刷新。
 func grant_extra_buys(n: int) -> void:
-	_grant_extra_buys += n
+	visit.apply_action({"extra_buys": n})
 
 
 func grant_price_delta(d: int) -> void:
-	_grant_price += d
-	_render(false)
+	visit.apply_action({"price_delta": d})
+	refresh_prices()
 
 
 func grant_free_reroll(n: int) -> void:
-	_grant_free_reroll += n
-	_render(false)   # 按钮当场换成「免费」(此前这里调的是 _draw_refill —— 抽一张扔掉, 什么都不画)
+	visit.apply_action({"free_reroll": n})
+	refresh_prices()
 
 
 ## 挑高:**当场重发一次**, 之后整次进店(含刷新)都保持过滤。
-## ⚠⚠ 只设标志位是不够的 —— 玩家点它的时候货架**已经发过了**, 不重发就等于
-## 「这张卡什么都没发生」, 而它正是因为这个而输给「直接刷新」(用户 2026-08-30)。
-## ⚠ 重发不收费也不计刷新次数:钱在买这张卡的时候已经付过了。
 func grant_min_rarity(r: String) -> void:
-	_grant_min_rarity = r
-	_deal()
-	_render(true)
+	visit.apply_action({"min_rarity": r})
+	refresh_shelf()
 
 
 ## 续买态的剩余次数 —— **消耗牌路径专用**。
@@ -302,7 +320,7 @@ func grant_min_rarity(r: String) -> void:
 ## 只在 `sold()` 里写过 ⇒ 买完联票副标题还念着「SUPPORT · ◆ N」, **玩家看不到
 ## 「还能再选 2 张」**。配额对了但没人告诉他, 等于没做(2026-09-02)。
 func set_buys_left(left: int, coins: int) -> void:
-	_buys_left = left
+	visit.buys_left = left
 	_coins = coins
 	_refresh_kind_line()
 
@@ -326,7 +344,7 @@ func refresh_coins(coins: int) -> void:
 ## ⚠ 这正是 LESSONS「奖励某件事的东西不能和那件事抢同一个资源」的**第三次**
 ##   (前两次:转型 vs 换旗抢购买名额 · 消耗牌专属名额)。
 func granted_extra_buys() -> int:
-	return _grant_extra_buys
+	return visit.grant_extra_buys
 
 
 ## 货架上这张消耗牌的碟心(全局坐标)—— 买下时碟从这里飞去唱片位。不在架上(帕奇欧 / 探针直灌)返回 (-1, -1)。
@@ -343,10 +361,7 @@ func price_of(j) -> int:
 
 
 func consume_free_reroll() -> bool:
-	if _grant_free_reroll <= 0:
-		return false
-	_grant_free_reroll -= 1
-	return true
+	return visit.take_free_reroll()
 
 
 func _on_cshelf_pressed(i: int = 0) -> void:
@@ -457,12 +472,11 @@ func _button(text: String) -> Button:
 ## **乘法只写一处**(`Run.section_target_for`), 展示侧一律消费 `run.target()`。
 func open(slots: Array, coins: int, section_idx: int, mod = null,
 		score: int = -1, left: int = -1, target: int = -1, boon = null) -> void:
-	_reroll_count = 0
-	# 续买配额归零只发生在**进店**这一刻 —— 刷新(redeal)走的是同一次进店, 联票的
-	# 第二次选择不该被一次刷新吃掉。
-	_buys_left = 0
-	# 挑高同理:保整次进店(含刷新), 所以清零也只发生在进店这一刻。
-	_grant_min_rarity = ""
+	# ⚑⚑ **进店归零不在这里** —— 刷新次数 / 续买配额 / 挑高的清零全在
+	# `Shelf.Visit.open()`, 由**编排器**在 `_open_draft` 里调(一次进店一份记账,
+	# 而「这次进店」的边界只有编排器知道:段中/段末两态、教学关、替换流中途藏板再回来)。
+	# ⚠ **清零点只许有一个**:两边都清等于把「归零发生在哪一刻」这条规则抄了第二份,
+	# 而刷新(`redeal`)走的正是同一次进店 —— 联票的第二次选择不该被一次刷新吃掉。
 	_blind_board.setup(section_idx,
 		target if target >= 0 else Run.section_target_for(
 			GameConfig.SECTION_TARGETS, section_idx,
@@ -492,7 +506,7 @@ func redeal(slots: Array, coins: int, section_idx: int) -> void:
 func sold(j, slots: Array, coins: int, left: int = 0) -> void:
 	_slots = slots
 	_coins = coins
-	_buys_left = left
+	visit.buys_left = left
 	var at: int = _candidates.find(j)
 	_candidates.erase(j)
 	var refill = _draw_refill()
@@ -508,15 +522,12 @@ func sold(j, slots: Array, coins: int, left: int = 0) -> void:
 ## 池子抽空(极端:全持有)返回 null —— 那时货架就少一张, 与旧行为一致。
 func _draw_refill():
 	# 组装规则在 core/shelf.gd(游戏 / 金样 / Lua 镜像共用一份, 2026-09-06);这里只剩注入。
-	return Shelf.refill(_slots, _candidates, _grant_min_rarity, null, _rarity_mult,
+	return Shelf.refill(_slots, _candidates, visit.grant_min_rarity, null, _rarity_mult,
 		Director.explore_boost(Joker.pool(), _explore_used))
 
 func close() -> void:
-	# ⚠ 「这次商店」类的授予随离店清零 —— 一次性就是一次性。
-	_grant_shelf = 0
-	_grant_extra_buys = 0
-	_grant_price = 0
-	_grant_free_reroll = 0
+	# ⚠ 「这次商店」类的授予随离店清零 —— 一次性就是一次性(规则在 `Shelf.Visit.close`)。
+	visit.close()
 	# ⚠ 插播态**不许跨店**(2026-09-09 审查):丢了 closed 回调、或玩家在放中离店时它会留在碟上,
 	# 而下一次上架走的是 `sp == true` 那条分支(它只清非赞助位)⇒ 新店的赞助碟一上架就是压暗的。
 	set_sponsor_playing(false)
@@ -538,9 +549,9 @@ func _deal() -> void:
 	# 首张 Target 免费三选一 · 之后同池按稀有度权重 · 独狼必出 Target · 挑高不出普通卡 —— 全在那边。
 	# 这里只剩注入:全局随机(rng = null)、Director 的稀有度乘数、探索型货架的 boost。
 	var cands := Shelf.candidates(_slots)
-	_candidates = Shelf.deal(_slots, shelf_bonus, _grant_shelf, _grant_min_rarity, null, _rarity_mult,
+	_candidates = Shelf.deal(_slots, visit.shelf_bonus, visit.grant_shelf, visit.grant_min_rarity, null, _rarity_mult,
 		Director.explore_boost(cands, _explore_used))
-	# ⚠ 挑高的授予**不在这里清零** —— 它保整次进店(含刷新), 清零点在 `open()`。
+	# ⚠ 挑高的授予**不在这里清零** —— 它保整次进店(含刷新), 清零点在 `Shelf.Visit.open()`。
 	_render(true)
 
 ## 渲染当前 _candidates(deal 弹入场动画;sold 后的重渲染不弹)。
@@ -568,7 +579,7 @@ func _render(popin: bool) -> void:
 		else:
 			_views[i].visible = false
 			_price_labels[i].visible = false
-	_reroll_btn.text = String(_cfg["free_text"]) if _grant_free_reroll > 0 \
+	_reroll_btn.text = String(_cfg["free_text"]) if visit.grant_free_reroll > 0 \
 		else String(_cfg["reroll_text"]) % _reroll_cost_now()
 	_refresh_kind_line()
 	_layer.visible = true
@@ -586,8 +597,8 @@ func _render(popin: bool) -> void:
 ## 「还能选几张」和「不想买就点继续」(2026-08-28 用户)。出口一直都在(继续 ▸ 是
 ## 商店的唯一免费出口, 见 `_layout`), 缺的只是没人告诉玩家它此刻也算数。
 func _refresh_kind_line() -> void:
-	if _buys_left > 0:
-		_kind_label.text = String(_cfg["encore_line"]) % [_buys_left, _coins]
+	if visit.buys_left > 0:
+		_kind_label.text = String(_cfg["encore_line"]) % [visit.buys_left, _coins]
 		return
 	_kind_label.text = String(_cfg["target_line"]) if _slots[0] == null \
 		else String(_cfg["support_line"]) % _coins
@@ -607,7 +618,7 @@ func offers() -> Array:
 
 
 func reroll_count() -> int:
-	return _reroll_count
+	return visit.reroll_count
 
 
 ## ---- 教学分镜 D 的几何读口(v6)。活取, 不抄坐标 —— `Hand.focus_rect` 同一条纪律:
@@ -640,34 +651,20 @@ func _price(j) -> int:
 	# 赞助的 −1◆ 在这里生效(Economy.shelf_price 收口, 地板 1◆);
 	# 展示价与成交价共用这一个函数, 不许分家。
 	# 赞助(消耗牌)的本店降价叠在这里, 地板仍是 1◆ —— 免费只属于首张 Target 那个特例。
-	return maxi(1, Economy.shelf_price(j, _slots) + _grant_price) \
-		if Economy.shelf_price(j, _slots) > 0 else 0
+	return visit.price(j, _slots)
 
 
 ## Can the player take joker j right now? With full slots the best sell-back
 ## among owned supports counts toward a SUPPORT price; a target swap has no
 ## refund, so it is coins-only.
+##
+## ⚑ 算法在 `Shelf.Visit.affordable`(2026-09-09 收口, 三方共用一份)。
+## ⚠⚠ 那里问的是 `Joker.has_room_for(slots, kind)` 而不是 `_slots.has(null)`
+##    (**四个槽**)—— 旧写法在「没有 Target(0 号空)+ 三个 Support 满」时为真,
+##    于是**不把「卖掉旧卡的回收」算进预算** ⇒ 商店判你买不起、弹个提示就没了,
+##    **玩家看到的就是「点替换失效」**(2026-08-16 真人试玩报的那条)。
 func _affordable(j) -> bool:
-	var price := _price(j)
-	if price == 0:
-		return true
-	if j.kind == "target":
-		return _coins >= price
-	var budget: int = _coins
-	# ⚠⚠ 同一个错误谓词曾经也在这里(2026-08-16 与 `_on_pick` 一起修):旧代码写
-	# `not _slots.has(null)`(**四个槽**), 而 Support 只能进 1..3。
-	# ⇒ **没有 Target(0 号空)+ 三个 Support 满**时条件为真 ⇒ **不把「卖掉旧卡的回收」
-	#   算进预算** ⇒ 商店判你买不起、弹个价格提示就没了。
-	#   **玩家看到的就是「点替换失效」** —— 这正是真人试玩报上来的那条。
-	# ⚑ 顺带:旧写法在 0 号为空时还会把 `null` 传进 `Economy.sell_value` ——
-	#   只是它恰好走不到那一支, 属于「靠巧合没崩」。
-	if not _has_slot_for(j):
-		var best_sell := 0
-		for k in range(1, _slots.size()):
-			if _slots[k] != null:
-				best_sell = maxi(best_sell, Economy.sell_value(_slots[k]))
-		budget += best_sell
-	return budget >= price
+	return visit.affordable(j, _slots, _coins)
 
 
 ## Rarity-weighted sample without replacement.
@@ -708,7 +705,7 @@ func _on_pick(i: int) -> void:
 ## 本店此刻的刷新价:阶梯价 + 赞助的本店降价(地板 1◆, 与 `_price` 同一条地板)。
 ## 展示价(按钮)与成交价(`_on_reroll`)共用这一个函数, 不许分家 —— 同 `_price`。
 func _reroll_cost_now() -> int:
-	return Economy.reroll_cost(_reroll_count, _grant_price)
+	return visit.reroll_cost_now()
 
 
 ## 这张卡装得进去吗 —— 规则在 `Joker.has_room_for`(**唯一真相**),这里只是入口。
@@ -730,7 +727,7 @@ func _on_reroll() -> void:
 		_float(String(_cfg["insufficient"]), _reroll_btn.get_global_position() + Vector2(84, 8))
 		denied.emit("reroll")
 		return
-	_reroll_count += 1
+	visit.note_reroll()
 	reroll_paid.emit(cost)
 
 

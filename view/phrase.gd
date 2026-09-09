@@ -71,7 +71,6 @@ var eq: EqStrip
 var vinyl: VinylDeck
 var _coffer: Array = []         # 本次商店货架上的消耗牌 ×2(2026-08-31:1 → 2)
 var _rule_next := false         # 点唱机:下一次消耗牌货架只出规则牌
-var _coffer_used := false       # 一店一张:买走就不再补
 var orbit: OrbitZone
 var hand: Hand
 var hud: Hud
@@ -1005,7 +1004,7 @@ func _on_quit_run() -> void:
 ## ⚠ 栏位满的拒绝分支一并删除 —— 队列没有硬上限(理由见 `Run.consumables`)。
 func _on_consumable_bought(c, price: int) -> void:
 	# ⚑⚑ 赞助碟(2026-09-09):点它 = 放一段插播, 播完场馆付钱。它**不是一笔买卖** ——
-	# 不扣钱(免费)、不进队列(它没有「哪一拍」)、**不占 5 选 1 的名额**(`_shop_buys` 不动),
+	# 不扣钱(免费)、不进队列(它没有「哪一拍」)、**不占 5 选 1 的名额**(`_visit.note_buy()` 不发),
 	# 所以整条成交路径在这里就分岔走开。发奖在 `_on_ad_rewarded`, 那里才动钱。
 	# ⚠ 放中再点一次不许再叫一次 show(与体力墙 `_energy_ad_showing` 同款护栏)。
 	if c != null and c.is_sponsor():
@@ -1042,23 +1041,22 @@ func _on_consumable_bought(c, price: int) -> void:
 	# ⚑⚑ **5 选 1**(2026-08-31 用户拍板):3 张小丑 + 2 张消耗是**同一个池子**,
 	# 一次进店只成交 **1 张** —— 消耗牌不再有专属名额, 它和小丑牌**抢同一次购买**。
 	# ⚠ 这是**收紧**:此前消耗牌每店白送一格, 而这一层实测值 +18.8pt 通关率。
-	# ⚠⚠ 所以计数走**同一个 `_shop_buys`** —— 分开数就等于又给了它一个专属名额,
+	# ⚠⚠ 所以计数走**同一个 `_visit.shop_buys`** —— 分开数就等于又给了它一个专属名额,
 	# 那正是 2026-08-29 修过的形状(「奖励某件事的东西不能和那件事抢同一个资源」的反面:
 	# 这里要的恰恰是**让它们抢**)。
-	_shop_buys += 1
-	_coffer_used = true
-	var buy_limit := Joker.slots_buy_limit(run.joker_slots) + shop.granted_extra_buys()
-	if _shop_buys < buy_limit:
+	_visit.note_buy()
+	_visit.coffer_used = true
+	if _visit.stay(run.joker_slots):
 		# 联票:还有配额 ⇒ 货架不清, 可以接着从五张里再挑(用户:「点完那个 4 选 2,
 		# 可以直接再选 2 张」)。⚠ 买走的那张要从货架上摘掉, 不重掷(重掷 = 免费刷新)。
-		_coffer_used = false
+		_visit.coffer_used = false
 		for i in range(_coffer.size()):
 			if _coffer[i] != null and String(_coffer[i].id) == String(c.id):
 				_coffer[i] = null
 		_refresh_shop_consumables()
 		# ⚠ 这条路径不经过 `shop.sold()` ⇒ 副标题得由编排器直接喂
 		#(配额对了但玩家看不见, 等于没做 —— 见 `Shop.set_buys_left`)。
-		shop.set_buys_left(buy_limit - _shop_buys, phrase.coins)
+		shop.set_buys_left(_visit.buys_left, phrase.coins)
 		return
 	_refresh_shop_consumables()
 	_perkeo_on_exit()
@@ -1067,21 +1065,25 @@ func _on_consumable_bought(c, price: int) -> void:
 
 
 ## ⚑ 商店类 action 的执行口 —— **只此一处**。
-## 六种动作各自改一个商店参数, 由 shop 在下一次 _deal/_render 时消费。
+## 分两半:**记账**交给 `Shelf.Visit.apply_action`(三方共用的那一份), 剩下的
+## 碰钱 / 碰牌堆 / 跨店的键(loan · deck_rule · rule_guaranteed · ad_coins ·
+## copy_one_destroy_rest · wilds · trim_low)留在这里 —— 它们不属于「一次进店的账」。
 func _apply_shop_action(id: String, act: Dictionary) -> void:
-	if act.has("shelf_slots"):               # 联票:这次商店货架 4 张
-		shop.grant_shelf(int(act["shelf_slots"]))
-	if act.has("extra_buys"):                # 本店额外成交名额(联票 +2;本店类三张各 +1)
-		# ⚑⚑ **名额是加法, 不是取大**(2026-09-02 用户报的问题, 完整口径见
-		# `view/shop.gd::granted_extra_buys`):取大时联票买掉的正是它要给的那次成交,
-		# 净得 0 张。加法之后 = 基础 1 + 联票 2 ⇒ 买完它**还能再选 2 张**。
-		# ⚑ 2026-09-05 拆成独立分支(用户:「加急卖 3◆ 和直接点刷新没区别」):加急/赞助/挑高
-		# 在 5 选 1 下买下即占掉唯一一次成交 ⇒ 下面的配额检查当场关店、`close()` 清零授予 ⇒
-		# 三张卡买了什么都不发生。它们各带 `extra_buys: 1`(data/consumables.json
-		# `_comment_own_quota`), 而此前这个键只在联票分支里被读 —— bot 侧一直是独立累加的。
-		shop.grant_extra_buys(int(act["extra_buys"]))
-	if act.has("price_delta"):               # 赞助:这次商店全场降价(含刷新, Shop._reroll_cost_now)
-		shop.grant_price_delta(int(act["price_delta"]))
+	# ⚑⚑ **记账一次做完**(2026-09-09):五个「本店/下次货架」记账键(shelf_slots ·
+	# extra_buys · price_delta · free_reroll · min_rarity)全由 `Shelf.Visit.apply_action`
+	# 消费 ——「哪几个键属于记账、各自怎么累加(取大 / 加法 / 覆盖)」这条知识只有那一份,
+	# 游戏 / 金样 ShopSim / Lua 三方共用它。
+	# ⚑ 名额是**加法不是取大**(2026-09-02 用户报的问题):取大时联票买掉的正是它要给的
+	#   那次成交, 净得 0 张。加法之后 = 基础 1 + 联票 2 ⇒ 买完它**还能再选 2 张**。
+	# ⚑ 本店类三张(加急/赞助/挑高)各自带 `extra_buys: 1`(2026-09-05, 用户:「加急卖 3◆
+	#   和直接点刷新没区别」)—— 5 选 1 下它们买下即占掉唯一一次成交, 不还回来就是空白卡。
+	# ⚠ 下面这一半是**视图跟进**, 不是记账:货架构成变了(联票 / 挑高)要当场重掷,
+	#   只改价与按钮的(赞助 / 加急)重画即可。两个 `refresh_*` 的语义与今天逐字相同。
+	var r: Dictionary = _visit.apply_action(act)
+	if bool(r.get("redeal", false)):
+		shop.refresh_shelf()
+	elif act.has("price_delta") or act.has("free_reroll"):
+		shop.refresh_prices()
 	if act.has("rule_guaranteed"):           # 点唱机:下次商店的**消耗牌位**必出规则牌
 		# ⚠⚠ 2026-08-30 二批转生后**目标换了** —— 规则牌全部搬到消耗牌一侧,
 		# 小丑牌货架上再也不会有规则牌, 原来的 `shop.grant_rule_guaranteed()`
@@ -1092,10 +1094,6 @@ func _apply_shop_action(id: String, act: Dictionary) -> void:
 		# 而这四张 `when: "any"` 两处都能点。少一支 = 在商店点它什么都不发生。
 		run.deck.rules[String(act["deck_rule"])] = true
 		_fx_rule_decree(id)
-	if act.has("free_reroll"):               # 加急:免费刷新
-		shop.grant_free_reroll(int(act["free_reroll"]))
-	if act.has("min_rarity"):                  # 挑高:下次货架没有普通卡
-		shop.grant_min_rarity(String(act["min_rarity"]))
 	if act.has("ad_coins"):                  # 赞助插播:看完一段广告, 场馆付钱
 		# ⚠ 走 `Economy.grant` 收口(所有入账都走它 —— 穷开心的 coin_cap 要吃得到);
 		# 与 loan 的 borrow 同一条路。**只有这一处发这笔钱**:发奖(店内)与晚到回调共用它。
@@ -1181,9 +1179,9 @@ func _roll_consumables() -> Array:
 ## 主路径的步骤」是这个项目最贵的形状之一(CLAUDE.md 开局三步那条)。
 ## ⚠ 栏位满就不复制(静默跳过, 不是报错):那是玩家自己没腾位置。
 func _perkeo_on_exit() -> void:
-	if _perkeo_fired:
+	if _visit.perkeo_fired:
 		return
-	_perkeo_fired = true
+	_visit.perkeo_fired = true
 	if not Joker.slots_copy_consumable(run.joker_slots):
 		return
 	# ⚠ 队列没有上限了(2026-09-01), 所以「栏位满」这个跳过分支删掉。
@@ -1264,7 +1262,7 @@ func _refresh_shop_consumables() -> void:
 	var eff: Array = []
 	for c in _coffer:
 		eff.append(c != null and _consumable_effective(c))
-	shop.set_consumables([] if _coffer_used else _coffer, phrase.coins, eff)
+	shop.set_consumables([] if _visit.coffer_used else _coffer, phrase.coins, eff)
 
 
 ## ⚑ **一次性执行口**(2026-09-01)——买入即触发和到点触发**共用这一份**。
@@ -1881,14 +1879,12 @@ func _open_draft() -> void:
 	var bcp: Array = DB.ui()["shop"].get("blindcard_pos", [28, 940])
 	blind_card.position = Vector2(float(bcp[0]), float(bcp[1]))
 	blind_card.z_index = 61   # 抬过商店内容层(shop 内浮字 60)—— 停靠是为了「看得见」
-	_shop_buys = 0        # 联票的续买配额按「一次进店」计
 	_shop_ads = 0          # 广告的每店账(2026-09-08)
 	_shop_ad_failed = false
 	_coins_ad_showing = false   # 丢掉的 closed/failed 回调不许把赞助碟永久锁死(与体力墙 _open_energy_wall 同款)
 	_coins_ad_rewarded = false
 	ads.load_ad("coins")   # 进店就预载 —— 有货才上架赞助碟(碟是「能放」的证据, 不是一个会失败的按钮)
 	_pause_btn_visible(false)   # 商店 / 结算屏上暂停无效, 键不该悬在那(2026-09-06)
-	_perkeo_fired = false # 帕奇欧每次进店只复制一次(替换流可能中途藏板再回来, 离店点不止一个)
 	# a mid-section shop opens with the blind's counter part-way through; a
 	# section-end one opens at phrase 0 of the blind being entered
 	var mid: bool = run.phrase_in_section > 0 \
@@ -1899,9 +1895,18 @@ func _open_draft() -> void:
 	shop.set_shelf_rarity_mult({} if SaveState.is_probe() else Director.shelf_rarity_mult(_run_index))
 	# 探索型货架的原料(玩过的 Target):探针恒空 ⇒ 货架掷法逐字节不变
 	shop.set_explore_used({} if SaveState.is_probe() else SaveState.targets_used())
+	# ⚑⚑ **这一次进店的记账**(2026-09-09 收口, `core/shelf.gd::Shelf.Visit`)——
+	# 联票名额 / 免费刷新 / 折扣 / 挑高 / 5 选 1 计数 / 帕奇欧一次 / 离店清零此前散在
+	# `view/shop.gd` 的七个私有字段 + 这里的三个, 而金样(ShopSim)与 Lua 各抄了一份。
+	# ⇒ **一次进店 = 一个实例**, 编排器造它、开它, 视图消费它。
+	# ⚠ **归零点只有这一处**:`Shop.open()` 不再自己清计数(两边都清 = 把「归零发生在
+	#   哪一刻」抄了第二份)。⚠ 顺序:必须在 `shop.open()` **之前** —— 挑高的清零要赶在
+	#   `_deal()` 发货架之前, 否则上一店的过滤会漏进这一店的第一手。
 	# 点名的解除奖励:本次开店 +1 货架位, 消费即清源(三条开店入口都走本函数, 单一咬合点)。
-	shop.shelf_bonus = run.shelf_bonus
+	_visit = Shelf.Visit.new()
+	_visit.open(run.shelf_bonus)
 	run.shelf_bonus = 0
+	shop.set_visit(_visit)
 	# 巡演路线(journey #4):开局特写亮过整局四脸, 但**做构筑决策的时刻在商店**,
 	# versus 的「调度/排期」解法要求在这里也看得到全局 —— 盲注板脚注亮四场缩略。
 	shop.set_route(_shop_route())
@@ -1915,7 +1920,6 @@ func _open_draft() -> void:
 	# 混进去等于用消耗牌换掉小丑牌的多样性(与「转型/换旗抢名额」同型的资源错配)。
 	# 已持有的不再上架, 免得开局就撞见两张一样的。
 	_coffer = _roll_consumables()
-	_coffer_used = false
 	_refresh_shop_consumables()   # 赞助碟(第三位)在这里面按当刻条件挂上/摘下
 	# 分镜 D(v6):教学商店自己带条 —— 锚在商店盲注板下, focus 指货架价签行,
 	# 货架操作面(卡/价签/按钮)进常亮洞(玩家要挑的卡不许黑)。必须在 shop.open
@@ -1955,10 +1959,12 @@ func _shop_route() -> Array:
 	return out
 
 
-## 一次进店已成交几张(联票 extra_buys 的计数;每次 _open_draft 归零)。
+## ⚑⚑ 这一次进店的记账(2026-09-09 收口)—— 成交计数 / 授予 / 名额 / 离店清零全在它身上,
+## `view/shop.gd` 消费同一个实例。每次 `_open_draft` 换一份新的(一次进店 = 一份记账)。
 ## ⚠ **联票自己也算一张** —— 它给的是「额外 2 次」, 不是豁免自己(2026-09-02)。
-var _shop_buys := 0
-## 本店已发的换金币广告次数(每店上限的账;每局的账在 run.ad_used)。进店归零, 与 _shop_buys 同款。
+## 默认值只为「还没进过店」这一刻不为 null;真正的那份由 `_open_draft` 造。
+var _visit: Shelf.Visit = Shelf.Visit.new()
+## 本店已发的换金币广告次数(每店上限的账;每局的账在 run.ad_used)。进店归零, 与 _visit.shop_buys 同款。
 var _shop_ads := 0
 ## 正在放换金币的广告(与体力那边的 _energy_ad_showing 同款护栏):放中再点一次不许再叫一次 show。
 var _coins_ad_showing := false
@@ -1967,7 +1973,6 @@ var _coins_ad_showing := false
 var _coins_ad_rewarded := false
 ## 本店广告放失败过 ⇒ 本店不再弹, 下家店再试(spec §4.3)
 var _shop_ad_failed := false
-var _perkeo_fired := false
 
 
 ## Shop signals — the board picked; money and slots change ONLY here.
@@ -2049,15 +2054,16 @@ func _on_shop_bought(j, price: int) -> void:
 	# 实测(sim, 未稀释口径):**持有转型的局换旗 0.65 次, 未持有的反而 0.94 次** ——
 	# 拿着「每次换旗 +40%」的人换得更少, 因果就在这一行。
 	if not (j.kind == "target" and _swapped_target):
-		_shop_buys += 1
+		_visit.note_buy()
 	# ⚑ 联票(消耗牌)的本店限额叠在小丑牌的之上(2026-08-30 code review 补:
-	# `_grant_extra_buys`(当时叫 `_grant_buy_limit`)此前**只被写入和清零, 从没被读过**
-	# —— 那张卡在游戏里是空白的)。
-	var buy_limit := Joker.slots_buy_limit(run.joker_slots) + shop.granted_extra_buys()
-	if _shop_buys < buy_limit:
+	# `grant_extra_buys`(当时叫 `_grant_buy_limit`)此前**只被写入和清零, 从没被读过**
+	# —— 那张卡在游戏里是空白的)。名额与去留的算法在 `Shelf.Visit.stay`(三方共用)。
+	# ⚠ 帕奇欧必须跑在 `stay()` **之后**才对得上今天:它只发生在**离店**那一支,
+	#   而 `stay()` 判满额时顺手 `close()` 清授予 —— 顺序反了会把复制出来的授予漏进下一店。
+	if _visit.stay(run.joker_slots):
 		# 剩余配额由**这里**算并传下去 —— 视图不自己数(经济动作只发生在编排器),
 		# 它只拿这个数去写副标题的「还能再选 N 张」。
-		shop.sold(j, run.joker_slots, phrase.coins, buy_limit - _shop_buys)
+		shop.sold(j, run.joker_slots, phrase.coins, _visit.buys_left)
 		return
 	_perkeo_on_exit()
 	shop.close()
@@ -2356,10 +2362,9 @@ func _on_slot_tapped(k: int) -> void:
 	replace.exit()
 	# 替换 = 一次成交, 与买入路径同一本账(5 选 1 / 联票加法)。名额没用完 ⇒ 回商店接着挑,
 	# 买走的那张从货架摘掉;用完 ⇒ 走离店(帕奇欧复制 + close 清授予)再开拍。
-	_shop_buys += 1
-	var buy_limit := Joker.slots_buy_limit(run.joker_slots) + shop.granted_extra_buys()
-	if _shop_buys < buy_limit:
-		shop.sold(new_j, run.joker_slots, phrase.coins, buy_limit - _shop_buys)
+	_visit.note_buy()
+	if _visit.stay(run.joker_slots):
+		shop.sold(new_j, run.joker_slots, phrase.coins, _visit.buys_left)
 		shop.show_board()
 		return
 	_perkeo_on_exit()
