@@ -42,7 +42,7 @@
 
 | e | 何时 | payload |
 |---|---|---|
-| `run` | 开局 | `char`, `cn`, `faces`, `targets`, `coins`, `struct{sec,pps,ppshop,dur}`, `retry?` |
+| `run` | 开局 | `char`, `cn`, `faces`, `targets`, `coins`, `struct{sec,pps,ppshop,dur}`, `retry?`, `since_close_ms?`(见下方 `nav` 一行) |
 | `sec` | 进段 | `i`, `target`, `face`, `wall`, `coins` |
 | `intro` | 公示卡关闭 | `skip`(true=玩家点掉 / false=等它自动关) |
 | `beat` | 起拍 | `i`(全局拍号), `p`(段内), `dur`, `coins`, `hand[5]`, `cache[3]` |
@@ -62,7 +62,7 @@
 | `rerl` | 刷新 | `k`(第几次), `cost`, `coins` |
 | `leave` | 继续 ▸ | `coins` |
 | `focus` | 切前后台 | `on`, `at` |
-| `nav` | 界面跳转 | `to`(home/pick/retry/back) |
+| `nav` | 界面跳转 | `to`(home/pick)——不含 `retry`/`back`:两者曾经打在结算屏的 `close()` **之后**, 落盘口那时已经关了, 从未真正落过盘(死代码已删, 这段间隔改由 `run` 事件的 `since_close_ms` 记) |
 | `close` | run 终 | `ok`, `sec`, `score`, `target`, `beats` |
 
 三条口径上的取舍:

@@ -27,6 +27,7 @@ local _t0 = 0
 local _path = ""
 local _run_id = ""
 local _nth = 0
+local _closed_at_ms = -1      -- 上一次 close() 的 _now() 读数, -1 = 没有待结的 close
 
 local function clock()
 	if Tape.now_ms then return Tape.now_ms() end
@@ -52,13 +53,24 @@ end
 
 function Tape.begin(meta)
 	if not Tape.enabled then return "" end
+	meta = meta or {}
+	-- 读 _now() 必须在下面重置 _t0 之前, 道理同 core/tape.gd::begin 的注释:
+	-- 两次读数用的是同一把相对钟, _t0 在相减时抵消。
+	if _closed_at_ms >= 0 then
+		if meta.since_close_ms == nil then
+			local m = num.shallow(meta)
+			m.since_close_ms = Tape._now() - _closed_at_ms
+			meta = m
+		end
+		_closed_at_ms = -1
+	end
 	Tape.flush()
 	_buf = {}
 	_seq = 0
 	_t0 = clock()
 	_run_id = Tape._stamp()
 	_path = string.format("%s/run_%s.jsonl", Tape.dir, _run_id)
-	Tape.on("run", meta or {})
+	Tape.on("run", meta)
 	return _run_id
 end
 
@@ -88,6 +100,7 @@ function Tape.close(payload)
 	Tape.on("close", payload or {})
 	Tape.flush()
 	_path = ""
+	_closed_at_ms = Tape._now()
 end
 
 function Tape.flush()
@@ -114,6 +127,7 @@ function Tape.reset()
 	_path = ""
 	_run_id = ""
 	Tape.clock_ms = -1
+	_closed_at_ms = -1
 end
 
 function Tape.cards(arr)

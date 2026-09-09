@@ -92,6 +92,26 @@ func run(t) -> void:
 	t.eq(Tape.path(), "", "close shuts the sink; later events cannot reopen it")
 	t.eq(Tape.events()[Tape.events().size() - 1]["e"], "close", "close is the last event")
 
+	# since_close_ms:重开摩擦(结算屏停留 + 重开路径)——曾经靠一条 nav 事件记,
+	# 但那条 nav 打在 close() 之后, 从未落盘(见 core/tape.gd 头注)。现在改记事实:
+	# 上一次 close() 到这一次 begin() 的毫秒差。
+	Tape.reset()
+	Tape.clock_ms = 0
+	Tape.begin({})
+	t.check(not Tape.events()[0].has("since_close_ms"),
+		"a first begin with no prior close carries no since_close_ms")
+	Tape.close({"ok": true})
+	Tape.clock_ms += 1234
+	Tape.begin({})
+	t.eq(Tape.events()[0]["since_close_ms"], 1234,
+		"begin measures the gap since the previous close")
+	# 调用方自己塞了这个键就不许被覆盖 —— 与三个保留元字段同一条纪律。
+	Tape.close({"ok": true})
+	Tape.clock_ms += 999
+	Tape.begin({"since_close_ms": 7})
+	t.eq(Tape.events()[0]["since_close_ms"], 7,
+		"a caller-supplied since_close_ms is kept, not overwritten")
+
 	# 序列化助手:日志里只放标签和 id
 	t.eq(Tape.cards([t._c(14, 3), t._c(10, 2)]), ["AS", "10H"], "cards serialize to labels")
 	var mono := Joker.by_id("mono")

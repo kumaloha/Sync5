@@ -1553,7 +1553,9 @@ func _on_end_next() -> void:
 func _on_end_retry() -> void:
 	if state != St.END:
 		return
-	Tape.on("nav", {"to": "retry"})
+	# 不打 nav:这一刻 Tape 早被 close() 关掉(段末/败局 close 在 run_end 弹出**之前**
+	# 就跑过了),on() 只进缓冲、begin() 一开就清缓冲, 这条 nav 从未落过盘。
+	# 重开摩擦改由下面 begin() 的 since_close_ms 记(结算屏停留 + 重开路径)。
 	run_end.close()
 	_reset_run(true)
 	# 与开局同一份三步(评审 R2):Director/min_run/局数都要算上这一局。
@@ -1576,8 +1578,8 @@ func _on_end_retry() -> void:
 func _on_end_home() -> void:
 	if state != St.END:
 		return
-	Tape.on("nav", {"to": "back"})
-	Tape.flush()
+	# 同 _on_end_retry:走到这里 Tape 已经 close() 过, nav("back") 和随后的
+	# flush() 都是对着空路径的空操作, 从未落盘——一并删掉, 靠 since_close_ms 记。
 	run_end.close()
 	_reset_run(false)
 	_open_home()

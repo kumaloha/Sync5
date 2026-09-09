@@ -28,6 +28,12 @@ extends RefCounted
 ##   Tape.on("beat", {...})     打一条
 ##   Tape.close({...})          收尾 + 落盘
 ## 半途退出的 run **没有 close 事件**——那本身就是信号(玩家中途弃局)。
+##
+## since_close_ms(`run` 事件的可选字段):`view/phrase.gd` 曾在结算屏关闭之后
+## 又打一条 `Tape.on("nav", {"to": "retry"/"back"})`——但 `close()` 早就清空了
+## 落盘路径,`begin()` 的 `flush()` 对着空路径是空操作、随后又清空缓冲,那条 nav
+## 从未落过盘(死代码, 已删)。重开摩擦这件事改记事实本身:`since_close_ms` =
+## 从上一局 `close()` 到这一局 `begin()` 的毫秒差 = 结算屏停留 + 重开路径。
 
 # 事件表(e 字段)。每条都自带 n(序号)/ms(run 内相对毫秒)/e(事件名):
 #
@@ -81,6 +87,7 @@ static var _t0 := 0
 static var _path := ""
 static var _run_id := ""
 static var _nth := 0                 # 本进程内第几局 —— run_id 只到秒, 见 _stamp()
+static var _closed_at_ms := -1       # 上一次 close() 的 _now() 读数, -1 = 没有待结的 close
 
 
 static func _mute_set() -> Dictionary:
@@ -102,13 +109,23 @@ static func _now() -> int:
 static func begin(meta: Dictionary = {}) -> String:
 	if not enabled:
 		return ""
+	var m: Dictionary = meta
+	# 读 _now() 必须在下面重置 _t0 之前:_now() 是相对 _t0 的钟, close() 记的
+	# _closed_at_ms 也是同一把相对钟(还是上一局的 _t0)——两次读数相减时 _t0
+	# 抵消,差值就是真实经过的毫秒。这样 clock_ms 测试注入也天然生效,不用另外
+	# 接一份墙钟。
+	if _closed_at_ms >= 0:
+		if not m.has("since_close_ms"):
+			m = meta.duplicate()
+			m["since_close_ms"] = _now() - _closed_at_ms
+		_closed_at_ms = -1
 	flush()                     # 上一局的尾巴不许跟着走
 	_buf.clear()
 	_seq = 0
 	_t0 = Time.get_ticks_msec()
 	_run_id = _stamp()
 	_path = "%s/run_%s.jsonl" % [dir, _run_id]
-	on("run", meta)
+	on("run", m)
 	return _run_id
 
 
@@ -150,6 +167,7 @@ static func close(payload: Dictionary = {}) -> void:
 	on("close", payload)
 	flush()
 	_path = ""
+	_closed_at_ms = _now()   # 供下一次 begin() 算 since_close_ms(见文件头注)
 
 
 ## 落盘(追加)。to_file 关着时是空操作,缓冲原样留着给测试/工具读。
@@ -190,6 +208,7 @@ static func reset() -> void:
 	_path = ""
 	_run_id = ""
 	clock_ms = -1
+	_closed_at_ms = -1
 
 
 # ---- 序列化助手:日志里只放标签和 id,不放对象 ----
