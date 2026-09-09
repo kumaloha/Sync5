@@ -33,7 +33,7 @@
    本地启动 = `python3 tools/webbundle.py && python3 -m http.server 8771 --directory lua/web` → http://localhost:8771。
    **接下来(按序)**:① 她那边 `require("sync5.check").run()` 全绿 = 真机验完逻辑层;渲染截图对 `docs/mockups/*.html`(只能她验)· ② 商店授予记账三份收口(view / `golden.gd::ShopSim` / `lua/app/shop.lua`, 抽成 `core/shelf.gd` 的实例态, mirror.md §12)·
    ③ 图鉴 v2 · ④ 改 `core/` 的纪律 = 改孪生 + `golden.gd` 重生成 + `mirror.py`(全在 CLAUDE.md 预检行)。
-   ⚠ 顺带发现未修:`Run.snapshot` 存的 64 位 RNG 状态经 Godot JSON 读回是浮点, 2^53 以上低位丢 ⇒ 续玩后牌堆后续洗牌与未中断局不一致(玩家察觉不到, 只影响 Tape 跨断点重放)。
+   ✅ 09-09 修:`Deck.snapshot` 的 RNG 状态改存 16 位十六进制串(`a19e7d8`;int64 经 JSON 是 double, 2^53 以上丢低位), 与 Lua `set_state_hex` 同口径, 旧档数字形状照读。
 1. ✅ **唱片位视觉批**(09-05 晚做完, CHANGELOG ④):碟从货架飞入唱片位, 到点的落进队列、即生效的转一圈溶掉, 牌堆类有浮字。
    ⚠ 若用户其实指「碟面要看出是哪张卡」(碟上现在只刻拍号), 另议。
 2. **`bot_targets` 重标 + `curve`**(numbers.md §2.4:卡先定稿, 关卡分最后)—— 攒成一批, 一次单测 + 一次门。
@@ -248,7 +248,7 @@ TODO 原来写的「偏高」没有依据)。
 | — | Web 出包前重跑 `fontsubset.sh`(en-dash/弯引号是新字,语料扫 `data/*.json` 自动收进) |
 | — | 复审现役卡里窗口/时机限定的(原则 17:窗口窄 ⇒ 效果强) |
 | — | ~~bot 动作粒度:多选弃 = 1 动作~~ **08-27 已改**(run.json `discard_batch`,bot 一批弃牌只消耗 1 个动作;TODO 这行过期到 09-09 才发现)。**剩一步归仪器**:kit 反查会喊「声明了不可达却量到了」⇒ 删拆迁(wrecker)的 `UNREACHABLE` 声明 —— 等用户喊 kit/门时顺手 |
-| — | **db 交叉校验 `discard_bias`** —— 值必须等于该卡 `effects.when.discards_gte`(2026-08-26 抓到手抄漂移:卡改弃6后 sim.json 还是 3,触发恒 0%;这是「两个家」第 N 例,该上校验锁) |
+| — | ✅ **db 交叉校验 `discard_bias`**(09-09 `72d32e4`:值必须等于该卡 `effects.when.discards_gte`, id 必须存在, 卡必须有该条件) |
 | C5 | 新卡的状态成本静态检测 —— 引用了状态里没有的量 = **状态缺失**,当场报出代价 |
 | M3 | `gig_clocks` 场曲线(正式局仍全平 8/8/8/8)。⚠ 动它会与 `death_spec[0]=0.05` **两处放水叠加** |
 | M4 | 槽位显示「这张牌本局贡献多少分」—— 后 3 次商店 100% 是替换场景却没有数值依据 |
