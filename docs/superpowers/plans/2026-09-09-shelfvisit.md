@@ -4,6 +4,8 @@
 > 今天住在 **三处**:`view/shop.gd`(`_grant_*` `_reroll_count` `_buys_left`)+ `view/phrase.gd`(`_shop_buys` `_coffer_used` `_perkeo_fired`)·
 > `tools/golden.gd::ShopSim` · `lua/app/shop.lua`。改一条商店规则要三处同改,整局金样只能证「ShopSim = Lua」,证不了「= view」。
 
+> **状态(2026-09-09):T1 `0283d5f` · T3 `90c7ecd` · T2 `a9747f9` 已落 main;T4 = 本文档 + mirror.md §12 + STATUS/CHANGELOG/TODO。§4 的「截图逐像素一致」做不到(光效随时间、手牌随机), 换成 12 步文本指纹。**
+
 **Goal:** 记账收成 `core/shelf.gd` 的一个实例类 `Shelf.Visit`(一次进店 = 一个实例),view / ShopSim / Lua 三方都消费它;金样加一族替它对拍。
 
 **边界(不动的)**:货架组装(`Shelf.deal/refill/candidates`)已是一份;经济动作仍只在编排器发生(Visit 只记账、不碰 `coins`、不装卡);渲染不动;规则一条不改(改前改后行为逐字节相同 —— 金样与既有单测就是判据)。

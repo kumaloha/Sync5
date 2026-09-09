@@ -31,7 +31,7 @@
 0. ✅ **TapMaker Lua 镜像五段做完 + 浏览器参考渲染器**(2026-09-06 晚, CHANGELOG 09-06 二;全部已 push, 末 `a30f3d5`):
    `lua/` 可交付, 她从 GitHub 拉、读 `lua/README.md` + `lua/app/CONTRACT.md` 接渲染;`lua/web/index.html` 是契约的可运行范例(Fengari 跑 Lua, JS 只画),
    本地启动 = `python3 tools/webbundle.py && python3 -m http.server 8771 --directory lua/web` → http://localhost:8771。
-   **接下来(按序)**:① 她那边 `require("sync5.check").run()` 全绿 = 真机验完逻辑层;渲染截图对 `docs/mockups/*.html`(只能她验)· ② 商店授予记账三份收口(view / `golden.gd::ShopSim` / `lua/app/shop.lua`, 抽成 `core/shelf.gd` 的实例态, mirror.md §12)·
+   **接下来(按序)**:① 她那边 `require("sync5.check").run()` 全绿 = 真机验完逻辑层;渲染截图对 `docs/mockups/*.html`(只能她验)· ② ✅ **商店授予记账三份收口(09-09, `Shelf.Visit`, 四批 `0283d5f`/`a9747f9`/`90c7ecd` + 文档;整局金样逐字节不变, 第六族 visit 87 步)** ·
    ③ 图鉴 v2 · ④ 改 `core/` 的纪律 = 改孪生 + `golden.gd` 重生成 + `mirror.py`(全在 CLAUDE.md 预检行)。
    ✅ 09-09 修:`Deck.snapshot` 的 RNG 状态改存 16 位十六进制串(`a19e7d8`;int64 经 JSON 是 double, 2^53 以上丢低位), 与 Lua `set_state_hex` 同口径, 旧档数字形状照读。
 1. ✅ **唱片位视觉批**(09-05 晚做完, CHANGELOG ④):碟从货架飞入唱片位, 到点的落进队列、即生效的转一圈溶掉, 牌堆类有浮字。
