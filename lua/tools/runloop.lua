@@ -203,7 +203,7 @@ function M.replay(case, eq)
 		elseif k == "leave" then
 			shop:leave()
 		elseif k == "shop_end" then
-			eq(shop.closed, true, tag .. " shop closed at shop_end")
+			eq(shop.visit.closed, true, tag .. " shop closed at shop_end")   -- 记账收进 Shelf.Visit
 			if shop.rule_next then rule_next = true; shop.rule_next = false end
 		elseif k == "end" then
 			break

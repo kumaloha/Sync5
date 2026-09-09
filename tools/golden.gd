@@ -651,26 +651,24 @@ static func digest(run: Run) -> String:
 
 
 ## 商店的非渲染逻辑 —— lua/app/shop.lua 的同构体(view/shop.gd 授予记账 + view/phrase.gd 成交编排)。
-## ⚠ 三处一份(view / 这里 / Lua):改 view 的商店规则要同步这里与 lua/app/shop.lua(mirror.md §12 认下的代价)。
+## ⚑ 记账已收成一份 `Shelf.Visit`(三方共用) ⇒ 整局金样证的「ShopSim = Lua」也覆盖到了 view 用的那份账;
+## ⚠ 但**编排**仍是三处一份(view / 这里 / Lua):改商店的流程仍要三处同改(mirror.md §12)。
 class ShopSim extends RefCounted:
 	var run: Run
 	var rng: RandomNumberGenerator
 	var candidates: Array = []
-	var reroll_count := 0
-	var buys_left := 0
-	var shelf_bonus := 0
-	var grant_shelf := 0
-	var grant_extra_buys := 0
-	var grant_price := 0
-	var grant_free_reroll := 0
-	var grant_min_rarity := ""
+	## ⚑ 记账只有一份:联票名额 / 免费刷新 / 折扣 / 挑高 / 5 选 1 计数 / 帕奇欧一次 / 离店清零
+	## 全在 `Shelf.Visit` 里 —— view/shop.gd 与 lua/app/shop.lua 消费的是**同一个类**。
+	## 这里只留不属于记账的店内状态:货架、消耗牌货架、开过没、跨店的规则牌保底。
+	var visit := Shelf.Visit.new()
 	var coffer: Array = []
-	var coffer_used := false
-	var shop_buys := 0
-	var perkeo_fired := false
 	var opened := false
-	var closed := false
 	var rule_next := false
+
+	## 只读转发:`closed` 住在 Visit 里,调用方语法不变。
+	var closed: bool:
+		get:
+			return visit.closed
 
 	func _init(r: Run, g: RandomNumberGenerator) -> void:
 		run = r
@@ -678,23 +676,16 @@ class ShopSim extends RefCounted:
 
 	func open() -> void:
 		Joker.notify_shop(run.joker_slots, "enter")
-		shop_buys = 0
-		perkeo_fired = false
-		shelf_bonus = run.shelf_bonus
+		visit.open(run.shelf_bonus)
 		run.shelf_bonus = 0
-		reroll_count = 0
-		buys_left = 0
-		grant_min_rarity = ""
 		deal()
 		var rf := rule_next
 		rule_next = false
 		coffer = roll_consumables(rf)
-		coffer_used = false
 		opened = true
-		closed = false
 
 	func deal() -> void:
-		candidates = Shelf.deal(run.joker_slots, shelf_bonus, grant_shelf, grant_min_rarity, rng, {}, {})
+		candidates = Shelf.deal(run.joker_slots, visit.shelf_bonus, visit.grant_shelf, visit.grant_min_rarity, rng, {}, {})
 
 	func roll_consumables(rule_first: bool) -> Array:
 		var held := {}
@@ -706,29 +697,16 @@ class ShopSim extends RefCounted:
 		return out
 
 	func price(j) -> int:
-		var sp := Economy.shelf_price(j, run.joker_slots)
-		return maxi(1, sp + grant_price) if sp > 0 else 0
+		return visit.price(j, run.joker_slots)
 
 	func has_room(j) -> bool:
 		return Joker.has_room_for(run.joker_slots, String(j.kind))
 
 	func affordable(j) -> bool:
-		var p := price(j)
-		if p == 0:
-			return true
-		if j.kind == "target":
-			return run.coins >= p
-		var budget: int = run.coins
-		if not has_room(j):
-			var best_sell := 0
-			for k in range(1, run.joker_slots.size()):
-				if run.joker_slots[k] != null:
-					best_sell = maxi(best_sell, Economy.sell_value(run.joker_slots[k]))
-			budget += best_sell
-		return budget >= p
+		return visit.affordable(j, run.joker_slots, run.coins)
 
 	func buy_limit() -> int:
-		return Joker.slots_buy_limit(run.joker_slots) + grant_extra_buys
+		return visit.buy_limit(run.joker_slots)
 
 	func consumable_effective(c) -> bool:
 		if c.action.has("copy_one_destroy_rest"):
@@ -740,29 +718,25 @@ class ShopSim extends RefCounted:
 		return true
 
 	func _after_sale(sold_joker) -> bool:
-		if shop_buys < buy_limit():
-			if sold_joker != null:
-				sold(sold_joker)
-			buys_left = buy_limit() - shop_buys
-			return true
-		_exit()
-		return false
+		# ⚠ 去留判在**离店副作用之前**取:帕奇欧会应用消耗牌(可能再发名额),
+		# 拿它之后的名额判去留 = 让复制出来的联票把已经该关的店重新开开。
+		if visit.shop_buys >= visit.buy_limit(run.joker_slots):
+			_exit()
+			return false
+		if sold_joker != null:
+			sold(sold_joker)
+		return visit.stay(run.joker_slots)
 
 	func _exit() -> void:
+		# ⚠ 帕奇欧在 `close()` **之前** —— 它应用的消耗牌会写授予/重掷货架,
+		# 顺序反了那些授予会活过这一店。
 		perkeo_on_exit()
-		close()
-
-	func close() -> void:
-		grant_shelf = 0
-		grant_extra_buys = 0
-		grant_price = 0
-		grant_free_reroll = 0
-		closed = true
+		visit.close()
 
 	func sold(j) -> void:
 		var at: int = candidates.find(j)
 		candidates.erase(j)
-		var refill = Shelf.refill(run.joker_slots, candidates, grant_min_rarity, rng, {}, {})
+		var refill = Shelf.refill(run.joker_slots, candidates, visit.grant_min_rarity, rng, {}, {})
 		if refill != null:
 			if at >= 0 and at <= candidates.size():
 				candidates.insert(at, refill)
@@ -809,7 +783,7 @@ class ShopSim extends RefCounted:
 			_exit()
 			return {"ok": true, "stay": false}
 		if not (j.kind == "target" and swapped_target):
-			shop_buys += 1
+			visit.note_buy()
 		return {"ok": true, "stay": _after_sale(j)}
 
 	func replace(i: int, k: int) -> Dictionary:
@@ -828,28 +802,27 @@ class ShopSim extends RefCounted:
 		run.joker_slots[k] = new_j
 		new_j.on_acquire(run.deck)
 		run.coins = Economy.cap_held(run.coins, run.joker_slots)
-		shop_buys += 1
+		visit.note_buy()
 		return {"ok": true, "stay": _after_sale(new_j)}
 
 	func reroll() -> Dictionary:
 		if closed:
 			return {"ok": false}
-		if grant_free_reroll > 0:
-			grant_free_reroll -= 1
+		if visit.take_free_reroll():
 			Joker.notify_shop(run.joker_slots, "reroll")
 			deal()
 			return {"ok": true, "cost": 0}
-		var cost := Economy.reroll_cost(reroll_count, grant_price)
+		var cost := visit.reroll_cost_now()
 		if run.coins < cost:
 			return {"ok": false}
-		reroll_count += 1
+		visit.note_reroll()
 		run.coins -= cost
 		Joker.notify_shop(run.joker_slots, "reroll")
 		deal()
 		return {"ok": true, "cost": cost}
 
 	func buy_consumable(i: int) -> Dictionary:
-		if closed or i >= coffer.size() or coffer[i] == null or coffer_used:
+		if closed or i >= coffer.size() or coffer[i] == null or visit.coffer_used:
 			return {"ok": false}
 		var c = coffer[i]
 		if run.coins < c.price:
@@ -860,17 +833,15 @@ class ShopSim extends RefCounted:
 		var used: Dictionary = run.take_consumable(c)
 		if not used.is_empty():
 			apply_consumable(used)
-		shop_buys += 1
-		coffer_used = true
-		if shop_buys < buy_limit():
-			coffer_used = false
+		visit.note_buy()
+		visit.coffer_used = true
+		if visit.shop_buys < visit.buy_limit(run.joker_slots):
+			# 名额没满 ⇒ 消耗牌货架继续开着(只摘掉刚买的那张)
+			visit.coffer_used = false
 			for k in range(coffer.size()):
 				if coffer[k] != null and String(coffer[k].id) == String(c.id):
 					coffer[k] = null
-			buys_left = buy_limit() - shop_buys
-			return {"ok": true, "stay": true}
-		_exit()
-		return {"ok": true, "stay": false}
+		return {"ok": true, "stay": _after_sale(null)}
 
 	func leave() -> Dictionary:
 		if closed:
@@ -891,24 +862,13 @@ class ShopSim extends RefCounted:
 		apply_shop_action(cid, act)
 
 	func apply_shop_action(id: String, act: Dictionary) -> void:
-		if act.has("shelf_slots"):
-			grant_shelf = maxi(grant_shelf, int(act["shelf_slots"]))
-			if opened and not closed:
-				deal()
-		if act.has("extra_buys"):
-			grant_extra_buys += int(act["extra_buys"])
-		if act.has("price_delta"):
-			grant_price += int(act["price_delta"])
+		# 属于记账的五个键收在 Visit 里;这里只做碰 deck / coins / 跨店的另一半。
+		if bool(visit.apply_action(act)["redeal"]) and opened and not closed:
+			deal()
 		if act.has("rule_guaranteed"):
 			rule_next = true
 		if act.has("deck_rule"):
 			run.deck.rules[String(act["deck_rule"])] = true
-		if act.has("free_reroll"):
-			grant_free_reroll += int(act["free_reroll"])
-		if act.has("min_rarity"):
-			grant_min_rarity = String(act["min_rarity"])
-			if opened and not closed:
-				deal()
 		if act.has("loan"):
 			var ln: Dictionary = act["loan"]
 			run.coins = Economy.grant(run.coins, int(ln.get("borrow", 0)), run.joker_slots)
@@ -941,9 +901,9 @@ class ShopSim extends RefCounted:
 					break
 
 	func perkeo_on_exit() -> void:
-		if perkeo_fired:
+		if visit.perkeo_fired:
 			return
-		perkeo_fired = true
+		visit.perkeo_fired = true
 		if not Joker.slots_copy_consumable(run.joker_slots):
 			return
 		var src: Array = run.consumables.duplicate()

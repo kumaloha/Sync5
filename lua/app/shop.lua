@@ -1,5 +1,8 @@
 -- 商店的**非渲染逻辑**(view/shop.gd 的授予记账 + view/phrase.gd 的成交/替换/刷新/消耗牌/离店编排的镜像)。
 -- 一次进店 = 一个 Shop 实例。经济动作全在这里(编排层调它), 渲染只读 Shop:view()。
+-- ⚑ 记账(联票名额 / 免费刷新 / 折扣 / 挑高 / 5 选 1 计数 / 帕奇欧一次 / 离店清零)全在
+--    `Shelf.Visit` 里 —— view/shop.gd 与 tools/golden.gd::ShopSim 消费的是**同一个类**;
+--    这里只留不属于记账的店内状态(货架 / 消耗牌货架 / 段中态 / tape / 跨店的规则牌保底)。
 -- rng:货架掷法的随机源(Godot 侧是全局随机;镜像由调用方传一条流, 对拍时传种子流)。
 local P = (...):match("^(.-)[^%.]+$") or ""
 local R = (P:gsub("app%.$", ""))
@@ -22,20 +25,9 @@ function Shop.new(ctx)
 	self.explore_used = ctx.explore_used or {}
 	self.tape = ctx.tape or function() end
 	self.candidates = {}
-	self.reroll_count = 0
-	self.buys_left = 0
-	self.shelf_bonus = 0
-	self.grant_shelf = 0
-	self.grant_extra_buys = 0
-	self.grant_price = 0
-	self.grant_free_reroll = 0
-	self.grant_min_rarity = ""
+	self.visit = Shelf.Visit.new()
 	self.coffer = {}
-	self.coffer_used = false
-	self.shop_buys = 0
-	self.perkeo_fired = false
 	self.opened = false
-	self.closed = false
 	self.mid = false
 	self.deny_last = ""
 	self.events = {}
@@ -48,19 +40,12 @@ local function slots(self) return self.run.joker_slots end
 function Shop:open(rule_next)
 	local run = self.run
 	Joker.notify_shop(slots(self), "enter")
-	self.shop_buys = 0
-	self.perkeo_fired = false
 	self.mid = run.phrase_in_section > 0 and run.phrase_in_section < require(R .. "core.config").PHRASES_PER_SECTION
-	self.shelf_bonus = run.shelf_bonus
+	self.visit:open(run.shelf_bonus)
 	run.shelf_bonus = 0
-	self.reroll_count = 0
-	self.buys_left = 0
-	self.grant_min_rarity = ""
 	self:deal()
 	self.coffer = self:roll_consumables(rule_next)
-	self.coffer_used = false
 	self.opened = true
-	self.closed = false
 	self.tape("shop", { mid = self.mid, sec = run.section_idx, coins = run.coins, offer = self:offers() })
 	return self
 end
@@ -68,7 +53,7 @@ end
 function Shop:deal()
 	local cands = Shelf.candidates(slots(self))
 	local Director = require(R .. "core.director")
-	self.candidates = Shelf.deal(slots(self), self.shelf_bonus, self.grant_shelf, self.grant_min_rarity,
+	self.candidates = Shelf.deal(slots(self), self.visit.shelf_bonus, self.visit.grant_shelf, self.visit.grant_min_rarity,
 		self.rng, self.rarity_mult, Director.explore_boost(cands, self.explore_used))
 end
 
@@ -85,9 +70,7 @@ end
 
 -- ---- 价格与可购性(view/shop.gd::_price / _affordable)----
 function Shop:price(j)
-	local sp = Economy.shelf_price(j, slots(self))
-	if sp > 0 then return num.maxi(1, sp + self.grant_price) end
-	return 0
+	return self.visit:price(j, slots(self))
 end
 
 function Shop:has_room(j)
@@ -95,28 +78,15 @@ function Shop:has_room(j)
 end
 
 function Shop:affordable(j)
-	local price = self:price(j)
-	if price == 0 then return true end
-	local coins = self.run.coins
-	if j.kind == "target" then return coins >= price end
-	local budget = coins
-	if not self:has_room(j) then
-		local best_sell = 0
-		local s = slots(self)
-		for k = 2, #s do
-			if s[k] then best_sell = num.maxi(best_sell, Economy.sell_value(s[k])) end
-		end
-		budget = budget + best_sell
-	end
-	return budget >= price
+	return self.visit:affordable(j, slots(self), self.run.coins)
 end
 
 function Shop:reroll_cost_now()
-	return Economy.reroll_cost(self.reroll_count, self.grant_price)
+	return self.visit:reroll_cost_now()
 end
 
 function Shop:buy_limit()
-	return Joker.slots_buy_limit(slots(self)) + self.grant_extra_buys
+	return self.visit:buy_limit(slots(self))
 end
 
 function Shop:offers()
@@ -143,26 +113,21 @@ end
 
 -- ---- 成交后的去留(view/phrase.gd 三条路径共用的名额判)----
 function Shop:_after_sale(sold_joker)
-	if self.shop_buys < self:buy_limit() then
-		if sold_joker ~= nil then self:sold(sold_joker) end
-		self.buys_left = self:buy_limit() - self.shop_buys
-		return true   -- 留在店里
+	-- ⚠ 去留判在**离店副作用之前**取:帕奇欧会应用消耗牌(可能再发名额),
+	-- 拿它之后的名额判去留 = 让复制出来的联票把已经该关的店重新开开。
+	if self.visit.shop_buys >= self.visit:buy_limit(slots(self)) then
+		self:_exit()
+		return false
 	end
-	self:_exit()
-	return false
+	if sold_joker ~= nil then self:sold(sold_joker) end
+	return self.visit:stay(slots(self))   -- true, 顺手更新续买配额
 end
 
 function Shop:_exit()
+	-- ⚠ 帕奇欧在 close() **之前** —— 它应用的消耗牌会写授予/重掷货架,
+	-- 顺序反了那些授予会活过这一店。
 	self:perkeo_on_exit()
-	self:close()
-end
-
-function Shop:close()
-	self.grant_shelf = 0
-	self.grant_extra_buys = 0
-	self.grant_price = 0
-	self.grant_free_reroll = 0
-	self.closed = true
+	self.visit:close()
 end
 
 -- 摘掉售出的那张, 原位补一张(Shelf.refill)
@@ -170,7 +135,7 @@ function Shop:sold(j)
 	local at = num.find(self.candidates, j)
 	num.erase(self.candidates, j)
 	local Director = require(R .. "core.director")
-	local refill = Shelf.refill(slots(self), self.candidates, self.grant_min_rarity, self.rng,
+	local refill = Shelf.refill(slots(self), self.candidates, self.visit.grant_min_rarity, self.rng,
 		self.rarity_mult, Director.explore_boost(Joker.pool(), self.explore_used))
 	if refill ~= nil then
 		if at >= 0 and at <= #self.candidates then
@@ -185,7 +150,7 @@ end
 -- 返回 { ok, why, replace = true(满槽, 进替换流), stay = 是否还在店里 }
 function Shop:buy(i)
 	local j = self.candidates[i + 1]
-	if self.closed or j == nil then return { ok = false, why = "closed" } end
+	if self.visit.closed or j == nil then return { ok = false, why = "closed" } end
 	if not self:affordable(j) then
 		self.tape("deny", { why = "price" })
 		return { ok = false, why = "price" }
@@ -238,7 +203,7 @@ function Shop:_install_bought(j, price)
 		return { ok = true, stay = false }
 	end
 	if not (j.kind == "target" and swapped_target) then
-		self.shop_buys = self.shop_buys + 1
+		self.visit:note_buy()
 	end
 	return { ok = true, stay = self:_after_sale(j) }
 end
@@ -246,7 +211,7 @@ end
 -- ---- 满槽替换:货架第 i 张换进第 k 槽(k 0 基, 1..3;k=0 = 取消)----
 function Shop:replace(i, k)
 	local new_j = self.candidates[i + 1]
-	if self.closed or new_j == nil then return { ok = false, why = "closed" } end
+	if self.visit.closed or new_j == nil then return { ok = false, why = "closed" } end
 	if k == 0 then
 		self.tape("repl_off", { id = new_j.id, coins = self.run.coins })
 		return { ok = false, why = "cancel", stay = true }
@@ -266,17 +231,16 @@ function Shop:replace(i, k)
 	s[k + 1] = new_j
 	new_j:on_acquire(run.deck)
 	run.coins = Economy.cap_held(run.coins, s)
-	self.shop_buys = self.shop_buys + 1
+	self.visit:note_buy()
 	return { ok = true, stay = self:_after_sale(new_j) }
 end
 
 -- ---- 刷新(view/shop.gd::_on_reroll → phrase.gd::_on_shop_reroll)----
 function Shop:reroll()
-	if self.closed then return { ok = false, why = "closed" } end
-	if self.grant_free_reroll > 0 then
-		self.grant_free_reroll = self.grant_free_reroll - 1
+	if self.visit.closed then return { ok = false, why = "closed" } end
+	if self.visit:take_free_reroll() then
 		Joker.notify_shop(slots(self), "reroll")
-		self.tape("rerl", { k = self.reroll_count, cost = 0, coins = self.run.coins })
+		self.tape("rerl", { k = self.visit.reroll_count, cost = 0, coins = self.run.coins })
 		self:deal()
 		return { ok = true, cost = 0, stay = true }
 	end
@@ -285,10 +249,10 @@ function Shop:reroll()
 		self.tape("deny", { why = "reroll" })
 		return { ok = false, why = "reroll", stay = true }
 	end
-	self.reroll_count = self.reroll_count + 1
+	self.visit:note_reroll()
 	self.run.coins = self.run.coins - cost
 	Joker.notify_shop(slots(self), "reroll")
-	self.tape("rerl", { k = self.reroll_count, cost = cost, coins = self.run.coins })
+	self.tape("rerl", { k = self.visit.reroll_count, cost = cost, coins = self.run.coins })
 	self:deal()
 	return { ok = true, cost = cost, stay = true }
 end
@@ -296,7 +260,7 @@ end
 -- ---- 买消耗牌(view/shop.gd::_on_cshelf_pressed → phrase.gd::_on_consumable_bought)----
 function Shop:buy_consumable(i)
 	local c = self.coffer[i + 1]
-	if self.closed or not c or self.coffer_used then return { ok = false, why = "closed" } end
+	if self.visit.closed or not c or self.visit.coffer_used then return { ok = false, why = "closed" } end
 	if self.run.coins < c.price then
 		self.tape("deny", { why = "consumable" })
 		return { ok = false, why = "consumable", stay = true }
@@ -310,23 +274,21 @@ function Shop:buy_consumable(i)
 	local used = run:take_consumable(c)
 	self.tape("cbuy", { id = c.id, price = c.price, coins = run.coins })
 	if next(used) ~= nil then self:apply_consumable(used, "buy") end
-	self.shop_buys = self.shop_buys + 1
-	self.coffer_used = true
-	if self.shop_buys < self:buy_limit() then
-		self.coffer_used = false
+	self.visit:note_buy()
+	self.visit.coffer_used = true
+	if self.visit.shop_buys < self.visit:buy_limit(slots(self)) then
+		-- 名额没满 ⇒ 消耗牌货架继续开着(只摘掉刚买的那张)
+		self.visit.coffer_used = false
 		for k = 1, #self.coffer do
 			if self.coffer[k] and tostring(self.coffer[k].id) == tostring(c.id) then self.coffer[k] = false end
 		end
-		self.buys_left = self:buy_limit() - self.shop_buys
-		return { ok = true, stay = true }
 	end
-	self:_exit()
-	return { ok = true, stay = false }
+	return { ok = true, stay = self:_after_sale(nil) }
 end
 
 -- ---- 「继续 ▸」(唯一免费出口)----
 function Shop:leave()
-	if self.closed then return { ok = false, why = "closed" } end
+	if self.visit.closed then return { ok = false, why = "closed" } end
 	self.tape("leave", { coins = self.run.coins })
 	self.run:tutorial_shop_seen()
 	self:_exit()
@@ -347,19 +309,10 @@ end
 
 function Shop:apply_shop_action(id, act)
 	local run = self.run
-	if act.shelf_slots ~= nil then
-		self.grant_shelf = num.maxi(self.grant_shelf, num.int(act.shelf_slots))
-		if self.opened and not self.closed then self:deal() end
-	end
-	if act.extra_buys ~= nil then self.grant_extra_buys = self.grant_extra_buys + num.int(act.extra_buys) end
-	if act.price_delta ~= nil then self.grant_price = self.grant_price + num.int(act.price_delta) end
+	-- 属于记账的五个键收在 Visit 里;这里只做碰 deck / coins / 跨店的另一半。
+	if self.visit:apply_action(act).redeal and self.opened and not self.visit.closed then self:deal() end
 	if act.rule_guaranteed ~= nil then self.rule_next = true end
 	if act.deck_rule ~= nil then run.deck.rules[tostring(act.deck_rule)] = true end
-	if act.free_reroll ~= nil then self.grant_free_reroll = self.grant_free_reroll + num.int(act.free_reroll) end
-	if act.min_rarity ~= nil then
-		self.grant_min_rarity = tostring(act.min_rarity)
-		if self.opened and not self.closed then self:deal() end
-	end
 	if act.loan ~= nil then
 		local ln = act.loan
 		run.coins = Economy.grant(run.coins, num.int(num.get(ln, "borrow", 0)), slots(self))
@@ -400,8 +353,8 @@ end
 
 -- 帕奇欧:离店时复制一张队列里的消耗牌(每次进店一次)
 function Shop:perkeo_on_exit()
-	if self.perkeo_fired then return end
-	self.perkeo_fired = true
+	if self.visit.perkeo_fired then return end
+	self.visit.perkeo_fired = true
 	local run = self.run
 	if not Joker.slots_copy_consumable(slots(self)) then return end
 	local src = num.shallow(run.consumables)
@@ -423,7 +376,7 @@ function Shop:view()
 	local cons = {}
 	for i = 1, #self.coffer do
 		local c = self.coffer[i]
-		if c and not self.coffer_used then
+		if c and not self.visit.coffer_used then
 			cons[i] = { id = c.id, name = c:display_name(), price = c.price, stamp = c:is_instant() and "" or c:fire_label(),
 				armed = self.run.coins >= c.price and self:consumable_effective(c), fx = c.fx_text }
 		else
@@ -431,10 +384,10 @@ function Shop:view()
 		end
 	end
 	return {
-		open = self.opened and not self.closed, mid = self.mid,
+		open = self.opened and not self.visit.closed, mid = self.mid,
 		offers = self:offers(), consumables = cons,
-		reroll_cost = self.grant_free_reroll > 0 and 0 or self:reroll_cost_now(),
-		buys_left = self.buys_left, coins = self.run.coins,
+		reroll_cost = self.visit.grant_free_reroll > 0 and 0 or self:reroll_cost_now(),
+		buys_left = self.visit.buys_left, coins = self.run.coins,
 		first_target = not slots(self)[1],
 	}
 end
