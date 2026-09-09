@@ -253,7 +253,7 @@ return {
 			},
 		},
 		["discard_bias"] = {
-			["_comment"] = "玩家为自己的卡凑弃牌张数(tools/bot.gd::_play_adaptive)。值 = 想凑到几张;必须与 jokers.json 该卡的 discards_gte 一致(2026-08-26 抓到手抄漂移:卡改弃6后这里还是3)。2026-08-27 动作粒度后受 discard_batch(单批张数上限)约束, 凑法 = 跨区多选一批:缓存先行(不拆手牌)、手牌至多再一张;够不到 want(含钱不够弃 want 张)时偏置整个不生效。⚠ 只在 plan 本来就要弃牌时生效 —— 手牌已经很好时硬凑会砸掉现成牌型。",
+			["_comment"] = "玩家为自己的卡凑弃牌张数(tools/bot.gd::_play_adaptive)。值 = 想凑到几张;必须与 jokers.json 该卡的 discards_gte 一致(2026-08-26 抓到手抄漂移:卡改弃6后这里还是3;2026-09-09 起 core/db.gd::validate_sim 交叉校验锁着, 漂了直接红)。2026-08-27 动作粒度后受 discard_batch(单批张数上限)约束, 凑法 = 跨区多选一批:缓存先行(不拆手牌)、手牌至多再一张;够不到 want(含钱不够弃 want 张)时偏置整个不生效。⚠ 只在 plan 本来就要弃牌时生效 —— 手牌已经很好时硬凑会砸掉现成牌型。",
 			["wrecker"] = 4,
 		},
 		["discard_kappa"] = 30.0,
